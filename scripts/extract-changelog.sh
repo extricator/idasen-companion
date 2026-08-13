@@ -2,10 +2,12 @@
 # Print one version's section of the changelog, to stdout, for the body of a
 # draft release.
 #
-# The release workflow has no other source for that prose. The history was
-# squashed to a single commit, so GitHub's generated notes and any
-# conventional-commits tool both produce nothing usable, and every word is
-# hand-written in CHANGELOG.md instead.
+# The release workflow has no other source for that prose, and every word of
+# it is written by hand in CHANGELOG.md. Commit subjects describe changes to
+# the code. This text describes changes to the product, and its readers never
+# see the repository. A generator closes neither gap, so the obvious
+# alternatives -- GitHub's generated notes, a conventional-commits tool --
+# supply a starting draft at best and never the finished section.
 #
 # This is a script rather than an inline awk in the workflow so that a
 # version nobody wrote notes for -- or one whose heading is there with
