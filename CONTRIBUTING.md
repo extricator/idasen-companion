@@ -207,14 +207,15 @@ closes the moment anonymous readers can fetch the history.
 
 *Every push to this remote, and above all the ones around the flip*: push
 branches by name. Never `git push --all`, never `git push --mirror`. This
-clone carries far more history than the remote does — `git rev-list --count
-HEAD` reports 91 revisions on `main`, `git rev-list --all --count` reports 555
-across every ref, and the difference lives on `backup/main-pre-squash` and five
-other refs (`feat/flatpak-release`, `feat/logging-policy`,
-`feat/settings-apply-model`, `review-main`, `simplify`) that were deliberately
-left behind when the history was squashed. What they hold is exactly what the
-squash removed: the real desk MAC, retired home-directory paths and stale
-authorship trailers. Once one of those objects is pushed, it is fetchable by
+clone carries far more history than the remote does, and the gap is now almost
+total — `git rev-list --count HEAD` reports 1 revision on `main` against the
+555 that `git rev-list --all --count` reports across every ref. The difference
+lives on `backup/main-pre-squash` and five other refs
+(`feat/flatpak-release`, `feat/logging-policy`, `feat/settings-apply-model`,
+`review-main`, `simplify`) deliberately left behind by the rewrites, plus the
+pull-request refs of the repository that preceded this one. What they hold is
+exactly what the rewrites removed: the real desk MAC, retired home-directory
+paths and stale authorship trailers. Once one of those objects is pushed, it is fetchable by
 sha whether or not the branch that carried it still exists — deleting the
 branch afterwards does not retract it. Neither flag is something anyone reaches
 for deliberately; both get typed as a shortcut for "push everything I have",
