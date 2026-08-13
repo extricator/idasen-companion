@@ -51,17 +51,29 @@
     <keyword>health</keyword>
   </keywords>
 
+  <!-- Exactly one screenshot carries type="default", and a software centre
+       shows it first. appstreamcli accepts a second one without a word, so
+       nothing but this comment guards the rule. The width and height let a
+       centre reserve the space before it fetches the image. -->
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/main-window.png</image>
-      <caption>Manual desk control and automation status</caption>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/1-overview.png</image>
+      <caption>Desk height, cycle progress and manual control</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/statistics.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/2-automation.png</image>
+      <caption>The sit/stand cycle, the idle thresholds and the schedule</caption>
+    </screenshot>
+    <screenshot>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/3-statistics.png</image>
       <caption>Daily sit/stand totals and recent transitions</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/settings.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/4-logs.png</image>
+      <caption>The activity log, with what the app did and why</caption>
+    </screenshot>
+    <screenshot>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/5-settings.png</image>
       <caption>Settings for language, units, autostart, window and tray behaviour</caption>
     </screenshot>
   </screenshots>

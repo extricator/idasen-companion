@@ -2,7 +2,7 @@
 
 Automatic sit/stand companion for the IKEA Idåsen desk on Linux.
 
-![The main window of Idasen Companion](data/screenshots/main-window.png)
+![The Idasen Companion overview page](data/screenshots/1-overview.png)
 
 Idasen Companion moves your desk between sitting and standing. It counts only
 the time you spend active at the computer. It does not count the time you are
