@@ -1,0 +1,92 @@
+# Spanish translations for idasen-companion package.
+# This file is distributed under the same license as the idasen-companion package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: idasen-companion\n"
+"Report-Msgid-Bugs-To: https://github.com/extricator/idasen-companion/issues\n"
+"POT-Creation-Date: 2000-01-01 00:00+0000\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/idasen_companion/daemon/i18n.py
+#, python-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] "%d minuto"
+msgstr[1] "%d minutos"
+
+#: src/idasen_companion/daemon/i18n.py
+#, python-format
+msgid "%d second"
+msgid_plural "%d seconds"
+msgstr[0] "%d segundo"
+msgstr[1] "%d segundos"
+
+#: src/idasen_companion/daemon/main.py
+#, python-format
+msgid "Standing up in about %s"
+msgstr "De pie en aproximadamente %s"
+
+#: src/idasen_companion/daemon/main.py
+#, python-format
+msgid "Sitting down in about %s"
+msgstr "Sentándose en aproximadamente %s"
+
+#: src/idasen_companion/daemon/main.py
+msgid "The desk will move once you're due."
+msgstr "El escritorio se moverá cuando corresponda."
+
+#: src/idasen_companion/daemon/main.py
+#, python-format
+msgid "Snooze %d min"
+msgstr "Posponer %d min"
+
+#: src/idasen_companion/daemon/main.py
+msgid "Skip this one"
+msgstr "Omitir esta vez"
+
+#: src/idasen_companion/daemon/main.py
+msgid "Automation paused"
+msgstr "Automatización en pausa"
+
+#: src/idasen_companion/daemon/main.py
+msgid ""
+"The desk was moved to an unrecognized position. It will resume once the desk "
+"is back at sit or stand."
+msgstr ""
+"El escritorio se movió a una posición no reconocida. Se reanudará cuando "
+"vuelva a sentado o de pie."
+
+#: src/idasen_companion/daemon/main.py
+msgid "The desk didn't stand up"
+msgstr "El escritorio no subió"
+
+#: src/idasen_companion/daemon/main.py
+msgid "The desk didn't sit down"
+msgstr "El escritorio no bajó"
+
+#: src/idasen_companion/daemon/main.py
+#, python-format
+msgid "It didn't respond (%s). The next change is a whole interval away."
+msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/daemon/main.py
+msgid "It didn't respond. The next change is a whole interval away."
+msgstr "No respondió. El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/daemon/main.py
+msgid "Try now"
+msgstr "Intentar ahora"
+
+#~ msgid "Toggle sit/stand"
+#~ msgstr "Alternar sentado/de pie"
+
+#~ msgid "Sit the desk"
+#~ msgstr "Bajar el escritorio (sentado)"
+
+#~ msgid "Stand the desk"
+#~ msgstr "Subir el escritorio (de pie)"

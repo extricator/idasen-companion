@@ -1,0 +1,47 @@
+Source: idasen-companion
+Section: utils
+Priority: optional
+Maintainer: extricator <extricator@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               python3-all,
+               pybuild-plugin-pyproject,
+               python3-setuptools,
+               python3-pytest,
+               python3-pytest-asyncio,
+               python3-pyside6.qtcore,
+               python3-pyside6.qtgui,
+               python3-pyside6.qtwidgets,
+               python3-pyside6.qtdbus,
+               python3-pyside6.qtsvg,
+               python3-tomlkit,
+               python3-yaml,
+               python3-dbus-fast,
+               python3-idasen,
+               python3-bleak
+Standards-Version: 4.7.4
+Homepage: https://github.com/extricator/idasen-companion
+Rules-Requires-Root: no
+
+Package: idasen-companion
+Architecture: all
+Depends: ${python3:Depends},
+         python3-pyside6.qtcore,
+         python3-pyside6.qtgui,
+         python3-pyside6.qtwidgets,
+         python3-pyside6.qtdbus,
+         python3-pyside6.qtsvg,
+         python3-dbus-fast,
+         python3-yaml,
+         python3-tomlkit,
+         python3-idasen,
+         python3-bleak,
+         bluez,
+         ${misc:Depends}
+Description: automatic sit/stand companion for the IKEA Idasen desk
+ Idasen Companion automatically alternates an IKEA Idasen desk between
+ sitting and standing positions based on active time at the computer. It
+ ships a background daemon (systemd user service, D-Bus API, journald
+ logging) and a Qt 6 GUI with a system tray icon, live status, manual
+ controls, presets, scheduling, statistics and desktop notifications. Works
+ on GNOME and KDE Plasma, on both X11 and Wayland.

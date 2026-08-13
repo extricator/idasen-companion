@@ -1,0 +1,106 @@
+app-id: io.github.extricator.IdasenCompanion
+runtime: org.kde.Platform
+runtime-version: '6.10'
+sdk: org.kde.Sdk
+# PySide6 + shiboken6 prebuilt against the runtime's Qt. Avoids pip-installing
+# PySide6 (whose wheel bundles a second, conflicting Qt) and keeps the build
+# offline.
+base: io.qt.PySide.BaseApp
+base-version: '6.10'
+command: idasen-companion
+
+# The BaseApp ships a cleanup script that strips its build-only bits, but it
+# leaves the heavy Qt/PySide modules this app never loads. The GUI imports only
+# QtCore/QtGui/QtWidgets/QtDBus and needs QtSvg at runtime (themed SVG icons via
+# QIcon.fromTheme + the svg image/icon plugins); everything stripped below is
+# dead weight. See packaging/flatpak/README.md ("Size") for the rationale.
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
+  # QtWebEngine (a full Chromium) + its LLVM/clang toolchain, driver, sandbox
+  # process, resource paks, spellcheck dictionaries and locale catalogs — by
+  # far the biggest offender (~380 MB).
+  - rm -rf /app/lib/x86_64-linux-gnu/libQt6WebEngine* /app/lib/x86_64-linux-gnu/libQt6WebView*
+  - rm -rf /app/lib/x86_64-linux-gnu/libQt6Pdf*
+  - rm -rf /app/lib/libLLVM.so* /app/lib/libclang-cpp.so* /app/lib/libclang.so*
+  - rm -rf /app/lib/libexec/webenginedriver /app/lib/libexec/QtWebEngineProcess
+  - rm -rf /app/resources/qtwebengine_* /app/resources/v8_context_snapshot.bin
+  - rm -rf /app/qtwebengine_dictionaries
+  - rm -rf /app/translations/qtwebengine_locales
+  # numpy + PyOpenGL are pulled in by the PySide BaseApp; nothing here imports
+  # them (~100 MB).
+  - rm -rf /app/lib/python3.13/site-packages/numpy /app/lib/python3.13/site-packages/numpy.libs /app/lib/python3.13/site-packages/numpy-*.dist-info
+  - rm -rf /app/lib/python3.13/site-packages/OpenGL /app/lib/python3.13/site-packages/pyopengl-*.dist-info
+  # ffmpeg (libav*/libsw*) bundled inside the PySide6 wheel for QtMultimedia,
+  # plus PySide's build-only qml/uic/rcc tools — none used at runtime (~45 MB).
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/Qt
+  - rm -rf /app/lib/python3.13/site-packages/shiboken6_generator
+  # PySide6 Python bindings for Qt modules the app never imports. Leaf extension
+  # modules — safe to drop since nothing does `import PySide6.Qt<Module>`.
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/QtWebEngine* /app/lib/python3.13/site-packages/PySide6/QtWebView*
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/QtPdf* /app/lib/python3.13/site-packages/PySide6/QtQuick* /app/lib/python3.13/site-packages/PySide6/QtQml*
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/Qt3D* /app/lib/python3.13/site-packages/PySide6/QtCharts* /app/lib/python3.13/site-packages/PySide6/QtDataVisualization*
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/QtMultimedia* /app/lib/python3.13/site-packages/PySide6/QtSpatialAudio* /app/lib/python3.13/site-packages/PySide6/QtOpenGL*
+  - rm -rf /app/lib/python3.13/site-packages/PySide6/QtDesigner* /app/lib/python3.13/site-packages/PySide6/QtLocation* /app/lib/python3.13/site-packages/PySide6/QtPositioning*
+  # Type stubs (.pyi) are editor aids only, never loaded at runtime.
+  - rm -f /app/lib/python3.13/site-packages/PySide6/*.pyi
+  # Qt plugins/QML left dangling now their backing libs are gone (the WebView
+  # and PDF-imageformat plugins would only fail to dlopen).
+  - rm -rf /app/lib/plugins/webview /app/lib/plugins/imageformats/libqpdf.so /app/lib/qml
+
+finish-args:
+  # --- GUI ---
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Tray icon (StatusNotifierItem) + desktop notifications.
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.Notifications
+  # --- Desk (BLE) ---
+  # bleak drives the desk through BlueZ on the *system* bus; without this the
+  # desk never connects.
+  - --system-talk-name=org.bluez
+  # --- Idle / lock accounting (core automation input) ---
+  # logind for lock + suspend/resume; Mutter's IdleMonitor and both
+  # lock-detection variants (the ScreenSaver interface on KDE/most DEs, its
+  # GNOME-specific counterpart) across GNOME/KDE/X11.
+  - --system-talk-name=org.freedesktop.login1
+  - --talk-name=org.gnome.Mutter.IdleMonitor
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.gnome.ScreenSaver
+  # --- D-Bus service names we own ---
+  # The daemon owns the base name; the GUI owns the .GUI single-instance name.
+  - --own-name=io.github.extricator.IdasenCompanion
+  - --own-name=io.github.extricator.IdasenCompanion.GUI
+  # First-run import of an existing `idasen` CLI config, read-only.
+  - --filesystem=xdg-config/idasen:ro
+
+modules:
+  # Pure/runtime Python deps as pinned, hashed pythonhosted wheels (offline).
+  # Regenerate with packaging/flatpak/gen-python-deps.py.
+  - python3-deps.json
+
+  - name: idasen-companion
+    buildsystem: simple
+    build-commands:
+      # Install the package (entry-point scripts land in /app/bin). Deps are
+      # already provided by python3-deps, so --no-deps keeps this offline.
+      - pip3 install --no-index --no-build-isolation --no-deps
+        --prefix=${FLATPAK_DEST} .
+      # Data files pip doesn't install (they aren't package data).
+      - install -Dm644 data/io.github.extricator.IdasenCompanion.desktop
+        ${FLATPAK_DEST}/share/applications/io.github.extricator.IdasenCompanion.desktop
+      - install -Dm644 data/io.github.extricator.IdasenCompanion.metainfo.xml
+        ${FLATPAK_DEST}/share/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
+      - install -Dm644 data/icons/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
+      # Session-bus activation so the daemon starts on demand (see the file).
+      - install -Dm644 data/io.github.extricator.IdasenCompanion.service
+        ${FLATPAK_DEST}/share/dbus-1/services/io.github.extricator.IdasenCompanion.service
+    sources:
+      # Built by `python -m build --sdist`. For a Flathub/tagged build, swap
+      # this for a release archive (type: archive) with url + sha256.
+      - type: archive
+        path: ../../dist/idasen_companion-1.0.0.tar.gz

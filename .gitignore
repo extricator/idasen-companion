@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+rpmbuild/
+
+# Local environment. Ignored by the author's global gitignore today, which is
+# machine-local — a clone repacked elsewhere would not be protected.
+.envrc
+
+# Tool caches (each also writes its own .gitignore, but not on every version)
+.mypy_cache/
+.flatpak-builder/
+.ropeproject/
+# coverage.py's data file, written by every `pytest --cov` run since the CI
+# coverage gate landed. Left untracked it also trips build-dist.sh's
+# refuse-to-build-with-untracked-files check.
+.coverage
+
+# Working notes and the local agent's instructions. Deliberately not
+# published — kept so a later `git add -A` cannot reintroduce them.
+.planning/
+CLAUDE.md

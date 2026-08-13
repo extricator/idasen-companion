@@ -1,0 +1,120 @@
+[build-system]
+# >=77 for PEP 639 support: the SPDX `license` string and `license-files`
+# below. Fedora ships 78.1.1, so the RPM build is unaffected.
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idasen-companion"
+dynamic = ["version"]
+description = "Automatic sit/stand companion for the IKEA Idåsen desk"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "extricator" }]
+requires-python = ">=3.11"
+dependencies = [
+    "idasen>=0.12",
+    "bleak>=0.21",
+    "dbus-fast>=2.0",
+    "PyYAML>=5.3",
+    "tomlkit>=0.11",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5"]
+# The plugin behind the CI coverage gate (CI-03). Deliberately not wired into
+# pytest's default arguments below: the RPM's %check runs a bare `%pytest -q` in
+# a Fedora build root that does not have this plugin, so a default coverage flag
+# would break rpmbuild with "unrecognized arguments". CI passes those flags on
+# the command line instead.
+test = ["pytest>=7", "pytest-asyncio>=0.23", "types-PyYAML", "pytest-cov>=7"]
+
+[project.scripts]
+idasen-companiond = "idasen_companion.daemon.main:main"
+idasen-companion = "idasen_companion.gui.main:main"
+
+[project.urls]
+Homepage = "https://github.com/extricator/idasen-companion"
+
+[tool.setuptools.dynamic]
+# One source of truth. The version was written out in pyproject.toml,
+# src/idasen_companion/__init__.py and both app spec files, with nothing
+# checking the four agreed — and `__version__` is what the daemon reports over
+# `--version` and in its startup log line, so a drift would be visible in bug
+# reports. tests/test_packaging.py pins the specs against this.
+version = { attr = "idasen_companion.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# Compiled catalogs shipped inside the package: Qt .qm for the GUI, gettext
+# .mo for the daemon notifications. Regenerate with scripts/build-translations.sh.
+idasen_companion = [
+    "gui/translations/*.qm",
+    "locale/*/LC_MESSAGES/*.mo",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+# Deliberately at mypy's *defaults*, not --strict. The codebase is broadly
+# annotated already, so defaults catch real mistakes without demanding a
+# sweep of every unannotated helper first. Tighten later, once this baseline
+# has stayed at zero for a while.
+#
+# Run it the way it is measured, resolving third-party types from the venv:
+#     uvx mypy --python-executable .venv/bin/python src/
+# mypy is intentionally not a project dependency — `uvx` keeps it out of the
+# venv, and it is not wired into the RPM's %check (a type nit must not fail a
+# package build). CI is where this belongs; see TODO.md.
+python_version = "3.11"
+files = ["src"]
+
+[[tool.mypy.overrides]]
+# `daemon/service.py` annotates its exported methods with D-Bus *type codes*,
+# not Python types — `-> "d"` is a double on the wire, `minutes: "i"` an
+# int32. dbus-fast reads them off the signature; mypy sees string annotations
+# and tries to resolve them as forward references, hence "Name "s" is not
+# defined" and "Variable "…Desk1.d" is not valid as a type". There is nothing
+# to fix in the code: the annotations mean something other than what mypy
+# assumes. Scoped to this module so the same typo anywhere else still errors.
+module = "idasen_companion.daemon.service"
+disable_error_code = ["name-defined", "valid-type"]
+
+[[tool.mypy.overrides]]
+# `idasen` is annotated but ships no py.typed, so mypy would skip it and hand
+# back Any for the desk handle. Follow it anyway and use those annotations —
+# `BleDesk` is a thin wrapper over IdasenDesk, and Any there means the wrapper
+# is unchecked. (`bleak` ships py.typed and needs nothing.)
+module = ["idasen.*"]
+follow_untyped_imports = true
+
+[tool.pylint.main]
+# Enforces CONTRIBUTING.md's "Naming things", tier 3 (glossary): don't coin a
+# second abbreviation for something that already has a name. Tier 2 (scope
+# span) is scripts/check_naming_span.py; tier 1 (accuracy) is not
+# machine-checkable and stays a review norm permanently — neither this
+# section nor the span check covers it.
+#
+# No method-naming pattern override is configured. The 63 D-Bus interface
+# members and Qt virtual overrides that must keep their framework-mandated
+# camelCase/PascalCase names (`MoveToPreset`, `closeEvent`, …) are exempted
+# individually with an inline `# pylint: disable=invalid-name` at each
+# definition, not by relaxing the method pattern — a relaxed pattern would
+# silently let a brand-new, non-framework method through uncaught.
+#
+# Runs via `uvx pylint==4.0.6`, matching `[tool.mypy]` above: not a project
+# dependency, never installed into the venv, and deliberately kept out of the
+# RPM's %check — a naming nit must not fail a package build.
+disable = ["all"]
+enable = ["invalid-name", "disallowed-name"]
+
+[tool.pylint.basic]
+variable-rgx = "^[a-z_][a-z0-9_]{2,40}$"
+argument-rgx = "^[a-z_][a-z0-9_]{2,40}$"
+good-names = ["i", "j", "k", "_"]
+bad-names = ["cfg", "tmp", "val", "res"]

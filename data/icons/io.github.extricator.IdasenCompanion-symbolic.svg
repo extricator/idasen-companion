@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Monochrome tray/symbolic icon: standing desk with rising arrow.
+     Uses the Breeze ColorScheme-Text convention so the panel recolours
+     it (light on dark panels, dark on light) like other tray icons. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <defs>
+    <style type="text/css" id="current-color-scheme">
+      .ColorScheme-Text { color: #232629; }
+    </style>
+  </defs>
+  <g class="ColorScheme-Text" fill="currentColor">
+    <path d="M8 1.5 L11 5 L9.3 5 L9.3 7.4 L6.7 7.4 L6.7 5 L5 5 Z"/>
+    <rect x="2" y="8.4" width="12" height="1.5" rx="0.75"/>
+    <rect x="3.6" y="9.9" width="1.3" height="4.1" rx="0.6"/>
+    <rect x="11.1" y="9.9" width="1.3" height="4.1" rx="0.6"/>
+  </g>
+</svg>

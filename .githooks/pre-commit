@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Refuse a commit whose staged change carries a credential-shaped string.
+#
+# This is the layer that acts before anything leaves the machine, and it is
+# bypassable by design -- `git commit --no-verify` is real, documented below,
+# and CI runs the same scan on a fork that cannot bypass it. Each layer covers
+# the other's gap.
+#
+# The runtime check below is separate from the scan itself so the failure
+# message can be specific: a contributor told "a secret was found" when the
+# real problem is a missing container runtime will assume the hook is broken
+# and remove it, rather than installing docker or podman.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+RUNTIME=""
+for candidate in docker podman; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        RUNTIME="$candidate"
+        break
+    fi
+done
+
+if [ -z "$RUNTIME" ]; then
+    echo "error: no container runtime found; this needs docker or podman" >&2
+    echo "       install one of them to let this hook scan what you staged." >&2
+    echo "       If the commit has to go through anyway, 'git commit --no-verify'" >&2
+    echo "       is the deliberate bypass -- CI still runs the same scan and" >&2
+    echo "       will not let this through unnoticed." >&2
+    exit 1
+fi
+
+# No output directory argument: the scanner defaults to, uses and then
+# removes its own temporary one, which is fine here -- the report path it
+# prints above (as part of its own output, before that cleanup runs) is the
+# detail a refused commit needs, and this hook has nothing durable to add.
+if ! bash scripts/scan-secrets.sh staged; then
+    echo >&2
+    echo "error: commit refused -- the staged change carries something" >&2
+    echo "       credential-shaped. See the report path in the scan output" >&2
+    echo "       above for the detail." >&2
+    echo "       'git commit --no-verify' is the deliberate bypass for a false" >&2
+    echo "       positive in a hurry -- CI runs the same scan and does not" >&2
+    echo "       have one." >&2
+    exit 1
+fi
+
+exit 0

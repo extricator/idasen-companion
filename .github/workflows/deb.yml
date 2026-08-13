@@ -1,0 +1,209 @@
+name: Deb
+
+on:
+  workflow_call:
+    inputs:
+      force:
+        description: Build regardless of which paths the change touches
+        type: boolean
+        default: false
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    name: Build the .deb
+    runs-on: ubuntu-24.04
+    container: debian:13
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    outputs:
+      relevant: ${{ steps.changed.outputs.relevant }}
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y git
+
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Trust the checkout directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Determine whether this change touches packaging-relevant paths
+        id: changed
+        run: |
+          # A caller that asks for a build has already decided it must happen:
+          # a release rebuilds at its own tag, where a diff of touched paths
+          # says nothing about whether the artifact is wanted.
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # First push of a new branch (or a workflow_dispatch run, which has
+            # neither event field): diff against the empty tree so everything
+            # counts as changed rather than erroring.
+            case "$BASE" in
+              0000000000000000000000000000000000000000|"") BASE=$(git hash-object -t tree /dev/null) ;;
+            esac
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "${{ github.sha }}")
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(packaging/|data/|pyproject\.toml|MANIFEST\.in|src/|tests/|scripts/|debian/|\.github/workflows/deb\.yml)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install build dependencies
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential debhelper dh-python python3-all pybuild-plugin-pyproject \
+            devscripts lintian debhelper-compat python3-setuptools \
+            python3-pytest python3-pytest-asyncio \
+            python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtwidgets \
+            python3-pyside6.qtdbus python3-pyside6.qtsvg \
+            python3-tomlkit python3-yaml python3-dbus-fast python3-idasen python3-bleak
+
+      - name: Build the .deb
+        if: steps.changed.outputs.relevant == 'true'
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Lint the built package
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          # no-manual-page: this app is GUI/systemd-only, with no CLI usage
+          # a man page would document. initial-upload-closes-no-bugs: this
+          # package is never uploaded through the Debian NEW queue, so there
+          # is no ITP bug for a first upload to close.
+          lintian --fail-on error,warning \
+            --suppress-tags no-manual-page \
+            --suppress-tags initial-upload-closes-no-bugs \
+            ../idasen-companion_*.changes
+
+      - name: Move the built .deb into the workspace
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          mkdir -p dist-deb
+          mv ../idasen-companion_*.deb dist-deb/
+
+      - name: Upload the built .deb
+        if: steps.changed.outputs.relevant == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-deb
+          path: dist-deb/*.deb
+          if-no-files-found: error
+
+  # No existing workflow in this repo installs and launches a built artifact
+  # in a clean environment -- rpm.yml only builds. A systemd user unit's
+  # enabled/disabled state is a fact about a running systemd user manager,
+  # which a bare `container:` job does not have (see deb-smoke's own steps
+  # below), so this half runs on a real VM and drives Docker itself.
+  deb-smoke:
+    name: Install the .deb in a clean container
+    needs: [deb]
+    if: needs.deb.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download the built .deb
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-deb
+          path: dist-deb
+
+      - name: Start a systemd-booted Debian 13 container
+        run: |
+          docker run -d --name deb-smoke \
+            --privileged --cgroupns=host \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            -v "$PWD/dist-deb":/artifacts:ro \
+            debian:13 bash -c "apt-get update -qq && \
+              DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+                --no-install-recommends systemd systemd-sysv dbus && \
+              exec /sbin/init"
+
+      - name: Wait for the container's systemd to finish initialising
+        run: |
+          # Match against the fixed vocabulary systemd documents for this
+          # query, rather than treating any non-empty output as a state. The
+          # container installs its init system before exec'ing it, so early
+          # polls run before the binary exists -- and Docker reports that on
+          # stdout, where a "non-empty means ready" test reads it as a state
+          # and lets the next step race the entrypoint's own package install.
+          for _ in $(seq 1 180); do
+            STATE=$(docker exec deb-smoke systemctl is-system-running 2>/dev/null || true)
+            echo "System state: ${STATE:-<unavailable>}"
+            case "$STATE" in
+              running|degraded|maintenance)
+                exit 0
+                ;;
+            esac
+            sleep 1
+          done
+          echo "Timed out waiting for the container's init system to come up" >&2
+          docker logs deb-smoke 2>&1 | tail -40 || true
+          exit 1
+
+      - name: Install the .deb from the archive
+        run: docker exec deb-smoke bash -c "apt-get update -qq && apt-get install -y /artifacts/idasen-companion_*.deb"
+
+      - name: Create an unprivileged test user and enable linger
+        run: |
+          docker exec deb-smoke useradd -m -s /bin/bash smoketest
+          docker exec deb-smoke loginctl enable-linger smoketest
+          for _ in $(seq 1 30); do
+            if docker exec deb-smoke systemctl -M smoketest@ --user is-system-running >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Timed out waiting for the test user's systemd --user manager to start" >&2
+          exit 1
+
+      - name: The unit lands present and in a normal off state (PKG-03)
+        run: |
+          # is-enabled exits non-zero for several states -- disabled among
+          # them -- that still mean the unit is present and startable, so
+          # the exit code cannot be the pass signal; only the printed word
+          # can. not-found/masked are the two states a broken package or a
+          # broken enable-on-install would actually produce.
+          if WORD=$(docker exec deb-smoke systemctl -M smoketest@ --user is-enabled idasen-companion.service 2>/dev/null); then :; fi
+          echo "is-enabled reported: $WORD"
+          case "$WORD" in
+            not-found|masked|masked-runtime)
+              echo "Unit is not in a startable state: $WORD" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Enabling and starting the unit works (PKG-03)
+        run: docker exec deb-smoke systemctl -M smoketest@ --user enable --now idasen-companion.service
+
+      - name: The unit was actually started, not just accepted (PKG-03)
+        run: |
+          ACTIVE=$(docker exec deb-smoke systemctl -M smoketest@ --user show idasen-companion.service --property=ActiveState --value)
+          echo "ActiveState reported: $ACTIVE"
+          if [ -z "$ACTIVE" ] || [ "$ACTIVE" = "inactive" ]; then
+            echo "Unit never left the inactive state -- it was not started" >&2
+            exit 1
+          fi
+
+      - name: The GUI entry point resolves against the archive's PySide6 (PKG-02)
+        run: docker exec -e QT_QPA_PLATFORM=offscreen deb-smoke idasen-companion --version
+
+      - name: Tear down the container
+        if: always()
+        run: docker rm -f deb-smoke

@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=idasen_companion
+
+%:
+	# dh-python Provides dh-sequence-python3, but that's a virtual name --
+	# nothing ever actually installs it, so debhelper's compat-13 auto
+	# sequencing (which looks for the addon module genuinely present on
+	# disk) never fires and dh_python3 is silently skipped, leaving
+	# ${python3:Depends} unresolved. Request the addon explicitly.
+	dh $@ --buildsystem=pybuild --with python3
+
+override_dh_installsystemduser:
+	dh_installsystemduser --no-enable
+
+override_dh_auto_test:
+	python3 -c "import PySide6.QtWidgets"
+	# pybuild's own test runner copies tests/ and pyproject.toml next to
+	# the built package and runs pytest from inside that copy. Much of
+	# this suite reads sibling paths (scripts/, src/, debian/, packaging/)
+	# relative to the real repository root, which that copy does not
+	# have. Running pytest from the checked-out tree instead keeps every
+	# path real; only the built package's location needs adding to
+	# PYTHONPATH so it imports the same way pybuild's copy would have.
+	PYTHONPATH=$$(echo .pybuild/cpython3_*/build) python3 -m pytest -q

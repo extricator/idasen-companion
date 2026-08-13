@@ -1,0 +1,8 @@
+[D-BUS Service]
+# Session-bus activation for the headless daemon. Under Flatpak there is no
+# systemd user service, so the daemon is started on demand: the moment any
+# client (the GUI, or a `idasen-companion --toggle` shortcut) connects to this
+# well-known name, the bus launches the daemon inside the sandbox. Flatpak
+# exports this file and rewrites Exec to the sandbox launcher.
+Name=io.github.extricator.IdasenCompanion
+Exec=/app/bin/idasen-companiond

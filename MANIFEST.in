@@ -1,0 +1,79 @@
+include README.md
+# `license-files` in pyproject.toml already puts LICENSE in the sdist and the
+# wheel; named here too so it is visible alongside the other root files.
+include LICENSE
+include MANIFEST.in
+# The release notes are a root-level file, so nothing else here sweeps them
+# in, and the version-sync test now reads them as text — the same reason the
+# spec files and the scripts below are named individually. Leave the line out
+# and the RPM's %check, which runs the suite from an unpacked sdist, dies at
+# collection while every local run passes.
+include CHANGELOG.md
+# A root-level file, named here for the same reason as CHANGELOG.md above:
+# the new hook test reads its text after the sdist is unpacked.
+include CONTRIBUTING.md
+# Name the files that ship, rather than sweeping the directory. MANIFEST.in
+# reads the *filesystem*, not git, so an unbounded sweep of this directory
+# would silently publish whatever happened to be sitting there. An allowlist
+# fails safe: new working material stays out until someone adds it on purpose.
+include data/icons/io.github.extricator.IdasenCompanion-symbolic.svg
+include data/icons/io.github.extricator.IdasenCompanion.svg
+include data/idasen-companion.service
+include data/io.github.extricator.IdasenCompanion.desktop
+include data/io.github.extricator.IdasenCompanion.metainfo.xml
+# The sandboxed package's own build consumes the sdist as its source and
+# installs the session-activation unit below from inside it — omit this line
+# and that install step has nothing to install.
+include data/io.github.extricator.IdasenCompanion.service
+# Name the docs that ship, rather than sweeping the directory. MANIFEST.in
+# reads the *filesystem*, not git, so `recursive-include docs *` silently
+# published whatever happened to be sitting there — untracked handoff notes and
+# an untracked design-tool export whose screenshots were ~90% of the tarball.
+# An allowlist fails safe: new working material stays out until someone adds it
+# on purpose. MANUAL-TESTING.md is required (the spec installs it as %doc);
+# TRANSLATING.md is here for packagers and contributors.
+include docs/MANUAL-TESTING.md
+include docs/TRANSLATING.md
+include docs/LOGGING.md
+# Same reasoning as data/ above: name the spec files that ship instead of
+# sweeping the directory. An allowlist bounds itself by construction, which
+# retires the pre-emptive Flatpak-scratch exclusion an unbounded sweep used
+# to need.
+include packaging/idasen-companion-bundled.spec
+include packaging/idasen-companion.spec
+include packaging/python-bleak.spec
+include packaging/python-idasen.spec
+# The sandboxed-package build manifest needs to ship too, for the same
+# reason as the spec files above: a version-sync check and the RPM's %check
+# both read it as text after the sdist is unpacked.
+include packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
+# A packaging test reads three of the new .deb build-metadata files as text
+# after the sdist is unpacked, so they must ship the same way the two app
+# spec files above do — named individually, not swept in with everything
+# else the new build metadata added.
+include debian/control
+include debian/rules
+include debian/changelog
+recursive-include tests *.py
+# Translations: editable sources (.ts/.po/.pot) + the build script, plus the
+# compiled catalogs that ship inside the package (.qm for the Qt GUI, .mo for
+# the daemon's gettext notifications). See docs/TRANSLATING.md.
+include scripts/build-translations.sh
+include scripts/build-dist.sh
+# The suite ships whole (recursive-include tests above) and the RPM's %check
+# runs it from an unpacked sdist, so every script a test reads must ship too.
+# tests/test_naming_span.py imports this one; without it %check dies at
+# collection with FileNotFoundError, which no local run reproduces because the
+# file is sitting right there in the working tree.
+include scripts/check_naming_span.py
+# Same reasoning as the naming checker just above: the suite ships whole and
+# the RPM's %check runs it from an unpacked tarball, so anything a test opens
+# has to travel with it too. A missing line here fails only in a package
+# build, never in a local run, because the file sits right there in the
+# working tree the whole time.
+include .githooks/pre-commit
+include scripts/scan-secrets.sh
+recursive-include translations *.ts
+recursive-include po *.po *.pot
+recursive-include src/idasen_companion/gui/translations *.qm
+recursive-include src/idasen_companion/locale *.mo

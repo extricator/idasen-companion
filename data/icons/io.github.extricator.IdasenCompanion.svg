@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Idasen Companion: standing desk with rising arrow -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a90d9"/>
+      <stop offset="1" stop-color="#2f6bb0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="url(#bg)"/>
+  <!-- desk top -->
+  <rect x="12" y="30" width="40" height="5" rx="2.5" fill="#ffffff"/>
+  <!-- legs -->
+  <rect x="17" y="35" width="4.5" height="16" rx="2" fill="#ffffff" opacity="0.92"/>
+  <rect x="42.5" y="35" width="4.5" height="16" rx="2" fill="#ffffff" opacity="0.92"/>
+  <!-- feet -->
+  <rect x="13.5" y="50" width="11.5" height="3.5" rx="1.75" fill="#ffffff" opacity="0.85"/>
+  <rect x="39" y="50" width="11.5" height="3.5" rx="1.75" fill="#ffffff" opacity="0.85"/>
+  <!-- rising arrow above the desk -->
+  <path d="M32 8 L40 18 L35 18 L35 26 L29 26 L29 18 L24 18 Z" fill="#a5e26b"/>
+</svg>

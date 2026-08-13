@@ -1,0 +1,214 @@
+name: Checks
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  types:
+    name: Type-check with mypy
+    runs-on: ubuntu-24.04
+    steps:
+      # Every third-party action reference below names a commit rather than a
+      # release: a release tag can be moved by whoever owns it after the fact,
+      # while the commit it named at review time cannot change under us.
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # mypy is deliberately not a project dependency (see [tool.mypy] in
+      # pyproject.toml) and is pinned separately from the code it checks.
+      # It needs to resolve third-party types from an environment carrying
+      # both the gui and test extras -- missing either produces false errors
+      # that have nothing to do with the code under check. No flag here
+      # overrides [tool.mypy]; that config is the single source of truth.
+      - name: Install the package with its gui and test extras into a throwaway venv
+        run: |
+          python -m venv .mypy-target
+          .mypy-target/bin/pip install --upgrade pip
+          .mypy-target/bin/pip install -e '.[gui,test]'
+
+      - name: Install mypy at its pinned version
+        run: python -m pip install --upgrade pip mypy==2.3.0
+
+      - name: Run mypy against the throwaway venv's interpreter
+        run: python -m mypy --python-executable .mypy-target/bin/python src/
+
+  artifacts:
+    name: Audit sdist and wheel contents
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build
+        run: python -m pip install --upgrade pip build
+
+      # The build script carries all four artifact checks and its own
+      # failure messages; running it here rather than duplicating the checks
+      # in YAML keeps the gate in one place, the same command a developer
+      # runs locally.
+      - name: Run the artifact content audit
+        run: bash scripts/build-dist.sh
+
+  naming:
+    name: Enforce the naming rule
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # pylint is deliberately not a project dependency, pinned separately
+      # from the code it checks, and never runs in the RPM's %check -- a
+      # naming nit must not fail a package build.
+      - name: Install pylint at its pinned version
+        run: python -m pip install --upgrade pip pylint==4.0.6
+
+      # Config comes from [tool.pylint.main]/[tool.pylint.basic] in
+      # pyproject.toml, auto-discovered from the repository root -- the same
+      # thing a developer gets running the identical command locally.
+      - name: Run pylint over src/idasen_companion
+        run: pylint src/idasen_companion
+
+      - name: Run the naming scope-span check
+        run: python scripts/check_naming_span.py src
+
+  catalogs:
+    name: Check translation catalogs are current and complete
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install gettext
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext
+
+      # Pinned to the version the committed .ts was produced with, so a
+      # different lupdate output is not mistaken for a stale catalog.
+      - name: Install PySide6 pinned to the version the committed catalogs were produced with
+        run: python -m pip install --upgrade pip 'PySide6==6.11.1'
+
+      # When this gate goes red on a future pull request, the first question
+      # is whether the toolchain moved -- the answer belongs in this log.
+      - name: Log the catalog toolchain versions
+        run: |
+          xgettext --version
+          msgmerge --version
+          pyside6-lupdate -version
+
+      - name: Regenerate both catalogs
+        run: |
+          PATH="$(python -c 'import sysconfig;print(sysconfig.get_path("scripts"))'):$PATH" bash scripts/build-translations.sh
+
+      # The command below prints the diff before returning non-zero, so a
+      # stale run's log already shows what regenerated differently.
+      - name: Fail if regeneration produced a diff
+        run: git diff --exit-code -- translations/ po/ src/idasen_companion/gui/translations src/idasen_companion/locale
+
+      # gettext's own PO grammar, not a regex -- the tool below correctly
+      # skips the header block and mid-message continuation lines, both of
+      # which a naive grep for an empty msgstr misreads as untranslated.
+      - name: Fail on an untranslated or unconfirmed (fuzzy) PO entry
+        run: |
+          for catalog in po/*.po; do
+            if msgattrib --untranslated "$catalog" -o - | grep -q '^msgid'; then
+              echo "untranslated entry in $catalog" >&2
+              exit 1
+            fi
+            if msgattrib --fuzzy "$catalog" -o - | grep -q '^msgid'; then
+              echo "unconfirmed (fuzzy) entry in $catalog" >&2
+              exit 1
+            fi
+          done
+
+      - name: Fail on an unfinished Qt Linguist entry
+        run: |
+          if grep -l 'type="unfinished"' translations/*.ts; then
+            exit 1
+          fi
+
+  metainfo:
+    name: Validate the AppStream metainfo
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Install appstream (ships appstreamcli)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends appstream
+
+      # Non-strict deliberately: this project gates on exit codes and avoids
+      # promoting pedantic hints to failures (see the coverage-gate lesson in
+      # CLAUDE.md). No grep of appstreamcli's own output either.
+      - name: Validate the AppStream metainfo
+        run: appstreamcli validate --no-net --explain data/io.github.extricator.IdasenCompanion.metainfo.xml
+
+  secrets:
+    name: Scan for committed secrets
+    runs-on: ubuntu-24.04
+    steps:
+      # A shallow checkout hands the history scan a single commit: it would
+      # succeed, find nothing, and look identical in the log to a scan that
+      # covered everything. rpm.yml, deb.yml and flatpak.yml already override
+      # the default for unrelated tooling reasons, so this is established
+      # practice in this repository, not a new one.
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A full-depth checkout still stops at branches and tags. The forge
+      # keeps a permanent ref per proposed change, holding every intermediate
+      # commit of it -- including ones a squash-merge collapsed, whose content
+      # never reached the default branch and which no scan of the branches can
+      # see. They outlive the branch and become fetchable by anyone once the
+      # repository is public, so they belong in scope here. The scan refuses to
+      # report clean without them, which is what keeps this step honest rather
+      # than merely present.
+      - name: Fetch the refs a checkout leaves behind
+        run: git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
+
+      - name: Scan the full commit history
+        run: bash scripts/scan-secrets.sh history
+
+      # History and working-tree scans answer different questions. Only the
+      # working-tree scan sees a file present in the checkout but in no
+      # commit -- the class of finding that sat in an untracked, gitignored
+      # file in this repository on 2026-08-10.
+      - name: Scan the working tree
+        run: bash scripts/scan-secrets.sh worktree
+
+      # No separate assertion on either step's output is needed or wanted: a
+      # green step already means its canary fired, because the shared script
+      # refuses to reach its real scan otherwise. That is the strongest
+      # available proof, and this project gates on exit codes alone.

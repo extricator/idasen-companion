@@ -1,0 +1,103 @@
+name: Flatpak
+
+on:
+  workflow_call:
+    inputs:
+      force:
+        description: Build regardless of which paths the change touches
+        type: boolean
+        default: false
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flatpak:
+    name: Build the .flatpak bundle
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      options: --privileged
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Trust the checkout directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Determine whether this change touches packaging-relevant paths
+        id: changed
+        run: |
+          # A caller that asks for a build has already decided it must happen:
+          # a release rebuilds at its own tag, where a diff of touched paths
+          # says nothing about whether the artifact is wanted.
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # First push of a new branch (or a workflow_dispatch run, which has
+            # neither event field): diff against the empty tree so everything
+            # counts as changed rather than erroring.
+            case "$BASE" in
+              0000000000000000000000000000000000000000|"") BASE=$(git hash-object -t tree /dev/null) ;;
+            esac
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "${{ github.sha }}")
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(packaging/|packaging/flatpak/|data/|pyproject\.toml|MANIFEST\.in|src/|tests/|scripts/|\.github/workflows/flatpak\.yml)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure the Python build tooling is available
+        if: steps.changed.outputs.relevant == 'true'
+        run: python3 -m pip install --quiet build
+
+      - name: Build the sdist
+        if: steps.changed.outputs.relevant == 'true'
+        run: python3 -m build --sdist
+
+      - name: Assert the sdist matches what the manifest names
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          SDIST="dist/idasen_companion-${VERSION}.tar.gz"
+          if [ ! -f "$SDIST" ]; then
+            echo "Expected sdist $SDIST was not produced by 'python3 -m build --sdist'." >&2
+            exit 1
+          fi
+          MANIFEST="packaging/flatpak/io.github.extricator.IdasenCompanion.yaml"
+          if ! grep -q "idasen_companion-${VERSION}.tar.gz" "$MANIFEST"; then
+            echo "$MANIFEST's pinned sdist source does not name idasen_companion-${VERSION}.tar.gz." >&2
+            echo "The manifest and __version__ have drifted -- flatpak-builder would build against a stale or missing archive instead of failing loudly." >&2
+            exit 1
+          fi
+
+      - name: Build the .flatpak bundle
+        if: steps.changed.outputs.relevant == 'true'
+        uses: flatpak/flatpak-github-actions/flatpak-builder@401fe28a8384095fc1531b9d320b292f0ee45adb  # v6
+        with:
+          bundle: idasen-companion.flatpak
+          manifest-path: packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
+          # The app module's source is a local sdist with no sha256, so the
+          # cache key never changes when the sdist does -- see
+          # packaging/flatpak/README.md's rebuild-gotcha note.
+          cache: false
+          upload-artifact: false
+
+      - name: Upload the bundle
+        if: steps.changed.outputs.relevant == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-flatpak
+          path: idasen-companion.flatpak
+          if-no-files-found: error

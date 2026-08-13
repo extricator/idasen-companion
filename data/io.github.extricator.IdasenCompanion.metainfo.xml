@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.extricator.IdasenCompanion</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Idasen Companion</name>
+  <summary>Automatic sit/stand companion for the IKEA Idåsen desk</summary>
+  <developer id="io.github.extricator">
+    <name>extricator</name>
+  </developer>
+
+  <description>
+    <p>
+      Idasen Companion alternates your IKEA Idåsen desk between sitting and
+      standing based on active time at the computer — time spent idle or with
+      the session locked doesn't count. A background daemon owns the Bluetooth
+      connection and the automation logic; a Qt 6 tray application gives you
+      live status, manual controls, presets, scheduling, statistics and
+      desktop notifications.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Active-time automation with lenient and strict idle thresholds, so the desk never moves while you might be away.</li>
+      <li>Cycle variation so sit/stand transitions don't feel mechanical.</li>
+      <li>Interruption handling — the resulting height is verified after every move and retried if you grabbed the paddle mid-move.</li>
+      <li>On-demand Bluetooth that connects only when there's work, then drops the connection.</li>
+      <li>Manual sit/stand and preset controls, scheduling, per-day statistics and an activity log.</li>
+    </ul>
+    <p>
+      This is an independent, unofficial project, not affiliated with or
+      endorsed by Inter IKEA Systems B.V. IKEA and Idåsen are trademarks of
+      their respective owners.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.extricator.IdasenCompanion.desktop</launchable>
+
+  <url type="homepage">https://github.com/extricator/idasen-companion</url>
+  <url type="bugtracker">https://github.com/extricator/idasen-companion/issues</url>
+
+  <categories>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>desk</keyword>
+    <keyword>standing</keyword>
+    <keyword>idasen</keyword>
+    <keyword>sit</keyword>
+    <keyword>stand</keyword>
+    <keyword>health</keyword>
+  </keywords>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/main-window.png</image>
+      <caption>Manual desk control and automation status</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/statistics.png</image>
+      <caption>Daily sit/stand totals and recent transitions</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/settings.png</image>
+      <caption>Settings for language, units, autostart, window and tray behaviour</caption>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="1.0.0" date="2026-08-09">
+      <description>
+        <p>
+          First public release. The desk alternates between sitting and
+          standing on active time at the computer, and stands down while you
+          are idle, locked or away.
+        </p>
+        <p>
+          Includes manual sit/stand and preset controls, scheduling, per-day
+          statistics and an activity log, a tray application with desktop
+          notifications, on-demand Bluetooth, and English and Spanish
+          translations.
+        </p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-08-08">
+      <description>
+        <p>
+          First packaged release, shipping as an RPM, a .deb and a Flatpak
+          bundle.
+        </p>
+      </description>
+    </release>
+  </releases>
+</component>

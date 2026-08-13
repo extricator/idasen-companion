@@ -1,0 +1,109 @@
+name: RPM
+
+on:
+  workflow_call:
+    inputs:
+      force:
+        description: Build regardless of which paths the change touches
+        type: boolean
+        default: false
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rpm:
+    name: Build the bundled RPM
+    runs-on: ubuntu-24.04
+    container: fedora:43
+    steps:
+      - name: Install git
+        run: dnf install -y git
+
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Trust the checkout directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Determine whether this change touches packaging-relevant paths
+        id: changed
+        run: |
+          # A caller that asks for a build has already decided it must happen:
+          # a release rebuilds at its own tag, where a diff of touched paths
+          # says nothing about whether the artifact is wanted.
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # First push of a new branch (or a workflow_dispatch run, which has
+            # neither event field): diff against the empty tree so everything
+            # counts as changed rather than erroring.
+            case "$BASE" in
+              0000000000000000000000000000000000000000|"") BASE=$(git hash-object -t tree /dev/null) ;;
+            esac
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "${{ github.sha }}")
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(packaging/|data/|pyproject\.toml|MANIFEST\.in|src/|tests/|scripts/|\.github/workflows/rpm\.yml)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install build dependencies
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          # python3-setuptools is not one of the spec's static BuildRequires:
+          # %pyproject_buildrequires derives it at build time from
+          # pyproject.toml's build-system.requires (setuptools>=77), and
+          # rpmbuild then refuses to continue until it is present. A developer
+          # machine already has it, so this only shows up in a minimal
+          # container — which is the reason CI builds the package at all.
+          dnf install -y \
+            rpm-build rpmdevtools python3-devel python3-pip python3-build curl \
+            python3-setuptools python3-uv-build systemd-rpm-macros \
+            desktop-file-utils \
+            python3-pytest python3-pytest-asyncio python3-tomlkit python3-pyyaml \
+            python3-dbus-fast python3-pyside6
+
+      - name: Build the sdist
+        if: steps.changed.outputs.relevant == 'true'
+        run: python3 -m build --sdist
+
+      - name: Copy the sdist into rpmbuild/SOURCES
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          mkdir -p rpmbuild/SOURCES
+          VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          cp "dist/idasen_companion-${VERSION}.tar.gz" rpmbuild/SOURCES/
+
+      - name: Download the vendored bleak/idasen sdists
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          # These must track the spec's own %global bleak_version /
+          # %global idasen_version (Source1/Source2) — bump both together.
+          curl -fL https://files.pythonhosted.org/packages/source/b/bleak/bleak-3.0.2.tar.gz \
+            -o rpmbuild/SOURCES/bleak-3.0.2.tar.gz
+          curl -fL https://files.pythonhosted.org/packages/source/i/idasen/idasen-0.13.1.tar.gz \
+            -o rpmbuild/SOURCES/idasen-0.13.1.tar.gz
+
+      - name: Build the RPM
+        if: steps.changed.outputs.relevant == 'true'
+        run: rpmbuild -bb --define "_topdir $PWD/rpmbuild" packaging/idasen-companion-bundled.spec
+
+      - name: Upload the built RPM
+        if: steps.changed.outputs.relevant == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-rpm
+          path: rpmbuild/RPMS/noarch/*.rpm
+          if-no-files-found: error

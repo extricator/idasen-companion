@@ -1,0 +1,11 @@
+idasen-companion (1.0.0-1) unstable; urgency=medium
+
+  * First public release.
+
+ -- extricator <extricator@users.noreply.github.com>  Sun, 09 Aug 2026 00:00:00 +0000
+
+idasen-companion (0.2.0-1) unstable; urgency=medium
+
+  * Initial Debian packaging.
+
+ -- extricator <extricator@users.noreply.github.com>  Sat, 08 Aug 2026 00:00:00 +0000

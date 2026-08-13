@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  rpm:
+    needs: [test, checks]
+    uses: ./.github/workflows/rpm.yml
+
+  deb:
+    needs: [test, checks]
+    uses: ./.github/workflows/deb.yml
+
+  flatpak:
+    needs: [test, checks]
+    uses: ./.github/workflows/flatpak.yml
+
+  # rpm.needs above means a red test or checks skips it, so ci-ok must treat
+  # skipped the same as failed -- otherwise a pull request whose RPM build
+  # never ran could still show green. This is the one check branch
+  # protection will name, so its result has to be trustworthy on its own.
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [test, checks, rpm, deb, flatpak]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if any required job did not succeed
+        if: >-
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          contains(needs.*.result, 'skipped')
+        run: exit 1

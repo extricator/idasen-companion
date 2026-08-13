@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Idasen Companion
+GenericName=Sit/Stand Desk Automation
+GenericName[es]=Automatización de escritorio sentado/de pie
+Comment=Automatic sit/stand control for the IKEA Idåsen desk
+Comment[es]=Control automático de sentado/de pie para el escritorio IKEA Idåsen
+Exec=idasen-companion
+Icon=io.github.extricator.IdasenCompanion
+Terminal=false
+Categories=Utility;Qt;
+Keywords=desk;standing;idasen;sit;stand;health;
+Keywords[es]=escritorio;de pie;idasen;sentarse;levantarse;salud;
+StartupNotify=false
+X-GNOME-UsesNotifications=true
