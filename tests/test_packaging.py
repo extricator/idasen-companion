@@ -136,14 +136,19 @@ def test_the_user_unit_ships_under_the_filename_the_helper_resolves():
     assert user_unit.read_text() == (ROOT / "data" / "idasen-companion.service").read_text()
 
 
-def test_the_readme_lists_every_build_requirement():
+def test_the_contributor_guide_lists_every_build_requirement():
     """The documented `dnf install` line is the first thing a packager or
-    contributor runs, and rpmbuild hard-fails on an unmet BuildRequires."""
+    contributor runs, and rpmbuild hard-fails on an unmet BuildRequires.
+
+    The block lives in the contributor guide rather than the README: the
+    README addresses someone installing a released artifact, who never runs
+    this command. Moving it did not weaken the check, which follows the text.
+    """
     required = set(re.findall(r"^BuildRequires:\s+(\S+)", read(BUNDLED), re.M))
-    readme = (ROOT / "README.md").read_text()
-    block = readme.split("sudo dnf install rpm-build")[1].split("```")[0]
+    guide = (ROOT / "CONTRIBUTING.md").read_text()
+    block = guide.split("sudo dnf install rpm-build")[1].split("```")[0]
     missing = sorted(p for p in required if p not in block)
-    assert not missing, f"README build prerequisites omit: {missing}"
+    assert not missing, f"CONTRIBUTING build prerequisites omit: {missing}"
 
 
 def test_no_shipped_file_carries_a_developer_home_path():

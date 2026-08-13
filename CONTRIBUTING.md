@@ -82,6 +82,49 @@ it.
 `docs/ARCHITECTURE.md` explains why the code is shaped the way it is; read it
 before changing the shape of something rather than working within it.
 
+## Building the packages
+
+Released artifacts are built by CI. Build them by hand when you change
+packaging, or when you package the app for a distribution.
+
+The RPM build uses a project-local tree (`./rpmbuild/`), not `~/rpmbuild`.
+Install the prerequisites first:
+
+```bash
+sudo dnf install rpm-build rpmdevtools python3-devel python3-pip \
+    python3-uv-build systemd-rpm-macros desktop-file-utils \
+    python3-pytest python3-pytest-asyncio python3-tomlkit python3-dbus-fast \
+    python3-pyyaml python3-pyside6
+mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+```
+
+The shipped package is the bundled single RPM. It contains `bleak` and
+`idasen`, which Fedora does not package:
+
+```bash
+python3 -m build --sdist
+cp dist/idasen_companion-*.tar.gz rpmbuild/SOURCES/
+spectool -g -C rpmbuild/SOURCES packaging/idasen-companion-bundled.spec
+rpmbuild --define "_topdir $PWD/rpmbuild" -ba packaging/idasen-companion-bundled.spec
+```
+
+The spec's `%check` runs the test suite, so a failing test fails the build.
+
+`packaging/` also holds a three-package split (`idasen-companion.spec` plus
+`python-bleak.spec` and `python-idasen.spec`) for a repository that carries the
+two libraries separately. Build the two library packages and install them
+before you build the app package.
+
+The `.deb` needs a checkout with the Debian build dependencies present:
+
+```bash
+dpkg-buildpackage -us -uc -b
+```
+
+For the Flatpak bundle, read `packaging/flatpak/README.md`. A local build
+writes an unversioned `idasen-companion.flatpak`, and the released asset
+carries the version in its name.
+
 ## Translations
 
 `docs/TRANSLATING.md` is written for translators and is the place to start.
