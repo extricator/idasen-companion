@@ -4,6 +4,24 @@ Notable changes to Idasen Companion, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-13
+
+### Fixed
+
+- **Screenshots in software centres.** The AppStream metainfo pointed its five
+  screenshots at the 1.0.0 tag, which does not carry them, so a software
+  centre had nothing to show on the app's page. The URLs now name the release
+  that carries the files, and a test holds them to the package version.
+
+### Changed
+
+- Five screenshots composed for a software centre replace the three functional
+  captures shipped before, one per page of the window.
+- The README follows the standard layout and is about half its former length.
+  The package build instructions moved to `CONTRIBUTING.md`.
+- Each release body now ends with a link comparing it against the previous
+  release.
+
 ## [1.0.0] - 2026-08-09
 
 First public release. Idasen Companion alternates an IKEA Idåsen desk between

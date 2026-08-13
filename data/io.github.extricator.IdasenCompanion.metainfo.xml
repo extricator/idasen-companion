@@ -57,23 +57,23 @@
        centre reserve the space before it fetches the image. -->
   <screenshots>
     <screenshot type="default">
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/1-overview.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/1-overview.png</image>
       <caption>Desk height, cycle progress and manual control</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/2-automation.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/2-automation.png</image>
       <caption>The sit/stand cycle, the idle thresholds and the schedule</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/3-statistics.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/3-statistics.png</image>
       <caption>Daily sit/stand totals and recent transitions</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/4-logs.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/4-logs.png</image>
       <caption>The activity log, with what the app did and why</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.0/data/screenshots/5-settings.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/5-settings.png</image>
       <caption>Settings for language, units, autostart, window and tray behaviour</caption>
     </screenshot>
   </screenshots>
@@ -81,6 +81,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.0.1" date="2026-08-13">
+      <description>
+        <p>
+          Fixes the screenshots on this page, which named files that were not
+          part of the 1.0.0 release.
+        </p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-08-09">
       <description>
         <p>

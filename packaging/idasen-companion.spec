@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -102,6 +102,15 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Thu Aug 13 2026 extricator <extricator@users.noreply.github.com> - 1.0.1-1
+- Fix the AppStream screenshot URLs, which named a tag that does not carry
+  the image files, leaving software centres with nothing to show.
+- Replace the three functional screenshots with five composed for a software
+  centre, one per page of the window.
+- Restructure the README and move the package build instructions into
+  CONTRIBUTING.md.
+- End each release body with a comparison against the previous release.
+
 * Sun Aug 09 2026 extricator <extricator@users.noreply.github.com> - 1.0.0-1
 - First public release: active-time sit/stand automation with presence
   gating, presets and manual control, statistics, the tray application and

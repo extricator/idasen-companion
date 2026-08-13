@@ -1,3 +1,15 @@
+idasen-companion (1.0.1-1) unstable; urgency=medium
+
+  * Fix the AppStream screenshot URLs, which named a tag that does not carry
+    the image files, leaving software centres with nothing to show.
+  * Replace the three functional screenshots with five composed for a
+    software centre, one per page of the window.
+  * Restructure the README and move the package build instructions into
+    CONTRIBUTING.md.
+  * End each release body with a comparison against the previous release.
+
+ -- extricator <extricator@users.noreply.github.com>  Thu, 13 Aug 2026 00:00:00 +0000
+
 idasen-companion (1.0.0-1) unstable; urgency=medium
 
   * First public release.
