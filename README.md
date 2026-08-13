@@ -2,7 +2,15 @@
 
 Automatic sit/stand companion for the IKEA Idåsen desk on Linux.
 
-![The Idasen Companion overview page](data/screenshots/1-overview.png)
+<p align="center">
+  <a href="data/screenshots/1-overview.png" target="_blank"><img src="data/screenshots/1-overview.png" width="150" alt="Overview"></a>
+  <a href="data/screenshots/2-automation.png" target="_blank"><img src="data/screenshots/2-automation.png" width="150" alt="Automation"></a>
+  <a href="data/screenshots/3-statistics.png" target="_blank"><img src="data/screenshots/3-statistics.png" width="150" alt="Statistics"></a>
+  <a href="data/screenshots/4-logs.png" target="_blank"><img src="data/screenshots/4-logs.png" width="150" alt="Activity log"></a>
+  <a href="data/screenshots/5-settings.png" target="_blank"><img src="data/screenshots/5-settings.png" width="150" alt="Settings"></a>
+</p>
+
+<p align="center"><sub>Overview · Automation · Statistics · Activity log · Settings — click to enlarge</sub></p>
 
 Idasen Companion moves your desk between sitting and standing. It counts only
 the time you spend active at the computer. It does not count the time you are
