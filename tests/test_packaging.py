@@ -315,6 +315,48 @@ VERSION_MANIFESTS = [
 ]
 
 
+# The metainfo states the version a second time, in the tag each screenshot
+# URL is pinned to, and the table above cannot reach it -- that pattern reads
+# the newest release element and stops. Nothing else looked at these, and they
+# drifted the first time they were touched: the screenshots were replaced with
+# a new set and the URLs left naming the previous tag, which does not carry
+# the new files. A software centre renders that as a listing with no
+# screenshots at all, and no build step notices, because the images are
+# fetched by the centre rather than shipped in the package.
+SCREENSHOT_URL = re.compile(
+    r"https://raw\.githubusercontent\.com/[^/]+/[^/]+/v([\d.]+)/([^<\s]+)")
+
+
+def test_every_screenshot_url_names_this_version_and_the_file_is_present():
+    """Both halves are needed, and neither alone is worth much.
+
+    The URL naming the current version is what makes it resolve *after* the
+    release tags this commit. The file sitting in the tree is what makes the
+    tag carry it. A URL that names the right tag but points at a file nobody
+    added is exactly the state this test was written for.
+
+    The count is checked too. A malformed URL simply fails to match the
+    pattern, and without this the test would pass by looking at nothing.
+    """
+    from idasen_companion import __version__
+
+    text = read(METAINFO)
+    urls = SCREENSHOT_URL.findall(text)
+    # Match the element, not the container that wraps them: the opening tag
+    # is followed by an attribute or by its own close, never by a letter.
+    declared = len(re.findall(r"<screenshot[ >]", text))
+    assert len(urls) == declared, (
+        f"{declared} screenshot elements but {len(urls)} usable URLs — "
+        f"one is malformed and would be skipped rather than checked")
+
+    for version, path in urls:
+        assert version == __version__, (
+            f"{path} is pinned to v{version}, package says {__version__}")
+        assert (ROOT / path).is_file(), (
+            f"{path} is named by a screenshot URL but is not in the tree, "
+            f"so the tag will not carry it either")
+
+
 @pytest.mark.parametrize(
     "manifest", VERSION_MANIFESTS,
     ids=lambda m: m.path.relative_to(ROOT).as_posix())

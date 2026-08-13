@@ -390,11 +390,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       drift. Phase 3 deliberately did not copy it into `debian/control`.
       Generalisable gap: `tests/test_packaging.py` pins `Version:` agreement
       between the specs but not `Requires:`.
-- [ ] **AppStream screenshots are functional captures, not composed for a
-      software centre** — the three `data/screenshots/*.png` shipped for the
-      metainfo listing are offscreen `--mock-desk` captures: no representative
-      data, no attention to window size or theme. Replace them with properly
-      composed screenshots. Explicitly not blocking v1.0.
 - [ ] **Review the admin/owner branch-protection bypass before the repository
       goes public** — Phase 4 applies branch protection to `main` with
       `enforce_admins: false`, a deliberate, temporary accommodation so the

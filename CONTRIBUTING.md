@@ -360,10 +360,13 @@ private personal-account repository:
 gh api -X PUT repos/extricator/idasen-companion/private-vulnerability-reporting
 ```
 
-*Repoint the AppStream screenshot URLs* in
-`data/io.github.extricator.IdasenCompanion.metainfo.xml` from their pinned
-commit sha to the `v1.0.0` tag. They 404 for anonymous readers until that is
-done.
+*Nothing to do for the AppStream screenshot URLs.* They are pinned to the
+release tag, and a test in `tests/test_packaging.py` holds each one to the
+package version and to a file that exists in the tree, so a release cannot
+land with a URL naming a tag that does not carry the image. They 404 for
+anonymous readers only while the repository stays private, and they resolve
+the moment it is public. This once needed doing by hand, and the hand-written
+version broke the first time the screenshots were replaced.
 
 ## Naming things
 
