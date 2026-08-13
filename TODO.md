@@ -234,6 +234,28 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
         `_iface(...).call()` gap was closed.
 
 ## UI polish
+- [ ] **The setup wizard opens off-centre** — reported on the maintainer's
+      Fedora/KDE machine, 2026-08-13. Two facts, both confirmed by reading the
+      tree rather than inferred: `gui/setup_wizard.py` contains no positioning
+      call of any kind — no resize, no move, no geometry — and *nothing
+      anywhere under `gui/` centres a window or saves and restores geometry.
+      So every window this app opens lands wherever the window manager decides,
+      and the wizard is simply the case where that reads as a defect.
+      The likely mechanism, to be confirmed before it is designed around:
+      `gui/main.py` calls `window.show()` and then `wizard.open()` a few lines
+      later, in the same turn of the event loop. `show()` only *requests*
+      mapping, so at the moment the wizard is opened its parent has no
+      real geometry yet, and a window manager asked to centre a dialog on a
+      parent that is not yet mapped has nothing to centre it on. That fits the
+      report and fits first-run specifically, which is the only path that opens
+      the wizard.
+      Worth deciding once for the whole app rather than patching the wizard
+      alone: whether windows centre on the primary screen, centre on their
+      parent, or persist their geometry between runs. Note Wayland does not let
+      a client position its own top-level window at all, so "centre on screen"
+      is not portable — parent-relative placement and letting the compositor
+      decide is, which argues for fixing the ordering rather than adding
+      coordinates.
 - [ ] **Redesign the app icon and the tray icon** — both shipped icons are
       first-draft placeholders drawn to have *something* there, not designed:
       `data/icons/io.github.extricator.IdasenCompanion.svg` (64×64, a blue
@@ -327,6 +349,23 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **`gui/setup_wizard.py` is the least-tested file in the project, and it
+      is untested rather than untestable** — 152 statements, 127 uncovered,
+      **16%**, against 96% for `core/` and 99% for `core/machine.py`. It is
+      also the first code a new user meets: find a desk, verify it, save the
+      MAC, enable the unit. Nothing about it is hardware-bound by
+      construction — the daemon half of the same flow carries an explicit
+      mock branch in its setup-verify path, so the whole sequence is reachable
+      with `--mock-desk` and no Bluetooth.
+      This matters more than the aggregate coverage number suggests, because
+      that number cannot tell "cannot be tested here" from "nobody wrote the
+      test". Most of the rest of the shortfall is the former — `paintEvent`
+      bodies, one-line D-Bus proxies, X11 idle providers that need a real
+      `DISPLAY`, the BLE driver — and this is the clearest case of the latter.
+      Covering it would also move the total more than anything else available.
+      Follow the GUI-test rules in `CLAUDE.md` when writing them: force
+      `QT_QPA_PLATFORM=offscreen` before importing `QtWidgets` (`setdefault`
+      is not enough), and destroy any tray icon explicitly at teardown.
 - [ ] **Reassess `scripts/scan-secrets.sh` once GitHub's own secret scanning is
       on** — Phase 04.1 documented enabling it as the first post-flip step
       (`CONTRIBUTING.md` § "Cutting a release"), and once that lands the
