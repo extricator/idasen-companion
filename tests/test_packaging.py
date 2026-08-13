@@ -337,6 +337,13 @@ def test_every_screenshot_url_names_this_version_and_the_file_is_present():
 
     The count is checked too. A malformed URL simply fails to match the
     pattern, and without this the test would pass by looking at nothing.
+
+    The second half runs only from a checkout. The images are deliberately
+    not in the sdist -- a software centre fetches them from the forge and
+    nothing installs them, and at 639 kB they would take the tarball straight
+    through its size ceiling. The metainfo itself does ship, so the version
+    half still runs inside the RPM's %check, where this whole test failed
+    once for asserting a checkout-only fact.
     """
     from idasen_companion import __version__
 
@@ -349,12 +356,14 @@ def test_every_screenshot_url_names_this_version_and_the_file_is_present():
         f"{declared} screenshot elements but {len(urls)} usable URLs — "
         f"one is malformed and would be skipped rather than checked")
 
+    from_a_checkout = (ROOT / "data" / "screenshots").is_dir()
     for version, path in urls:
         assert version == __version__, (
             f"{path} is pinned to v{version}, package says {__version__}")
-        assert (ROOT / path).is_file(), (
-            f"{path} is named by a screenshot URL but is not in the tree, "
-            f"so the tag will not carry it either")
+        if from_a_checkout:
+            assert (ROOT / path).is_file(), (
+                f"{path} is named by a screenshot URL but is not in the "
+                f"tree, so the tag will not carry it either")
 
 
 @pytest.mark.parametrize(
