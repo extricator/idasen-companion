@@ -129,6 +129,13 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Unshallow, for the tag list. The release body below links a
+          # comparison against the previous release, and the default checkout
+          # brings down neither the tags nor the history to place them
+          # against. The repository is small enough that the full fetch costs
+          # nothing worth measuring.
+          fetch-depth: 0
 
       # The download and upload actions version independently. A pair matched
       # for tidiness has already failed to resolve in this repository, so pin
@@ -219,6 +226,36 @@ jobs:
             echo
             echo "Installation and checksum verification: see the [README](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/README.md#install)."
           } >> release-notes.md
+
+          # The nearest tag *below* this one, not merely the newest other tag.
+          # Those differ the moment a patch is cut on an older line: with
+          # v2.0.0 already out, the newest other tag for a v1.1.1 release is
+          # v2.0.0, and a comparison against it reads backwards.
+          #
+          # This release's tag is added to the list before sorting, because
+          # the two triggers disagree about whether it exists yet -- a tag
+          # push arrives with it already pointing at HEAD, a dispatch creates
+          # it later, in the publish job. Adding it either way makes the
+          # neighbour below it well defined on both paths.
+          #
+          # awk ends the pipeline, and its status is the pipeline's, so a
+          # release with nothing below it leaves this empty rather than
+          # failing the step.
+          PREVIOUS=$(
+            { git tag --list 'v*'; echo "$TAG"; } \
+              | sort -u -V -r \
+              | awk -v t="$TAG" '$0 == t { seen = 1; next } seen { print; exit }'
+          )
+          if [ -n "$PREVIOUS" ]; then
+            {
+              echo
+              echo "**Full changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS}...${TAG}"
+            } >> release-notes.md
+          else
+            # The first release has nothing to compare against. Say so in the
+            # log rather than emit a link to a range that cannot resolve.
+            echo "No tag older than $TAG; the body omits the comparison." >&2
+          fi
           cat release-notes.md
 
       - name: Hand the assembled assets to the publish job
