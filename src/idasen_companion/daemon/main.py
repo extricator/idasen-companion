@@ -49,6 +49,7 @@ from .idle import (
     IdleMonitor, LockMonitor, SEAT_BACKGROUND, SEAT_NONE, SEAT_UNKNOWN,
     SessionActiveMonitor,
 )
+from .inhibit import SleepInhibitor
 from .notify import Notifier
 from .ringlog import RingLog
 from .service import Automation1, Desk1, Log1, Presets1, Stats1
@@ -146,6 +147,7 @@ class Daemon:
         self._idle: IdleMonitor
         self._lock: LockMonitor
         self._session: SessionActiveMonitor
+        self._sleep_inhibitor: SleepInhibitor
         self._notifier: Notifier
         # Genuinely optional: the system-bus connect sits in a try/except and
         # is skipped whenever logind is unavailable. Both readers guard on it.
@@ -157,6 +159,13 @@ class Daemon:
         self._last_height_emit = 0.0
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
+        # Whether this daemon's own link was up when the system last announced
+        # a sleep. Recorded because after the resume there is no way left to
+        # tell a leftover link of this daemon's from one belonging to another
+        # account's daemon — BlueZ reports that the desk is connected, not to
+        # whom — and dropping someone else's is exactly the tug of war the
+        # connect-failure recovery already declines to start.
+        self._held_link_at_sleep = False
 
     # ----- setup -----
 
@@ -376,16 +385,22 @@ class Daemon:
         return True
 
     async def _setup_system_bus(self) -> None:
-        """Connect the system bus and set up its two users: suspend/resume
-        detection and the seat-foreground gate.
+        """Connect the system bus and set up its three users: suspend/resume
+        detection, the sleep-delay lock that makes releasing the desk before a
+        suspend possible, and the seat-foreground gate.
 
-        Both degrade to a safe default when logind can't be reached — time-jump
-        detection covers a missed resume, and an unresolvable seat reads as
-        "foreground" — so a failure here is a diagnostic line, not a startup
-        error.
+        All three degrade to a safe default when logind can't be reached —
+        time-jump detection covers a missed resume, an unheld delay lock costs
+        the pre-sleep release and leaves the resume-side reconciliation to
+        catch up, and an unresolvable seat reads as "foreground" — so a
+        failure here is a diagnostic line, not a startup error.
         """
         try:
-            self._system_bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
+            # Unix descriptors are negotiated because logind hands out its
+            # inhibitor locks as one; without it the reply arrives with the
+            # descriptor stripped and there is nothing to hold.
+            self._system_bus = await MessageBus(
+                bus_type=BusType.SYSTEM, negotiate_unix_fd=True).connect()
             await call(self._system_bus, "org.freedesktop.DBus",
                        "/org/freedesktop/DBus", "org.freedesktop.DBus", "AddMatch",
                        "s", ["type='signal',interface='org.freedesktop.login1.Manager',"
@@ -395,6 +410,17 @@ class Daemon:
             self.activity_log.diag("warning",
                            f"logind PrepareForSleep unavailable ({error}); "
                            f"relying on time-jump detection only.")
+
+        # Constructed even with no system bus, in which case it delays nothing
+        # and reports the shipped budget — one fewer optional collaborator for
+        # every reader. Taken now rather than when a sleep is announced:
+        # logind waits only for the delay locks already held at the moment it
+        # announces one, so a lock taken in answer to that signal is taken too
+        # late to delay anything. See inhibit.py.
+        self._sleep_inhibitor = SleepInhibitor(
+            self._system_bus, who="idasen-companiond",
+            why="Handing the desk's Bluetooth link back before the machine sleeps")
+        await self._rearm_sleep_inhibitor()
 
         # Seat-foreground gate: the desk belongs to whichever session is in
         # front of the seat. logind arbitrates that (exactly one active session
@@ -421,7 +447,15 @@ class Daemon:
         if (message.interface == "org.freedesktop.login1.Manager"
                 and message.member == "PrepareForSleep" and message.body):
             if message.body[0]:
+                # Recorded here, synchronously, while this daemon's own view of
+                # the link is still fresh — the release below is about to
+                # falsify it. It is what lets the resume-side reconciliation
+                # tell a leftover link of its own from one belonging to another
+                # account's daemon, which is never this daemon's to drop.
+                self._held_link_at_sleep = self.desk_connected
                 self.activity_log.emit(logmsg.SUSPEND_SUSPENDING)
+                self._spawn(self._release_desk_before_sleep(),
+                            "handing the desk back before the machine sleeps")
             else:
                 # Reset first, then report: the line has to state the cycle the
                 # user is now on, and that isn't known until the reset has run.
@@ -429,7 +463,106 @@ class Daemon:
                 self.activity_log.emit(logmsg.SUSPEND_RESUMED,
                                next_target=self._scheduled_target())
                 self._spawn(self._idle.probe(), "re-checking idle detection after resume")
+                self._spawn(self._rearm_sleep_inhibitor(),
+                            "re-taking the sleep-delay lock after resume")
+                self._spawn(self._recover_link_after_resume(),
+                            "reconciling the desk's link after resume")
         return None
+
+    async def _rearm_sleep_inhibitor(self) -> None:
+        """Take a fresh logind sleep-delay lock for the next suspend.
+
+        The lock is dropped on the way into every sleep — that is what lets the
+        sleep proceed as soon as the desk is released, rather than after
+        logind's whole timeout — so it has to be taken again once the machine
+        is back. Idempotent, so a sleep this daemon never heard about (which
+        leaves the previous lock still held) costs nothing here.
+        """
+        if await self._sleep_inhibitor.acquire():
+            return
+        self.activity_log.diag(
+            "warning",
+            "No logind sleep-delay lock could be taken, so there is not "
+            "enough time to release the desk's Bluetooth link before the "
+            "machine sleeps; a link left up will be reconciled against BlueZ "
+            "on resume instead.")
+
+    async def _release_desk_before_sleep(self) -> None:
+        """Hand the desk back while the machine is still awake.
+
+        Nothing used to, and a sleep entered inside the linger window therefore
+        held the desk's one connection slot for the whole night. Not because
+        the linger timer failed — asyncio's monotonic deadlines survive the
+        freeze and fire on their remaining interval, measured to within 25 ms
+        across five resumes — but because by the time it fires, the link it
+        means to release has spent the whole sleep going stale underneath it.
+        Releasing on the way *in* is also what the on-demand connection policy
+        asks for on its own terms: a suspended machine cannot use the link, and
+        the desk takes one client at a time.
+
+        Bounded, and the bound is the point. logind is waiting on the lock this
+        drops in its ``finally``, so the cost of anything going wrong here is a
+        delayed suspend — capped at that lock's budget rather than at logind's
+        whole allowance.
+        """
+        budget = self._sleep_inhibitor.budget
+        try:
+            await asyncio.wait_for(self.desk.disconnect(), budget)
+        except asyncio.TimeoutError:
+            self.activity_log.diag(
+                "warning",
+                f"Could not hand the desk back within {budget:g}s of the "
+                f"system announcing a sleep; the link may survive it, and "
+                f"will be reconciled against BlueZ on resume.")
+        except Exception as error:
+            self.activity_log.diag(
+                "warning",
+                f"Could not hand the desk back before the machine sleeps: "
+                f"{error}")
+        finally:
+            # Whatever happened, stop holding the suspend up.
+            self._sleep_inhibitor.release()
+
+    async def _recover_link_after_resume(self) -> None:
+        """Reconcile the desk's Bluetooth link against BlueZ after a resume.
+
+        The safety net for the two cases the pre-sleep release cannot cover: a
+        sleep this daemon was never told about, and one where the release did
+        not finish inside its budget.
+
+        It asks BlueZ rather than the desk handle on purpose. One of the two
+        ways a link can survive a sleep — deliberately left undistinguished,
+        see the debug session — is bleak's cached connection flag going false
+        while BlueZ still holds the link, and in that state bleak's own
+        ``disconnect()`` sends nothing on the wire and reports success.
+        ``Device1.Connected`` is the only account of the link that cannot be
+        stale in that direction.
+        """
+        if self.mock_mode or not self.config.desk.mac:
+            return
+        path = self._bluez_device_path()
+        if not await self._bluez_property(path, "org.bluez.Device1",
+                                          "Connected"):
+            return
+        if not self._held_link_at_sleep and self._other_companion_daemons():
+            # Not this daemon's to drop: another account's daemon is running
+            # and this one has no record of holding the link when the machine
+            # went down. Same restraint as the connect-failure recovery.
+            self.activity_log.diag(
+                "info",
+                "The desk is connected after the resume but this daemon did "
+                "not hold that link; leaving it to whoever does.")
+            return
+        self.activity_log.diag(
+            "warning",
+            "The desk's Bluetooth link survived the suspend; dropping it "
+            "through BlueZ and starting the next connection fresh.")
+        await self._drop_bluez_link(path)
+        # Even had BlueZ refused, the handle describes a link that spent the
+        # sleep out of this daemon's sight. Outside mock mode the desk is
+        # always a BleDesk, the same narrowing reload_config makes.
+        cast("BleDesk", self.desk).forget_handle()
+        self._held_link_at_sleep = False
 
     def _scheduled_target(self) -> int:
         """The cycle length the user is now counting toward, or 0 if none is.

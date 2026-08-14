@@ -95,10 +95,13 @@ def test_resume_from_suspend_says_what_the_clock_is_counting_toward(monkeypatch)
     """The suspend path doesn't go through _handle_event, and had the same gap."""
     d = _daemon()
     d._idle = MagicMock()
-    # The handler kicks off an idle probe; there's no loop to schedule it on.
+    # The handler kicks off background work (an idle probe, and the two halves
+    # of the suspend-link recovery); there's no loop to schedule any of it on.
     # Stubbed at _spawn, the seam the daemon now uses, rather than at
-    # asyncio.ensure_future underneath it.
-    monkeypatch.setattr(d, "_spawn", lambda coro, what: None)
+    # asyncio.ensure_future underneath it. Closed rather than dropped, or each
+    # one raises "coroutine was never awaited" — this test is about the line
+    # the handler writes, not about what it starts.
+    monkeypatch.setattr(d, "_spawn", lambda coro, what: coro.close())
     message = MagicMock(interface="org.freedesktop.login1.Manager",
                         member="PrepareForSleep", body=[False])
     d._on_system_message(message)
