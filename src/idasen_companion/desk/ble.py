@@ -38,6 +38,17 @@ logger = logging.getLogger(__name__)
 POSITION_UUID = "99fa0021-338a-1024-8a49-009c0215f78a"
 MIN_HEIGHT = 0.62
 
+# How long a disconnect may take before the handle is written off.
+#
+# bleak's BlueZ backend sends ``Device1.Disconnect`` on an *untimed* bus call,
+# so a connection whose bus has stopped answering has nothing of its own to
+# stop it waiting forever — and it waits holding ``BleDesk._lock``, which
+# would wedge every later desk operation for the life of the process. Well
+# clear of the 2.14s a healthy disconnect was measured to take on real
+# hardware, and of bleak's own 10s wait for BlueZ to confirm the drop, so this
+# only ever fires on a genuine stall.
+DISCONNECT_TIMEOUT = 12.0
+
 
 def _decode_height(data: bytes) -> float:
     raw = struct.unpack("<H", data[:2])[0]
@@ -63,6 +74,7 @@ class BleDesk:
         linger: float = 15.0,
         retry_delays: tuple[float, ...] = (1.0, 2.0, 4.0),
         wakeup_grace: float = 2.0,
+        disconnect_timeout: float = DISCONNECT_TIMEOUT,
         desk_factory: Callable = _default_desk_factory,
         on_height: Callable[[float], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
@@ -74,6 +86,7 @@ class BleDesk:
         self.linger = linger
         self._retry_delays = retry_delays
         self._wakeup_grace = wakeup_grace
+        self._disconnect_timeout = disconnect_timeout
         self._desk_factory = desk_factory
         self._on_height = on_height
         self._on_connection_change = on_connection_change
@@ -269,11 +282,38 @@ class BleDesk:
         async with self._lock:
             await self._disconnect_locked()
 
+    def forget_handle(self) -> None:
+        """Throw the desk handle away without talking to it.
+
+        For the cases where there is nothing left to negotiate: the link has
+        already been dropped by other means (BlueZ asked directly), or the
+        handle has stopped answering at all. Both leave an object whose idea
+        of the link no longer describes one — and bleak answers
+        ``disconnect()`` out of its own cached connection flag, so a handle
+        that believes it is already disconnected sends nothing on the wire and
+        reports success. ``_ensure_connected`` builds a fresh one, which is
+        the faster path from cold anyway.
+        """
+        self._desk = None
+        self._handle_disconnect()
+
     async def _disconnect_locked(self) -> None:
-        if self._desk is None:
+        desk = self._desk
+        if desk is None:
             return
         try:
-            await self._desk.disconnect()
+            await asyncio.wait_for(desk.disconnect(), self._disconnect_timeout)
+        except asyncio.TimeoutError:
+            # Nothing here can be negotiated with: the call is stuck inside a
+            # bus that is not answering. Let the handle go rather than keep
+            # the lock — and every later desk operation — waiting on it. The
+            # link itself may well still be up; dropping that is BlueZ's job,
+            # and the daemon's resume-side reconciliation asks it directly.
+            self.forget_handle()
+            self._report_error(
+                "disconnect",
+                TimeoutError(f"no reply within {self._disconnect_timeout:g}s"))
+            return
         except Exception as exc:
             self._report_error("disconnect", exc)
         self._forget_link_state()

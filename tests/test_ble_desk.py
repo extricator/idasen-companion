@@ -109,6 +109,62 @@ async def test_reconnect_builds_a_fresh_client():
     await desk.disconnect()
 
 
+# ----- a disconnect that never answers must not wedge the desk -----
+#
+# bleak sends Device1.Disconnect on an untimed bus call, and does it holding
+# BleDesk's lock. A connection whose bus stalled across a suspend therefore had
+# a way to park every later desk operation for the life of the process, in
+# complete silence.
+
+class StalledIdasenDesk(FakeIdasenDesk):
+    """A handle whose disconnect never returns, like an unanswered bus call."""
+
+    async def disconnect(self):
+        self.disconnect_calls += 1
+        await asyncio.Event().wait()
+
+
+async def test_a_disconnect_that_never_answers_gives_up_and_frees_the_lock():
+    desk, fake = make_desk(StalledIdasenDesk(), disconnect_timeout=0.05)
+    await desk.get_height()
+    await desk.disconnect()
+    assert fake.disconnect_calls == 1
+    # The whole point: the next operation gets the lock rather than queueing
+    # behind a coroutine that will never finish.
+    await asyncio.wait_for(desk.get_height(), 1.0)
+    desk._cancel_linger()  # that read armed one; it would stall again
+
+
+async def test_a_stalled_handle_is_written_off_rather_than_reused():
+    created = []
+
+    def factory(mac, callback):
+        fake = StalledIdasenDesk()
+        created.append(fake)
+        return fake
+
+    desk = BleDesk("AA:BB:CC:DD:EE:FF", desk_factory=factory, linger=60,
+                   retry_delays=(0, 0, 0), disconnect_timeout=0.05)
+    await desk.get_height()
+    await desk.disconnect()
+    assert desk.last_error is not None, "a stalled disconnect went unreported"
+    await desk.get_height()
+    assert len(created) == 2, "reconnected through the handle that stalled"
+
+
+async def test_forgetting_the_handle_tells_the_daemon_the_link_is_gone():
+    """The daemon caches Desk1.Connected from this callback. A handle dropped
+    without a BlueZ PropertiesChanged behind it produces no callback of its
+    own, so the flag would stay true forever."""
+    changes = []
+    desk, _ = make_desk(on_connection_change=changes.append)
+    await desk.get_height()
+    assert changes == [True]
+    desk.forget_handle()
+    assert changes == [True, False]
+    assert desk.connected is False
+
+
 async def test_connect_retries_through_transient_failures():
     fake = FakeIdasenDesk()
     fake.connect_failures = 2  # first two attempts flake, third succeeds
