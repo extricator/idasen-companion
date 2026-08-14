@@ -360,13 +360,18 @@ private personal-account repository:
 gh api -X PUT repos/extricator/idasen-companion/private-vulnerability-reporting
 ```
 
-*Nothing to do for the AppStream screenshot URLs.* They are pinned to the
-release tag, and a test in `tests/test_packaging.py` holds each one to the
-package version and to a file that exists in the tree, so a release cannot
-land with a URL naming a tag that does not carry the image. They 404 for
-anonymous readers only while the repository stays private, and they resolve
-the moment it is public. This once needed doing by hand, and the hand-written
-version broke the first time the screenshots were replaced.
+*Nothing to do for the AppStream screenshot URLs.* They name the default
+branch, so replacing a picture is a plain overwrite of the file in
+`data/screenshots/` and nothing else moves with it. They 404 for anonymous
+readers only while the repository stays private, and they resolve the moment
+it is public.
+
+Do not repoint them at a release tag. That was tried, and it needs the URL to
+name a tag that does not exist yet at the moment it is written; one release
+replaced the images while the URLs still named the previous tag, leaving five
+dead links. `tests/test_packaging.py` checks only what stays breakable: that
+every path a URL names is a file in the tree, so a rename or a deletion is
+caught before it reaches anyone.
 
 ## Naming things
 

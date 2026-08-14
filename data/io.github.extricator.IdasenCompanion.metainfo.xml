@@ -54,26 +54,41 @@
   <!-- Exactly one screenshot carries type="default", and a software centre
        shows it first. appstreamcli accepts a second one without a word, so
        nothing but this comment guards the rule. The width and height let a
-       centre reserve the space before it fetches the image. -->
+       centre reserve the space before it fetches the image.
+
+       The URLs name the default branch on purpose, so that replacing an image
+       is a plain overwrite and nothing else has to move with it. Pinning them
+       to the release instead cost a whole class of bug: the URL then has to
+       name a tag that does not exist yet at the moment it is written, and one
+       release swapped the files while the URLs still named the previous tag,
+       leaving five links that resolved to nothing.
+
+       The trade is that a user on an older version sees the current pictures,
+       which is cosmetic. Flathub asks for a tag or a commit here, because it
+       mirrors these images at build time and wants them immutable while it
+       does. That does not apply to a locally installed RPM, .deb or bundle,
+       where a software centre fetches this URL directly and forever. Revisit
+       only if the app is ever published on Flathub, and note that Supersonic,
+       Flameshot and Foliate all ship branch URLs there anyway. -->
   <screenshots>
     <screenshot type="default">
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/1-overview.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/main/data/screenshots/1-overview.png</image>
       <caption>Desk height, cycle progress and manual control</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/2-automation.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/main/data/screenshots/2-automation.png</image>
       <caption>The sit/stand cycle, the idle thresholds and the schedule</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/3-statistics.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/main/data/screenshots/3-statistics.png</image>
       <caption>Daily sit/stand totals and recent transitions</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/4-logs.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/main/data/screenshots/4-logs.png</image>
       <caption>The activity log, with what the app did and why</caption>
     </screenshot>
     <screenshot>
-      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/v1.0.1/data/screenshots/5-settings.png</image>
+      <image width="990" height="826">https://raw.githubusercontent.com/extricator/idasen-companion/main/data/screenshots/5-settings.png</image>
       <caption>Settings for language, units, autostart, window and tray behaviour</caption>
     </screenshot>
   </screenshots>
