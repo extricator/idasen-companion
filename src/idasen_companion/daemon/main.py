@@ -1493,6 +1493,19 @@ class Daemon:
             "warning",
             "The desk is connected but unreachable from here, with no other "
             "companion daemon running; dropping that connection and retrying.")
+        return await self._drop_bluez_link(path)
+
+    async def _drop_bluez_link(self, path: str) -> bool:
+        """Ask BlueZ itself to drop the desk's connection. Returns success.
+
+        Deliberately not routed through the desk handle. Every caller is a
+        case where the handle's own account of the link is the thing not to be
+        trusted: one has no handle for that link at all, and the other has one
+        that may believe it is already disconnected — in which case bleak
+        sends nothing on the wire and reports success.
+        """
+        if self._system_bus is None:
+            return False
         try:
             await call(self._system_bus, "org.bluez", path,
                        "org.bluez.Device1", "Disconnect")
