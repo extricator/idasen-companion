@@ -315,6 +315,20 @@ VERSION_MANIFESTS = [
 ]
 
 
+def test_the_metainfo_is_well_formed_xml():
+    """Every other check on this file reads it as text, with a regex, so a
+    broken document sails past all of them and the suite goes green.
+
+    Only `appstreamcli` in CI notices, which makes a two-character mistake a
+    push-and-wait to find. A comment carrying a double hyphen does it, which
+    XML forbids inside one: the regex checks stay satisfied, every test
+    passes, and the file will not parse.
+    """
+    import xml.etree.ElementTree as ET
+
+    ET.parse(METAINFO)
+
+
 # The metainfo states the version a second time, in the tag each screenshot
 # URL is pinned to, and the table above cannot reach it -- that pattern reads
 # the newest release element and stops. Nothing else looked at these, and they
