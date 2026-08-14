@@ -349,6 +349,26 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **Why a BLE link survived a suspend was never narrowed to one mechanism**
+      — the fix (release the link before the sleep under a logind delay lock,
+      reconcile against BlueZ on resume) is written to hold either way, and the
+      question only becomes worth settling if it turns out not to. Two
+      candidates remain, both inferred from vendored bleak 3.0.2's
+      `BleakClientBlueZDBus.disconnect()` and neither observed: **(b)** bleak's
+      cached `is_connected` flag goes false across the sleep, so it never sends
+      `Device1.Disconnect` at all, returns success, and BlueZ keeps the link;
+      **(c)** bleak's per-connection `MessageBus` stalls, so the untimed bus
+      call never returns and hangs holding `BleDesk._lock`. The experiment that
+      distinguishes them is one live suspend entered inside the linger window
+      with `--verbose` on (so bleak's own BlueZ logging reaches the journal),
+      reading both BlueZ `Device1.Connected` and the daemon's `Desk1.Connected`
+      immediately on resume: (b) logs "Disconnecting …" with no
+      `Device1.Disconnect` and shows the two disagreeing; (c) logs
+      "Disconnecting …" and then nothing, and a later desk operation never
+      returns. It was skipped by choice — a real suspend/resume cycle against
+      the real desk, which is the sharpest form of the BLE hazard this file
+      keeps warning about. Full evidence in the debug session
+      `ble-link-survives-suspend`.
 - [ ] **`gui/setup_wizard.py` is the least-tested file in the project, and it
       is untested rather than untestable** — 152 statements, 127 uncovered,
       **16%**, against 96% for `core/` and 99% for `core/machine.py`. Nothing
