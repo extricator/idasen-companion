@@ -351,18 +351,30 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
 ## Known issues / cleanups
 - [ ] **`gui/setup_wizard.py` is the least-tested file in the project, and it
       is untested rather than untestable** — 152 statements, 127 uncovered,
-      **16%**, against 96% for `core/` and 99% for `core/machine.py`. It is
-      also the first code a new user meets: find a desk, verify it, save the
-      MAC, enable the unit. Nothing about it is hardware-bound by
-      construction — the daemon half of the same flow carries an explicit
-      mock branch in its setup-verify path, so the whole sequence is reachable
-      with `--mock-desk` and no Bluetooth.
+      **16%**, against 96% for `core/` and 99% for `core/machine.py`. Nothing
+      in `tests/` imports it at all, so the whole first-run path — discovery,
+      MAC selection, preset capture — has never run under a test. It is also
+      the first code a new user meets.
+      Nothing about it is hardware-bound by construction: the daemon half of
+      the same flow carries an explicit mock branch in its setup-verify path,
+      so the whole sequence is reachable with `--mock-desk` and no Bluetooth.
       This matters more than the aggregate coverage number suggests, because
       that number cannot tell "cannot be tested here" from "nobody wrote the
       test". Most of the rest of the shortfall is the former — `paintEvent`
       bodies, one-line D-Bus proxies, X11 idle providers that need a real
       `DISPLAY`, the BLE driver — and this is the clearest case of the latter.
       Covering it would also move the total more than anything else available.
+      The cost that keeps deferring it: `_scan` calls `client.discover(8)`
+      synchronously on the GUI thread with `processEvents()` pumped around it,
+      so `DaemonClient` has to be stubbed — and since `260731-tr3` made
+      `DeviceSelectPage.initializePage` scan lazily, the stub must be in place
+      *before* the page is shown. That change shipped without coverage
+      precisely because the first wizard test is bigger than the fix was.
+      Worth covering: instant list → no scan; empty list → auto-scan; a
+      successful scan clearing a stale "Nothing found."; single-candidate
+      preselection. While in there, consider whether `_scan` should lose the
+      blocking-plus-`processEvents` shape — the seam that makes it testable is
+      probably the better GUI shape too.
       Follow the GUI-test rules in `CLAUDE.md` when writing them: force
       `QT_QPA_PLATFORM=offscreen` before importing `QtWidgets` (`setdefault`
       is not enough), and destroy any tray icon explicitly at teardown.
@@ -558,20 +570,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       the 37 dead checkboxes. If the GNOME block is never realistically going to
       run, decide that explicitly and say so in `README.md` rather than carrying
       the items forever.
-- [ ] **The setup wizard has no test coverage at all** — nothing in `tests/`
-      imports `gui/setup_wizard.py`, so the whole first-run path (discovery, MAC
-      selection, preset capture) is untested. Noticed when `260731-tr3` changed
-      `DeviceSelectPage.initializePage` to scan lazily and shipped without
-      coverage, because the first wizard test is bigger than the fix. Not
-      trivial: `_scan` calls `client.discover(8)` synchronously on the GUI
-      thread with `processEvents()` pumped around it, so `DaemonClient` has to
-      be stubbed — and now `initializePage` can trigger that scan itself, so the
-      stub must be in place before the page is shown. Worth covering: instant
-      list → no scan; empty list → auto-scan; a successful scan clearing a stale
-      "Nothing found."; single-candidate preselection. While in there, consider
-      whether `_scan` should lose the blocking-plus-`processEvents` shape — the
-      seam that makes it testable is probably the better GUI shape too.
-
 - [ ] **OSS hygiene files deferred from the release-readiness audit** — that
       audit (`RELEASE-READINESS.md`, kept in the parent directory rather than
       in the repo, since it documents where a credential lived) lists 18 tasks.
