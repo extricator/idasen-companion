@@ -4,6 +4,30 @@ Notable changes to Idasen Companion, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-08-14
+
+### Fixed
+
+- **The Bluetooth link no longer survives a suspend.** Suspending the machine
+  while the daemon still held the desk — which happens whenever you suspend
+  shortly after a move, inside the linger window — left the link up for the
+  whole sleep, and it never dropped on waking. The desk takes one connection
+  at a time, so nothing else could reach it until the link was broken by
+  hand. The daemon now hands the desk back before the machine sleeps, asking
+  the system to wait the second or two that takes, and checks the link again
+  on resume in case it never saw the sleep announced.
+- **A stalled Bluetooth disconnect no longer blocks every later desk command.**
+  The disconnect had no time limit of its own. If the connection stopped
+  answering, every later sit, stand or preset command waited behind it, with
+  no error shown, until the daemon was restarted. The disconnect now gives up
+  after a set time, and the next command starts a fresh connection.
+
+### Changed
+
+- The screenshots on this page are fetched from the default branch rather
+  than the release tag. Replacing one is now a plain overwrite of the file,
+  with no release needed to make the link valid.
+
 ## [1.0.1] - 2026-08-13
 
 ### Fixed

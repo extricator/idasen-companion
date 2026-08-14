@@ -96,6 +96,15 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.0.2" date="2026-08-14">
+      <description>
+        <p>
+          Fixes a Bluetooth connection to the desk that stayed open across a
+          suspend and never closed on waking, keeping other apps from reaching
+          the desk until it was disconnected by hand.
+        </p>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-08-13">
       <description>
         <p>

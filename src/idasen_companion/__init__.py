@@ -3,7 +3,7 @@
 import os as _os
 import sys as _sys
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 # The bundled single-RPM build vendors bleak/idasen here. Prepended so the
 # app always runs the exact library versions it shipped with, regardless of

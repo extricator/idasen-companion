@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.0.1
+Version:        1.0.2
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -102,6 +102,16 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Fri Aug 14 2026 extricator <extricator@users.noreply.github.com> - 1.0.2-1
+- Release the desk's Bluetooth link before the machine sleeps, under a logind
+  delay lock, and reconcile it against BlueZ on resume. A suspend entered
+  while the link was up used to hold the desk's one connection slot for the
+  whole sleep.
+- Bound the Bluetooth disconnect so a stalled connection can no longer block
+  every later desk operation for the life of the daemon.
+- Point the AppStream screenshot URLs at the default branch instead of the
+  release tag.
+
 * Thu Aug 13 2026 extricator <extricator@users.noreply.github.com> - 1.0.1-1
 - Fix the AppStream screenshot URLs, which named a tag that does not carry
   the image files, leaving software centres with nothing to show.
