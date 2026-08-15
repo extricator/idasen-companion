@@ -29,9 +29,9 @@ PYTHON=${PYTHON:-python3}
 # reviewed -- and it is the whole of the integrity gate available, since
 # upstream signs no individual asset.
 # ---------------------------------------------------------------------------
-INTERPRETER_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.11.16%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
-INTERPRETER_ASSET="cpython-3.11.16+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
-INTERPRETER_SHA256="3b437f08720d3ddd9c1904532476ec9fb373e800d1598c72c907dd6d5f29b79b"
+INTERPRETER_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.14.7%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+INTERPRETER_ASSET="cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+INTERPRETER_SHA256="cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533"
 
 # ---------------------------------------------------------------------------
 # The bundled distributions, pinned exactly. Nothing here floats: the tarball

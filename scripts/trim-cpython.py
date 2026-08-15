@@ -7,7 +7,11 @@ Deletes, in place, the parts of a python-build-standalone tree nothing in this
 application can reach: the shared libpython the interpreter itself does not
 use, the Tcl/Tk runtime behind a GUI toolkit this project does not have, and
 the installer and development tooling a shipped runtime has no work for.
-Measured against cpython-3.11.16: 83 MB in, 33 MB out.
+Measured against cpython-3.14.7: 101 MB in, 44.5 MB out. The "out" figure is
+larger than an earlier CPython minor's would be for one reason alone: this
+asset carries BOLT's rewrite markers, every tried strip corrupts a binary
+laid out that way, and the interpreter's symbol table is left on rather than
+removed — a working strip would land near 41.5 MB instead.
 
 Two facts decide the shape of the file.
 
@@ -30,11 +34,16 @@ application and its bundled libraries import, and completes a real database
 round trip. A later prune that breaks the standard library then fails the
 package build instead of somebody's first launch.
 
-Two of the steps below appear in no removal list anyone wrote down, and without
-both the tree comes out at 39 MB rather than 33: every `__pycache__` in it, and
-a run of `strip` over the interpreter binary. The asset arrives with its symbol
-table intact despite being named for a stripped variant — upstream's name means
-the DWARF debugging information is gone, not that anything ran `strip`.
+Two of the steps below appear in no removal list anyone wrote down: every
+`__pycache__` in the tree, and a run of `strip` over the interpreter binary —
+skipped when the binary's own section headers show it was rewritten by BOLT,
+a layout `strip` corrupts on this toolchain rather than merely shrinks. The
+asset arrives with its symbol table intact despite being named for a stripped
+variant — upstream's name means the DWARF debugging information is gone, not
+that anything ran `strip`. What each of the two is worth has moved with the
+asset: the sweep finds a single cache directory where an earlier minor left
+megabytes of them, and the strip is declined outright, so the three megabytes
+it would have taken are inside the figure above rather than off it.
 """
 
 import glob
@@ -75,36 +84,41 @@ REMOVED = {
     # this copy does not have to.
     "lib/python3.*/site-packages/pip": "pip",
     "lib/python3.*/site-packages/pip-*.dist-info": "pip's installation record",
-    "lib/python3.*/site-packages/setuptools": "setuptools",
-    "lib/python3.*/site-packages/setuptools-*.dist-info":
-        "setuptools' installation record",
     "lib/python3.*/ensurepip": "the wheels pip is bootstrapped from",
     "lib/python3.*/idlelib": "IDLE, an editor",
-    "lib/python3.*/lib2to3": "a Python 2 translator",
     "lib/python3.*/pydoc_data": "pydoc's topic texts",
     "lib/python3.*/turtledemo": "the turtle graphics demonstrations",
-    "lib/python3.*/lib-dynload/_test*.so": "CPython's own test extensions",
     "include": "the C headers something would build an extension against",
     "share": "manual pages and a terminal database",
     "bin/pip*": "pip's entry points",
     "bin/idle3*": "IDLE's entry points",
-    "bin/2to3*": "the translator's entry points",
     "bin/pydoc3*": "pydoc's entry points",
-    # `pkg_resources` is named in the measured removal list and is deliberately
-    # absent here: the pinned setuptools no longer vendors it, so a pattern for
-    # it would resolve to nothing and stop every run on the first line.
+    # `pkg_resources` and `setuptools` are both named in the measured removal
+    # list and are deliberately absent here: the asset carries no setuptools
+    # at all, so a pattern for either would resolve to nothing and stop every
+    # run on the first line.
+
+    # What is left after the installer and its tooling is what would let this
+    # private runtime pass itself off as a second system Python: something to
+    # compile a C extension against, and something to spawn an environment
+    # from. About 340 KB, well under a hundredth of the trimmed tree, so the
+    # reason this goes is the boundary it crosses, not the bytes it costs —
+    # this application is the only thing that ever runs against this
+    # interpreter, and nothing outside it should be able to build or branch
+    # off a private copy.
+    "lib/pkgconfig": "pkg-config data for building against this interpreter",
+    "bin/python*-config": "the same data, as a shell script",
+    "lib/python3.*/config-*": "the toolchain configuration a C extension would build against",
+    "lib/python3.*/venv": "virtual environment creation, which this runtime is not",
 }
 
-# The extension modules a purge scoped one directory too wide takes with it.
-# Both live beside files the list above removes, and neither is reachable from
-# any test this project runs, so their absence would first be noticed by a
-# user. They are checked as files rather than imported: see below for why the
-# second one cannot be imported on a build host at all.
+# The extension module a purge scoped one directory too wide takes with it. It
+# lives beside files the list above removes, and it is reachable from no test
+# this project runs, so its absence would first be noticed by a user. Checked
+# as a file rather than imported, the way the whole tree is proved below.
 KEPT_EXTENSIONS = {
     "lib/python3.*/lib-dynload/_dbm*.so":
         "dbm, 1.6 MB that looks droppable and was measured not to be",
-    "lib/python3.*/lib-dynload/_crypt*.so":
-        "crypt, whose libcrypt.so.1 no build container here installs",
 }
 
 # What the trimmed interpreter has to be able to import for the application and
@@ -209,21 +223,74 @@ def interpreter(root):
     return binaries[0]
 
 
+def section_headers(binary):
+    """The interpreter binary's own section headers, as `objdump -h` prints
+    them. The only line here that touches a subprocess — everything that
+    decides what the text means lives in `bolt_sections()`, which can be
+    exercised on canned text with no binary at all.
+
+    A reader that cannot read stops the run in this file's own voice rather
+    than as a traceback in the middle of a package build, the way every other
+    failure here does. What is lost when it fails is the classification, and
+    without that there is nothing to say whether stripping this binary is safe
+    — so there is no carrying on past it either.
+    """
+    finished = subprocess.run(["objdump", "-h", binary], capture_output=True,
+                              text=True, check=False)
+    if finished.returncode != 0:
+        sys.exit(f"trim-cpython: objdump -h exited {finished.returncode} on "
+                 f"{binary}, so nothing here can tell whether BOLT rewrote it "
+                 f"and whether stripping it is safe:\n"
+                 f"{finished.stderr.strip()}")
+    return finished.stdout
+
+
+def bolt_sections(headers):
+    """The BOLT-rewritten section names a section-header listing carries, if
+    any — a pure read of `objdump`'s own text, not a pass/fail gate itself.
+    Every strip implementation tried against a binary laid out this way
+    corrupts it on this toolchain, which is the signal `strip_interpreter()`
+    branches on before ever invoking one. Detected by shape rather than by a
+    hardcoded minor, so a later release that stops being BOLT-optimized gets
+    its strip back automatically instead of declining forever with nothing
+    saying so.
+    """
+    return re.findall(r"\.bolt\.org\S*", headers)
+
+
 def strip_interpreter(root):
-    """Take the symbol table off the interpreter; ~2 MB of the 33.
+    """Take the symbol table off the interpreter; ~3 MB of the 44.5 — unless
+    its own section headers say BOLT rewrote it, which today it does.
 
     Gated on the command's exit status and on the file actually shrinking,
     never on what it printed — `file` calls this binary "not stripped" before
-    the run, which is the fact the asset's own name argues against.
+    the run, which is the fact the asset's own name argues against. That
+    check cannot catch a BOLT-corrupted result: the corrupted file genuinely
+    is smaller, and only `prove_standard_library()`, the next call, notices
+    it cannot run. So the classification above runs first, and a binary it
+    flags is left alone rather than handed to a tool that cannot be trusted
+    with it.
+
+    Returns `(before, after, skipped)` rather than just the two sizes, so a
+    skip cannot be mistaken for a strip that happened to remove nothing: the
+    build log and `main()`'s own summary both read this third value, never
+    the sizes alone.
     """
     binary = interpreter(root)
     before = os.path.getsize(binary)
+    markers = bolt_sections(section_headers(binary))
+    if markers:
+        print(f"trim-cpython: {binary} carries BOLT's rewrite markers "
+              f"({', '.join(markers)}); every strip implementation tried "
+              f"against this toolchain corrupts a binary laid out this way, "
+              f"so this run leaves its symbol table on")
+        return before, before, True
     finished = subprocess.run(["strip", binary], check=False)
     after = os.path.getsize(binary)
     if finished.returncode != 0 or after >= before:
         sys.exit(f"trim-cpython: strip exited {finished.returncode} and left "
                  f"{binary} at {after} bytes, from {before}")
-    return before, after
+    return before, after, False
 
 
 def prove_standard_library(root):
@@ -253,13 +320,16 @@ def main(root):
         _delete(path)
     surviving_extensions(root)
     swept = sweep_pycache(root)
-    before, after = strip_interpreter(root)
+    before, after, skipped = strip_interpreter(root)
     prove_standard_library(root)
 
     count, total = kept_files_and_bytes(root)
+    strip_report = ("left the interpreter's symbol table in place "
+                    "(BOLT-rewritten binary)" if skipped else
+                    f"took {before - after} bytes off the interpreter")
     print(f"trim-cpython: removed {len(targets)} named paths and {swept} "
-          f"bytecode caches, took {before - after} bytes off the interpreter, "
-          f"kept {count} files totalling {total} bytes")
+          f"bytecode caches, {strip_report}, kept {count} files totalling "
+          f"{total} bytes")
     return 0
 
 

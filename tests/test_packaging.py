@@ -8,6 +8,7 @@ silently — which is how the COPR spec ended up not installing the tray icon.
 import fnmatch
 import importlib.util
 import re
+import subprocess
 import tomllib
 from pathlib import Path
 from typing import NamedTuple
@@ -34,6 +35,7 @@ RUNTIME_FETCHER = ROOT / "scripts" / "fetch-bundled-runtime.sh"
 TRIMMER = ROOT / "scripts" / "trim-pyside6.py"
 INTERPRETER_TRIMMER = ROOT / "scripts" / "trim-cpython.py"
 ELF_VERIFIER = ROOT / "scripts" / "verify-bundled-elf.sh"
+STRIP_PASS = ROOT / "scripts" / "strip-bundled-tree.sh"
 BYTECODE_VERIFIER = ROOT / "scripts" / "verify-bundled-bytecode.sh"
 METADATA_VERIFIER = ROOT / "scripts" / "verify-rpm-metadata.sh"
 PORTABILITY_VERIFIER = ROOT / "scripts" / "verify-rpm-portability.sh"
@@ -229,6 +231,80 @@ def test_the_check_examines_the_tree_that_ships_for_what_it_links():
     assert "%{buildroot}%{appdir}" in runs[0], (
         "%check makes those assertions about something other than the tree "
         "the package is built from, so a regression in what ships passes them")
+
+
+# The marker every file that decides about a strip has to be reading. It is
+# the prefix BOLT gives the sections it leaves behind, and the whole exemption
+# turns on it: the interpreter trim declines to strip a binary carrying it,
+# the strip pass walks past one, and the verifier excuses one. Written with
+# the dots optionally escaped, since two of the three match it as a pattern
+# and the third as a shell glob.
+BOLT_MARKER = re.compile(r"\\?\.bolt\\?\.org")
+
+# The verifier's own status for a tree that stopped being stripped, read off
+# the statement that returns it — the table of statuses in that file's header
+# names the number too, and a check a comment can satisfy is measuring the
+# wrong thing.
+ELF_UNSTRIPPED_EXIT = re.compile(r"^\s*return 40\s*$", re.M)
+
+
+def test_the_install_strips_what_ships_and_the_check_holds_it_to_that():
+    """rpm's own build-root strip pass is switched off for this package and
+    has to be — it walks the whole build root, and one binary in the tree is
+    laid out by BOLT, which every strip tried against it corrupts. What that
+    switch cannot do is spare only that binary: it spares every ELF file the
+    package carries, which is Qt's libraries, PySide6's extension modules,
+    ICU's tables and the standard library's own. Nothing about that fails.
+    The package builds, installs and runs, carrying whatever each dependency's
+    build host happened to leave on it — 2.2 MB of it at the time this was
+    written, and no signal at all the day a new dependency brings more.
+
+    So the pass is run by hand over the shipped tree, and the outcome is
+    asserted separately from the step: a verifier that walks the finished tree
+    is what turns "the pass no longer reaches these files" into a failed build
+    rather than a bigger package.
+
+    Read off parsed commands, so a comment describing either can neither
+    satisfy this nor trip it.
+    """
+    install = spec_commands(spec_section(read(BUNDLED), "install"))
+    passes = [c for c in install if STRIP_PASS.name in c]
+    assert len(passes) == 1, (
+        f"%install runs the strip pass {len(passes)} times; it runs it once, "
+        f"over the tree the package is about to carry")
+    assert "%{buildroot}%{appdir}" in passes[0], (
+        "%install strips something other than the private directory the "
+        "package installs, so what ships is stripped by nothing at all")
+
+    assert ELF_UNSTRIPPED_EXIT.search(uncommented(read(ELF_VERIFIER))), (
+        "the ELF assertions no longer refuse a tree carrying a symbol table, "
+        "so the hand-run strip pass above could stop reaching a file and the "
+        "build would go green on a package that ships it unstripped")
+
+
+def test_everything_deciding_about_a_strip_reads_the_same_exemption():
+    """Three files decide whether a binary may be stripped — the interpreter
+    trim, the strip pass over everything else, and the verifier that refuses
+    what neither of them stripped — and each of them answers it alone. They
+    agree today by all reading BOLT's own section names, and that agreement is
+    the whole design: an asset that stops being laid out that way gets its
+    strip back in all three at once, with nothing to change anywhere.
+
+    Drift here is silent in the worst direction. A trim that still declines
+    and a verifier that no longer excuses is a build that cannot finish; a
+    trim that strips and a pass that walks past is a corrupted interpreter in
+    a package that builds.
+
+    Read off each file's live text rather than its prose, since all three
+    describe the marker in sentences as well.
+    """
+    deciding = (INTERPRETER_TRIMMER, STRIP_PASS, ELF_VERIFIER)
+    blind = [p.name for p in deciding
+             if not BOLT_MARKER.search(uncommented(read(p)))]
+    assert not blind, (
+        f"these decide whether something may be stripped without reading the "
+        f"marker the other(s) exempt on, so the three no longer agree about "
+        f"which binary is exempt: {blind}")
 
 
 def test_the_check_holds_the_shipped_bytecode_to_the_interpreter_that_ships():
@@ -529,8 +605,8 @@ def test_no_delete_in_the_install_reaches_past_the_bundled_libraries():
     %install's deletes were written when they did not. Scoped to the tree
     rather than to the libraries inside it, the console-script removal takes
     the interpreter's own `bin/` — every entry point in the package then points
-    at nothing — and the purge of version-tagged extension modules takes `_dbm`
-    and `_crypt` out of the standard library, which this package is required to
+    at nothing — and the purge of version-tagged extension modules takes
+    `_dbm` out of the standard library, which this package is required to
     keep. Neither fails a build.
 
     Read as commands rather than as text, so a comment describing a delete can
@@ -698,7 +774,7 @@ def test_the_licence_is_installed(spec):
 # reviewed, and a bump that moves one without the other stops rather than
 # ships.
 BUNDLED_INTERPRETER_SHA256 = (
-    "3b437f08720d3ddd9c1904532476ec9fb373e800d1598c72c907dd6d5f29b79b")
+    "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533")
 
 # A checksum literal anywhere in the fetcher: 64 hex digits with no hex digit
 # on either side, so a longer run of them is not read as one.
@@ -781,8 +857,8 @@ def test_the_spec_unpacks_the_interpreter_the_fetcher_writes():
     start, which is loud. Move the asset and leave the minor version behind and
     the build starts, installs everything into a directory beside the one the
     shipped interpreter reads, and produces a package that imports nothing —
-    which the build asserts against too, but only after unpacking 83 MB and
-    running two trims. Here it costs nothing.
+    which the build asserts against too, but only after unpacking around a
+    hundred megabytes and running two trims. Here it costs nothing.
     """
     spec = read(BUNDLED)
     source = SPEC_INTERPRETER_SOURCE.search(spec)
@@ -815,7 +891,7 @@ def test_the_wheels_are_resolved_by_the_interpreter_that_will_run_them():
     corrects which wheel is chosen and leaves marker evaluation reading the
     host, which is how a requirement conditioned on an older interpreter goes
     missing from a package that accepts one. Only the interpreter genuinely
-    being 3.11 answers both, so what this asserts is that the program running
+    being 3.14 answers both, so what this asserts is that the program running
     pip is the one that was just unpacked.
     """
     s = read(RUNTIME_FETCHER)
@@ -1709,32 +1785,30 @@ def load_interpreter_trimmer():
 # are worth their failure only against this — a tree planted from the patterns
 # themselves would agree with any pattern, including a wrong one.
 REMOVABLE_IN_THE_REAL_ASSET = (
-    "lib/libpython3.11.so.1.0", "lib/libpython3.11.so", "lib/libpython3.so",
+    "lib/libpython3.14.so.1.0", "lib/libpython3.14.so", "lib/libpython3.so",
     "lib/libtcl9.0.so", "lib/libtcl9tk9.0.so",
     "lib/tcl9", "lib/tcl9.0", "lib/tk9.0", "lib/itcl4.3.8", "lib/thread3.0.6",
-    "lib/python3.11/tkinter",
-    "lib/python3.11/lib-dynload/_tkinter.cpython-311-x86_64-linux-gnu.so",
-    "lib/python3.11/site-packages/pip",
-    "lib/python3.11/site-packages/pip-26.2.1.dist-info",
-    "lib/python3.11/site-packages/setuptools",
-    "lib/python3.11/site-packages/setuptools-82.0.1.dist-info",
-    "lib/python3.11/ensurepip", "lib/python3.11/idlelib",
-    "lib/python3.11/lib2to3", "lib/python3.11/pydoc_data",
-    "lib/python3.11/turtledemo",
-    "lib/python3.11/lib-dynload/_testclinic.cpython-311-x86_64-linux-gnu.so",
+    "lib/python3.14/tkinter",
+    "lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so",
+    "lib/python3.14/site-packages/pip",
+    "lib/python3.14/site-packages/pip-26.2.1.dist-info",
+    "lib/python3.14/ensurepip", "lib/python3.14/idlelib",
+    "lib/python3.14/pydoc_data",
+    "lib/python3.14/turtledemo",
     "include", "share",
-    "bin/pip", "bin/pip3", "bin/pip3.11", "bin/idle3", "bin/idle3.11",
-    "bin/2to3", "bin/2to3-3.11", "bin/pydoc3", "bin/pydoc3.11",
+    "bin/pip", "bin/pip3", "bin/pip3.14", "bin/idle3", "bin/idle3.14",
+    "bin/pydoc3", "bin/pydoc3.14",
+    "lib/pkgconfig", "bin/python3.14-config", "bin/python3-config",
+    "lib/python3.14/config-3.14-x86_64-linux-gnu", "lib/python3.14/venv",
 )
 
-# Files from the same directories that have to come through untouched. The two
-# extension modules are the ones a purge scoped one directory too wide takes,
-# and no test in this project imports either.
+# Files from the same directory that have to come through untouched. The
+# extension module is the one a purge scoped one directory too wide takes,
+# and no test in this project imports it.
 KEPT_IN_THE_REAL_ASSET = (
-    "bin/python3.11", "bin/python3.11-config", "lib/pkgconfig/python-3.11.pc",
-    "lib/python3.11/os.py", "lib/python3.11/dbm/ndbm.py",
-    "lib/python3.11/lib-dynload/_dbm.cpython-311-x86_64-linux-gnu.so",
-    "lib/python3.11/lib-dynload/_crypt.cpython-311-x86_64-linux-gnu.so",
+    "bin/python3.14",
+    "lib/python3.14/os.py", "lib/python3.14/dbm/ndbm.py",
+    "lib/python3.14/lib-dynload/_dbm.cpython-314-x86_64-linux-gnu.so",
 )
 
 
@@ -1780,17 +1854,16 @@ def test_the_interpreter_trim_takes_every_removal_it_names_from_a_real_tree(
 
 def test_the_interpreter_trim_keeps_the_extensions_a_wide_purge_would_eat(
         tmp_path):
-    """`_dbm` and `_crypt` sit in the directory the Tcl binding is removed
-    from, and nothing automated here imports either — `_crypt` cannot even be
-    imported on the build host, whose libcrypt has a different soname. So
-    their survival is asserted against the filesystem, and a trim that took
-    one stops before the package is assembled around it."""
+    """`_dbm` sits in the directory the Tcl binding is removed from, and
+    nothing automated here imports it. So its survival is asserted against
+    the filesystem, and a trim that took it stops before the package is
+    assembled around it."""
     trimmer = load_interpreter_trimmer()
     root = plant_interpreter_tree(tmp_path)
-    assert len(trimmer.surviving_extensions(str(root))) == 2
+    assert len(trimmer.surviving_extensions(str(root))) == 1
 
-    (root / "lib/python3.11/lib-dynload"
-     / "_dbm.cpython-311-x86_64-linux-gnu.so").unlink()
+    (root / "lib/python3.14/lib-dynload"
+     / "_dbm.cpython-314-x86_64-linux-gnu.so").unlink()
     with pytest.raises(SystemExit):
         trimmer.surviving_extensions(str(root))
 
@@ -1806,3 +1879,102 @@ def test_the_interpreter_trim_proves_the_module_the_statistics_need():
         "the statistics no longer open their database with sqlite3, so the "
         "probe set is being held to the wrong module")
     assert "sqlite3" in modules
+
+
+# A literal excerpt of `objdump -h`'s own output shape, section names only --
+# real enough for the classifier to read, with none of an actual ELF file's
+# other machinery. The second carries no BOLT markers at all.
+BOLTED_SECTION_HEADERS = """
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+ 30 .bolt.org.text 00abcdef  0000000000401000  0000000000401000  00001000  2**4
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 31 .bolt.org.rodata 00001234  0000000000501000  0000000000501000  00002000  2**4
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+ 32 .note.bolt_info 00000020  0000000000601000  0000000000601000  00003000  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+"""
+
+PLAIN_SECTION_HEADERS = """
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  8 .text         00a41020  00000000001e0000  00000000001e0000  001e0000  2**12
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 10 .rodata       00341168  0000000000c22000  0000000000c22000  00c22000  2**12
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+"""
+
+
+def test_the_bolt_classifier_finds_and_misses_its_own_markers():
+    """What decides whether a strip is safe to run is the presence of BOLT's
+    own section names, and a pure text read is the seam this can exercise
+    with two literal `objdump -h` excerpts — no ELF file, no real
+    BOLT-optimized binary to hand."""
+    trimmer = load_interpreter_trimmer()
+    assert trimmer.bolt_sections(BOLTED_SECTION_HEADERS), (
+        "the classifier missed BOLT's own section names in a listing that "
+        "carries them")
+    assert not trimmer.bolt_sections(PLAIN_SECTION_HEADERS), (
+        "the classifier found BOLT markers in a listing that carries none")
+
+
+def test_the_interpreter_trim_reports_an_unreadable_binary_in_its_own_voice(
+        monkeypatch):
+    """Everything else in that script names itself when it stops — a missing
+    removal, a lost extension module, a strip that left the file no smaller,
+    an interpreter that cannot import what the application needs. The reader
+    the classification is built on was the one step that could instead raise
+    through, and a package build is where that lands: a truncated download or
+    an `objdump` that does not understand the asset's layout would have
+    arrived as a traceback in the middle of a build log, with no line in it
+    saying which program was unhappy about what.
+
+    What the reader said has to survive into the message, too — the exit
+    status alone names no cause, and the run stops before anything else can
+    ask the binary a second question.
+    """
+    trimmer = load_interpreter_trimmer()
+    complaint = "objdump: 'python3.14': File format not recognized"
+    monkeypatch.setattr(
+        trimmer.subprocess, "run",
+        lambda *args, **_kwargs: subprocess.CompletedProcess(
+            args[0], 1, "", complaint + "\n"))
+
+    with pytest.raises(SystemExit) as stopped:
+        trimmer.section_headers("python3.14")
+    message = str(stopped.value)
+    assert message.startswith("trim-cpython: "), (
+        f"an unreadable binary stopped the run without naming the program "
+        f"that could not read it: {message!r}")
+    assert complaint in message, (
+        f"the stop names no cause, so a build log carries an exit status and "
+        f"nothing to act on: {message!r}")
+
+
+def test_a_bolt_rewritten_interpreter_declines_strip_visibly(tmp_path,
+                                                              monkeypatch):
+    """The build log must carry a sentence naming the skip and its reason,
+    and a skipped strip must not read as one that ran: `main()`'s own
+    summary line is derived from exactly the value this asserts. Driven with
+    the classifier's own subprocess seam forced to report markers, against a
+    throwaway file standing in for the interpreter binary: a `strip` that ran
+    anyway changes the file, and a skip that returns what a successful strip
+    would have returned is indistinguishable from one — the failure this
+    exists to catch."""
+    trimmer = load_interpreter_trimmer()
+    root = tmp_path / "python"
+    binary = root / "bin" / "python3.11"
+    binary.parent.mkdir(parents=True)
+    original = b"not an ELF file, just bytes strip must never touch"
+    binary.write_bytes(original)
+
+    monkeypatch.setattr(trimmer, "section_headers",
+                        lambda _binary: BOLTED_SECTION_HEADERS)
+
+    before, after, skipped = trimmer.strip_interpreter(str(root))
+    assert skipped is True, (
+        "a BOLT-marked binary was stripped instead of being skipped")
+    assert before == after, (
+        "a skipped strip reports different before/after sizes, which is "
+        "what a real strip leaves behind")
+    assert binary.read_bytes() == original, "a skipped strip touched the file"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# What the tree this package ships is allowed to link, and how new a C library
-# it is allowed to ask for.
+# What the tree this package ships is allowed to link, how new a C library it
+# is allowed to ask for, and what weight it is allowed to carry that nothing
+# reads.
 #
 #     scripts/verify-bundled-elf.sh <tree>
 #
@@ -20,6 +21,15 @@
 # of the range: a binary asking for a symbol version newer than the oldest
 # distribution line this package reaches will not load there, and nothing on a
 # current build host would ever notice.
+#
+# The third half -- the symbol tables -- is a claim about a policy rather than
+# about a file. rpm's own build-root strip pass is switched off for this
+# package because it cannot be told to spare the one binary it corrupts, and
+# scripts/strip-bundled-tree.sh does that pass by hand instead. Nothing else
+# would notice if that stopped happening: the package would build, install and
+# run, merely carrying whatever every dependency's build host left behind. So
+# what is asserted here is the result rather than the step, and a binary is
+# excused only by carrying the rewrite markers that made it exempt.
 set -euo pipefail
 
 # The ceilings. Each is a statement about a *distribution line* rather than
@@ -54,6 +64,7 @@ GCC_CEILING=3.0
 #   31  ... a libstdc++
 #   32  ... a C++ ABI
 #   33  ... a libgcc
+#   40  a shipped file still carries a symbol table nothing took off it
 #
 # Family, its ceiling, and the status that names it.
 SYMBOL_FAMILIES=(
@@ -103,14 +114,15 @@ main() {
     # shellcheck disable=SC2064
     trap "rm -rf '$workdir'" EXIT
     local headers="$workdir/headers" symbols="$workdir/symbols"
+    local sections="$workdir/sections" table="$workdir/table"
     : > "$symbols"
 
     # Everything the tree holds, shared objects and executables alike. The
     # interpreter is the file this matters most for and it is neither named
     # like a library nor built like one, so a walk that went looking for a
     # suffix would skip exactly the binary the design rests on.
-    local examined=0 path
-    local -a linked=()
+    local examined=0 spared=0 path
+    local -a linked=() unstripped=()
     while IFS= read -r -d '' path; do
         is_elf "$path" || continue
         examined=$((examined + 1))
@@ -118,6 +130,19 @@ main() {
         objdump -p "$path" > "$headers" 2>/dev/null || true
         if grep -q 'NEEDED.*libpython' "$headers"; then
             linked+=("$path")
+        fi
+
+        # Excused by its own layout rather than by its path: the rewrite
+        # markers are what made the interpreter trim decline to strip it, so
+        # a file that stops carrying them stops being excused here too, and a
+        # bundled library that starts carrying them is excused without
+        # anybody having to come back and name it.
+        objdump -h "$path" > "$sections" 2>/dev/null || : > "$sections"
+        objdump -t "$path" > "$table" 2>/dev/null || : > "$table"
+        if grep -q '\.bolt\.org' "$sections"; then
+            spared=$((spared + 1))
+        elif ! grep -qx 'no symbols' "$table"; then
+            unstripped+=("$path")
         fi
 
         objdump -T "$path" 2>/dev/null \
@@ -134,7 +159,18 @@ main() {
         echo "nothing was examined, so nothing was verified" >&2
         return 10
     fi
-    echo "examined $examined ELF files under $tree"
+    echo "examined $examined ELF files under $tree, $spared of them rewritten"
+
+    if [ "${#unstripped[@]}" -gt 0 ]; then
+        printf '%s\n' "${unstripped[@]}" >&2
+        echo "error: the file(s) above still carry a symbol table. rpm's own" >&2
+        echo "build-root strip pass is switched off for this package, because" >&2
+        echo "it cannot be told to spare the one binary it corrupts, and" >&2
+        echo "scripts/strip-bundled-tree.sh does that pass by hand instead --" >&2
+        echo "so a file arriving here unstripped is one that pass no longer" >&2
+        echo "reaches, and the package is shipping weight nothing reads." >&2
+        return 40
+    fi
 
     if [ "${#linked[@]}" -gt 0 ]; then
         printf '%s\n' "${linked[@]}" >&2

@@ -14,7 +14,7 @@
 # once: the tree, the binary inside it that both entry points exec, and the
 # directory every bundled library and the app itself install into.
 %global bundled_runtime %{appdir}/python
-%global bundled_minor 3.11
+%global bundled_minor 3.14
 %global bundled_interpreter %{bundled_runtime}/bin/python%{bundled_minor}
 %global bundled_libraries %{bundled_runtime}/lib/python%{bundled_minor}/site-packages
 
@@ -39,12 +39,32 @@
 # Nothing here is built from source, so there are no debug sources to package;
 # left defined, the build dies on an empty source list rather than skipping it.
 %global debug_package %{nil}
-# Both build-root policies below would work against a package that carries its
-# own interpreter: one writes bytecode caches tagged for the build host's
-# CPython into a tree that runs a different one, and the other rewrites the
-# shebang of every script in that tree to name the build host's interpreter.
+# All three build-root policies below would work against a package that
+# carries its own interpreter: one writes bytecode caches tagged for the
+# build host's CPython into a tree that runs a different one, the second
+# rewrites the shebang of every script in that tree to name the build host's
+# interpreter, and the third runs the build host's own strip over every ELF
+# file in the tree regardless of what already decided whether that file
+# should be stripped. The interpreter trim already makes that decision once,
+# correctly, for the one binary that matters here -- a BOLT-rewritten
+# interpreter left alone on purpose, because every strip implementation tried
+# against it corrupts it -- and an automatic pass with no knowledge of that
+# would strip the same binary again and undo it. Set to nothing rather than
+# undefined: measured directly against this build, %%undefine on any of the
+# last three left the platform's own definition still running, and only
+# replacing it with an empty one took.
+#
+# The third one's reach is wider than its reason, and there is no narrowing it
+# here: rpm walks the whole build root and offers no way to except one path,
+# so switching it off spares every ELF file the package carries rather than
+# only the interpreter. %%install therefore runs that pass itself, file by
+# file and past the one binary it must not touch, and %%check refuses a tree
+# where anything else still carries a symbol table.
 %undefine __brp_python_bytecompile
 %undefine __brp_mangle_shebangs
+%global __brp_strip %{nil}
+%global __brp_strip_comment_note %{nil}
+%global __brp_strip_lto %{nil}
 # The package format to write, stated rather than inherited. Both build hosts
 # this project uses — the CI container and a contributor's own workstation —
 # already produce this one by default, so it changes nothing on either; it is
@@ -88,7 +108,7 @@ Source0:        idasen_companion-%{version}.tar.gz
 Source1:        idasen-companion-wheels-%{version}.tar.gz
 # The other half of the same arrangement: the interpreter the package carries,
 # written by that same script under the name and at the checksum it pins.
-Source2:        cpython-3.11.16+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+Source2:        cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
 
 BuildRequires:  python3-devel
 # Both trimmers run under the build host's interpreter and shell out to these
@@ -120,6 +140,13 @@ BuildRequires:  libdbus-1.so.3()(64bit)
 # The package asks the machine for no interpreter at all: it carries its own.
 # Everything else it needs is generated from the libraries it ships, and every
 # one of those comes out as a soname.
+#
+# One soname left this list at the CPython 3.14 bump: libcrypt.so.1. The
+# crypt extension no longer exists in CPython at 3.14, so nothing in the
+# bundled interpreter links it any more, and one cross-distribution
+# dependency this package used to carry is simply gone. Its reappearance in
+# a future `rpm -qp --requires` would mean something in the bundle started
+# linking it again, not a fix.
 Requires:       bluez
 Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
 
@@ -128,7 +155,7 @@ Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
 # the package carries, and it is here for the same reason as the nine below:
 # this section is what a security scanner reads, and the largest bundled
 # component in the package would otherwise be the one thing it cannot see.
-Provides:       bundled(python3) = 3.11.16
+Provides:       bundled(python3) = 3.14.7
 Provides:       bundled(python3dist(pyside6-essentials)) = 6.11.1
 Provides:       bundled(python3dist(shiboken6)) = 6.11.1
 Provides:       bundled(python3dist(bleak)) = 3.0.2
@@ -259,6 +286,15 @@ fi
 # Qt arrives whole and leaves as the modules the app reaches. See the script
 # for why the set is computed rather than listed.
 %{python3} scripts/trim-pyside6.py %{buildroot}%{bundled_libraries}
+
+# ...and the strip rpm's own build-root policy would have run, which is
+# switched off at the top of this file for the whole build root because it
+# cannot be told to spare one path. Last of the steps that touch these files,
+# so what it walks is every object the package is about to carry rather than
+# whichever of them had arrived by some earlier line. See the script for how
+# the one binary that must not be stripped is recognised -- by its own layout,
+# never by its name.
+bash scripts/strip-bundled-tree.sh %{buildroot}%{appdir}
 
 # Bytecode for the whole private tree, compiled by the interpreter that will
 # read it, once nothing is going to move in that tree again. Two separate

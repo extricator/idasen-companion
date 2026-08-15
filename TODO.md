@@ -446,6 +446,37 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       Left unbuilt because nobody has asked and each extra build costs a full
       container run; recorded so the shape does not have to be researched
       again.
+- [ ] **The bundled RPM renders in Fusion rather than the desktop's Breeze, and
+      the shipped screenshots still show Breeze** — two halves of one cause,
+      found when the 1.0.2 bundled package was installed on the maintainer's
+      machine (2026-08-15).
+      *The look.* The package used to declare `Requires: python3-pyside6`, so
+      the app ran on the same Qt build as the desktop and picked up KDE's
+      platform theme and the Breeze style for free. The bundled package carries
+      its own Qt 6.11.1 out of the `PySide6-Essentials` wheel instead, and that
+      wheel ships **no `styles` plugin directory at all**; the only platform
+      theme left in the bundle after the trim is `libqxdgdesktopportal.so`. So
+      Qt falls back to Fusion — the tell is style `fusion`, a "Restore
+      Defaults" button label, and no icon on it. This is not the interpreter
+      bump: the dev venv, which that phase never touched, reproduces the same
+      rendering identically, so the venv is the cheap place to test any fix
+      without rebuilding an RPM. Whatever the fix is, it has to work on a
+      machine whose desktop is *not* KDE too, which is the whole reason the
+      bundle exists.
+      *The screenshots.* The five captures in `data/screenshots/` are dated
+      2026-08-13, one day before bundling landed, so both the README's strip of
+      thumbnails and the five `<screenshot>` URLs in
+      `data/io.github.extricator.IdasenCompanion.metainfo.xml` advertise an
+      application the shipped package no longer produces. Re-shoot them from
+      the *installed* package rather than the venv, and note the metainfo
+      declares `width="990" height="826"` for each, so a re-shoot at another
+      size means editing those attributes as well. The images are deliberately
+      absent from the sdist and are fetched from the forge's default branch, so
+      replacing a file is a plain overwrite — but renaming or deleting one
+      breaks the picture for every install already out there, and
+      `tests/test_packaging.py` holds each URL against a file in the tree.
+      Decide the look first: re-shooting before the style question is settled
+      buys a second set of stale images.
 - [ ] **The trimmed Qt is verified by nothing but the offscreen platform** —
       the RPM ships Qt cut down by ELF reachability, and every automatic check
       of it runs headless: the spec's `%check` and the suite force
@@ -508,6 +539,82 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       metadata out of the matching full archive at bump time and diffs the term
       set against the spec — run by hand when the pin moves, not in CI, since
       it needs a download the build deliberately avoids.
+- [ ] **The bundled interpreter's symbol table is no longer stripped, because
+      the 3.14.7 pin carries BOLT** — `trim-cpython.py` detects BOLT's rewrite
+      markers in the interpreter binary's own section headers and declines to
+      strip a binary that carries them, because every strip implementation
+      tried against this toolchain (`strip`, `strip --strip-debug`, `objcopy
+      --strip-unneeded`, `eu-strip`) corrupts one into a binary that exits 127
+      while still passing the trim's own before/after size check. This is no
+      longer a hypothetical: the pin moved to 3.14.7 in the CPython-version
+      bump, and the skip fires on every build now, confirmed by a real
+      `rpmbuild -bb`. A second, related fact the bump also surfaced: RPM's own
+      automatic `__brp_strip` build-root policy runs `strip` over the whole
+      buildroot *again* after `%install`, independent of `trim-cpython.py`,
+      and corrupted the same binary the manual skip was protecting — closed by
+      setting `__brp_strip`, `__brp_strip_comment_note` and `__brp_strip_lto`
+      to `%{nil}` in the spec (`%undefine` measurably left the platform's own
+      definition running; only overwriting the name took). That switch cannot
+      be scoped to one path, so it spared every ELF file in the buildroot;
+      `scripts/strip-bundled-tree.sh` now runs the same pass by hand over
+      everything but the rewritten binary, and `verify-bundled-elf.sh` refuses
+      a tree where anything else still carries a symbol table. Measured cost of
+      leaving the interpreter unstripped: ~3 MB uncompressed (32,062,496 →
+      29,076,616 bytes is the reduction a working strip would have performed,
+      measured on the corrupted output before its symbol table broke it). The
+      maintainer accepted the skip and the ~3 MB it costs when the CPython
+      bump handed it over, so the package ships unstripped deliberately rather
+      than by omission. Two untried alternatives came with that decision. The
+      one worth trying — an alternate strip toolchain inside the CI
+      container — is its own item below. The other was looked at and not
+      chosen: a targeted section-preserving `objcopy` that keeps `.dynstr`
+      intact, never attempted, recorded here only so nobody rediscovers it as
+      novel.
+- [ ] **Try an alternate strip toolchain inside the disposable Fedora 43 CI
+      container** — the reason the interpreter ships unstripped is that every
+      strip implementation on this workstation's binutils 2.45.1 corrupts a
+      BOLT-rewritten binary (see the item above). Neither a newer binutils nor
+      `llvm-strip` has been tried, because neither is installed here and
+      installing one on a persistent workstation to test a packaging question
+      is the wrong trade. The CI container is disposable, so the same
+      experiment is cheap there: install the alternate toolchain, strip the
+      3.14.7 interpreter, and run `prove_standard_library()` against the
+      result — that is the check that already catches the corruption, so a
+      pass is a real answer and a failure costs a container. Worth ~3 MB
+      uncompressed if it works. Recheck the premise first: the corruption was
+      measured on one binutils version against one asset, and a later
+      python-build-standalone build or a later binutils may simply not
+      reproduce it.
+- [ ] **A regression test asserting `libcrypt.so.1` has left `Requires`** —
+      offered during the CPython 3.14 bump and declined (D-06): the crypt
+      extension's departure from CPython means the interpreter trim no longer
+      links it, and the built package's `Requires` lost the two `libcrypt.so.1`
+      lines the 1.0.2 (3.11) artifact carried, confirmed on a real
+      `rpmbuild -bb` at 3.14.7. The departure is recorded in the spec's own
+      comment above `Requires:` rather than gated by a test. Reconsider only
+      if a later change is suspected of bringing the dependency back.
+- [ ] **A shared module list between `trim-cpython.py` and
+      `verify-rpm-portability.sh`** — offered during the CPython 3.14 bump and
+      declined (D-14): the portability script already imports `bleak` and
+      `idasen` and runs a real statistics round trip on five images, and the
+      trimmer already imports thirteen modules and completes a `sqlite3` round
+      trip at build time, so repeating the module list post-install would only
+      catch a `%files` omission that packaging the whole private tree already
+      rules out. Revisit only if the two lists actually drift.
+- [ ] **Re-run `scripts/verify-rpm-portability.sh` once openSUSE's mirrors
+      resync, to bring the Tumbleweed leg back to green** — the CPython 3.14
+      bump closed at four of five images. Tumbleweed failed for a reason
+      outside this repository: `download.opensuse.org` serves a `repomd.xml`
+      listing an appdata-icons archive that the mirror the request is
+      geo-routed to answers with 404, so `zypper` cannot refresh the OSS
+      repository, cannot resolve `bluez`, and the install transaction never
+      starts — the package under test is never exercised at all, which is why
+      this says nothing about the package. Reproduced on three separate runs
+      with an unmodified script, and confirmed independently of the container
+      by fetching the file's redirect target directly. The other SUSE-lineage
+      image, Leap 15.6, passes cleanly every time and carries the claim that
+      actually matters for that lineage. Nothing here needs a source change:
+      run the script unmodified against the same RPM and expect five of five.
 - [ ] **Half of what the RPM build downloads is authenticated and half is not**
       — `fetch-bundled-runtime.sh` fetches the interpreter from a pinned URL
       and holds it to a pinned SHA256 *before* anything unpacks it or runs it,

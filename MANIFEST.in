@@ -108,6 +108,10 @@ include scripts/trim-pyside6.py
 # still passes, because the file is sitting right there in the working tree.
 include scripts/trim-cpython.py
 include scripts/fetch-bundled-runtime.sh
+# The strip pass %install runs by hand, out of the unpacked tarball like the
+# two trimmers above, for the same reason and with the same consequence for
+# leaving the line out.
+include scripts/strip-bundled-tree.sh
 # The linkage and symbol-version assertions, run from %check out of the
 # unpacked tarball like the two trimmers above. Omit the line and the package
 # build stops in the middle of %check, while every local build passes, because

@@ -12,6 +12,10 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "extricator" }]
+# Describes which *host* interpreters the sdist, the wheel and the COPR split
+# accept — every one of those runs against a Python already on the machine.
+# The self-contained RPM carries its own interpreter and reads this value
+# nowhere, so bumping the bundled minor is not a reason to move this floor.
 requires-python = ">=3.11"
 dependencies = [
     "idasen>=0.12",
