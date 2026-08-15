@@ -157,11 +157,49 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
 ## Packaging variant
 
 The bundled single RPM is what ships and is rebuilt constantly. The split is
-documented in `README.md` as an alternative and has not been exercised.
+documented in `CONTRIBUTING.md`, honestly, as unverified between releases —
+nothing in CI builds it. All three specs have been built with `rpmbuild -bb`
+in a fresh Fedora 43 container: the two library specs during this phase's
+research, and the app spec by the fix that landed alongside this checklist
+update. What remains genuinely manual:
 
-- [ ] **[split]** `rpmbuild -ba` succeeds for all three specs.
 - [ ] **[split]** `dnf install` of the three RPMs pulls only Fedora-repo
       dependencies.
+
+### What the container proof cannot see
+
+Every build runs `scripts/verify-rpm-portability.sh` against the package it
+just made: it installs it in throwaway containers of two RPM lineages — Red
+Hat, across three generations of it, and SUSE — and starts the daemon there
+under a session bus. So "does it install elsewhere" and "does the daemon come
+up elsewhere" are not manual work and are not listed here. One thing it does
+*not* prove is the first command a SUSE user runs: see the note in the script,
+and TODO.md.
+
+The GUI is, because a container has no display and the offscreen platform
+plugin sees none of what follows. The package now carries its own Qt, cut down
+to the libraries the app can be shown to reach, and everything below is a way
+that cut can be wrong while every automated check stays green. Do these from
+the **installed package**, not from a checkout — the bundled copy is the point.
+
+- [ ] Launch the GUI in a **Wayland** session and again in an **X11** one.
+      Right: the window appears both times. A missing platform plugin does not
+      degrade — Qt aborts on the spot and says which plugin it could not load,
+      so there is no ambiguous outcome to record here.
+- [ ] The tray icon appears, and is the app's icon rather than a placeholder
+      square or a blank gap. Right: it is drawn, and its menu opens.
+- [ ] The icons are the drawn artwork, not a fallback: the tray icon, the
+      window icon, and the icons on the navigation rail. Right: each is the
+      shape it is meant to be. A missing SVG icon engine shows up as
+      nothing at all rather than as an error.
+- [ ] In the **X11** session, rename a preset and type an accented character
+      into the name — `á` by whatever this keyboard reaches it with (a dead
+      key, or the compose key). Right: the character arrives. X11 is the case
+      that matters: Qt handles none of this itself there, an input-method
+      plugin does, and the app ships a Spanish catalog to be used with a
+      keyboard that produces such characters. Nothing automated can see it —
+      every check here runs on the offscreen platform, which loads no input
+      method at all.
 
 ### Flatpak Background portal autostart
 

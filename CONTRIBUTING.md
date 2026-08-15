@@ -91,29 +91,74 @@ The RPM build uses a project-local tree (`./rpmbuild/`), not `~/rpmbuild`.
 Install the prerequisites first:
 
 ```bash
-sudo dnf install rpm-build rpmdevtools python3-devel python3-pip \
-    python3-uv-build systemd-rpm-macros desktop-file-utils \
-    python3-pytest python3-pytest-asyncio python3-tomlkit python3-dbus-fast \
-    python3-pyyaml python3-pyside6
+sudo dnf install rpm-build rpmdevtools python3-devel python3-build \
+    systemd-rpm-macros desktop-file-utils \
+    python3-pytest python3-pytest-asyncio \
+    /usr/bin/strip /usr/bin/objdump /usr/bin/dbus-run-session \
+    'libGL.so.1()(64bit)' 'libEGL.so.1()(64bit)' 'libxkbcommon.so.0()(64bit)' \
+    'libfontconfig.so.1()(64bit)' 'libfreetype.so.6()(64bit)' \
+    'libdbus-1.so.3()(64bit)'
 mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 ```
 
-The shipped package is the bundled single RPM. It contains `bleak` and
-`idasen`, which Fedora does not package:
+Six of those names are library sonames and three are program paths, and
+neither kind is a package name: `dnf` resolves each to whatever package
+provides it here. The spec asks for them that way on purpose — it is how a
+build dependency gets stated without naming any one distribution's package for
+it — so the command that installs them says the same thing. The sonames are
+what the bundled Qt links against while the suite runs, and without them the
+GUI tests fail at collection rather than skipping. Two of the programs are what
+the build's trimmers shell out to, one to take the symbol table off the bundled
+interpreter and one to walk Qt's dependency graph; the third is the session bus
+the build starts the daemon on, to prove the tree it is about to package
+actually runs rather than merely imports.
+
+Neither `pip` nor `setuptools` is asked for by name any more: every install
+`rpmbuild` performs is run by the interpreter the package will carry, out of
+the extraction the spec unpacks, and that extraction brings its own of both.
+The sdist step below still assembles an isolated environment of its own, for
+which `python3-build` pulls in what it needs.
+
+The shipped package is the self-contained single RPM. It carries the app's
+whole Python runtime — the interpreter, and every library it imports, Qt
+included and trimmed to the modules it reaches — so it installs on any RPM
+distribution rather than on the one it was built against:
 
 ```bash
 python3 -m build --sdist
 cp dist/idasen_companion-*.tar.gz rpmbuild/SOURCES/
-spectool -g -C rpmbuild/SOURCES packaging/idasen-companion-bundled.spec
-rpmbuild --define "_topdir $PWD/rpmbuild" -ba packaging/idasen-companion-bundled.spec
+bash scripts/fetch-bundled-runtime.sh rpmbuild/SOURCES
+rpmbuild --define "_topdir $PWD/rpmbuild" -bb packaging/idasen-companion-bundled.spec
 ```
 
-The spec's `%check` runs the test suite, so a failing test fails the build.
+The third line is the only one that needs the network, and it pins every
+version it downloads. `rpmbuild` then runs offline against the tarball it
+wrote, which is why the two sources are staged by hand rather than fetched
+from the spec: one of them does not exist anywhere to fetch from.
+
+The result is architecture-specific — it contains Qt — so it appears under
+`rpmbuild/RPMS/x86_64/`.
+
+The spec's `%check` runs the test suite against the tree that ships, bundled
+Qt included, so a failing test fails the build. It runs it **on the interpreter
+the package carries**, not on the machine's — so a test that passes in your
+venv and fails in `%check` is most likely a test that depends on a Python newer
+than the bundled minor, which is the one the package's users get. The test
+framework itself is still the build host's, appended to the search path behind
+the bundled directories; that is the one thing in `%check` the package cannot
+supply, since nothing in the payload is a test dependency and the build runs
+offline.
 
 `packaging/` also holds a three-package split (`idasen-companion.spec` plus
 `python-bleak.spec` and `python-idasen.spec`) for a repository that carries the
-two libraries separately. Build the two library packages and install them
-before you build the app package.
+two libraries separately. This is not what ships, and nothing in CI builds
+`idasen-companion.spec` — it shipped with a broken `%install` line, unbuilt
+and undetected, until this phase's research built it by hand and found the
+break; a follow-up commit removed the stray line, but the spec still has no
+build gate, so it can go stale again the same way. It is unverified between
+releases. The self-contained single RPM is the supported path. If you build
+the split anyway, build the two library packages and install them before you
+build the app package.
 
 The `.deb` needs a checkout with the Debian build dependencies present:
 
@@ -189,8 +234,9 @@ getting it wrong costs a version number. Follow this top to bottom.
    before anything is built. It then builds all three formats at that commit,
    resolves each built filename, writes `SHA256SUMS` over the set, creates the
    `v<version>` tag pointing at exactly the commit the artifacts came from, and
-   publishes a release carrying four assets: the bundled RPM, the `.deb`, the
-   versioned `.flatpak` bundle and the checksums. The body is the matching
+   publishes a release carrying the RPM — one package, built once, named for
+   the architecture rather than for a distribution — the `.deb`, the versioned
+   `.flatpak` bundle and the checksums. The body is the matching
    `CHANGELOG.md` section.
 
    Tick **dry run** to rehearse instead: same builds, same checksums, no tag

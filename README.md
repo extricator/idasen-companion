@@ -59,14 +59,22 @@ Overview tab reports the idle backend as `none`.
 Download the artifact for your system from the [releases page][releases].
 Updates are manual: download the new release, then install it again.
 
-**Fedora, and other distributions that use RPM**
+**RPM, on x86_64**
 
 ```
-sudo dnf install ./idasen-companion-*.noarch.rpm
+sudo dnf install ./idasen-companion-*.x86_64.rpm
 ```
 
-This package bundles `bleak` and `idasen`, the two Python libraries Fedora
-does not ship. Everything else comes from the Fedora repositories.
+One package, self-contained. It carries its own Python — the interpreter and
+every library the app imports, Qt included — in a private directory of its
+own, and runs that one rather than anything on your machine. So what your
+distribution ships, and whether it ships a Python at all, does not come into
+it. What the package does ask for is Bluetooth and the ordinary desktop
+libraries Qt draws with, which any desktop already has.
+
+About 37 MB to download, and about 133 MB on disk once installed. That is what
+carrying the runtime costs, and it buys a package that is correct on the
+system you have rather than on the one it was built against.
 
 **Debian 13 (trixie) or newer, and Ubuntu 25.10 (questing) or newer**
 
@@ -214,9 +222,21 @@ Idasen Companion is free software under the GNU General Public License,
 version 3 or later. The full text is in [`LICENSE`](LICENSE).
 
 The app uses Qt 6 through [PySide6][pyside6], which is licensed under the LGPL
-version 3. The daemon does not link Qt at all, so it can run headless. The
-released RPM bundles `bleak` and `idasen`, which are MIT-licensed, so that
-package declares `GPL-3.0-or-later AND MIT`.
+version 3. The daemon does not link Qt at all, so it can run headless.
+
+The released RPM carries the whole runtime, so its licence describes what the
+package contains and not only the app. It bundles `PySide6-Essentials` and
+`shiboken6` — and with them Qt 6 — under `LGPL-3.0-only OR GPL-2.0-only OR
+GPL-3.0-only`, used here under the LGPL arm; `bleak`, `idasen`, `dbus-fast`,
+`PyYAML` and `tomlkit` under MIT; `voluptuous` under BSD-3-Clause; and
+`typing-extensions` under `PSF-2.0`. The package therefore declares:
+
+```
+GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
+```
+
+Every one of those texts installs with the package, under
+`/usr/share/licenses/idasen-companion/`.
 
 [releases]: https://github.com/extricator/idasen-companion/releases
 [appindicator]: https://extensions.gnome.org/extension/615/appindicator-support/

@@ -85,8 +85,8 @@ def test_an_installed_module_with_no_metadata_at_all(env):
 def test_a_module_that_is_simply_not_installed(env):
     # "?" is the honest answer, not a failure. Named for nothing real, so the
     # result doesn't depend on what happens to be installed where this runs —
-    # which is less obvious than it sounds, since importing the package puts
-    # the bundled RPM's vendor directory on sys.path.
+    # which matters more than it sounds, since the single-RPM build runs the
+    # suite against its own private library directory.
     assert AboutPage._lib_version("no_such_lib_anywhere") == "?"
 
 

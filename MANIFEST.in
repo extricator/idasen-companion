@@ -40,6 +40,25 @@ include docs/LOGGING.md
 # retires the pre-emptive Flatpak-scratch exclusion an unbounded sweep used
 # to need.
 include packaging/idasen-companion-bundled.spec
+# The self-contained build installs these out of the unpacked tarball — the
+# entry point it puts in place of a generated console script, and a license
+# text for each component that ships inside the package without one of its own:
+# Qt, whose wheel carries none, and the eight C libraries linked into the
+# bundled interpreter, whose tarball carries none either. Leave a line out and
+# rpmbuild fails partway through, while every local build passes because the
+# files are sitting right there in the working tree. A packaging test also
+# reads this directory back, so a text absent from the sdist fails collection
+# in the RPM's own suite run.
+include packaging/idasen-companion-launcher.sh
+include packaging/licenses/LICENSE.LGPL-3.0.txt
+include packaging/licenses/LICENSE.Apache-2.0.txt
+include packaging/licenses/LICENSE.OpenSSL.txt
+include packaging/licenses/LICENSE.X11.txt
+include packaging/licenses/LICENSE.Sleepycat.txt
+include packaging/licenses/LICENSE.BSD-2-Clause.txt
+include packaging/licenses/LICENSE.0BSD.txt
+include packaging/licenses/LICENSE.Zlib.txt
+include packaging/licenses/LICENSE.bzip2-1.0.6.txt
 include packaging/idasen-companion.spec
 include packaging/python-bleak.spec
 include packaging/python-idasen.spec
@@ -73,6 +92,37 @@ include scripts/check_naming_span.py
 # working tree the whole time.
 include .githooks/pre-commit
 include scripts/scan-secrets.sh
+# The first of these ships for a different reason than everything above: no
+# test reads it. The bundled spec invokes the Qt trimmer from %install, out of
+# the unpacked tarball, so leaving it out breaks the package build itself
+# rather than the suite. The runtime fetcher has both reasons — it is what
+# makes the sdist enough to build the package from, since it produces the wheel
+# tarball the spec takes as its second source and a contributor who has only
+# the sdist would otherwise have no way to obtain it, and the suite reads its
+# pin list to hold the spec's declarations against it.
+include scripts/trim-pyside6.py
+# The interpreter trim below has both reasons at once: the bundled spec runs it
+# from %install out of the unpacked tarball, and the suite loads it by path to
+# read its removal list. Omit the line and the package build breaks in one
+# place while %check dies at collection in the other — and every local run
+# still passes, because the file is sitting right there in the working tree.
+include scripts/trim-cpython.py
+include scripts/fetch-bundled-runtime.sh
+# The linkage and symbol-version assertions, run from %check out of the
+# unpacked tarball like the two trimmers above. Omit the line and the package
+# build stops in the middle of %check, while every local build passes, because
+# the file is sitting right there in the working tree.
+include scripts/verify-bundled-elf.sh
+# The bytecode assertions, run from %check out of the unpacked tarball for the
+# same reason and with the same consequence for leaving the line out.
+include scripts/verify-bundled-bytecode.sh
+# The cross-distribution proof. Nothing in a package build runs it — it needs
+# a finished package and a container runtime — but the suite now reads the
+# statistics probe it carries, and the suite ships whole and runs from an
+# unpacked tarball. Omit the line and %check dies at collection while every
+# local run passes, because the file is sitting right there in the working
+# tree.
+include scripts/verify-rpm-portability.sh
 recursive-include translations *.ts
 recursive-include po *.po *.pot
 recursive-include src/idasen_companion/gui/translations *.qm

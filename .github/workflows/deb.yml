@@ -107,8 +107,8 @@ jobs:
           path: dist-deb/*.deb
           if-no-files-found: error
 
-  # No existing workflow in this repo installs and launches a built artifact
-  # in a clean environment -- rpm.yml only builds. A systemd user unit's
+  # The RPM has a proof of its own that installs the package and starts the
+  # daemon, but it never asks systemd anything. A systemd user unit's
   # enabled/disabled state is a fact about a running systemd user manager,
   # which a bare `container:` job does not have (see deb-smoke's own steps
   # below), so this half runs on a real VM and drives Docker itself.

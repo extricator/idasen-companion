@@ -193,10 +193,10 @@ class AboutPage(Page):
         Falls back to the module's own ``__version__`` for anything installed
         without metadata at all, and to "?" when the module isn't there.
 
-        Note that "installed" here includes the bundled RPM's vendor directory,
-        which ``idasen_companion/__init__`` puts on ``sys.path`` — so bleak and
-        idasen resolve from their vendored dist-info even when running the
-        editable checkout, which has neither.
+        Note that "installed" here includes the single-RPM build's private
+        library directory, which its launcher puts on ``sys.path`` before the
+        interpreter starts — so every bundled library reports the version the
+        package shipped with rather than whatever else the machine has.
         """
         try:
             return version(module)

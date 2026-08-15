@@ -14,9 +14,19 @@ permissions:
 
 jobs:
   rpm:
-    name: Build the bundled RPM
+    name: Build the self-contained RPM
     runs-on: ubuntu-24.04
+    # The image below is the machine that builds the package, and says nothing
+    # about where the package runs: the artifact carries its own Python
+    # runtime, Qt included, and declares nothing but sonames plus an
+    # interpreter floor. Building it a second time somewhere else would produce
+    # the same bytes and, worse, read as a list of supported distributions —
+    # which is the claim this package exists to stop making.
     container: fedora:43
+    outputs:
+      # The proof below has nothing to prove when no package was built, and
+      # the step that decides that is invisible outside this job otherwise.
+      relevant: ${{ steps.changed.outputs.relevant }}
     steps:
       - name: Install git
         run: dnf install -y git
@@ -62,18 +72,26 @@ jobs:
       - name: Install build dependencies
         if: steps.changed.outputs.relevant == 'true'
         run: |
-          # python3-setuptools is not one of the spec's static BuildRequires:
-          # %pyproject_buildrequires derives it at build time from
-          # pyproject.toml's build-system.requires (setuptools>=77), and
-          # rpmbuild then refuses to continue until it is present. A developer
-          # machine already has it, so this only shows up in a minimal
-          # container — which is the reason CI builds the package at all.
+          # Every build requirement the spec declares, plus the tools that run
+          # before rpmbuild does — python3-build, and the pip and setuptools
+          # its isolated environment is assembled with, all three for the sdist
+          # step below. The package's own installs are run by the interpreter
+          # it carries, which brings its own of both.
+          #
+          # The last nine are asked for the way the spec asks for them, as
+          # capabilities rather than as package names, so that neither file
+          # names a distribution's package: three program paths, two for the
+          # trimmers to shell out to and one the session bus the build starts
+          # the daemon on, then six sonames. The sonames are quoted because
+          # the shell would otherwise read the parentheses as its own syntax.
           dnf install -y \
-            rpm-build rpmdevtools python3-devel python3-pip python3-build curl \
-            python3-setuptools python3-uv-build systemd-rpm-macros \
-            desktop-file-utils \
-            python3-pytest python3-pytest-asyncio python3-tomlkit python3-pyyaml \
-            python3-dbus-fast python3-pyside6
+            rpm-build rpmdevtools python3-devel python3-pip python3-build \
+            python3-setuptools systemd-rpm-macros desktop-file-utils \
+            python3-pytest python3-pytest-asyncio \
+            /usr/bin/strip /usr/bin/objdump /usr/bin/dbus-run-session \
+            'libGL.so.1()(64bit)' 'libEGL.so.1()(64bit)' \
+            'libxkbcommon.so.0()(64bit)' 'libfontconfig.so.1()(64bit)' \
+            'libfreetype.so.6()(64bit)' 'libdbus-1.so.3()(64bit)'
 
       - name: Build the sdist
         if: steps.changed.outputs.relevant == 'true'
@@ -86,24 +104,58 @@ jobs:
           VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
           cp "dist/idasen_companion-${VERSION}.tar.gz" rpmbuild/SOURCES/
 
-      - name: Download the vendored bleak/idasen sdists
+      - name: Fetch the bundled runtime
         if: steps.changed.outputs.relevant == 'true'
-        run: |
-          # These must track the spec's own %global bleak_version /
-          # %global idasen_version (Source1/Source2) — bump both together.
-          curl -fL https://files.pythonhosted.org/packages/source/b/bleak/bleak-3.0.2.tar.gz \
-            -o rpmbuild/SOURCES/bleak-3.0.2.tar.gz
-          curl -fL https://files.pythonhosted.org/packages/source/i/idasen/idasen-0.13.1.tar.gz \
-            -o rpmbuild/SOURCES/idasen-0.13.1.tar.gz
+        # The same script a contributor runs, so CI and a local build bundle
+        # the same pinned interpreter and the same pinned libraries. Both live
+        # there and nowhere else.
+        run: scripts/fetch-bundled-runtime.sh rpmbuild/SOURCES
 
       - name: Build the RPM
         if: steps.changed.outputs.relevant == 'true'
         run: rpmbuild -bb --define "_topdir $PWD/rpmbuild" packaging/idasen-companion-bundled.spec
+
+      - name: Ask the built package what it requires, offers and is written as
+        if: steps.changed.outputs.relevant == 'true'
+        # Between building and uploading on purpose. All three questions are
+        # about metadata rpmbuild generates rather than about anything written
+        # in the spec, so nothing before this point can answer them — and a
+        # gate that runs after the artifact is published is not a gate.
+        run: scripts/verify-rpm-metadata.sh rpmbuild/RPMS/x86_64/*.rpm
 
       - name: Upload the built RPM
         if: steps.changed.outputs.relevant == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: idasen-companion-rpm
-          path: rpmbuild/RPMS/noarch/*.rpm
+          path: rpmbuild/RPMS/x86_64/*.rpm
           if-no-files-found: error
+
+  # Deliberately a job on the runner rather than a step in the one above: the
+  # build runs inside a container already, and starting containers from in
+  # there needs a privilege this runner does not hand out. Coming back through
+  # the uploaded artifact costs one download and proves something the nested
+  # form could not -- that what a release publishes is what was installed and
+  # started, not a file that only ever existed in a build directory.
+  #
+  # One job for the one artifact. Which environments it is carried into is a
+  # decision the script owns; splitting them across jobs here would turn a
+  # piece of evidence into a published claim about where this package is
+  # supported.
+  portability:
+    name: Install and start the package away from where it was built
+    needs: [rpm]
+    if: needs.rpm.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Download the built RPM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-rpm
+          path: package
+
+      - name: Install it and start the daemon in containers
+        run: scripts/verify-rpm-portability.sh package/*.rpm

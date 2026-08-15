@@ -65,7 +65,6 @@ install -Dm644 data/io.github.extricator.IdasenCompanion.desktop \
     %{buildroot}%{_datadir}/applications/io.github.extricator.IdasenCompanion.desktop
 install -Dm644 data/icons/io.github.extricator.IdasenCompanion.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
-%{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
 # The tray asks for APP_ID-symbolic by name (gui/main.py); without this the
 # panel falls back to the 64x64 full-colour launcher icon.
 install -Dm644 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg \

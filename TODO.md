@@ -413,15 +413,116 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a mode and has three callers (the pre-commit hook, the `secrets` CI job
       and this one-time pre-flip scan), so thinning it is no longer the
       single-caller change the source note assumed.
-- [ ] **`packaging/idasen-companion-bundled.spec` carries a stale `Requires:
-      python3-voluptuous`** — nothing in `src/` imports `voluptuous` and
-      `pyproject.toml` does not declare it; the sibling
-      `packaging/idasen-companion.spec` does not list it either, and nothing
-      enforces the two specs' `Requires:` lists staying consistent with real
-      imports. Harmless (the package exists and installs) but is dependency
-      drift. Phase 3 deliberately did not copy it into `debian/control`.
-      Generalisable gap: `tests/test_packaging.py` pins `Version:` agreement
-      between the specs but not `Requires:`.
+- [ ] **Fedora 42 cannot *build* this project's RPM: `setuptools>=77` unmet** —
+      `pyproject.toml`'s `[build-system] requires` floors `setuptools` at 77,
+      needed for PEP 639's SPDX `license`/`license-files` metadata. Fedora 42
+      ships only `python3-setuptools-74.1.3`, with no newer version in its own
+      repos, so a build there dies on the app's own wheel either way: the split
+      spec in `%generate_buildrequires`, the bundled one during `%install`,
+      where pip builds that wheel with isolation off and therefore checks the
+      floor against what is already installed. Fedora 43 ships 78.1.1 and is
+      unaffected. This is a limitation of the *build host* and says nothing
+      about where the package runs — the shipped RPM is built once, and what it
+      asks of the machine it installs on is an interpreter, not a build
+      toolchain. Building on 42 means either dropping the PEP 639 metadata or
+      waiting for a newer `python3-setuptools` to reach it.
+- [ ] **The RPM is built for x86_64 only, and aarch64 needs no new design —
+      but it now needs a second pinned asset** — PySide6-Essentials and
+      shiboken6 publish `manylinux` aarch64 wheels, and nothing in the spec,
+      the launcher or either trimmer is written for one architecture, so the
+      work is still one more build of the same spec on an aarch64 host (or an
+      emulated one) and a second uploaded artifact.
+      What has grown is the edit. The recorded cost was one change to
+      `scripts/fetch-bundled-runtime.sh`, and that estimate predates the
+      bundled interpreter — recheck it rather than designing around it. The
+      interpreter tarball is architecture-specific too, and it is named three
+      times at x86_64: a download URL and an asset filename in that script, and
+      a `Source2:` line in the spec that has to match the filename. So a second
+      architecture means a second pinned asset with its own SHA256 alongside
+      the wheel platform, and the two have to be selected together. Note the
+      script cannot merely be *run* on an aarch64 host as it stands: it
+      resolves the wheel set by running the interpreter it just unpacked, and
+      that binary is the x86_64 one.
+      Left unbuilt because nobody has asked and each extra build costs a full
+      container run; recorded so the shape does not have to be researched
+      again.
+- [ ] **The trimmed Qt is verified by nothing but the offscreen platform** —
+      the RPM ships Qt cut down by ELF reachability, and every automatic check
+      of it runs headless: the spec's `%check` and the suite force
+      `QT_QPA_PLATFORM=offscreen`, and the container portability proof starts
+      the daemon, which does not link Qt at all. The xcb and wayland platform
+      plugins, the icon engine against a real theme, and the tray are reached
+      only by hand, from `docs/MANUAL-TESTING.md`. A trim that dropped
+      something one of those needs passes every gate this project has and fails
+      on the first desktop.
+- [ ] **The split spec has no build gate and has now drifted much further from
+      the one that ships** — `packaging/idasen-companion.spec` plus
+      `python-bleak.spec` and `python-idasen.spec` build the repo-shaped
+      three-package set, and nothing in CI builds any of them; it shipped once
+      with a broken `%install`, unbuilt and undetected. The risk grew rather
+      than shrank: the bundled spec is now a different kind of package
+      altogether — private runtime directory, run-time interpreter choice,
+      trimmed Qt, architecture-specific, no `python3-*` requires — so reading
+      one of the two tells you nothing about the other, and the version
+      agreement a test does pin is most of what they still share. Either gate
+      it in CI or decide out loud that it is unsupported, somewhere a packager
+      will see it.
+- [ ] **Nothing watches the versions of anything the RPM bundles, and the
+      interpreter is now one of them** — `scripts/fetch-bundled-runtime.sh`
+      pins the nine distributions the package vendors *and* the CPython it
+      carries, and the spec restates each of the ten in a bundled-component
+      line, nine of them with a licence text as well. That those agree is now
+      checked; what nothing checks is how old any of them is. A security fix
+      reaches a user only when somebody bumps that script by hand and rebuilds.
+      There is no schedule, no advisory feed and no check that notices a pin
+      has aged, and bundling is precisely what makes that this project's
+      problem rather than the distribution's. Same gap as the scheduled
+      dependency audit further down, for what ships inside the package rather
+      than what it declares.
+      **The interpreter statically links its own OpenSSL, so the machine's
+      security updates do not reach it.** Nothing about installing a
+      distribution's `openssl` update touches the copy inside this package —
+      `objdump` shows no `libssl` in what the binary links, because the library
+      is compiled in. The only answer to a CVE there is to rebuild at a newer
+      python-build-standalone release and ship a new package; there is no
+      in-place patch path and there cannot be one. That is an accepted
+      consequence of carrying an interpreter, not a defect — the same trade
+      made knowingly when the package stopped asking the machine for a Python
+      — and it is written here so that it stays a decision rather than becoming
+      a discovery. The same applies to the six other C libraries compiled into
+      it (ncurses, Berkeley DB, libmpdec, liblzma, zlib, bzip2); OpenSSL is
+      simply the one whose advisories arrive most often.
+- [ ] **Nothing holds the licence expression against what the interpreter
+      actually links** — the spec now names fourteen terms and ships a text for
+      each, and two standing tests hold those two lists against *each other* in
+      both directions. Neither can tell you the list is still right. The terms
+      come from python-build-standalone's own build metadata, and that file
+      ships only in their multi-hundred-megabyte debug archives, not in the
+      `install_only` tarball this project downloads — so the mapping was
+      established by fetching an archive that is not part of the build, and
+      cross-checking each component's version out of the shipped binary. An
+      interpreter bump that adds, drops or swaps a statically linked library
+      changes the answer, and nothing in this repository would notice: the
+      build stays green, the tests stay green, and the field quietly describes
+      the previous interpreter. Cheapest honest fix is a script that reads the
+      metadata out of the matching full archive at bump time and diffs the term
+      set against the spec — run by hand when the pin moves, not in CI, since
+      it needs a download the build deliberately avoids.
+- [ ] **Half of what the RPM build downloads is authenticated and half is not**
+      — `fetch-bundled-runtime.sh` fetches the interpreter from a pinned URL
+      and holds it to a pinned SHA256 *before* anything unpacks it or runs it,
+      so that payload is either the reviewed bytes or the build stops. The nine
+      wheels are not: they are pinned by version only, which says what to fetch
+      and nothing about what came back, so an index URL in the environment
+      still redirects those downloads silently — and they end up inside a
+      signed release artifact carrying a private Qt. Closing the second half
+      means generating a requirements file with hashes and requiring them.
+      One smaller gap sits with it, and one has gone. Still open: the archive
+      step records mtimes, ownership and directory order, so two runs on one
+      host do not produce identical bytes; normalising the archive's metadata
+      closes that. No longer true: which wheels arrive used to depend on the
+      build host's Python, and the set is now resolved by the pinned
+      interpreter the package carries, so every host fetches the same files.
 - [ ] **Review the admin/owner branch-protection bypass before the repository
       goes public** — Phase 4 applies branch protection to `main` with
       `enforce_admins: false`, a deliberate, temporary accommodation so the
@@ -582,9 +683,15 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       setup — ~15 items, each tagged with its cost (`[GNOME]`, `[unpair]`,
       `[power]`, `[sweep]`, `[split]`). Real gaps: **every GNOME path** (the tray
       is optional *by design* because GNOME may not show it, and that design has
-      never met a GNOME session), the other KDE session type, the three-package
-      COPR split build, fresh pairing/discovery, out-of-range desk, and the policy
-      matrices (ordinary use only exercises whichever value is configured).
+      never met a GNOME session), the other KDE session type, the split spec —
+      it builds by hand (fixed and proven this phase) but nothing in CI gates
+      it, so it can go stale again — fresh pairing/discovery, out-of-range desk,
+      and the policy matrices (ordinary use only exercises whichever value is
+      configured). Newest and now the largest of them: **the window, the tray
+      and the icons under the trimmed bundled Qt**, on both session types, from
+      the installed package — every desktop path the RPM has now runs on a Qt
+      this project assembled rather than on the distribution's, and no
+      automatic check ever leaves the offscreen platform.
       **Run it interactively** — ask a session to work a tagged subset, prompting
       for what you observed at each step; reading top to bottom is what produced
       the 37 dead checkboxes. If the GNOME block is never realistically going to
