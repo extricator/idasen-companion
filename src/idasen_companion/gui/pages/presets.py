@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
+from .. import restyle
 from ..theme import css, theme
 from ..util import (
     PROTECTED_PRESETS, fmt_height, from_display_height, height_decimals,
@@ -18,7 +19,7 @@ from ..util import (
 )
 from ..widgets import (
     Card, RangeRail, ToolIconButton, card_scroll, clear_layout, emphasize,
-    icon, pill, section_label, segment_css, separator, tinted_icon,
+    icon, pill, pill_css, section_label, segment_css, separator, tinted_icon,
 )
 from .base import Page
 
@@ -48,7 +49,6 @@ class PresetsPage(Page):
         self.ctx.configChanged.connect(self._on_config_changed)
 
     def _build(self) -> None:
-        tokens = theme()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -59,8 +59,11 @@ class PresetsPage(Page):
         self._presets_empty = QLabel(self.tr(
             "No presets yet — capture the desk's current height below."))
         self._presets_empty.setWordWrap(True)
-        self._presets_empty.setStyleSheet(
-            f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_presets_empty(target: QLabel = self._presets_empty) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(self._presets_empty, _restyle_presets_empty)
         scroll, scroll_body = card_scroll()
         self._presets_rows = QVBoxLayout()
         self._presets_rows.setSpacing(0)
@@ -79,8 +82,15 @@ class PresetsPage(Page):
         add_btn.clicked.connect(self._add_preset)
         for i, btn in enumerate((self._new_at_btn, add_btn)):
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(segment_css(i == 0, i == 1,
-                                          padding="5px 12px"))
+
+            def _restyle_footer_btn(
+                target: QPushButton = btn, first: bool = i == 0,
+                last: bool = i == 1,
+            ) -> None:
+                target.setStyleSheet(
+                    segment_css(first, last, padding="5px 12px"))
+
+            restyle.register(btn, _restyle_footer_btn)
             strip.addWidget(btn, 1)
         left.addLayout(strip)
         layout.addLayout(left, 1)
@@ -93,7 +103,6 @@ class PresetsPage(Page):
         layout.addWidget(rail_card)
 
     def _make_preset_row(self, name: str, height: float) -> QWidget:
-        tokens = theme()
         preset_row = QWidget()
         hbox = QHBoxLayout(preset_row)
         hbox.setContentsMargins(4, 11, 4, 11)
@@ -107,12 +116,17 @@ class PresetsPage(Page):
         name_edit = QLineEdit(display)
         name_edit.setToolTip(self.tr("Click to rename"))
         name_edit.setFont(emphasize(name_edit.font()))
-        name_edit.setStyleSheet(
-            "QLineEdit { background: transparent; border: 1px solid"
-            " transparent; border-radius: 3px; padding: 2px 4px; }"
-            f"QLineEdit:hover {{ border-color: {css(tokens.separator)}; }}"
-            f"QLineEdit:focus {{ border-color: {css(tokens.accent_border)};"
-            f" background: {css(tokens.card_bg)}; }}")
+
+        def _restyle_name_edit(target: QLineEdit = name_edit) -> None:
+            tokens = theme()
+            target.setStyleSheet(
+                "QLineEdit { background: transparent; border: 1px solid"
+                " transparent; border-radius: 3px; padding: 2px 4px; }"
+                f"QLineEdit:hover {{ border-color: {css(tokens.separator)}; }}"
+                f"QLineEdit:focus {{ border-color: {css(tokens.accent_border)};"
+                f" background: {css(tokens.card_bg)}; }}")
+
+        restyle.register(name_edit, _restyle_name_edit)
         if name in PROTECTED_PRESETS:
             name_edit.setReadOnly(True)
             name_edit.setToolTip(
@@ -120,23 +134,41 @@ class PresetsPage(Page):
         else:
             name_edit.editingFinished.connect(
                 lambda e=name_edit, n=name: self._rename_preset(n, e))
-        sub = QHBoxLayout()
-        sub.setSpacing(6)
+        height_row = QHBoxLayout()
+        height_row.setSpacing(6)
         height_label = QLabel(fmt_height(height))
-        height_label.setStyleSheet(
-            f"color: {css(tokens.secondary)}; border: none; padding-left: 4px;")
-        current_chip = pill(self.tr("current"), tokens.success_text, tokens.success)
+
+        def _restyle_height_label(target: QLabel = height_label) -> None:
+            target.setStyleSheet(
+                f"color: {css(theme().secondary)}; border: none;"
+                " padding-left: 4px;")
+
+        restyle.register(height_label, _restyle_height_label)
+        height_row.addWidget(height_label)
+        current_chip = pill(self.tr("current"), theme().success_text,
+                            theme().success)
         current_chip.hide()
-        sub.addWidget(height_label)
-        sub.addWidget(current_chip)
-        sub.addStretch()
+
+        def _restyle_current_chip(target: QLabel = current_chip) -> None:
+            target.setStyleSheet(
+                pill_css(theme().success_text, theme().success))
+
+        restyle.register(current_chip, _restyle_current_chip)
+        height_row.addWidget(current_chip)
+        height_row.addStretch()
         text_col.addWidget(name_edit)
-        text_col.addLayout(sub)
+        text_col.addLayout(height_row)
         hbox.addLayout(text_col, 1)
 
         move_btn = ToolIconButton(
-            tinted_icon(icon("media-playback-start", "go-next"), tokens.accent),
+            tinted_icon(icon("media-playback-start", "go-next"), theme().accent),
             self.tr("Drive desk to %s") % fmt_height(height), fallback="▶")
+
+        def _restyle_move_btn(target: ToolIconButton = move_btn) -> None:
+            target.setIcon(tinted_icon(
+                icon("media-playback-start", "go-next"), theme().accent))
+
+        restyle.register(move_btn, _restyle_move_btn)
         move_btn.clicked.connect(lambda _=False, n=name:
                                  self.client.move_to_preset(n))
         set_btn = ToolIconButton(

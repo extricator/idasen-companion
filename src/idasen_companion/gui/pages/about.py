@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWi
 
 from ... import APP_ID, __version__
 from ...core.config import DEFAULT_CONFIG_PATH
+from .. import restyle
 from ..theme import css, theme
 from ..widgets import Card, icon, page_scroll, section_label, separator
 from .base import Page
@@ -31,10 +32,9 @@ class AboutPage(Page):
         self._refresh()
 
     def _build(self) -> None:
-        tokens = theme()
         wrapper = QVBoxLayout(self)
         wrapper.setContentsMargins(0, 0, 0, 0)
-        scroll, outer = page_scroll(tokens.window)
+        scroll, outer = page_scroll()
         wrapper.addWidget(scroll)
 
         # ----- hero -----
@@ -58,14 +58,21 @@ class AboutPage(Page):
         name.setFont(name_font)
         name.setStyleSheet("border: none;")
         version_label = QLabel(f"v{__version__}")
-        version_label.setStyleSheet(
-            f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_version_label(target: QLabel = version_label) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(version_label, _restyle_version_label)
         name_row.addWidget(name, 0, Qt.AlignmentFlag.AlignBaseline)
         name_row.addWidget(version_label, 0, Qt.AlignmentFlag.AlignBaseline)
         name_row.addStretch()
         title_col.addLayout(name_row)
         tagline = QLabel(self.tr("Sit/stand desk automation"))
-        tagline.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_tagline(target: QLabel = tagline) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(tagline, _restyle_tagline)
         title_col.addWidget(tagline)
 
         links = QHBoxLayout()
@@ -95,10 +102,18 @@ class AboutPage(Page):
         desc.setStyleSheet("border: none;")
         about.body.addWidget(desc)
         meta = QLabel(self.tr("GNU GPL v3 or later · © extricator"))
-        meta.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_meta(target: QLabel = meta) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(meta, _restyle_meta)
         about.body.addWidget(meta)
         credit = QLabel(self.tr("Built on idasen · bleak · PySide6 / Qt"))
-        credit.setStyleSheet(f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_credit(target: QLabel = credit) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(credit, _restyle_credit)
         about.body.addWidget(credit)
         outer.addWidget(about)
 
@@ -109,7 +124,11 @@ class AboutPage(Page):
             "Bind these commands to keys in your desktop's own keyboard "
             "settings — reliable on X11 and Wayland, on every desktop:"))
         intro.setWordWrap(True)
-        intro.setStyleSheet(f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_intro(target: QLabel = intro) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(intro, _restyle_intro)
         font = intro.font()
         font.setPointSizeF(font.pointSizeF() * 0.88)
         intro.setFont(font)
@@ -121,7 +140,11 @@ class AboutPage(Page):
         commands.setTextFormat(Qt.TextFormat.PlainText)
         commands.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         commands.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        commands.setStyleSheet(f"color: {css(tokens.text)}; border: none;")
+
+        def _restyle_commands(target: QLabel = commands) -> None:
+            target.setStyleSheet(f"color: {css(theme().text)}; border: none;")
+
+        restyle.register(commands, _restyle_commands)
         shortcuts.body.addWidget(commands)
         outer.addWidget(shortcuts)
 
@@ -159,7 +182,6 @@ class AboutPage(Page):
         outer.addStretch()
 
     def _about_field(self, label: str) -> tuple[QWidget, QLabel]:
-        tokens = theme()
         field_row = QWidget()
         hbox = QHBoxLayout(field_row)
         hbox.setContentsMargins(2, 6, 2, 6)
@@ -170,7 +192,11 @@ class AboutPage(Page):
         key_label.setFixedWidth(
             key_label.fontMetrics().horizontalAdvance(
                 self.tr("Idle detection")) + 12)
-        key_label.setStyleSheet(f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_key_label(target: QLabel = key_label) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(key_label, _restyle_key_label)
         value = QLabel("—")
         value.setWordWrap(True)
         value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)

@@ -6,13 +6,14 @@ from datetime import date, datetime, timedelta
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from .. import restyle
 from ..theme import css, theme
 from ..util import (
     fmt_day_and_clock, fmt_day_label, position_label, trigger_label,
 )
 from ..widgets import (
     Card, DailyBarsChart, StatusDot, card_scroll, clear_layout, pill,
-    section_label, separator,
+    pill_css, section_label, separator,
 )
 from .base import Page
 
@@ -34,7 +35,6 @@ class StatisticsPage(Page):
         self._refresh()
 
     def _build(self) -> None:
-        tokens = theme()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -44,20 +44,40 @@ class StatisticsPage(Page):
         head.addWidget(section_label(self.tr("Daily totals — last 14 days")))
         head.addStretch()
         sit_color, stand_color = DailyBarsChart.series_colors()
+        legend_dots: list[StatusDot] = []
         for color, name in ((sit_color, self.tr("Sitting")),
                             (stand_color, self.tr("Standing"))):
             dot = StatusDot(color)
+            legend_dots.append(dot)
             label = QLabel(name)
-            label.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+
+            def _restyle_legend_label(target: QLabel = label) -> None:
+                target.setStyleSheet(
+                    f"color: {css(theme().secondary)}; border: none;")
+
+            restyle.register(label, _restyle_legend_label)
             head.addWidget(dot)
             head.addWidget(label)
             head.addSpacing(6)
+
+        # The dots carry an explicit colour, so StatusDot's own restyler
+        # leaves them alone by design -- re-derive the pair here, in the
+        # chart's own draw order, so the legend never mislabels which
+        # series is which.
+        def _restyle_legend_dots(dots: list[StatusDot] = legend_dots) -> None:
+            for dot, series_color in zip(dots, DailyBarsChart.series_colors()):
+                dot.set_color(series_color)
+
+        restyle.register(self, _restyle_legend_dots)
         daily.body.addLayout(head)
         self.daily_chart = DailyBarsChart()
         daily.body.addWidget(self.daily_chart)
         self.stats_footer = QLabel("")
-        self.stats_footer.setStyleSheet(
-            f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_stats_footer(target: QLabel = self.stats_footer) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(self.stats_footer, _restyle_stats_footer)
         daily.body.addWidget(self.stats_footer)
         layout.addWidget(daily)
 
@@ -132,13 +152,16 @@ class StatisticsPage(Page):
 
     def _make_transition_row(self, occurred_at: float, from_state: str, to_state: str,
                              trigger: str, interrupted: bool) -> QWidget:
-        tokens = theme()
         row_widget = QWidget()
         hbox = QHBoxLayout(row_widget)
         hbox.setContentsMargins(2, 6, 2, 6)
         hbox.setSpacing(10)
         when = QLabel(fmt_day_and_clock(datetime.fromtimestamp(occurred_at)))
-        when.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_when(target: QLabel = when) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(when, _restyle_when)
         # Size the timestamp column from the font so it never clips the
         # "Wed 30 23:59"-style label at the user's font size / DPI / locale.
         # Measured from a rendered sample rather than a literal: the label is
@@ -152,10 +175,29 @@ class StatisticsPage(Page):
         hbox.addWidget(when)
         hbox.addWidget(change)
         if interrupted:
-            hbox.addWidget(pill(self.tr("interrupted"), tokens.warning_text,
-                                tokens.warning))
+            interrupted_chip = pill(self.tr("interrupted"),
+                                    theme().warning_text, theme().warning)
+
+            def _restyle_interrupted_chip(
+                target: QLabel = interrupted_chip,
+            ) -> None:
+                target.setStyleSheet(
+                    pill_css(theme().warning_text, theme().warning))
+
+            restyle.register(interrupted_chip, _restyle_interrupted_chip)
+            hbox.addWidget(interrupted_chip)
         hbox.addStretch()
-        tag_color = {"automation": tokens.success_text,
-                     "manual": tokens.muted}.get(trigger, tokens.warning_text)
-        hbox.addWidget(pill(trigger_label(trigger), tag_color))
+        tag_color = {"automation": theme().success_text,
+                     "manual": theme().muted}.get(trigger, theme().warning_text)
+        trigger_chip = pill(trigger_label(trigger), tag_color)
+
+        def _restyle_trigger_chip(
+            target: QLabel = trigger_chip, trig: str = trigger,
+        ) -> None:
+            tag = {"automation": theme().success_text,
+                  "manual": theme().muted}.get(trig, theme().warning_text)
+            target.setStyleSheet(pill_css(tag))
+
+        restyle.register(trigger_chip, _restyle_trigger_chip)
+        hbox.addWidget(trigger_chip)
         return row_widget

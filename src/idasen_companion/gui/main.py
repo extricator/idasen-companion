@@ -20,7 +20,7 @@ from .. import APP_ID, DBUS_NAME, DBUS_PATH, __version__
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config,
 )
-from . import background_portal, util
+from . import background_portal, restyle, util
 from .dbus_client import IFACE_DESK, DaemonClient
 from .i18n import install_translators
 from .main_window import MainWindow
@@ -151,6 +151,9 @@ def main() -> int:
         return _send_command(*command)
 
     application = QApplication(sys.argv)
+    # Before any widget exists, so the connection is live for the very
+    # first palette change whenever it arrives.
+    restyle.follow_palette(application)
     application.setApplicationName("idasen-companion")
     # Install translators before any widget is built so tr() resolves. The
     # chosen language comes from config (default "system" = desktop locale).

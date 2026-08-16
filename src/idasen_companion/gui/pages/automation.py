@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import AppConfig, VALID_DAYS
+from .. import restyle
 from ..util import day_label, fmt_days, fmt_duration
 from ..widgets import (
     Card, SegmentedControl, section_label, segment_css, separator,
@@ -190,14 +191,21 @@ class AutomationPage(SettingsFormPage):
         self.day_checks = {}
         for day in VALID_DAYS:
             chip = QPushButton(day_label(day))
+            self.day_checks[day] = chip
             chip.setCheckable(True)
             chip.setFixedHeight(28)
             chip.setMinimumWidth(40)
             chip.setCursor(Qt.CursorShape.PointingHandCursor)
-            chip.setStyleSheet(segment_css(first=True, last=True,
-                                           padding="3px 9px"))
+
+            # Bound via a named default argument, not a closure over the
+            # loop variable -- a bare closure over `chip` would leave every
+            # entry restyling only the last day built.
+            def _restyle_day_chip(target: QPushButton = chip) -> None:
+                target.setStyleSheet(segment_css(first=True, last=True,
+                                                 padding="3px 9px"))
+
+            restyle.register(chip, _restyle_day_chip)
             chip.toggled.connect(self._update_sched_summary)
-            self.day_checks[day] = chip
             days_row.addWidget(chip)
         days_row.addStretch()
         details.addWidget(self._settings_row(self.tr("Active days"), days_row))

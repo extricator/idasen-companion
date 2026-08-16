@@ -63,7 +63,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import AppConfig
 from ..theme import css, theme
-from .. import util
+from .. import restyle, util
 from ..widgets import page_scroll, separator
 from .base import Page
 
@@ -126,7 +126,7 @@ class SettingsFormPage(Page):
     def _build(self) -> None:
         wrapper = QVBoxLayout(self)
         wrapper.setContentsMargins(0, 0, 0, 0)
-        scroll, outer = page_scroll(theme().window)
+        scroll, outer = page_scroll()
         wrapper.addWidget(scroll)
 
         self._build_cards(outer)
@@ -238,7 +238,6 @@ class SettingsFormPage(Page):
         The accepted cost is that the segments can't all be compared without
         clicking through them. That is a fair trade for a setting chosen once.
         """
-        tokens = theme()
         row_widget = QWidget()
         hbox = QHBoxLayout(row_widget)
         hbox.setContentsMargins(0, 4, 0, 4)
@@ -251,8 +250,11 @@ class SettingsFormPage(Page):
         if help_text or segment_help:
             help_label = QLabel(help_text or "")
             help_label.setWordWrap(True)
-            help_label.setStyleSheet(
-                f"color: {css(tokens.muted)}; border: none;")
+
+            def _restyle_help_label(target: QLabel = help_label) -> None:
+                target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+            restyle.register(help_label, _restyle_help_label)
             font = help_label.font()
             font.setPointSizeF(font.pointSizeF() * 0.88)
             help_label.setFont(font)
@@ -303,15 +305,19 @@ class SettingsFormPage(Page):
         through ``QStyleSheetStyle``; under that a ``QComboBox`` popup draws
         with no background at all. Give the popup view an explicit surface.
         """
-        tokens = theme()
         combo = QComboBox()
-        combo.setStyleSheet(
-            f"QComboBox QAbstractItemView {{"
-            f" background-color: {css(tokens.card_bg)};"
-            f" color: {css(tokens.text)};"
-            f" border: 1px solid {css(tokens.border)};"
-            f" selection-background-color: {css(tokens.accent_fill)};"
-            f" selection-color: {css(tokens.text)}; }}")
+
+        def _restyle_combo(target: QComboBox = combo) -> None:
+            tokens = theme()
+            target.setStyleSheet(
+                f"QComboBox QAbstractItemView {{"
+                f" background-color: {css(tokens.card_bg)};"
+                f" color: {css(tokens.text)};"
+                f" border: 1px solid {css(tokens.border)};"
+                f" selection-background-color: {css(tokens.accent_fill)};"
+                f" selection-color: {css(tokens.text)}; }}")
+
+        restyle.register(combo, _restyle_combo)
         return combo
 
     @staticmethod
@@ -329,7 +335,11 @@ class SettingsFormPage(Page):
         """A wrapped, secondary-colour note line."""
         label = QLabel(text)
         label.setWordWrap(True)
-        label.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        def _restyle_label(target: QLabel = label) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(label, _restyle_label)
         return label
 
     # ================= load / save =================

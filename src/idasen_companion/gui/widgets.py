@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QVBoxLayout, QWidget,
 )
 
+from . import restyle
 from .theme import css, theme
 
 # paintEvent, mousePressEvent, mouseMoveEvent and mouseReleaseEvent below are
@@ -107,14 +108,17 @@ class Card(QFrame):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        tokens = theme()
         self.setObjectName("Card")
-        self.setStyleSheet(
-            f"QFrame#Card {{ background: {css(tokens.card_bg)};"
-            f" border: 1px solid {css(tokens.border)}; border-radius: 6px; }}")
+        restyle.register(self, self._restyle)
         self.body = QVBoxLayout(self)
         self.body.setContentsMargins(16, 14, 16, 14)
         self.body.setSpacing(10)
+
+    def _restyle(self) -> None:
+        tokens = theme()
+        self.setStyleSheet(
+            f"QFrame#Card {{ background: {css(tokens.card_bg)};"
+            f" border: 1px solid {css(tokens.border)}; border-radius: 6px; }}")
 
 
 def emphasize(font: QFont) -> QFont:
@@ -131,13 +135,16 @@ def emphasize(font: QFont) -> QFont:
 def section_label(text: str) -> QLabel:
     """Uppercase card section header (small, semibold, letterspaced)."""
     label = QLabel(text.upper())
-    tokens = theme()
     font = label.font()
     font.setPointSizeF(font.pointSizeF() * 0.82)
     font.setWeight(font.Weight.DemiBold)
     font.setLetterSpacing(font.SpacingType.PercentageSpacing, 108)
     label.setFont(font)
-    label.setStyleSheet(f"color: {css(tokens.muted)}; border: none;")
+
+    def _restyle(target: QLabel = label) -> None:
+        target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+    restyle.register(label, _restyle)
     return label
 
 
@@ -145,16 +152,27 @@ def separator() -> QFrame:
     line = QFrame()
     line.setFrameShape(QFrame.Shape.HLine)
     line.setFixedHeight(1)
-    line.setStyleSheet(f"background: {css(theme().separator)}; border: none;")
+
+    def _restyle(target: QFrame = line) -> None:
+        target.setStyleSheet(f"background: {css(theme().separator)}; border: none;")
+
+    restyle.register(line, _restyle)
     return line
+
+
+def pill_css(foreground, border=None) -> str:
+    """Extracted from :func:`pill` so a caller whose colours are its own
+    tokens (not `pill`'s to re-derive) can recompute them on a restyle
+    without duplicating this rule."""
+    return (
+        f"color: {css(foreground)}; border: 1px solid {css(border or foreground)};"
+        f" border-radius: 8px; padding: 0 7px;")
 
 
 def pill(text: str, foreground, border=None) -> QLabel:
     """Small outlined pill label (status chips, badges, trigger tags)."""
     label = QLabel(text)
-    label.setStyleSheet(
-        f"color: {css(foreground)}; border: 1px solid {css(border or foreground)};"
-        f" border-radius: 8px; padding: 0 7px;")
+    label.setStyleSheet(pill_css(foreground, border))
     return label
 
 
@@ -174,23 +192,30 @@ def card_scroll() -> tuple[QScrollArea, QVBoxLayout]:
     return scroll, layout
 
 
-def page_scroll(background) -> tuple[QScrollArea, QVBoxLayout]:
+def page_scroll() -> tuple[QScrollArea, QVBoxLayout]:
     """Scrolling card column for a whole page; returns the scroll widget and
     the layout to add Cards to.
 
     Like :func:`card_scroll`, but for the pages whose cards scroll over the
     window background rather than inside an opaque Card (Settings, Automation,
     About). Those need an explicit viewport fill — Breeze otherwise leaves the
-    unpainted area black at sizes where the content actually scrolls.
+    unpainted area black at sizes where the content actually scrolls. The
+    fill colour is read fresh from ``theme()`` at restyle time rather than
+    passed in, so it follows a live theme switch.
     """
     scroll, layout = card_scroll()
     layout.setContentsMargins(0, 0, 4, 0)
     layout.setSpacing(12)
     viewport = scroll.viewport()
     viewport.setAutoFillBackground(True)
-    palette = viewport.palette()
-    palette.setColor(viewport.backgroundRole(), background)
-    viewport.setPalette(palette)
+
+    def _restyle(target: QWidget = viewport) -> None:
+        palette = target.palette()
+        palette.setColor(target.backgroundRole(), theme().window)
+        target.setPalette(palette)
+        target.update()
+
+    restyle.register(viewport, _restyle)
     return scroll, layout
 
 
@@ -245,10 +270,23 @@ class StatusDot(QWidget):
     def __init__(self, color=None, parent: QWidget | None = None):
         super().__init__(parent)
         self._color = color or theme().muted
+        # True for a dot no caller has ever explicitly coloured -- the
+        # only population a restyle sweep may repaint. set_color() clears
+        # this, since a caller that has coloured the dot owns it from then
+        # on and a sweep must not stomp a domain-driven colour (e.g. a
+        # dot currently red for a real error) back to muted.
+        self._follows_palette = color is None
         self.setFixedSize(8, 8)
+        restyle.register(self, self._restyle)
+
+    def _restyle(self) -> None:
+        if self._follows_palette:
+            self._color = theme().muted
+            self.update()
 
     def set_color(self, color) -> None:
         self._color = color
+        self._follows_palette = False
         self.update()
 
     def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
@@ -264,22 +302,25 @@ class ConnectionChip(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        tokens = theme()
         self.setObjectName("Chip")
         # QWidget subclasses ignore background/border stylesheets unless
         # styled backgrounds are opted into.
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet(
-            f"QWidget#Chip {{ background: {css(tokens.window)};"
-            f" border: 1px solid {css(tokens.border)}; border-radius: 11px; }}")
         row = QHBoxLayout(self)
         row.setContentsMargins(10, 3, 10, 3)
         row.setSpacing(6)
         self.dot = StatusDot()
         self.label = QLabel()
-        self.label.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
         row.addWidget(self.dot)
         row.addWidget(self.label)
+        restyle.register(self, self._restyle)
+
+    def _restyle(self) -> None:
+        tokens = theme()
+        self.setStyleSheet(
+            f"QWidget#Chip {{ background: {css(tokens.window)};"
+            f" border: 1px solid {css(tokens.border)}; border-radius: 11px; }}")
+        self.label.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
 
     def set_state(self, color, text: str) -> None:
         self.dot.set_color(color)
@@ -306,7 +347,19 @@ class SegmentedControl(QWidget):
             button = QPushButton(text)
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setStyleSheet(segment_css(index == 0, index == len(items) - 1))
+            is_first = index == 0
+            is_last = index == len(items) - 1
+
+            # Bound via default arguments, not a closure over the loop
+            # variables -- a bare closure over `button` would leave every
+            # entry restyling the last button once the loop finished.
+            def _restyle_segment(
+                target: QPushButton = button, first: bool = is_first,
+                last: bool = is_last,
+            ) -> None:
+                target.setStyleSheet(segment_css(first, last))
+
+            restyle.register(button, _restyle_segment)
             # The selected segment renders DemiBold (segment_css :checked),
             # which is a few px wider than the normal weight the sizeHint
             # reserves — enough to clip the longest label once it's selected.
@@ -338,17 +391,21 @@ class SegmentedControl(QWidget):
 
 def primary_button(text: str) -> QPushButton:
     """Accent-filled button (the mock's "primary" style)."""
-    tokens = theme()
-    btn = QPushButton(text)
-    btn.setStyleSheet(
-        f"QPushButton {{ background: {css(tokens.accent_fill)};"
-        f" color: {css(tokens.accent_text)};"
-        f" border: 1px solid {css(tokens.accent_border)};"
-        f" border-radius: 4px; padding: 4px 14px; font-weight: 600; }}"
-        f"QPushButton:hover {{ background: {css(tokens.accent_border)}; }}"
-        f"QPushButton:disabled {{ color: {css(tokens.muted)};"
-        f" background: {css(tokens.hover)}; border-color: {css(tokens.border)}; }}")
-    return btn
+    button = QPushButton(text)
+
+    def _restyle(target: QPushButton = button) -> None:
+        tokens = theme()
+        target.setStyleSheet(
+            f"QPushButton {{ background: {css(tokens.accent_fill)};"
+            f" color: {css(tokens.accent_text)};"
+            f" border: 1px solid {css(tokens.accent_border)};"
+            f" border-radius: 4px; padding: 4px 14px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: {css(tokens.accent_border)}; }}"
+            f"QPushButton:disabled {{ color: {css(tokens.muted)};"
+            f" background: {css(tokens.hover)}; border-color: {css(tokens.border)}; }}")
+
+    restyle.register(button, _restyle)
+    return button
 
 
 def _clamp01(fraction: float) -> float:
@@ -580,6 +637,9 @@ class DailyBarsChart(QWidget):
         self._rows: list[tuple[str, float, float, bool]] = []
         self.setMouseTracking(True)
 
+    # Already scheme-aware (branches on is_dark below) and called from
+    # paintEvent, so it re-derives on every repaint without needing the
+    # restyle registry -- exempt from the sweep, not overlooked.
     @staticmethod
     def series_colors() -> tuple:
         tokens = theme()
@@ -684,7 +744,6 @@ class ToolIconButton(QPushButton):
     def __init__(self, preferred_icon: QIcon, tooltip: str, fallback: str = "",
                  parent: QWidget | None = None):
         super().__init__(parent)
-        tokens = theme()
         if preferred_icon.isNull() and fallback:
             self.setText(fallback)
         else:
@@ -693,6 +752,10 @@ class ToolIconButton(QPushButton):
         self.setFixedSize(28, 28)
         self.setToolTip(tooltip)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        restyle.register(self, self._restyle)
+
+    def _restyle(self) -> None:
+        tokens = theme()
         self.setStyleSheet(
             f"QPushButton {{ background: transparent;"
             f" border: 1px solid {css(tokens.separator)}; border-radius: 4px; }}"

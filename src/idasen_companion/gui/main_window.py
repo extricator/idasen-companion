@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
 )
 
+from . import restyle
 from .context import AppContext
 from .dbus_client import DaemonClient
 from .pages import (
@@ -113,8 +114,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(16, 12, 16, 12)
         self._daemon_banner = QLabel()
-        self._daemon_banner.setStyleSheet(
-            "background:#aa3333;color:white;padding:6px;border-radius:4px;")
+        restyle.register(self, self._restyle_daemon_banner)
         # The disabled-unit wording is a full sentence, and roughly 30% longer
         # again in es — without wrapping it stretches the banner row past the
         # window's default width instead of growing taller.
@@ -138,7 +138,11 @@ class MainWindow(QMainWindow):
                 "extension). Closing this window keeps the app running in the "
                 "background; automation runs in the daemon either way."))
             hint.setWordWrap(True)
-            hint.setStyleSheet("color: gray;")
+
+            def _restyle_hint(target: QLabel = hint) -> None:
+                target.setStyleSheet(f"color: {css(theme().muted)};")
+
+            restyle.register(hint, _restyle_hint)
             layout.addWidget(hint)
 
         container = QWidget()
@@ -182,17 +186,20 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, self.tr("Idasen Companion"),
                             daemon_error_message(name, detail))
 
+    def _restyle_daemon_banner(self) -> None:
+        tokens = theme()
+        self._daemon_banner.setStyleSheet(
+            f"background: {css(tokens.error)}; color: {css(tokens.error_text)};"
+            f" padding: 6px; border-radius: 4px;")
+
     # ================= Sidebar shell =================
 
     def _build_sidebar(self) -> QWidget:
-        tokens = theme()
         sidebar = QWidget()
         sidebar.setFixedWidth(176)
         sidebar.setAutoFillBackground(True)
         sidebar.setObjectName("Sidebar")
-        sidebar.setStyleSheet(
-            f"QWidget#Sidebar {{ background: {css(tokens.sidebar_bg)};"
-            f" border-right: 1px solid {css(tokens.separator)}; }}")
+        self._sidebar = sidebar
         vbox = QVBoxLayout(sidebar)
         vbox.setContentsMargins(0, 8, 0, 10)
         vbox.setSpacing(0)
@@ -201,18 +208,8 @@ class MainWindow(QMainWindow):
         nav_list.setFrameShape(QListWidget.Shape.NoFrame)
         nav_list.setIconSize(QSize(22, 22))
         nav_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        nav_list.setStyleSheet(
-            "QListWidget { background: transparent; outline: none; }"
-            "QListWidget::item { padding: 6px 8px; margin: 1px 6px;"
-            " border-radius: 4px; }"
-            f"QListWidget::item:selected {{ background: {css(tokens.accent_fill)};"
-            f" color: {css(tokens.accent_text)}; font-weight: bold; }}"
-            f"QListWidget::item:hover:!selected"
-            f" {{ background: {css(tokens.hover)}; }}")
-        for label, icon_names in NAV_ITEMS:
-            nav_list.addItem(QListWidgetItem(
-                selectable_icon(icon(*icon_names), tokens.accent_text),
-                self.tr(cast("str", label))))
+        for label, _icon_names in NAV_ITEMS:
+            nav_list.addItem(QListWidgetItem(self.tr(cast("str", label))))
         self._nav = nav_list
         nav_list.setCurrentRow(0)
         # One slot rather than three connections: switching pages can now be
@@ -230,11 +227,31 @@ class MainWindow(QMainWindow):
         row.setSpacing(7)
         self._conn_dot = StatusDot()
         self._conn_footer = QLabel(self.tr("Desk: on demand"))
-        self._conn_footer.setStyleSheet(f"color: {css(tokens.secondary)};")
         row.addWidget(self._conn_dot)
         row.addWidget(self._conn_footer, 1)
         vbox.addWidget(footer)
+
+        restyle.register(self, self._restyle_sidebar)
+        restyle.register(self, self._update_conn_footer)
         return sidebar
+
+    def _restyle_sidebar(self) -> None:
+        tokens = theme()
+        self._sidebar.setStyleSheet(
+            f"QWidget#Sidebar {{ background: {css(tokens.sidebar_bg)};"
+            f" border-right: 1px solid {css(tokens.separator)}; }}")
+        self._nav.setStyleSheet(
+            "QListWidget { background: transparent; outline: none; }"
+            "QListWidget::item { padding: 6px 8px; margin: 1px 6px;"
+            " border-radius: 4px; }"
+            f"QListWidget::item:selected {{ background: {css(tokens.accent_fill)};"
+            f" color: {css(tokens.accent_text)}; font-weight: bold; }}"
+            f"QListWidget::item:hover:!selected"
+            f" {{ background: {css(tokens.hover)}; }}")
+        for index, (_label, icon_names) in enumerate(NAV_ITEMS):
+            self._nav.item(index).setIcon(
+                selectable_icon(icon(*icon_names), tokens.accent_text))
+        self._conn_footer.setStyleSheet(f"color: {css(tokens.secondary)};")
 
     def _on_nav_changed(self, index: int) -> None:
         # currentRowChanged can emit -1 (no selection); ignore it rather than

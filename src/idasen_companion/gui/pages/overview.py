@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
 from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES
+from .. import restyle
 from ..theme import css, theme
 from ..util import (
     PROTECTED_PRESETS, connection_state, due_now_label, fmt_countdown,
@@ -51,6 +52,20 @@ class OverviewPage(Page):
 
         self._build()
 
+        # These three already read theme() fresh and recompute their whole
+        # output from live instance state -- they are correct restylers that
+        # were simply never wired to a palette change.
+        restyle.register(self, self._update_connection_chip)
+        restyle.register(self, self._render_status)
+
+        # stop_btn's rule is conditional on desk motion, not just a colour,
+        # so a restyle must re-run the whole condition rather than reapply
+        # whichever branch last happened to be true.
+        def _restyle_stop_btn() -> None:
+            self._on_moving(self._moving)
+
+        restyle.register(self, _restyle_stop_btn)
+
         client = self.client
         client.heightChanged.connect(self._on_height)
         client.positionChanged.connect(self._on_position)
@@ -72,7 +87,6 @@ class OverviewPage(Page):
         self._ticker.start(1000)
 
     def _build(self) -> None:
-        tokens = theme()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -92,8 +106,11 @@ class OverviewPage(Page):
         font = self.height_label.font()
         font.setPointSizeF(font.pointSizeF() * 1.45)
         self.height_label.setFont(font)
-        self.height_label.setStyleSheet(
-            f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_height_label(target: QLabel = self.height_label) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(self.height_label, _restyle_height_label)
         header.addWidget(self.position_label, 0, Qt.AlignmentFlag.AlignBaseline)
         header.addWidget(self.height_label, 0, Qt.AlignmentFlag.AlignBaseline)
         header.addStretch()
@@ -155,8 +172,11 @@ class OverviewPage(Page):
         self.status_head.setStyleSheet("border: none;")
         self.status_reason = QLabel("")
         self.status_reason.setWordWrap(True)
-        self.status_reason.setStyleSheet(
-            f"color: {css(tokens.secondary)}; border: none;")
+
+        def _restyle_status_reason(target: QLabel = self.status_reason) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(self.status_reason, _restyle_status_reason)
         status_row.addWidget(self.status_dot, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addWidget(self.status_head, 0)
         status_row.addWidget(self.status_reason, 1)
@@ -176,15 +196,29 @@ class OverviewPage(Page):
         self.countdown_next_word.setFont(
             emphasize(self.countdown_next_word.font()))
         self.countdown_next_word.setStyleSheet("border: none;")
-        sec = f"color: {css(tokens.secondary)}; border: none;"
         self.countdown_in_lbl = QLabel(self.tr("in"))
-        self.countdown_in_lbl.setStyleSheet(sec)
+
+        def _restyle_countdown_in_lbl(
+                target: QLabel = self.countdown_in_lbl) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(self.countdown_in_lbl, _restyle_countdown_in_lbl)
         self.countdown_time_word = QLabel("")
         self.countdown_time_word.setFont(
             emphasize(self.countdown_time_word.font()))
-        self.countdown_time_word.setStyleSheet(sec)
+
+        def _restyle_countdown_time_word(
+                target: QLabel = self.countdown_time_word) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(self.countdown_time_word, _restyle_countdown_time_word)
         self.countdown_of_lbl = QLabel(self.tr("of active time"))
-        self.countdown_of_lbl.setStyleSheet(sec)
+
+        def _restyle_countdown_of_lbl(
+                target: QLabel = self.countdown_of_lbl) -> None:
+            target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
+
+        restyle.register(self.countdown_of_lbl, _restyle_countdown_of_lbl)
         cd_header = QHBoxLayout()
         cd_header.setContentsMargins(0, 0, 0, 0)
         cd_header.setSpacing(4)
@@ -197,15 +231,26 @@ class OverviewPage(Page):
         self.countdown_bar = QProgressBar()
         self.countdown_bar.setTextVisible(False)
         self.countdown_bar.setFixedHeight(4)
-        self.countdown_bar.setStyleSheet(
-            f"QProgressBar {{ background: {css(tokens.separator)}; border: none;"
-            f" border-radius: 2px; }}"
-            f"QProgressBar::chunk {{ background: {css(tokens.accent)};"
-            f" border-radius: 2px; }}")
+
+        def _restyle_countdown_bar(
+                target: QProgressBar = self.countdown_bar) -> None:
+            # Both rules live in one string -- a second setStyleSheet call
+            # would replace rather than add to the first.
+            target.setStyleSheet(
+                f"QProgressBar {{ background: {css(theme().separator)};"
+                f" border: none; border-radius: 2px; }}"
+                f"QProgressBar::chunk {{ background: {css(theme().accent)};"
+                f" border-radius: 2px; }}")
+
+        restyle.register(self.countdown_bar, _restyle_countdown_bar)
         self.progress_caption = QLabel("")
         self.progress_caption.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.progress_caption.setStyleSheet(
-            f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_progress_caption(
+                target: QLabel = self.progress_caption) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(self.progress_caption, _restyle_progress_caption)
         countdown_col.addLayout(cd_header)
         countdown_col.addWidget(self.countdown_bar)
         countdown_col.addWidget(self.progress_caption)
@@ -251,8 +296,12 @@ class OverviewPage(Page):
         auto.body.addWidget(self.enable_btn)
 
         self.idle_provider_label = QLabel()
-        self.idle_provider_label.setStyleSheet(
-            f"color: {css(tokens.muted)}; border: none;")
+
+        def _restyle_idle_provider_label(
+                target: QLabel = self.idle_provider_label) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
+
+        restyle.register(self.idle_provider_label, _restyle_idle_provider_label)
         auto.body.addWidget(self.idle_provider_label)
         layout.addWidget(auto)
         layout.addStretch()

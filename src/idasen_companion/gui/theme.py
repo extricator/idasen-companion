@@ -41,6 +41,7 @@ class Theme:
     warning: QColor
     warning_text: QColor
     error: QColor
+    error_text: QColor    # readable on top of the error fill itself
 
 
 _cache: tuple[int, Theme] | None = None  # pylint: disable=invalid-name  # mutable singleton, reassigned via `global`, not a true constant
@@ -81,6 +82,11 @@ def theme() -> Theme:
         warning=QColor("#e0a52e") if is_dark else QColor("#c07f00"),
         warning_text=QColor("#e0a52e") if is_dark else QColor("#a05a00"),
         error=QColor("#e06c5c") if is_dark else QColor("#c0392b"),
+        # Measured against the fill above, not against card_bg like
+        # success_text/warning_text: dark's lighter #e06c5c only clears the
+        # 4.5:1 text-contrast floor against a near-black foreground, while
+        # light's darker #c0392b only clears it against white.
+        error_text=QColor("black") if is_dark else QColor("white"),
     )
     _cache = (cache_key, result)
     return result

@@ -25,7 +25,7 @@ from PySide6.QtGui import QFontDatabase, QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout
 
 from ...core import journal
-from .. import log_catalog
+from .. import log_catalog, restyle
 from ..theme import css, theme
 from ..widgets import Card, SegmentedControl, icon
 from .base import Page
@@ -87,7 +87,6 @@ class ActivityLogPage(Page):
         self._load_backlog()
 
     def _build(self) -> None:
-        tokens = theme()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -128,19 +127,28 @@ class ActivityLogPage(Page):
         footer = QHBoxLayout()
         footer.setSpacing(8)
         full_log = QLabel(self.tr("Full log:"))
-        full_log.setStyleSheet(f"color: {css(tokens.muted)};")
+
+        def _restyle_full_log(target: QLabel = full_log) -> None:
+            target.setStyleSheet(f"color: {css(theme().muted)};")
+
+        restyle.register(full_log, _restyle_full_log)
         self._journal_chip = QPushButton(f" {self._JOURNAL_CMD}")
         self._journal_chip.setFont(mono)
         self._journal_chip.setIcon(icon("edit-copy"))
         self._journal_chip.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # icon at right
         self._journal_chip.setCursor(Qt.CursorShape.PointingHandCursor)
         self._journal_chip.setToolTip(self.tr("Copy command"))
-        self._journal_chip.setStyleSheet(
-            f"QPushButton {{ background: {css(tokens.hover)};"
-            f" color: {css(tokens.secondary)};"
-            f" border: 1px solid {css(tokens.border)}; border-radius: 4px;"
-            f" padding: 3px 8px; }}"
-            f"QPushButton:hover {{ background: {css(tokens.separator)}; }}")
+
+        def _restyle_journal_chip(target: QPushButton = self._journal_chip) -> None:
+            tokens = theme()
+            target.setStyleSheet(
+                f"QPushButton {{ background: {css(tokens.hover)};"
+                f" color: {css(tokens.secondary)};"
+                f" border: 1px solid {css(tokens.border)}; border-radius: 4px;"
+                f" padding: 3px 8px; }}"
+                f"QPushButton:hover {{ background: {css(tokens.separator)}; }}")
+
+        restyle.register(self._journal_chip, _restyle_journal_chip)
         self._journal_chip.clicked.connect(self._copy_journal_cmd)
         footer.addWidget(full_log)
         footer.addWidget(self._journal_chip)

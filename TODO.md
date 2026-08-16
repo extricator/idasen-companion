@@ -61,12 +61,26 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       standing. Neither is worth its own cleanup, but a wipe-everything button
       clears both for free.
 - [ ] **In-app Light / Dark / System theme control** (proposed: top of Settings,
-      persisted to config). Needs live-restyle plumbing: rebuild page
-      stylesheets on `QEvent.ApplicationPaletteChange` and on manual toggle —
-      colors currently bake at widget construction, so styled surfaces go stale
-      until restart. This also fixes the *system* light↔dark switch being stale.
+      persisted to config). The live-restyle plumbing this needed now exists —
+      a restyle registry (`gui/restyle.py`) with one wiring point in
+      `gui/main.py`, swept on every `QApplication.paletteChanged`, which is
+      also what fixed the *system* light↔dark switch going stale. What remains
+      for this feature is the setting itself: a config key, a Settings row,
+      and a manual trigger that calls the same sweep the desktop switch
+      already drives.
+      A mechanical check that a future styled widget can't silently skip
+      registration exists too: a runtime standing test in
+      `tests/test_theme_restyle.py` builds a fully populated window and
+      asserts every live stylesheet names only the current theme's tokens,
+      rather than an AST script over `scripts/` — a source-level check can't
+      see a token read into a local a few lines above the call or a baked icon
+      tint, and a test importing `scripts/` needs its own `MANIFEST.in` entry
+      or the RPM's install check dies at collection while every local run
+      stays green.
 - [ ] **Setup wizard** (`gui/setup_wizard.py`) still uses the pre-redesign look;
-      design README §6 pages "remain to be done in this style".
+      design README §6 pages "remain to be done in this style". It carries no
+      theme-derived stylesheet at all, so the live-switch work above left it
+      untouched — what remains here is purely the visual redesign.
 - [ ] **`widgets.py`'s `DailyBarsChart._tooltip_for` is untranslated** — its
       Statistics-chart tooltip is built as a bare f-string
       (`f"{label}: sitting {…}, standing {…}"`, `f"{label}: no data"`),
