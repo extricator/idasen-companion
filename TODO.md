@@ -491,6 +491,59 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       `tests/test_packaging.py` holds each URL against a file in the tree.
       Decide the look first: re-shooting before the style question is settled
       buys a second set of stale images.
+- [ ] **Phase 8's control styling was rejected on the real desktop, and the
+      approach is the reason** — the maintainer ran the pass against the
+      installed 1.0.2 package on Fedora KDE (2026-08-16) and turned it down
+      twice. First: *"borders are more visible but they don't have the style.
+      they're too rectangular and just hard to look at unlike the old ones."*
+      Then, after the corner radius was added: *"it looks better but if you see
+      the outline in the old screenshots it was a little bit fainter and either
+      the padding or margins of some controls was bigger. the text looks too
+      close t the outline in some (like dropdown for 'Language' and others)…
+      also the radios of the buttons doesn't seem big enough. also look at the
+      checkbox, no outline!"*
+      "Radios" here is not the radio-button indicators — the maintainer
+      confirmed directly that he meant the corner radius was not round
+      enough, so read that sentence as a complaint about how square the
+      corners still looked, not about control size.
+      The first three are symptoms of *how* it was done, not of the values
+      chosen. `control_css()` styles `QCheckBox::indicator`, `QComboBox` and
+      `QSpinBox` through the stylesheet engine, and naming a border there hands
+      that widget's whole box model to the engine, whose padding and corner
+      radius both default to zero. So the rule silently forfeits Fusion's own
+      padding, corner geometry, focus ring, hover, disabled and HiDPI handling
+      and repaints the control flat. Tuning numbers cannot recover them.
+      *The fourth — the checkbox with no outline — has no established cause and
+      must not be assumed to share one.* It does not reproduce under the
+      offscreen platform: rendering the indicator with the shipped
+      `control_css()` draws a visible rounded box in both schemes, and
+      `tests/test_control_contrast.py` asserts the drawn pixel matches
+      `theme().control_border`. So whatever was seen on the real display is
+      unexplained, and the item with no explanation is the one likeliest to be
+      lost behind three that have one. Reproduce it on a real desktop before
+      designing around it — a replacement built on the assumption that the
+      stylesheet caused it will not fix it if something else did.
+      *The replacement is `QProxyStyle`* — wrap Fusion, override only the frame
+      primitives that read too faint against a card, delegate everything else.
+      Reserve stylesheets for genuinely app-specific surfaces (`Card`, the
+      chip, the segmented control), which is what they are good at.
+      *And the capability question is settled, with evidence.* The desktop's
+      own style cannot be loaded into the bundled Qt, but not for the reason
+      first assumed: Breeze itself references only public `Qt_6` / `Qt_6.10`,
+      and Qt permits a plugin built against an older 6.x minor to load into a
+      newer one, so neither the version gap nor the shared sonames is the
+      blocker. Four KDE Frameworks libraries in Breeze's dependency graph —
+      `KF6WindowSystem`, `KF6IconThemes`, `KF6ColorScheme`, `KF6GuiAddons` —
+      bind `Qt_6.10_PRIVATE_API`, which the bundled Qt 6.11.1 does not provide,
+      and Qt guarantees no binary compatibility for private or QPA API across
+      minor releases. Reproduce with `readelf --version-info` over that graph
+      before anyone reopens this. Bundling Qt and using the host's styles are
+      mutually exclusive by construction; the Flatpak escapes it only because
+      its whole runtime is `org.kde.Platform`, which ships a matching Breeze.
+      What *does* cross the boundary is preferences, not renderers: the bundle
+      already carries the xdg-desktop-portal platform theme, and the portal
+      exposes colour scheme, accent colour and contrast over D-Bus.
+      Do not re-derive any of this; it cost a full research pass.
 - [ ] **The trimmed Qt is verified by nothing but the offscreen platform** —
       the RPM ships Qt cut down by ELF reachability, and every automatic check
       of it runs headless: the spec's `%check` and the suite force
@@ -615,20 +668,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       trip at build time, so repeating the module list post-install would only
       catch a `%files` omission that packaging the whole private tree already
       rules out. Revisit only if the two lists actually drift.
-- [ ] **Re-run `scripts/verify-rpm-portability.sh` once openSUSE's mirrors
-      resync, to bring the Tumbleweed leg back to green** — the CPython 3.14
-      bump closed at four of five images. Tumbleweed failed for a reason
-      outside this repository: `download.opensuse.org` serves a `repomd.xml`
-      listing an appdata-icons archive that the mirror the request is
-      geo-routed to answers with 404, so `zypper` cannot refresh the OSS
-      repository, cannot resolve `bluez`, and the install transaction never
-      starts — the package under test is never exercised at all, which is why
-      this says nothing about the package. Reproduced on three separate runs
-      with an unmodified script, and confirmed independently of the container
-      by fetching the file's redirect target directly. The other SUSE-lineage
-      image, Leap 15.6, passes cleanly every time and carries the claim that
-      actually matters for that lineage. Nothing here needs a source change:
-      run the script unmodified against the same RPM and expect five of five.
 - [ ] **Half of what the RPM build downloads is authenticated and half is not**
       — `fetch-bundled-runtime.sh` fetches the interpreter from a pinned URL
       and holds it to a pinned SHA256 *before* anything unpacks it or runs it,

@@ -55,6 +55,8 @@ def run_main(monkeypatch, qapp, *, mac, daemon_available,
     bus.registerService.return_value = True
 
     monkeypatch.setattr(gui_main, "QApplication", lambda argv: qapp)
+    monkeypatch.setattr(gui_main.appearance_portal, "read_appearance_preferences",
+                        lambda: None)
     monkeypatch.setattr(gui_main, "load_config",
                         load_config or (lambda _p: cfg))
     monkeypatch.setattr(gui_main, "install_translators", lambda *a: None)

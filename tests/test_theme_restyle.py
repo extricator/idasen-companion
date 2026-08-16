@@ -41,7 +41,8 @@ from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
 from idasen_companion.gui.theme import Theme, theme  # noqa: E402
 from idasen_companion.gui.widgets import (  # noqa: E402
     Card, ConnectionChip, DailyBarsChart, SegmentedControl, StatusDot,
-    ToolIconButton, page_scroll, primary_button, section_label, separator,
+    ToolIconButton, install_control_styling, page_scroll, primary_button,
+    section_label, separator,
 )
 
 _HEX_RE = re.compile(r"#[0-9a-fA-F]{6}")
@@ -84,6 +85,10 @@ def _isolated_registry(qapp):
         except (RuntimeError, TypeError):
             pass
     qapp.setPalette(original_palette)
+    # install_control_styling (08-08) is the one test in this module that
+    # sets an application-level stylesheet; clear it so a stale
+    # theme().border from this test's palette can't linger into the next.
+    qapp.setStyleSheet("")
     qapp.processEvents()
 
 
@@ -1025,16 +1030,27 @@ def test_the_whole_window_follows_a_live_switch_in_both_directions(
     window.show()
     qapp.processEvents()
     restyle.follow_palette(qapp)
+    # 08-08's Fusion control borders (checkbox/combo/spin) live at
+    # application level, not on any one widget -- wire the same mechanism
+    # main.py does, so a switch is asserted to reach it too.
+    install_control_styling(qapp)
     try:
         assert_hexes_are_current_tokens(window)
 
         flip_palette(qapp, dark=True)
         assert_hexes_are_current_tokens(window)
+        assert theme().control_border.name() in QApplication.instance().styleSheet(), (
+            "the Fusion control border rules did not follow the live "
+            "switch -- the application-level stylesheet still names the "
+            "pre-switch theme().control_border")
 
         # The reverse leg is not ceremony -- a rule correct in one scheme
         # and wrong in the other is the hardest kind of visual bug to
         # notice (UI-SPEC's Scheme Parity rule).
         flip_palette(qapp, dark=False)
         assert_hexes_are_current_tokens(window)
+        assert theme().control_border.name() in QApplication.instance().styleSheet(), (
+            "the Fusion control border rules did not follow the reverse "
+            "switch")
     finally:
         window.close()

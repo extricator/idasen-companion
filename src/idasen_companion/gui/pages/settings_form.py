@@ -64,7 +64,7 @@ from PySide6.QtWidgets import (
 from ...core.config import AppConfig
 from ..theme import css, theme
 from .. import restyle, util
-from ..widgets import page_scroll, separator
+from ..widgets import icon, page_scroll, separator
 from .base import Page
 
 # Signals that mean "the user touched an input", most specific first — one
@@ -143,6 +143,12 @@ class SettingsFormPage(Page):
         self._reset_btn = button_box.button(QDialogButtonBox.StandardButton.Reset)
         self._defaults_btn = button_box.button(
             QDialogButtonBox.StandardButton.RestoreDefaults)
+        self._defaults_btn.setIcon(icon("view-refresh", "view-refresh-symbolic"))
+        self._reset_btn.setIcon(icon("edit-undo", "edit-undo-symbolic"))
+        # Apply is left bare: the semantically obvious candidate does not
+        # exist in every icon theme, and the one that does exist everywhere
+        # means "selection", not "confirm" -- a wrong glyph reads worse than
+        # none.
         self._apply_btn.clicked.connect(self._apply_settings)
         self._reset_btn.clicked.connect(self.load)
         self._defaults_btn.clicked.connect(self._restore_defaults)
@@ -304,12 +310,17 @@ class SettingsFormPage(Page):
         A ``Card`` sets a stylesheet, which makes Qt render *all* its children
         through ``QStyleSheetStyle``; under that a ``QComboBox`` popup draws
         with no background at all. Give the popup view an explicit surface.
+        The frame border is composed into this same string rather than left
+        to the application-level rule the bundled Fusion controls otherwise
+        get, since a per-widget sheet always outranks it.
         """
         combo = QComboBox()
 
         def _restyle_combo(target: QComboBox = combo) -> None:
             tokens = theme()
             target.setStyleSheet(
+                f"QComboBox {{ border: 1px solid {css(tokens.control_border)};"
+                f" border-radius: 4px; }}"
                 f"QComboBox QAbstractItemView {{"
                 f" background-color: {css(tokens.card_bg)};"
                 f" color: {css(tokens.text)};"

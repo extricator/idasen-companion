@@ -26,7 +26,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBox
 
 from ...core import journal
 from .. import log_catalog, restyle
-from ..theme import css, theme
+from ..theme import CORNER_RADIUS, css, theme
 from ..widgets import Card, SegmentedControl, icon
 from .base import Page
 
@@ -144,8 +144,8 @@ class ActivityLogPage(Page):
             target.setStyleSheet(
                 f"QPushButton {{ background: {css(tokens.hover)};"
                 f" color: {css(tokens.secondary)};"
-                f" border: 1px solid {css(tokens.border)}; border-radius: 4px;"
-                f" padding: 3px 8px; }}"
+                f" border: 1px solid {css(tokens.border)};"
+                f" border-radius: {CORNER_RADIUS}px; padding: 3px 8px; }}"
                 f"QPushButton:hover {{ background: {css(tokens.separator)}; }}")
 
         restyle.register(self._journal_chip, _restyle_journal_chip)

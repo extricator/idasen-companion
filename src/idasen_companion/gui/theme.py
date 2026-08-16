@@ -20,6 +20,17 @@ def _mix(start: QColor, end: QColor, fraction: float) -> QColor:
                   round(start.blue() + (end.blue() - start.blue()) * fraction))
 
 
+# The app's one corner radius: every bordered or filled rectangle the app
+# draws for a card, a pill, a segmented button or a primary/ghost button
+# reads it from here, so one edit changes all of them at once. Deliberately
+# not a Theme field below -- that dataclass holds QColors keyed off the
+# palette cache, and this is geometry, which does not vary with the palette.
+# 6 is Card's current, already-shipped value and is provisional: the
+# maintainer judges it by eye on a real desktop before it is treated as
+# settled.
+CORNER_RADIUS: int = 6
+
+
 @dataclass(frozen=True)
 class Theme:
     is_dark: bool
@@ -29,7 +40,8 @@ class Theme:
     text: QColor
     secondary: QColor
     muted: QColor
-    border: QColor        # card / input borders
+    border: QColor        # decorative surface edges (cards, pills, frames)
+    control_border: QColor  # frames that are themselves a control's affordance
     separator: QColor     # row separators inside cards
     hover: QColor         # row hover highlight
     accent: QColor
@@ -69,7 +81,20 @@ def theme() -> Theme:
         text=text,
         secondary=_mix(window, text, 0.72),
         muted=_mix(window, text, 0.52),
+        # Two tokens, because the 3:1 non-text contrast floor (WCAG 2.1
+        # SC 1.4.11) covers the visual information *required to identify a
+        # control* -- not every line in the app. A checkbox's empty box and
+        # a combo or spin frame are the whole affordance, so they are held
+        # to it below. A card edge, a pill, a segmented button carrying a
+        # text label: each is identifiable with no border at all, so the
+        # floor never bound them, and holding them to it darkened every
+        # surface in the app at once (rejected on a real desktop,
+        # 2026-08-16). This one stays decorative and soft.
         border=_mix(base, text, 0.22),
+        # Measured (WCAG relative-luminance formula) against card_bg: 0.22
+        # only cleared 1.69:1 in a light scheme and 2.00:1 in a dark one,
+        # both under the floor. 0.45 clears 3.36:1 light / 4.45:1 dark.
+        control_border=_mix(base, text, 0.45),
         separator=_mix(base, text, 0.09),
         hover=_mix(base, text, 0.05),
         accent=accent,

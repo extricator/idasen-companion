@@ -20,10 +20,11 @@ from .. import APP_ID, DBUS_NAME, DBUS_PATH, __version__
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config,
 )
-from . import background_portal, restyle, util
+from . import appearance_portal, background_portal, restyle, util
 from .dbus_client import IFACE_DESK, DaemonClient
 from .i18n import install_translators
 from .main_window import MainWindow
+from .widgets import install_control_styling
 
 GUI_DBUS_NAME = f"{DBUS_NAME}.GUI"
 GUI_DBUS_PATH = "/io/github/extricator/IdasenCompanion/GUI"
@@ -154,6 +155,10 @@ def main() -> int:
     # Before any widget exists, so the connection is live for the very
     # first palette change whenever it arrives.
     restyle.follow_palette(application)
+    install_control_styling(application)
+    # Read once at launch; nothing in the GUI consumes the values yet (D-13)
+    # -- the module itself logs what it read, or that no portal answered.
+    appearance_portal.read_appearance_preferences()
     application.setApplicationName("idasen-companion")
     # Install translators before any widget is built so tr() resolves. The
     # chosen language comes from config (default "system" = desktop locale).

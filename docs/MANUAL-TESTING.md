@@ -201,6 +201,48 @@ the **installed package**, not from a checkout — the bundled copy is the point
       every check here runs on the offscreen platform, which loads no input
       method at all.
 
+### What the offscreen suite cannot see
+
+The suite forces `QT_QPA_PLATFORM=offscreen`, and three things follow from that
+which nothing here or in CI will ever settle. `QIcon.fromTheme` resolves
+nothing under the offscreen platform — it hands back a null icon whatever name
+it is asked for, so an icon missing from every theme on the machine is
+indistinguishable from one that is present. The Fusion pixel measurements the
+control borders were built on were taken under that platform's single default
+palette, so a rule that is right in one scheme and wrong in the other passes
+every automated check there is. And the tests switch schemes by calling
+`setPalette()` themselves, which is a plausible stand-in for what the desktop
+does to a running app and not the same event.
+
+So, from the **installed package**, with the window already open — no restart
+between the switch and the walk, and no navigating away and back to make a page
+redraw:
+
+- [ ] Switch the desktop from light to dark, then walk all seven pages:
+      Overview, Automation, Presets, Statistics, Activity Log, Settings,
+      About. Then switch back to light and walk them again. Right: on every
+      page nothing has become unreadable against the surface behind it — no
+      white on white, no grey on grey — and the card backgrounds, the sidebar,
+      the connection footer and the status dot have all moved to the new
+      scheme. A page that corrects itself only once you leave it and come back
+      is a fail, not a pass.
+- [ ] The two lists that are destroyed and rebuilt at runtime: on **Presets**
+      and on **Statistics**, switch the theme and then force a rebuild — rename
+      a preset, refresh the statistics. Right: rows built before the switch and
+      rows built after it are indistinguishable. The Statistics transitions
+      list is the one to read closely.
+- [ ] On **Settings**, Restore Defaults and Reset each carry an icon and Apply
+      deliberately carries none. Right: two icons, one bare button. If an icon
+      is missing, record which one — the candidate names were picked for Breeze
+      and Adwaita, and a real icon theme is the only place resolution can be
+      observed at all.
+- [ ] The controls, in **both** schemes: an unchecked checkbox has a visible
+      box rather than a faint hairline, a checked one still shows its check,
+      and combos and spin boxes have a visible frame with their drop-down arrow
+      and stepper buttons intact. Right: all four hold in light and in dark.
+      Looking only at the scheme you just switched to is how the failure this
+      guards against survives.
+
 ### Flatpak Background portal autostart
 
 Unreachable any other way: `RequestBackground` talks to a real portal

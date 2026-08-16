@@ -1343,6 +1343,12 @@ EXEMPT_BUS_NAME_PREFIXES = frozenset({
     # this exemption is written ahead of that so it never has to widen this
     # test under time pressure.
     "org.freedesktop.portal",
+    # Not a bus name at all — it's the Settings-namespace argument
+    # gui/appearance_portal.py passes to ReadOne, which happens to match the
+    # dotted "org.freedesktop.*" shape this regex looks for. The bus name it
+    # actually talks to is org.freedesktop.portal.Desktop, already covered
+    # by the exemption above.
+    "org.freedesktop.appearance",
 })
 
 

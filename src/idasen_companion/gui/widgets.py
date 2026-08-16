@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import restyle
-from .theme import css, theme
+from .theme import CORNER_RADIUS, css, theme
 
 # paintEvent, mousePressEvent, mouseMoveEvent and mouseReleaseEvent below are
 # Qt virtual overrides, dispatched by name from Qt's C++ meta-object machinery.
@@ -118,7 +118,8 @@ class Card(QFrame):
         tokens = theme()
         self.setStyleSheet(
             f"QFrame#Card {{ background: {css(tokens.card_bg)};"
-            f" border: 1px solid {css(tokens.border)}; border-radius: 6px; }}")
+            f" border: 1px solid {css(tokens.border)};"
+            f" border-radius: {CORNER_RADIUS}px; }}")
 
 
 def emphasize(font: QFont) -> QFont:
@@ -166,7 +167,7 @@ def pill_css(foreground, border=None) -> str:
     without duplicating this rule."""
     return (
         f"color: {css(foreground)}; border: 1px solid {css(border or foreground)};"
-        f" border-radius: 8px; padding: 0 7px;")
+        f" border-radius: {CORNER_RADIUS}px; padding: 0 7px;")
 
 
 def pill(text: str, foreground, border=None) -> QLabel:
@@ -238,8 +239,8 @@ def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
     Schedule days stayed vividly selected with "Use schedule" unticked while
     the plain QTimeEdits beside them greyed out correctly."""
     tokens = theme()
-    radius_left = "4px" if first else "0"
-    radius_right = "4px" if last else "0"
+    radius_left = f"{CORNER_RADIUS}px" if first else "0"
+    radius_right = f"{CORNER_RADIUS}px" if last else "0"
     left_border = "" if first else "border-left: none;"
     return (
         f"QPushButton {{ background: {css(tokens.card_bg)};"
@@ -262,6 +263,53 @@ def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
         # Keep the weight: which days are picked should still read at a
         # glance while the schedule is off — dimmed, not erased.
         f" font-weight: 600; }}")
+
+
+def control_css() -> str:
+    """Border rules for controls the bundled Fusion style draws itself.
+
+    Fusion renders a checkbox box, a combo frame and a spin frame from its
+    own palette (Mid/Midlight), not from theme() -- so on a card whose
+    background is the same white as Fusion's own fill, only a faint grey
+    hairline survives. Naming any box-model property of a compound
+    sub-control hands that sub-control's whole painting, for every
+    pseudo-state, to the stylesheet engine unless each state is named
+    separately -- measured to blank the check glyph in both states when the
+    checkbox rule below is left unscoped, so it is scoped to the resting,
+    unchecked state only; the checked state stays entirely Fusion-drawn.
+    The combo and spin rules name only the base selector, no sub-control --
+    measured to leave the drop-down arrow and the spin buttons untouched.
+
+    Every rule must state its own radius. Naming ``border`` at all takes the
+    frame away from Fusion, and the stylesheet engine's default corner is
+    square -- so a rule that sets only a colour silently squares off a
+    control Fusion had drawn rounded. Shipped that way once and rejected on
+    sight (2026-08-16): the three controls were the only hard corners left
+    in an app whose every other frame is rounded. 4px matches the buttons
+    these sit beside in a form; the checkbox indicator takes 3px, being a
+    13px box rather than a full-height control.
+    """
+    border = css(theme().control_border)
+    return (
+        f"QCheckBox::indicator:unchecked {{ border: 1px solid {border};"
+        f" border-radius: 3px; }}"
+        f"QComboBox {{ border: 1px solid {border}; border-radius: 4px; }}"
+        f"QSpinBox {{ border: 1px solid {border}; border-radius: 4px; }}"
+    )
+
+
+def install_control_styling(application: QApplication) -> None:
+    """Apply :func:`control_css` to ``application``, kept live by the sweep.
+
+    Measured to reach a checkbox nested inside a Card's own stylesheet: a
+    per-widget sheet only outranks an application-level one for the
+    properties it actually names, and Card's own sheet never touches
+    QCheckBox/QComboBox/QSpinBox at all.
+    """
+    def _restyle() -> None:
+        application.setStyleSheet(control_css())
+
+    restyle.register(application, _restyle)
 
 
 class StatusDot(QWidget):
@@ -317,6 +365,11 @@ class ConnectionChip(QWidget):
 
     def _restyle(self) -> None:
         tokens = theme()
+        # Deliberately not CORNER_RADIUS (D-16): this is a stadium/capsule
+        # at roughly half its own ~22px height, not a rounded rectangle.
+        # Collapsing it to the shared radius gives it visible flat sides.
+        # Left as its own literal until the maintainer judges it against
+        # the shared radius on a real desktop.
         self.setStyleSheet(
             f"QWidget#Chip {{ background: {css(tokens.window)};"
             f" border: 1px solid {css(tokens.border)}; border-radius: 11px; }}")
@@ -399,7 +452,8 @@ def primary_button(text: str) -> QPushButton:
             f"QPushButton {{ background: {css(tokens.accent_fill)};"
             f" color: {css(tokens.accent_text)};"
             f" border: 1px solid {css(tokens.accent_border)};"
-            f" border-radius: 4px; padding: 4px 14px; font-weight: 600; }}"
+            f" border-radius: {CORNER_RADIUS}px; padding: 4px 14px;"
+            f" font-weight: 600; }}"
             f"QPushButton:hover {{ background: {css(tokens.accent_border)}; }}"
             f"QPushButton:disabled {{ color: {css(tokens.muted)};"
             f" background: {css(tokens.hover)}; border-color: {css(tokens.border)}; }}")
@@ -758,6 +812,7 @@ class ToolIconButton(QPushButton):
         tokens = theme()
         self.setStyleSheet(
             f"QPushButton {{ background: transparent;"
-            f" border: 1px solid {css(tokens.separator)}; border-radius: 4px; }}"
+            f" border: 1px solid {css(tokens.separator)};"
+            f" border-radius: {CORNER_RADIUS}px; }}"
             f"QPushButton:hover {{ background: {css(tokens.hover)};"
             f" border-color: {css(tokens.border)}; }}")
