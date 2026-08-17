@@ -244,13 +244,19 @@ class MainWindow(QMainWindow):
             "QListWidget { background: transparent; outline: none; }"
             "QListWidget::item { padding: 6px 8px; margin: 1px 6px;"
             " border-radius: 4px; }"
-            f"QListWidget::item:selected {{ background: {css(tokens.accent_fill)};"
-            f" color: {css(tokens.accent_text)}; font-weight: bold; }}"
+            f"QListWidget::item:selected {{ background: {css(tokens.accent)};"
+            f" color: {css(tokens.selection_text)}; font-weight: bold; }}"
             f"QListWidget::item:hover:!selected"
             f" {{ background: {css(tokens.hover)}; }}")
         for index, (_label, icon_names) in enumerate(NAV_ITEMS):
+            # The selected glyph takes the same colour as the selected
+            # label, not the accent: the row behind it *is* the accent at
+            # full strength, so an accent-tinted glyph would be drawn on
+            # top of its own colour. Measured on a dark palette,
+            # `accent_text` on the accent is 1.38:1.
             self._nav.item(index).setIcon(
-                selectable_icon(icon(*icon_names), tokens.accent_text))
+                selectable_icon(icon(*icon_names), tokens.selection_text,
+                                tokens.text))
         self._conn_footer.setStyleSheet(f"color: {css(tokens.secondary)};")
 
     def _on_nav_changed(self, index: int) -> None:

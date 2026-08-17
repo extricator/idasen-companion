@@ -128,7 +128,6 @@ _MAX_SURFACE_STEP = 0.035
 # a second kind of button rather than as an unusable one.
 _MAX_DISABLED_SHARE = 0.5
 
-
 @pytest.fixture(scope="session")
 def qapp():
     return QApplication.instance() or QApplication([])
@@ -311,6 +310,71 @@ def test_a_ticked_box_is_filled_from_the_desktops_own_accent(qapp, name):
         f"on the {name} palette a ticked box still fills {ticked.name()} "
         "after the desktop's Highlight moved -- the fill is a colour this "
         "app picked, not the one the user did")
+
+
+@pytest.mark.parametrize("name", list(_PALETTES))
+def test_a_selection_is_the_desktops_own_pair_and_never_a_tint(qapp, name):
+    """Where the app marks something *selected* it takes the palette's
+    Highlight and HighlightedText at full strength, unmixed.
+
+    This is the one place the app deliberately does not derive a colour.
+    Everywhere else a token is a fraction of the distance between two
+    palette roles, because the app owns the relationship and the desktop
+    owns the colour. A selection is different in kind: the user already
+    has selected rows in every other Qt application on the machine, and
+    they are that pair at full strength, so anything this app blends
+    instead is a selection that does not look like the ones beside it.
+
+    Both halves are asserted, because taking one without the other is
+    worse than taking neither -- Highlight without HighlightedText leaves
+    the label at whatever the surrounding text colour was, which on a
+    saturated selection is the unreadable case.
+
+    The last assertion is the one that answers the report this came from:
+    a selection has to outweigh ``accent_fill``, the thin tint the app
+    uses for emphasis. That tint *was* the sidebar's selected row, and on
+    a dark desktop 0.16 of the accent laid on a near-black card is a step
+    of a few channel levels -- reported from the installed package as
+    muted. Pinning the ordering is what stops a future adjustment quietly
+    walking a selection back onto the tint.
+    """
+    install(qapp, name)
+    palette = qapp.palette()
+    tokens = theme()
+
+    assert tokens.accent.name() == palette.color(
+        QPalette.ColorRole.Highlight).name(), (
+        f"on the {name} palette a selection fills {tokens.accent.name()} "
+        f"rather than the desktop's own Highlight "
+        f"({palette.color(QPalette.ColorRole.Highlight).name()})")
+    assert tokens.selection_text.name() == palette.color(
+        QPalette.ColorRole.HighlightedText).name(), (
+        f"on the {name} palette a selected label is "
+        f"{tokens.selection_text.name()} rather than the desktop's own "
+        f"HighlightedText "
+        f"({palette.color(QPalette.ColorRole.HighlightedText).name()}) -- "
+        "a selection that takes the fill without the label leaves the text "
+        "at whatever colour the card behind it wanted")
+    assert from_card(tokens.accent) > from_card(tokens.accent_fill), (
+        f"on the {name} palette a selection ({tokens.accent.name()}, "
+        f"{from_card(tokens.accent)} from the card) is no further from the "
+        f"card than the emphasis tint ({tokens.accent_fill.name()}, "
+        f"{from_card(tokens.accent_fill)}) -- being selected has stopped "
+        "outweighing being merely emphasised")
+
+    moved = QPalette(palette)
+    moved.setColor(QPalette.ColorRole.Highlight, QColor("#b8336a"))
+    moved.setColor(QPalette.ColorRole.HighlightedText, QColor("#f5e6c8"))
+    qapp.setPalette(moved)
+    qapp.processEvents()
+    assert theme().accent.name() != tokens.accent.name(), (
+        f"on the {name} palette a selection still fills "
+        f"{tokens.accent.name()} after the desktop's Highlight moved")
+    assert theme().selection_text.name() != tokens.selection_text.name(), (
+        f"on the {name} palette a selected label is still "
+        f"{tokens.selection_text.name()} after the desktop's "
+        "HighlightedText moved -- it is a colour this app picked, not the "
+        "one the user did")
 
 
 @pytest.mark.parametrize("name", list(_PALETTES))

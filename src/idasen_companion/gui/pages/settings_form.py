@@ -316,6 +316,12 @@ class SettingsFormPage(Page):
         whole box model back to the stylesheet engine, taking it off Fusion's
         again -- the padding-too-tight regression this dropdown was the named
         example of.
+
+        The highlighted row is the desktop's own selection pair at full
+        strength rather than anything derived, for the reason ``theme.py``
+        records above ``selection_text``: a list of options with one of
+        them picked out is the case the user has a reference for in every
+        other application they run.
         """
         combo = QComboBox()
 
@@ -326,8 +332,8 @@ class SettingsFormPage(Page):
                 f" background-color: {css(tokens.card_bg)};"
                 f" color: {css(tokens.text)};"
                 f" border: 1px solid {css(tokens.border)};"
-                f" selection-background-color: {css(tokens.accent_fill)};"
-                f" selection-color: {css(tokens.text)}; }}")
+                f" selection-background-color: {css(tokens.accent)};"
+                f" selection-color: {css(tokens.selection_text)}; }}")
 
         restyle.register(combo, _restyle_combo)
         return combo

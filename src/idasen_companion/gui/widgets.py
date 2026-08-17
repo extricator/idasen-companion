@@ -81,10 +81,20 @@ def tinted_icon(base: QIcon, color, size: int = 16,
     return out
 
 
-def selectable_icon(base: QIcon, selected_color, box: int = 22,
-                    normal: int = 16, selected: int = 22) -> QIcon:
-    """Sidebar icon that grows and takes the accent colour when its row
-    is selected.
+def selectable_icon(base: QIcon, selected_color, resting_color,
+                    box: int = 22, normal: int = 16,
+                    selected: int = 22) -> QIcon:
+    """Sidebar icon that grows and takes the caller's selected colour when
+    its row is selected.
+
+    Both colours are the caller's and both are required, because the
+    resting glyph used to be the icon theme's own, uncoloured. That made
+    it the one thing in the sidebar that did not follow the palette: on a
+    live switch to dark it stayed dark-on-dark until the app was
+    relaunched, since an icon is pixels rather than a colour a palette can
+    rewrite, and ``QIcon.fromTheme`` caches what it resolved anyway.
+    Recolouring it from ``theme()`` sidesteps both -- the glyph follows the
+    scheme with no dependence on the desktop shipping a dark icon theme.
 
     Both states are baked as exact ``box``-sized pixmaps — the glyph is
     drawn at ``normal`` px (centred, with padding) for the resting state
@@ -93,9 +103,15 @@ def selectable_icon(base: QIcon, selected_color, box: int = 22,
     size, nothing is rescaled at paint time, and the row height doesn't
     jump since the icon box is constant. ``normal`` and ``selected`` must
     be *native* icon-theme sizes (16/22/24) — an in-between size like 19
-    is rasterised off the nearest native size and looks blurry. The
-    selected state is also recoloured to the accent, since the style would
-    otherwise wash it out on the light selection fill."""
+    is rasterised off the nearest native size and looks blurry.
+
+    The selected state is recoloured too, and separately, because it is
+    drawn on a different surface from the resting one: its row is filled
+    with the desktop's own selection colour, so the glyph has to be the
+    colour that reads on *that* rather than on the sidebar. Leaving both
+    states one colour is the bug this parameter pair exists to prevent --
+    the glyph disappears into whichever of the two surfaces it was not
+    chosen for."""
     if base.isNull():
         return base
     dpr = _dpr()
@@ -113,7 +129,7 @@ def selectable_icon(base: QIcon, selected_color, box: int = 22,
         return _recolor(canvas, color) if color is not None else canvas
 
     out = QIcon()
-    out.addPixmap(render(normal, None), QIcon.Mode.Normal)
+    out.addPixmap(render(normal, resting_color), QIcon.Mode.Normal)
     out.addPixmap(render(selected, selected_color), QIcon.Mode.Selected)
     return out
 
@@ -199,7 +215,6 @@ def card_scroll() -> tuple[QScrollArea, QVBoxLayout]:
     scroll = QScrollArea()
     scroll.setWidgetResizable(True)
     scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-    scroll.setStyleSheet("QScrollArea { background: transparent; }")
     inner = QWidget()
     # Qualified by object name, not written bare. An unqualified rule applies
     # to this widget *and every descendant*, and a stylesheet that names a
@@ -210,7 +225,32 @@ def card_scroll() -> tuple[QScrollArea, QVBoxLayout]:
     # address field came to render with no border at all. `Card` above
     # already qualifies its own rule the same way, for the same reason.
     inner.setObjectName("ScrollBody")
-    inner.setStyleSheet("QWidget#ScrollBody { background: transparent; }")
+
+    def _restyle_transparency(area: QScrollArea = scroll,
+                              body: QWidget = inner) -> None:
+        """Re-apply both rules on a palette change, though neither names a
+        colour.
+
+        This looks pointless and is not. A widget under a stylesheet is
+        rendered by ``QStyleSheetStyle``, which caches the rules it
+        resolved for that widget and its descendants -- and a palette
+        change does not invalidate that cache, while setting a stylesheet
+        does. So a scroll area whose rule never changes keeps whatever its
+        scrollbar resolved to at construction: measured on a live
+        light-to-dark switch, the bar stayed at its light ``#f7f7f7``
+        slider where a window built dark rendered ``#42474b``, and only a
+        relaunch fixed it. Re-setting the same strings makes the switched
+        window pixel-identical to the fresh one.
+
+        Registered here rather than in ``theme.py``'s usual pattern
+        because every other entry in the restyle registry exists to
+        recompute a colour, and this one exists to drop a cache.
+        """
+        area.setStyleSheet("QScrollArea { background: transparent; }")
+        body.setStyleSheet("QWidget#ScrollBody { background: transparent; }")
+
+    _restyle_transparency()
+    restyle.register(scroll, _restyle_transparency)
     layout = QVBoxLayout(inner)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)

@@ -20,11 +20,13 @@ import warnings
 # can't reach that display. Tests must not depend on an ambient one.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QCoreApplication, QEvent, QObject, Signal  # noqa: E402
-from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
+from PySide6.QtCore import (  # noqa: E402
+    QCoreApplication, QEvent, QObject, QSize, Signal,
+)
+from PySide6.QtGui import QColor, QIcon, QPalette, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
     QApplication, QComboBox, QLabel, QLineEdit, QPushButton, QStyleFactory,
-    QWidget,
+    QVBoxLayout, QWidget,
 )
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -43,7 +45,8 @@ from idasen_companion.gui.style import ControlStyle  # noqa: E402
 from idasen_companion.gui.theme import Theme, theme  # noqa: E402
 from idasen_companion.gui.widgets import (  # noqa: E402
     Card, ConnectionChip, DailyBarsChart, SegmentedControl, StatusDot,
-    ToolIconButton, page_scroll, primary_button, section_label, separator,
+    ToolIconButton, page_scroll, primary_button, section_label,
+    selectable_icon, separator,
 )
 
 _HEX_RE = re.compile(r"#[0-9a-fA-F]{6}")
@@ -336,6 +339,73 @@ def test_page_scroll_viewport_follows_a_live_light_to_dark_switch(qapp):
     assert viewport.palette().color(viewport.backgroundRole()) == theme().window
 
 
+def _scrolling_page(qapp):
+    """A page with enough cards to need a scrollbar, shown and laid out."""
+    scroll, layout = page_scroll()
+    for index in range(14):
+        card = Card()
+        card._restyle()  # pylint: disable=protected-access
+        card.body.addWidget(QLabel(f"row {index}"))
+        layout.addWidget(card)
+    host = QWidget()
+    box = QVBoxLayout(host)
+    box.setContentsMargins(0, 0, 0, 0)
+    box.addWidget(scroll)
+    host.resize(300, 200)
+    host.show()
+    qapp.processEvents()
+    return host, scroll
+
+
+def _scrollbar_colours(qapp, page=None) -> list:
+    """Every colour a scrolling page's vertical scrollbar renders, with
+    counts -- the whole bar, since which part of it goes stale is Fusion's
+    business rather than this app's."""
+    host, scroll = page if page is not None else _scrolling_page(qapp)
+    bar = scroll.verticalScrollBar()
+    origin = bar.mapTo(host, bar.rect().topLeft())
+    image = host.grab().toImage()
+    counts: dict[str, int] = {}
+    for y in range(origin.y(), origin.y() + bar.height()):
+        for x in range(origin.x(), origin.x() + bar.width()):
+            key = image.pixelColor(x, y).name()
+            counts[key] = counts.get(key, 0) + 1
+    return sorted(counts.items())
+
+
+def test_a_scrollbar_follows_a_live_light_to_dark_switch(qapp):
+    """A scrolling page's scrollbar has to end up where a fresh one starts.
+
+    The app draws no part of a scrollbar -- Fusion does, from the palette
+    -- so this looks like it could not fail, and it did. A widget under a
+    stylesheet is rendered by ``QStyleSheetStyle``, which caches the rules
+    it resolved for that widget and its descendants, and a palette change
+    does not invalidate that cache while setting a stylesheet does. The
+    scroll area's transparency rule names no colour, so nothing ever
+    re-set it, and the bar kept the colours it resolved at construction:
+    reported from the installed package as a scrollbar that stayed light
+    in dark mode until the app was relaunched.
+
+    Asserted against a *freshly built* dark page rather than against any
+    colour of this test's choosing, because what the bar should look like
+    is Fusion's business, and only the app's failure to let it repaint is
+    this app's.
+    """
+    flip_palette(qapp, dark=False)
+    page = _scrolling_page(qapp)
+    restyle.follow_palette(qapp)
+
+    flip_palette(qapp, dark=True)
+    switched = _scrollbar_colours(qapp, page)
+    fresh = _scrollbar_colours(qapp)
+
+    assert switched == fresh, (
+        "a scrollbar switched live to dark renders differently from one "
+        f"built dark: switched {switched[:4]} against fresh {fresh[:4]} "
+        "-- it is still painting the colours it resolved under the old "
+        "palette")
+
+
 def test_a_status_dot_with_no_explicit_color_follows_the_switch(qapp):
     flip_palette(qapp, dark=False)
     dot = StatusDot()
@@ -448,13 +518,50 @@ def test_the_shell_follows_a_live_light_to_dark_switch(qapp, monkeypatch, tmp_pa
         # pylint: disable=protected-access
         assert theme().sidebar_bg.name() in window._sidebar.styleSheet(), (
             "the sidebar's stylesheet still names the pre-switch colour")
-        assert theme().accent_fill.name() in window._nav.styleSheet(), (
+        assert theme().accent.name() in window._nav.styleSheet(), (
             "the nav list's stylesheet still names the pre-switch colour")
         assert theme().secondary.name() in window._conn_footer.styleSheet(), (
             "the connection footer's stylesheet still names the "
             "pre-switch colour")
     finally:
         window.close()
+
+
+def test_a_sidebar_icon_recolours_both_of_its_states(qapp):
+    """``selectable_icon`` must actually *use* the resting colour, not
+    merely accept it.
+
+    The test below monkeypatches this function to record what
+    ``MainWindow`` passes it, which says nothing about what it does with
+    the value -- and what it used to do was ignore it: the resting glyph
+    was rendered uncoloured, straight from the icon theme. That made it
+    the one thing in the sidebar not derived from the palette, so on a
+    live switch to dark it stayed dark-on-dark until the app was
+    relaunched. Reported from the installed package.
+
+    Built from a solid pixmap rather than from the icon theme, because the
+    offscreen platform resolves no theme at all and ``selectable_icon``
+    returns a null icon untouched.
+    """
+    flip_palette(qapp, dark=False)
+    solid = QPixmap(22, 22)
+    solid.fill(QColor("#000000"))
+    resting, selected = QColor("#112233"), QColor("#445566")
+
+    built = selectable_icon(QIcon(solid), selected, resting)
+
+    for mode, expected, label in (
+            (QIcon.Mode.Normal, resting, "resting"),
+            (QIcon.Mode.Selected, selected, "selected")):
+        image = built.pixmap(QSize(22, 22), 1.0, mode).toImage()
+        opaque = {image.pixelColor(x, y).name()
+                  for x in range(image.width())
+                  for y in range(image.height())
+                  if image.pixelColor(x, y).alpha() > 0}
+        assert opaque == {expected.name()}, (
+            f"a sidebar icon's {label} glyph renders {sorted(opaque)} "
+            f"rather than the {expected.name()} it was given -- that state "
+            "is not being recoloured, so it cannot follow the palette")
 
 
 def test_the_nav_icons_are_retinted_on_a_live_switch(qapp, monkeypatch, tmp_path):
@@ -465,8 +572,8 @@ def test_the_nav_icons_are_retinted_on_a_live_switch(qapp, monkeypatch, tmp_path
 
     recorded: list = []
 
-    def _recording_selectable_icon(base, selected_color):
-        recorded.append(selected_color)
+    def _recording_selectable_icon(base, selected_color, resting_color):
+        recorded.append((selected_color, resting_color))
         return base
 
     monkeypatch.setattr(mw, "selectable_icon", _recording_selectable_icon)
@@ -482,9 +589,62 @@ def test_the_nav_icons_are_retinted_on_a_live_switch(qapp, monkeypatch, tmp_path
         recorded.clear()
         window._restyle_sidebar()  # pylint: disable=protected-access
 
-        assert recorded == [theme().accent_text] * len(mw.NAV_ITEMS), (
+        # Both states, not just the selected one. The resting glyph was the
+        # icon theme's own, uncoloured, which made it the one thing in the
+        # sidebar that did not follow the palette: on a live switch to dark
+        # it stayed dark-on-dark until the app was relaunched.
+        expected = (theme().selection_text, theme().text)
+        assert recorded == [expected] * len(mw.NAV_ITEMS), (
             "the sidebar's icons were not re-tinted once per NAV_ITEMS "
-            "entry to the post-switch accent colour")
+            "entry to the post-switch selected *and* resting colours")
+    finally:
+        window.close()
+
+
+def test_a_selected_sidebar_row_is_the_desktops_own_selection(
+        qapp, monkeypatch, tmp_path):
+    """The selected nav row fills with the desktop's Highlight at full
+    strength and labels itself in its HighlightedText partner.
+
+    Settled on after four tinted alternatives were built and judged on
+    the real desktop, and it is worth knowing that none of them was
+    rejected for being *wrong*: the last one measured correctly on both
+    schemes and matched a primary button's own weight. The maintainer
+    preferred the full-strength row anyway. That is a look decision and
+    nothing here can adjudicate it, which is why this test asserts only
+    which tokens the rail uses.
+
+    What the tinted attempts did settle, and what stays settled, is that
+    a tint of the accent is the harder thing to get right: it has to be
+    laid on the surface the row is actually drawn on or it lands on the
+    wrong side of the strip, and it desaturates if that surface is grey.
+    The full-strength pair sidesteps both by not being derived at all.
+
+    ``accent_fill`` is asserted absent rather than merely unequal,
+    because the failure worth catching is a partial revert -- putting a
+    tint back on the fill while leaving the label on ``selection_text``
+    produces a row whose text is chosen to read on a saturated
+    background and is then drawn on a pale one.
+    """
+    flip_palette(qapp, dark=True)
+    window = _build_window(monkeypatch, tmp_path, tray_available=False)
+    window.show()
+    qapp.processEvents()
+    try:
+        sheet = window._nav.styleSheet()  # pylint: disable=protected-access
+        tokens = theme()
+        assert tokens.accent.name() in sheet, (
+            f"a selected nav row does not fill with the desktop's own "
+            f"selection colour ({tokens.accent.name()}); the sheet is "
+            f"{sheet}")
+        assert tokens.selection_text.name() in sheet, (
+            f"a selected nav row does not label itself in the desktop's "
+            f"own selected-text colour ({tokens.selection_text.name()}); "
+            f"the sheet is {sheet}")
+        assert tokens.accent_fill.name() not in sheet, (
+            f"a selected nav row names the emphasis tint "
+            f"({tokens.accent_fill.name()}) -- the row has gone back to "
+            "being a tint, or half of it has")
     finally:
         window.close()
 

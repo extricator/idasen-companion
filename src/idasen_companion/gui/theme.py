@@ -224,8 +224,14 @@ class Theme:
     disabled_text: QColor    # its label
     accent: QColor
     accent_text: QColor   # readable accent for text on surfaces
-    accent_fill: QColor   # light accent fill (selection, primary buttons)
+    accent_fill: QColor   # light accent fill (emphasis, primary buttons)
     accent_border: QColor
+    # The label drawn *on top of* `accent` at full strength, where the app
+    # marks something as selected. Not to be confused with `accent_text`
+    # directly above, which is the opposite arrangement -- accent-coloured
+    # text on a card. This one is the card-coloured end: whatever the
+    # desktop chose to write across its own selected rows.
+    selection_text: QColor
     success: QColor
     success_text: QColor
     warning: QColor
@@ -249,6 +255,10 @@ def theme() -> Theme:
     base = pal.color(QPalette.ColorRole.Base)
     text = pal.color(QPalette.ColorRole.WindowText)
     accent = pal.color(QPalette.ColorRole.Highlight)
+    # Read here beside `accent` rather than where it is used far below,
+    # because `pal` is a three-letter name and this project caps how far
+    # one of those may travel from its assignment. Rationale at the field.
+    selection_text = pal.color(QPalette.ColorRole.HighlightedText)
     is_dark = text.lightness() > window.lightness()
     # Named here rather than written twice below, because `hover_border` is
     # a blend *of the resting edge* toward the accent and the two must move
@@ -397,6 +407,21 @@ def theme() -> Theme:
                      else _mix(accent, QColor("black"), 0.30)),
         accent_fill=_mix(base, accent, 0.16),
         accent_border=_mix(base, accent, 0.50),
+        # Taken from the palette as-is, and the only token here that is
+        # not derived from something. `accent` is already the Highlight
+        # role, so the two together are the exact pair every other Qt list
+        # view on this machine renders a selection with -- which is the
+        # whole reason for reading it. Where this app marks a *selection*
+        # it should look like the selections beside it in the user's own
+        # file manager, rather than like a treatment this app invented.
+        #
+        # Deliberately nothing is mixed into the card. Tinting is what
+        # `accent_fill` above is for, and a tint is exactly what a
+        # selection was reported as being too quiet at -- 2026-08-17, dark
+        # scheme, the sidebar's selected row, where 0.16 of the accent
+        # laid on a #141618 card measured #182934 and read as barely
+        # marking the row at all.
+        selection_text=selection_text,
         success=QColor("#2fbe74") if is_dark else QColor("#1f9e58"),
         success_text=QColor("#4ec98a") if is_dark else QColor("#1f7a48"),
         warning=QColor("#e0a52e") if is_dark else QColor("#c07f00"),

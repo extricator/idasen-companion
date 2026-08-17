@@ -724,6 +724,28 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       full in `.planning/todos/pending/2026-08-17-draw-the-scrollbar.md`,
       together with what it still owes: hover, pressed and disabled states, a
       horizontal orientation actually exercised, and the five-palette tests.
+- [ ] **The emphasis tint's weight is still undecided, now that selections
+      have stopped using it** — reported 2026-08-17 from the installed package,
+      dark scheme: the selection highlight read "a little bit muted", with the
+      maintainer's own qualification that on the other controls sharing the
+      same fill "it doesn't look as bad actually". That split turned out to be
+      the answer rather than a hedge. The sidebar's selected row and the
+      dropdown's highlighted option were *selections*, and a selection is the
+      one thing the user has a reference for in every other Qt application on
+      the machine, so both now take `QPalette::Highlight` and its
+      `HighlightedText` partner at full strength instead of `accent_fill` —
+      nothing tuned, nothing to choose. What is left is the narrower question
+      the report also raised: whether `accent_fill = _mix(base, accent, 0.16)`
+      is the right weight for the three consumers that mark **emphasis** and
+      not selection — a ticked checkbox, a chosen `SegmentedControl` segment,
+      and `primary_button`. Judge those on a real desktop in both schemes
+      together rather than one at a time, since a fraction that reads well on a
+      22px segment can wash out inside a 15px checkbox, and the fraction is
+      measured from the card, whose distance to the accent differs between the
+      schemes. If it moves, `tests/test_control_tokens.py` already pins the
+      three relationships it has to keep across five palettes. Worth deciding
+      alongside the high-contrast preference item above: a user who asked their
+      desktop for more contrast is exactly the user this tint is quietest for.
 - [ ] **The trimmed Qt is verified by nothing but the offscreen platform** —
       the RPM ships Qt cut down by ELF reachability, and every automatic check
       of it runs headless: the spec's `%check` and the suite force

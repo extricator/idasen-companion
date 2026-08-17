@@ -366,6 +366,41 @@ def test_the_themed_combo_names_no_frame_border_of_its_own(qapp):
         "the themed combo's stylesheet carries no popup-view rule at all")
 
 
+def test_the_themed_combos_highlighted_row_is_the_desktops_selection(qapp):
+    """The popup's highlighted option takes the desktop's own selection
+    pair, the same as a selected sidebar row.
+
+    A dropdown list with one option picked out is a selection in the
+    strictest sense, and it used to be the app's thin ``accent_fill``
+    tint with ordinary ``text`` written over it -- so on a dark desktop
+    the row you were about to choose was a few channel levels off the
+    popup behind it. The label moves with the fill and not separately:
+    leaving it on ``text`` over a saturated background is the case where
+    the option you are pointing at becomes the hardest one to read.
+
+    Read from the built widget rather than from the source, for the
+    reason the frame test above records -- a source grep can be satisfied
+    by a comment.
+    """
+    flip_palette(qapp, dark=True)
+    combo = settings_form_mod.SettingsFormPage._themed_combo()  # pylint: disable=protected-access
+    stylesheet = combo.styleSheet()
+    tokens = theme()
+
+    assert f"selection-background-color: {css(tokens.accent)}" in stylesheet, (
+        "the themed combo's highlighted row does not fill with the "
+        f"desktop's own selection colour ({css(tokens.accent)}); the sheet "
+        f"is {stylesheet}")
+    assert f"selection-color: {css(tokens.selection_text)}" in stylesheet, (
+        "the themed combo's highlighted row does not label itself in the "
+        f"desktop's own selected-text colour ({css(tokens.selection_text)}); "
+        f"the sheet is {stylesheet}")
+    assert css(tokens.accent_fill) not in stylesheet, (
+        f"the themed combo still names the emphasis tint "
+        f"({css(tokens.accent_fill)}) -- its highlighted row has gone back "
+        "to being a tint, or half of it has")
+
+
 def test_the_spin_box_frame_is_theme_derived_not_fusions_grey(qapp):
     flip_palette(qapp, dark=False)
     card = Card()
