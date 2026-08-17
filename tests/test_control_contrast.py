@@ -1,12 +1,17 @@
-"""Fusion control borders (problem 2): proven to fail before Tasks 1-2 of
-this plan and pass after.
-
-Fusion draws a checkbox indicator, a combo frame and a spin frame from its
-own palette, not from ``theme()`` -- on a card whose background is the same
-white as Fusion's own fill, only a faint grey hairline survives. This module
-asserts the fix has real contrast, in both schemes, without displacing the
+"""Fusion control borders: the checkbox indicator, combo frame and spin
+frame, drawn by ``ControlStyle`` (`gui/style.py`) rather than by
+``theme()``'s own colours -- on a card whose background is the same white
+as Fusion's own fill, only a faint grey hairline would otherwise survive.
+This module asserts the drawn border is theme()-derived and distinct from
+the card background behind it, in both schemes, without displacing the
 checked-state glyph or the combo/spin sub-controls Fusion still draws
-itself.
+itself. It asserts no absolute WCAG contrast ratio: the 3:1 non-text floor
+was dropped as a gate, deliberately, because the app's control-border weight
+is a look decision and is expected to sit below it. The one ratio comparison
+below is *relative* -- focus and hover against rest -- and re-introduces
+no threshold.
+Where the floor might live instead is an open question recorded in the
+repository's own `TODO.md`, under the item about it living nowhere.
 
 Skipped where PySide6 is missing, matching every other GUI test in this
 suite.
@@ -24,20 +29,20 @@ import re
 # reach. See tests/test_settings_form.py for the same rule.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QCheckBox, QSpinBox,
+    QApplication, QCheckBox, QLineEdit, QSpinBox, QStyle, QStyleFactory,
+    QStyleOption,
 )
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import restyle  # noqa: E402
 from idasen_companion.gui.pages import settings_form as settings_form_mod  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
-from idasen_companion.gui.theme import theme  # noqa: E402
-from idasen_companion.gui.widgets import (  # noqa: E402
-    Card, control_css, install_control_styling,
-)
+from idasen_companion.gui.style import ControlStyle  # noqa: E402
+from idasen_companion.gui.theme import css, theme  # noqa: E402
+from idasen_companion.gui.widgets import Card  # noqa: E402
 
 # Copied rather than imported from tests/test_theme_restyle.py -- tests/
 # carries no __init__.py, and no other test module in this suite imports
@@ -64,16 +69,26 @@ def qapp():
 
 @pytest.fixture(autouse=True)
 def _isolated_registry(qapp):
-    """Empty the registry before each test and undo its palette/stylesheet
-    side effects after, so one test's registrations or palette flip can't
-    leak into the next -- same shape as test_theme_restyle.py's fixture of
-    the same name."""
+    """Empty the registry before each test, install ``ControlStyle`` as the
+    ambient application style, and undo every side effect after, so one
+    test's registrations, palette flip or installed style can't leak into
+    the next -- mirrors tests/test_control_style.py's fixture of the same
+    purpose.
+
+    The teardown installs a *fresh* ``QStyleFactory.create("fusion")``
+    rather than saving and re-setting whatever style object was previously
+    installed -- ``QApplication.setStyle`` takes ownership of the style
+    object it replaces and may already have deleted it. Without this
+    teardown ``ControlStyle`` leaks into every test module collected
+    afterwards in the same process.
+    """
     original_palette = QPalette(qapp.palette())
     restyle.reset_registry_for_tests()
+    qapp.setStyle(ControlStyle())
     yield
     restyle.reset_registry_for_tests()
-    qapp.setStyleSheet("")
     qapp.setPalette(original_palette)
+    qapp.setStyle(QStyleFactory.create("fusion"))
     qapp.processEvents()
 
 
@@ -148,40 +163,101 @@ def test_the_contrast_formula_measures_black_on_white_at_21_to_1():
         f"is not evidence -- got {ratio}")
 
 
-# ================= 2. The token-level floor =================
+def _control_option(*flags: QStyle.StateFlag) -> QStyleOption:
+    """An enabled control's style option carrying ``flags`` and nothing
+    else -- the input ``ControlStyle.overlay_color`` reads its answer
+    from."""
+    option = QStyleOption()
+    option.state = QStyle.StateFlag.State_Enabled
+    for flag in flags:
+        option.state |= flag
+    return option
 
 
-def test_control_border_clears_the_contrast_floor_against_card_bg(qapp):
-    """The floor binds the token the controls use, and only that one.
+def _assert_overlays_are_not_fainter_than_rest(qapp, dark: bool) -> None:
+    """Whatever colour the focus or hover overlay uses, it must not be
+    *fainter* against the card than the resting border it replaces.
 
-    WCAG 2.1 SC 1.4.11 covers what is required to identify a control. A
-    checkbox's empty box is its whole affordance, so it is held here. The
-    decorative ``border`` token is deliberately not: it draws card edges
-    and pills, which read as themselves without any border, and holding it
-    to 3:1 darkened every surface in the app at once.
+    This is a relative assertion between two of the app's own tokens, not
+    the fixed 3:1 floor D-05/D-06 deleted -- it re-introduces no threshold.
+    It exists because a focus indicator that halves the outline's contrast
+    is a de-emphasis, and because for a non-editable QComboBox (what this
+    app builds) plain Fusion draws no focus indication at all, so this
+    overlay is the only keyboard-focus affordance those controls have.
+    Shipped once as ``theme().accent_border``: 1.82:1 light and 2.72:1
+    dark against ``card_bg``, versus the resting border's 3.36:1 and
+    4.45:1 as it was weighted then.
+
+    One token rather than the two this once ran over: the edge a control's
+    frame carries and the edge a push button's panel carries were separate
+    tokens while the first was held to a contrast floor, and are one now
+    that it is not.
+
+    Hover is held to the same direction for the same reason. It is a
+    weaker accent than focus by design -- the two would otherwise be
+    indistinguishable -- and "weaker than focus" must not slide into
+    "weaker than doing nothing at all".
+
+    Read through ``ControlStyle.overlay_color`` rather than by reproducing
+    the rule here, so this measures the colour the style will actually
+    paint and not one a later edit could quietly stop using.
     """
-    for dark in (False, True):
-        flip_palette(qapp, dark=dark)
-        ratio = contrast(theme().control_border, theme().card_bg)
-        assert ratio >= 3.0, (
-            f"theme().control_border only clears {ratio:.2f}:1 against "
-            f"card_bg with dark={dark} -- this is a theme.py bug (the "
-            "blend fraction the token is derived with), not something a "
-            "per-control rule should paper over")
+    flip_palette(qapp, dark=dark)
+    card_bg = theme().card_bg
+    edge = theme().border
+    focused_color = ControlStyle.overlay_color(
+        _control_option(QStyle.StateFlag.State_HasFocus), edge)
+    hovered_color = ControlStyle.overlay_color(
+        _control_option(QStyle.StateFlag.State_MouseOver), edge)
+    resting_color = ControlStyle.overlay_color(_control_option(), edge)
+    focused = contrast(focused_color, card_bg)
+    hovered = contrast(hovered_color, card_bg)
+    resting = contrast(resting_color, card_bg)
+    assert focused >= resting, (
+        f"the focus overlay's colour ({focused_color.name()}, "
+        f"{focused:.2f}:1 against the card) is fainter than the resting "
+        f"theme().border it replaces ({resting_color.name()}, "
+        f"{resting:.2f}:1) -- focusing a control must not make it harder "
+        f"to see -- dark={dark}")
+    assert hovered >= resting, (
+        f"the hover overlay's colour ({hovered_color.name()}, "
+        f"{hovered:.2f}:1 against the card) is fainter than the resting "
+        f"theme().border it replaces ({resting_color.name()}, "
+        f"{resting:.2f}:1) -- putting the pointer on a control must not "
+        f"make it harder to see -- dark={dark}")
 
 
-# ================= 3 & 4. The rendered indicator =================
+def test_the_pointer_overlays_are_not_fainter_than_the_resting_border_light(
+        qapp):
+    _assert_overlays_are_not_fainter_than_rest(qapp, dark=False)
+
+
+def test_the_pointer_overlays_are_not_fainter_than_the_resting_border_dark(
+        qapp):
+    _assert_overlays_are_not_fainter_than_rest(qapp, dark=True)
+
+
+# ================= 2. The rendered indicator =================
 
 
 def _build_checkbox_in_card(qapp) -> tuple[Card, QCheckBox]:
-    """A checkbox the way the app builds one -- inside a Card, with the
-    same application-level mechanism main.py wires up."""
+    """A checkbox the way the app builds one -- inside a Card, under the
+    installed ``ControlStyle`` the module fixture applies. A decoy field is
+    focused first: a widget alone in a shown window already has keyboard
+    focus, and the checkbox's own focus-ring colour would otherwise leak
+    into what looks like its resting state."""
     card = Card()
+    decoy = QLineEdit()
     checkbox = QCheckBox("test")
+    card.body.addWidget(decoy)
     card.body.addWidget(checkbox)
-    install_control_styling(qapp)
     card.show()
     qapp.processEvents()
+    decoy.setFocus(Qt.FocusReason.OtherFocusReason)
+    qapp.processEvents()
+    assert checkbox.hasFocus() is False, (
+        "the checkbox already has focus before the decoy was focused -- "
+        "the 'resting' grab below would silently measure the focused state")
     return card, checkbox
 
 
@@ -198,7 +274,23 @@ def _find_border_pixel(image, y: int, card_bg_hex: str):
         "the whole row reads as the card background")
 
 
+def _channel_distance(a: QColor, b: QColor) -> int:
+    return (abs(a.red() - b.red()) + abs(a.green() - b.green())
+            + abs(a.blue() - b.blue()))
+
+
+def _closer_to(pixel: QColor, target: QColor, other: QColor) -> bool:
+    return _channel_distance(pixel, target) < _channel_distance(pixel, other)
+
+
 def _assert_indicator_border_has_contrast(qapp, dark: bool) -> None:
+    """The checkbox indicator is the smallest box the overlay draws on --
+    Fusion sizes it at 14px -- so how much of each edge survives as a
+    straight, unblended run depends on ``theme.corner_radius`` and on
+    Fusion's own indicator size, neither of which this assertion is about.
+    It asks the question antialiased blending can always answer instead: is
+    the observed pixel closer to ``theme().border`` than to
+    ``theme().card_bg``."""
     flip_palette(qapp, dark=dark)
     card, checkbox = _build_checkbox_in_card(qapp)
     try:
@@ -207,14 +299,12 @@ def _assert_indicator_border_has_contrast(qapp, dark: bool) -> None:
         # vertical centre, so scanning that row finds its left edge first.
         y = checkbox.height() // 2
         pixel = _find_border_pixel(image, y, theme().card_bg.name())
-        assert pixel.name() == theme().control_border.name(), (
-            f"the unchecked checkbox indicator's border reads "
-            f"{pixel.name()}, not the current theme().control_border "
-            f"({theme().control_border.name()}) -- dark={dark}")
-        ratio = contrast(pixel, theme().card_bg)
-        assert ratio >= 3.0, (
-            f"the indicator border only clears {ratio:.2f}:1 against "
-            f"card_bg -- dark={dark}")
+        assert pixel.name() != theme().card_bg.name()
+        assert _closer_to(pixel, theme().border, theme().card_bg), (
+            f"the unchecked checkbox indicator's border pixel "
+            f"{pixel.name()} is not closer to theme().border "
+            f"({theme().border.name()}) than to theme().card_bg "
+            f"({theme().card_bg.name()}) -- dark={dark}")
     finally:
         card.close()
 
@@ -227,115 +317,81 @@ def test_the_unchecked_indicator_border_has_contrast_in_dark(qapp):
     _assert_indicator_border_has_contrast(qapp, dark=True)
 
 
-def _indicator_box(image, border_hex: str) -> tuple[int, int, int, int]:
-    """The bounding box of every pixel matching ``border_hex`` -- measured
-    from the unchecked state, where the rule's own border colour marks the
-    indicator's extent directly, rather than a hardcoded box size."""
-    xs, ys = [], []
-    for y in range(image.height()):
-        for x in range(image.width()):
-            if image.pixelColor(x, y).name() == border_hex:
-                xs.append(x)
-                ys.append(y)
-    if not xs:
-        raise AssertionError(
-            "no pixel in the image matches the border colour -- the "
-            "indicator box could not be located")
-    return min(xs), min(ys), max(xs), max(ys)
+# The checked glyph is covered by
+# `tests/test_control_style.py::test_the_checked_indicator_still_shows_its_glyph`.
+# A test of that name lived here too, asserting an absolute floor of ten
+# distinct colours over the indicator box. That floor was written against
+# the stylesheet mechanism this phase replaced, whose failure mode was an
+# unscoped rule *blanking* the glyph to two colours. The draw-through
+# overlay inverts it: losing the unchecked-only scope draws a thin stroke on
+# top of the glyph and *raises* the colour count, so the floor passes on the
+# very mutation its own message names -- proven, the guard deleted from
+# `gui/style.py` left all seven tests in this module green. The successor
+# asserts a delta against plain Fusion's own count, which catches both
+# directions.
 
 
-def test_the_checked_indicator_still_shows_its_glyph(qapp):
-    flip_palette(qapp, dark=False)
-    card, checkbox = _build_checkbox_in_card(qapp)
-    try:
-        unchecked_image = checkbox.grab().toImage()
-        min_x, min_y, max_x, max_y = _indicator_box(
-            unchecked_image, theme().control_border.name())
+# ================= 3. Combo and spin frames =================
 
-        checkbox.setChecked(True)
-        qapp.processEvents()
-        checked_image = checkbox.grab().toImage()
-        distinct = {checked_image.pixelColor(x, y).name()
-                    for x in range(min_x, max_x + 1)
-                    for y in range(min_y, max_y + 1)}
-        # Well above the two-colour figure an unscoped rule produces (a
-        # bare Fusion checked box measures 30 on this build) -- a threshold
-        # with margin on both sides, so a font or DPI difference doesn't
-        # flap the test.
-        assert len(distinct) > 10, (
-            f"the checked indicator shows only {len(distinct)} distinct "
-            "colours across its box -- the border rule is taking over "
-            "checked-state rendering too, which means it lost its "
-            "unchecked-only scope")
-    finally:
-        card.close()
-
-
-# ================= 5. Combo and spin frames =================
-
-_COMBO_BASE_RULE_RE = re.compile(
+# Repurposed as the negative matcher below: _themed_combo() used to compose
+# this exact rule itself, independently of the app-wide control stylesheet
+# rule wave 08-08 shipped, and this phase removes it -- the frame now comes
+# from the application's own installed style.
+_COMBO_FRAME_BORDER_RE = re.compile(
     r"QComboBox \{ border: 1px solid (#[0-9a-fA-F]{6});"
     r" border-radius: (\d+)px; \}")
 
 
-def test_the_themed_combo_composes_a_base_selector_border(qapp):
-    flip_palette(qapp, dark=False)
-    combo = settings_form_mod.SettingsFormPage._themed_combo()  # pylint: disable=protected-access
+def test_the_themed_combo_names_no_frame_border_of_its_own(qapp):
+    """_themed_combo() must not take its own frame off Fusion's box model.
 
-    match = _COMBO_BASE_RULE_RE.search(combo.styleSheet())
-    assert match is not None, (
-        "the themed combo's stylesheet carries no QComboBox base-selector "
-        "border rule")
-    assert match.group(1) == theme().control_border.name(), (
-        "the themed combo's base-selector border does not name the "
-        "current theme().control_border")
-    assert int(match.group(2)) > 0, (
-        "the themed combo's base-selector rule states a zero corner "
-        "radius -- naming border at all takes the frame from Fusion, and "
-        "the stylesheet engine's default corner is square")
-
-
-def test_every_control_rule_states_a_nonzero_corner_radius(qapp):
-    """A colour-only rule squares off a control Fusion drew rounded.
-
-    That shipped once and was rejected on sight: the three controls were
-    the only hard corners in an app whose every other frame is rounded.
-    Each selector in control_css() must carry its own radius, since Qt
-    applies none of its own once the border is named.
+    Reads ``combo.styleSheet()`` at runtime rather than the source file --
+    deliberate, since a source grep can be satisfied (or tripped) by an
+    explanatory comment nearby, and a runtime read cannot be.
     """
     flip_palette(qapp, dark=False)
-    rules = [rule for rule in control_css().split("}") if "border:" in rule]
-    assert len(rules) == 3, (
-        f"expected a rule each for the checkbox indicator, the combo and "
-        f"the spin box -- found {len(rules)} in control_css()")
-    for rule in rules:
-        selector = rule.split("{")[0].strip()
-        match = re.search(r"border-radius: (\d+)px", rule)
-        assert match is not None and int(match.group(1)) > 0, (
-            f"control_css()'s rule for {selector} names a border without "
-            f"a non-zero radius, so Qt draws it square")
+    combo = settings_form_mod.SettingsFormPage._themed_combo()  # pylint: disable=protected-access
+    stylesheet = combo.styleSheet()
+
+    assert _COMBO_FRAME_BORDER_RE.search(stylesheet) is None, (
+        "the themed combo's stylesheet still names a QComboBox frame-border "
+        "selector of its own -- that hands this widget's whole box model "
+        "back to the stylesheet engine, off Fusion's again")
+
+    popup_border = css(theme().border)
+    assert popup_border in stylesheet, (
+        "the themed combo's popup-view rule does not name the current "
+        "theme().border")
+    assert "QAbstractItemView" in stylesheet, (
+        "the themed combo's stylesheet carries no popup-view rule at all")
 
 
 def test_the_spin_box_frame_is_theme_derived_not_fusions_grey(qapp):
     flip_palette(qapp, dark=False)
     card = Card()
+    decoy = QLineEdit()
     spin = QSpinBox()
+    card.body.addWidget(decoy)
     card.body.addWidget(spin)
-    install_control_styling(qapp)
     card.show()
     qapp.processEvents()
+    decoy.setFocus(Qt.FocusReason.OtherFocusReason)
+    qapp.processEvents()
+    assert spin.hasFocus() is False, (
+        "the spin box already has focus before the decoy was focused -- "
+        "the 'resting' grab below would silently measure the focused state")
     try:
         image = spin.grab().toImage()
         y = spin.height() // 2
         pixel = _find_border_pixel(image, y, theme().card_bg.name())
-        assert pixel.name() == theme().control_border.name(), (
+        assert pixel.name() == theme().border.name(), (
             f"the spin box frame reads {pixel.name()}, not the current "
-            f"theme().control_border ({theme().control_border.name()})")
+            f"theme().border ({theme().border.name()})")
     finally:
         card.close()
 
 
-# ================= 6. The icon candidate lists, not the icons =================
+# ================= 4. The icon candidate lists, not the icons =================
 #
 # Icon-theme resolution is unreachable under the offscreen platform used
 # here (Pitfall 3, 08-RESEARCH.md) -- assert what icon() was called with,

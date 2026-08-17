@@ -85,6 +85,40 @@ def _restore_global_height_unit():
     util._unit = previous
 
 
+@pytest.fixture(autouse=True)
+def _restore_the_application_style():
+    """Undo any test's mutation of the session QApplication's style.
+
+    ``gui/main.main()`` installs the app's own ``QProxyStyle``, and the
+    modules that drive ``main()`` hand it the *session-scoped* ``qapp``
+    fixture, so without this the style outlives the test that installed it:
+    every module collected afterwards in the same process renders through a
+    style it never asked for, and the suite means something different
+    depending on collection order. Two modules did exactly that, and passed
+    only because alphabetical collection happened to be benign.
+
+    Restored here rather than in each module, since the hazard belongs to
+    anything that calls ``main()``. A *fresh* fusion style is installed
+    rather than the previous object saved and re-set: ``setStyle`` takes
+    ownership of the style it replaces and may already have deleted it.
+    Fusion is what the factory hands back for the default key on every
+    platform this ships to, and it is what the app itself proxies.
+    """
+    try:
+        from PySide6.QtWidgets import QApplication, QStyleFactory
+    except ImportError:
+        yield  # PySide6 not installed; the GUI tests importorskip themselves
+        return
+    yield
+    application = QApplication.instance()
+    if application is None:
+        return
+    # A style built by the factory carries its key as its object name; one
+    # constructed directly (as the app's own is) does not.
+    if application.style().objectName() != "fusion":
+        application.setStyle(QStyleFactory.create("fusion"))
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _pin_timezone():
     """Pin TZ for the whole run.

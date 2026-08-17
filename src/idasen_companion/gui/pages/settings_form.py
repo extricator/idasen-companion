@@ -310,17 +310,18 @@ class SettingsFormPage(Page):
         A ``Card`` sets a stylesheet, which makes Qt render *all* its children
         through ``QStyleSheetStyle``; under that a ``QComboBox`` popup draws
         with no background at all. Give the popup view an explicit surface.
-        The frame border is composed into this same string rather than left
-        to the application-level rule the bundled Fusion controls otherwise
-        get, since a per-widget sheet always outranks it.
+        The frame itself is deliberately not named here: the application's
+        own installed style now draws it, and naming a border on a
+        ``QComboBox`` in a per-widget stylesheet would hand this one widget's
+        whole box model back to the stylesheet engine, taking it off Fusion's
+        again -- the padding-too-tight regression this dropdown was the named
+        example of.
         """
         combo = QComboBox()
 
         def _restyle_combo(target: QComboBox = combo) -> None:
             tokens = theme()
             target.setStyleSheet(
-                f"QComboBox {{ border: 1px solid {css(tokens.control_border)};"
-                f" border-radius: 4px; }}"
                 f"QComboBox QAbstractItemView {{"
                 f" background-color: {css(tokens.card_bg)};"
                 f" color: {css(tokens.text)};"

@@ -21,8 +21,8 @@ from ..util import (
     suffix_height, to_display_height,
 )
 from ..widgets import (
-    Card, ConnectionChip, HeightRail, StatusDot, emphasize, icon,
-    primary_button, section_label,
+    Card, ConnectionChip, HeightRail, StatusDot, emphasize, equal_height_row,
+    icon, primary_button, section_label,
 )
 from .base import Page
 
@@ -127,16 +127,23 @@ class OverviewPage(Page):
         self.height_spin.valueChanged.connect(self._on_spin_changed)
         move_btn = primary_button(self.tr("Move"))
         move_btn.setIcon(icon("media-playback-start", "go-next", "arrow-right"))
-        # primary_button's stylesheet padding makes it shorter than the
-        # native spin box beside it; match the spin box's height so they line
-        # up at any theme / DPI.
-        move_btn.setFixedHeight(self.height_spin.sizeHint().height())
         move_btn.clicked.connect(
             lambda: self.client.move_to_height(
                 from_display_height(self.height_spin.value())))
+        # The spin box and Move read as one control pair, so they have to be
+        # the same height — and neither height is knowable here. Move is a
+        # button and takes the app's own button padding; the spin box is
+        # sized entirely by QStyleSheetStyle the moment it is parented into
+        # the Card below, which never consults the application style, so no
+        # metric the app overrides reaches it. Pinning either to a hint read
+        # at construction is exactly what came apart; equal_height_row
+        # resolves both at layout time. The Sit / Stand / Stop row below
+        # needs none of this: those are buttons beside a button.
         rail_row.addWidget(self.height_rail, 1)
-        rail_row.addWidget(self.height_spin, 0, Qt.AlignmentFlag.AlignTop)
-        rail_row.addWidget(move_btn, 0, Qt.AlignmentFlag.AlignTop)
+        rail_row.addWidget(
+            equal_height_row(self.height_spin, move_btn,
+                             spacing=rail_row.spacing()),
+            0, Qt.AlignmentFlag.AlignTop)
         desk.body.addLayout(rail_row)
 
         btn_row = QHBoxLayout()

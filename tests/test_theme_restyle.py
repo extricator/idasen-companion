@@ -23,7 +23,8 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtCore import QCoreApplication, QEvent, QObject, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QComboBox, QLabel, QLineEdit, QPushButton, QWidget,
+    QApplication, QComboBox, QLabel, QLineEdit, QPushButton, QStyleFactory,
+    QWidget,
 )
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -38,11 +39,11 @@ from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
 from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
+from idasen_companion.gui.style import ControlStyle  # noqa: E402
 from idasen_companion.gui.theme import Theme, theme  # noqa: E402
 from idasen_companion.gui.widgets import (  # noqa: E402
     Card, ConnectionChip, DailyBarsChart, SegmentedControl, StatusDot,
-    ToolIconButton, install_control_styling, page_scroll, primary_button,
-    section_label, separator,
+    ToolIconButton, page_scroll, primary_button, section_label, separator,
 )
 
 _HEX_RE = re.compile(r"#[0-9a-fA-F]{6}")
@@ -85,10 +86,6 @@ def _isolated_registry(qapp):
         except (RuntimeError, TypeError):
             pass
     qapp.setPalette(original_palette)
-    # install_control_styling (08-08) is the one test in this module that
-    # sets an application-level stylesheet; clear it so a stale
-    # theme().border from this test's palette can't linger into the next.
-    qapp.setStyleSheet("")
     qapp.processEvents()
 
 
@@ -629,6 +626,65 @@ def test_the_settings_page_follows_a_live_light_to_dark_switch(qapp):
         page.close()
 
 
+def test_a_scrolling_pages_transparency_rule_does_not_unframe_its_controls(
+        qapp):
+    """The scroll body's own stylesheet must be qualified by object name.
+
+    An unqualified rule applies to its widget *and every descendant*, and a
+    stylesheet that names a background takes that widget off its style's box
+    model -- where the border defaults to none. So a bare
+    ``background: transparent`` on the scroll body silently unframed every
+    control inside a scrolling page that the app does not draw itself.
+
+    It shipped, and it was invisible for two reasons worth recording. The
+    style draws the combo, spin and checkbox frames outright, so the only
+    controls left exposed were the two it deliberately leaves to Fusion --
+    and of those, only ``QLineEdit`` appears on a scrolling page. And the
+    defect subtracts a border rather than adding anything, so every
+    assertion about what *is* drawn stayed green. Reported from the
+    installed package on the Settings page: the Bluetooth address field
+    rendered with no box at all, only a stray line above it.
+
+    Asserted on the real page rather than on a synthetic scroll area,
+    because the bug was in how the pieces nest and a hand-built pair would
+    have reproduced whichever nesting the test author had in mind.
+    """
+    flip_palette(qapp, dark=False)
+    page = SettingsPage(_build_ctx())
+    page.resize(680, 900)
+    page.show()
+    qapp.processEvents()
+    qapp.processEvents()
+
+    field = page.mac_edit
+    image = page.grab().toImage()
+    origin = field.mapTo(page, field.rect().topLeft())
+    width, height = field.width(), field.height()
+    card = theme().card_bg
+
+    def painted_in_row(y: int) -> int:
+        return sum(image.pixelColor(origin.x() + x, y) != card
+                   for x in range(width))
+
+    def painted_in_column(x: int) -> int:
+        return sum(image.pixelColor(x, origin.y() + y) != card
+                   for y in range(height))
+
+    edges = {
+        "top": painted_in_row(origin.y()),
+        "bottom": painted_in_row(origin.y() + height - 1),
+        "left": painted_in_column(origin.x()),
+        "right": painted_in_column(origin.x() + width - 1),
+    }
+    missing = [name for name, count in edges.items() if count == 0]
+    assert not missing, (
+        f"the Bluetooth address field draws nothing on its {missing} "
+        f"edge(s) -- measured {edges} against the card behind it "
+        f"({card.name()}). Something in its ancestry has taken it off the "
+        "style's box model, which is what an unqualified background rule "
+        "does to every descendant")
+
+
 # ================= Overview =================
 #
 # Built directly against the same FakeClient / _build_ctx() this module
@@ -1013,6 +1069,19 @@ def _build_populated_window(monkeypatch, tmp_path) -> mw.MainWindow:
     return window
 
 
+def _find_border_pixel(image, y: int, card_bg_hex: str):
+    """The first non-background, non-transparent pixel scanning left to
+    right at row ``y``. Copied from tests/test_control_contrast.py -- see
+    that module's own FakeClient docstring for why this isn't imported."""
+    for x in range(image.width()):
+        pixel = image.pixelColor(x, y)
+        if pixel.alpha() != 0 and pixel.name() != card_bg_hex:
+            return pixel
+    raise AssertionError(
+        "no border-coloured pixel found scanning the indicator row -- "
+        "the whole row reads as the card background")
+
+
 def test_the_whole_window_follows_a_live_switch_in_both_directions(
         qapp, monkeypatch, tmp_path):
     """The standing invariant, over a fully constructed and populated window.
@@ -1024,33 +1093,53 @@ def test_the_whole_window_follows_a_live_switch_in_both_directions(
     (`gui/setup_wizard.py` has zero `setStyleSheet` calls and carries no
     theme-derived stylesheet at all, so it is unaffected by this phase), nor
     a preset/transition shape this file's fixed sample data never exercises.
+
+    ``ControlStyle`` (the checkbox/combo/spin overlay) reads ``theme()`` at
+    paint time rather than baking it into a stylesheet string, so it needs
+    no restyle registration at all -- there is no application-level
+    stylesheet left to grep for a stale hex. The only way left to prove a
+    live switch reaches it is by rendering: install it here, grab a control
+    under each palette, and compare the border pixel actually painted.
     """
     flip_palette(qapp, dark=False)
     window = _build_populated_window(monkeypatch, tmp_path)
     window.show()
     qapp.processEvents()
     restyle.follow_palette(qapp)
-    # 08-08's Fusion control borders (checkbox/combo/spin) live at
-    # application level, not on any one widget -- wire the same mechanism
-    # main.py does, so a switch is asserted to reach it too.
-    install_control_styling(qapp)
+    qapp.setStyle(ControlStyle())
     try:
         assert_hexes_are_current_tokens(window)
 
+        combo = window.settings.language_combo
+        card_bg_hex = theme().card_bg.name()
+        light_pixel = _find_border_pixel(
+            combo.grab().toImage(), combo.height() // 2, card_bg_hex)
+        assert light_pixel.name() == theme().border.name(), (
+            "the Language combo's frame does not carry the current "
+            "theme().border before any switch")
+
         flip_palette(qapp, dark=True)
         assert_hexes_are_current_tokens(window)
-        assert theme().control_border.name() in QApplication.instance().styleSheet(), (
-            "the Fusion control border rules did not follow the live "
-            "switch -- the application-level stylesheet still names the "
-            "pre-switch theme().control_border")
+        dark_pixel = _find_border_pixel(
+            combo.grab().toImage(), combo.height() // 2,
+            theme().card_bg.name())
+        assert dark_pixel.name() == theme().border.name(), (
+            "ControlStyle's overlay did not follow the live switch -- the "
+            "combo frame still reads the pre-switch theme().border")
+        assert dark_pixel.name() != light_pixel.name(), (
+            "the combo frame's border pixel is identical before and after "
+            "the switch to dark")
 
         # The reverse leg is not ceremony -- a rule correct in one scheme
         # and wrong in the other is the hardest kind of visual bug to
         # notice (UI-SPEC's Scheme Parity rule).
         flip_palette(qapp, dark=False)
         assert_hexes_are_current_tokens(window)
-        assert theme().control_border.name() in QApplication.instance().styleSheet(), (
-            "the Fusion control border rules did not follow the reverse "
-            "switch")
+        reverted_pixel = _find_border_pixel(
+            combo.grab().toImage(), combo.height() // 2,
+            theme().card_bg.name())
+        assert reverted_pixel.name() == theme().border.name(), (
+            "ControlStyle's overlay did not follow the reverse switch")
     finally:
+        qapp.setStyle(QStyleFactory.create("fusion"))
         window.close()

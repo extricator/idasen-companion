@@ -491,48 +491,169 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       `tests/test_packaging.py` holds each URL against a file in the tree.
       Decide the look first: re-shooting before the style question is settled
       buys a second set of stale images.
-- [ ] **Phase 8's control styling was rejected on the real desktop, and the
-      approach is the reason** — the maintainer ran the pass against the
-      installed 1.0.2 package on Fedora KDE (2026-08-16) and turned it down
-      twice. First: *"borders are more visible but they don't have the style.
-      they're too rectangular and just hard to look at unlike the old ones."*
-      Then, after the corner radius was added: *"it looks better but if you see
-      the outline in the old screenshots it was a little bit fainter and either
-      the padding or margins of some controls was bigger. the text looks too
-      close t the outline in some (like dropdown for 'Language' and others)…
-      also the radios of the buttons doesn't seem big enough. also look at the
-      checkbox, no outline!"*
-      "Radios" here is not the radio-button indicators — the maintainer
-      confirmed directly that he meant the corner radius was not round
-      enough, so read that sentence as a complaint about how square the
-      corners still looked, not about control size.
-      The first three are symptoms of *how* it was done, not of the values
-      chosen. `control_css()` styles `QCheckBox::indicator`, `QComboBox` and
-      `QSpinBox` through the stylesheet engine, and naming a border there hands
-      that widget's whole box model to the engine, whose padding and corner
-      radius both default to zero. So the rule silently forfeits Fusion's own
-      padding, corner geometry, focus ring, hover, disabled and HiDPI handling
-      and repaints the control flat. Tuning numbers cannot recover them.
-      *The fourth — the checkbox with no outline — has no established cause and
-      must not be assumed to share one.* It does not reproduce under the
-      offscreen platform: rendering the indicator with the shipped
-      `control_css()` draws a visible rounded box in both schemes, and
-      `tests/test_control_contrast.py` asserts the drawn pixel matches
-      `theme().control_border`. So whatever was seen on the real display is
-      unexplained, and the item with no explanation is the one likeliest to be
-      lost behind three that have one. Reproduce it on a real desktop before
-      designing around it — a replacement built on the assumption that the
-      stylesheet caused it will not fix it if something else did.
-      *The replacement is `QProxyStyle`* — wrap Fusion, override only the frame
-      primitives that read too faint against a card, delegate everything else.
-      Reserve stylesheets for genuinely app-specific surfaces (`Card`, the
-      chip, the segmented control), which is what they are good at.
-      *And the capability question is settled, with evidence.* The desktop's
-      own style cannot be loaded into the bundled Qt, but not for the reason
-      first assumed: Breeze itself references only public `Qt_6` / `Qt_6.10`,
-      and Qt permits a plugin built against an older 6.x minor to load into a
-      newer one, so neither the version gap nor the shared sonames is the
-      blocker. Four KDE Frameworks libraries in Breeze's dependency graph —
+- [ ] **The rebuilt control styling has not been looked at on the real
+      desktop** — the maintainer ran the pass against the installed 1.0.2
+      package on Fedora KDE (2026-08-16) and turned the Phase 8 styling down
+      twice, in his own words: *"borders are more visible but they don't have
+      the style. they're too rectangular and just hard to look at unlike the
+      old ones."* Then, after a corner radius was added: *"it looks better but
+      if you see the outline in the old screenshots it was a little bit
+      fainter and either the padding or margins of some controls was bigger.
+      the text looks too close t the outline in some (like dropdown for
+      'Language' and others)… also the radios of the buttons doesn't seem big
+      enough. also look at the checkbox, no outline!"* "Radios" there is not
+      the radio-button indicators — he confirmed directly that he meant the
+      corner radius was not round enough, so read that sentence as a complaint
+      about how square the corners still looked, not about control size.
+      Phase 9 replaced the mechanism: the stylesheet rules are gone and
+      `gui/style.py`'s `QProxyStyle` draws through to Fusion and overlays one
+      rounded, theme-derived stroke, so Fusion's padding, focus ring, hover,
+      disabled and HiDPI handling are kept rather than forfeited to the
+      stylesheet engine. What has *not* happened is the look being judged:
+      nobody has seen the result on a real display. The border weight
+      (`theme().border`), the two corner radii
+      (`theme.SURFACE_RADIUS` at 6px for cards, panels and pills,
+      `theme.CONTROL_RADIUS` at 4px for buttons, combo and spin frames, the
+      checkbox indicator and the segmented control) and whether
+      `ConnectionChip` should stay a capsule or fold into the surface radius
+      are all decided by eye, from the installed package, and only there.
+      A single value was tried for both and rejected on the real desktop —
+      it moved the controls up to the surfaces' 6px rather than the surfaces
+      down, and the buttons stopped looking like the originals.
+      A second real-desktop pass (2026-08-16) turned down the *push buttons*
+      specifically — *"the buttons borders are still too coarse, and the
+      corner too narrow compared to previous look"*, with the tell that
+      *"the 'move' button has the radios and the border (even if diff color)
+      similar to or the same as it used to be"*. Move is a `primary_button`
+      and carries a stylesheet; every other button on the pane was a bare
+      `QPushButton` drawn entirely by Fusion, at `#ababab` on a 2px corner
+      against the app's own `#c7c7c7` and 4px. The app now draws a push
+      button's whole panel itself — fill, edge and corner in one pass, with
+      no Fusion underneath — as `primary_button` *without the accent*: the
+      same corner radius, the same border weight (`theme().border`) and,
+      through a `CT_PushButton` size override, the same padding. So an
+      accent-filled button and a bare one are now the same size by
+      construction. Whether that weight, that radius and that face are right
+      is still the same by-eye judgement as the rest of this item.
+      A third real-desktop pass (2026-08-16) accepted the geometry —
+      *"much better"*, *"the corner artifacts are gone"* — and turned down
+      two colour weights. The button ramp was **inverted**: a disabled
+      button rendered `#f7f7f7` against a resting enabled one's `#e8e8e8`
+      on a white card, so the control that could not be pressed was the
+      crisper of the two, and the enabled face was a grey slab rather than
+      a step off the card. The ramp now runs resting nearest the card,
+      hover and pressed further out, disabled further than resting but no
+      further than pressed. And the frames were too heavy: the spin box
+      read `#9C9D9F` against the `#C8CACB` of the look he approves of,
+      because `control_border` sat at 0.45 of the palette's ink axis purely
+      to clear the 3:1 floor that has since been dropped. Re-derived by
+      eye, it landed on the decorative `border`'s own 0.22, and the two
+      tokens were collapsed into one — the split had nothing left to
+      distinguish.
+      A fourth real-desktop pass (2026-08-16) said the state *"looks
+      better"* and asked for three refinements, all landed. The buttons
+      were still short of the reference — a vertical pixel slice through
+      Sit measured 35px against the app's 32px, with the same 30-row fill
+      in both, so the difference is edge and shadow treatment a 1px stroke
+      cannot reproduce — and the vertical padding token was raised, which
+      moves a bare button and `primary_button` together. It also asked for
+      a hover highlight in the desktop's own colour, and a push button's
+      *face* was washed with `QPalette::Highlight` to provide it. And a
+      push button's icon now stands clear of its label by a fraction of the
+      label's own line height, because Qt's own spacing is a hardcoded
+      2 drawn pixels at every font size.
+      A fifth real-desktop pass (2026-08-16) corrected the hover
+      highlight. The one meant was the reference look's, which moves a
+      control's **border** to the accent and leaves the face alone —
+      *"border just changed to highlight color not 'foreground' color"* —
+      and it applies to every control, not only to push buttons. So the
+      pointer faces went back to their neutral steps (which made the
+      separate combo-box face tokens duplicates, and they were folded
+      away), and `theme().hover_border` now strokes the push button panel,
+      the combo frame, the spin frame and the checkbox indicator alike.
+      Hover and keyboard focus are separated by weight rather than by
+      thickness — focus keeps `theme().accent` outright, hover takes the
+      resting edge carried 0.65 of the way to it — because a frame already
+      turns accent on focus and a non-editable `QComboBox` has no other
+      focus affordance at all. The same pass halved the icon gap —
+      *"the icon gap is too big now. should be half that"* — so
+      `theme._ICON_GAP_FRACTION` is 0.225 of the label's line height, 5
+      logical pixels on his own 22px metrics — and Move now takes the same
+      gap as the buttons beside it, which it did not before, because a
+      stylesheet declaring a border routes the whole label through
+      `QStyleSheetStyle` and Qt's stylesheet syntax has no icon-spacing
+      property to declare it with. Whether that weight and that gap are
+      right is the same by-eye judgement as the rest of this item.
+      A sixth real-desktop pass (2026-08-17) said *"much better"* of the
+      accent hover border and closed the Overview pane, with two changes to
+      the neutral face ramp. The pointer was still moving a control's
+      **face** as well as its border — the accent wash was gone but the
+      face still stepped along its own neutral axis — and that was turned
+      down too, which is what settles that the objection is to the face
+      moving at all rather than to the colour it moved to. Measured on the
+      same screenshot, the reference renders a resting and a hovered button
+      the same colour to the channel. `button_hover_fill` is therefore gone
+      rather than retuned. The second is that the resting face itself sat
+      too far out: at 0.05 of the ink axis it measured `#f4f4f4` on a white
+      card while a disabled control sat at `#e2e3e3`, so an unusable
+      control was nearer an available one than the available one was to its
+      own card. That reads worst on a combo box, which has no fill but this
+      one and sits beside a spin box keeping Fusion's own white Base fill,
+      and it was reported that way on the Automation pane — the dropdowns
+      look disabled. At 0.02 the face is a step out of the card and no
+      more, against the reference's own 0.014.
+      The disabled treatment is on that list too. The desktop's own palette
+      repeats its Active colour group in its Disabled one, so Fusion rendered
+      an enabled and a disabled push button with pixel-identical fills and the
+      Stop button read as usable while the desk was still. The app supplies
+      its own: a disabled control's face, its edge, its label *and its icon*
+      all come from `theme()`, and what makes it read as unavailable is that
+      the edge and the label each sit about a quarter as far from the fill as
+      an enabled control's do. How far each should go is a judgement to make
+      from the installed package alongside the border weight.
+      *The checkbox with no outline is closed (2026-08-17).* It was the
+      **checked** state, and it reproduced on the Automation pane of the
+      installed package: zero frame pixels inside the checked indicator's
+      rect against the 24 the unchecked box beside it drew. It never
+      reproduced offscreen because it was being measured as "is there any
+      frame", and Fusion supplies one of its own there; measured instead as
+      "does the app's own border token appear", it reproduces exactly. The
+      style used to leave the checked and tristate glyphs entirely to
+      Fusion, so whether a checked box had a box at all was a property of
+      whichever palette turned up. It now strokes all four states alike.
+      A seventh pass (2026-08-17) then asked for the ticked box to carry
+      the reference's bluish fill and a smoother mark than Fusion's, and
+      **that is the second deliberate widening of this phase's scope**
+      after push buttons (D-17): until then the style owned frames and one
+      panel, and a check mark is a glyph. The ticked and tristate states
+      are now painted outright — `theme().accent_fill` inside, the app's
+      own two-segment mark with a round cap and join on top, both from
+      fractions of the box so they are the same drawing at 150% text.
+      The edge is deliberately *not* bluish, unlike the reference's: every
+      edge the style strokes is one token, and that is what keeps hover
+      (0.65 toward the accent) and focus (the accent outright) orderable
+      on this control.
+      An eighth pass (2026-08-17) settled that edge the other way: the
+      reference marks a ticked state in the accent on the border as well
+      as the fill, so a ticked box now strokes `theme().accent_border` and
+      that is the **single, written-down exemption** from the one-edge-
+      token rule. The three edge states stay ordered through it (measured
+      light against the card: resting 148, hover 252, focus 297) because
+      `accent_border` mixes the accent *into the card* while hover and
+      focus are carried from the neutral edge toward the accent itself; a
+      five-palette test holds that rather than leaving it to reasoning.
+      The same pass sized the indicator from the label's own line height
+      instead of Qt's hardcoded 14 — 15 at his 22px metrics, matching the
+      reference, and 23 at 150% text where Fusion would still say 14 — and
+      filled a dropdown from the card like the field it is, since Fusion
+      routes a combo's body through the push button's panel and the spin
+      box beside it never entered that ramp at all.
+      *The capability question is settled, with evidence.* The desktop's own
+      style cannot be loaded into the bundled Qt, but not for the reason first
+      assumed: Breeze itself references only public `Qt_6` / `Qt_6.10`, and Qt
+      permits a plugin built against an older 6.x minor to load into a newer
+      one, so neither the version gap nor the shared sonames is the blocker.
+      Four KDE Frameworks libraries in Breeze's dependency graph —
       `KF6WindowSystem`, `KF6IconThemes`, `KF6ColorScheme`, `KF6GuiAddons` —
       bind `Qt_6.10_PRIVATE_API`, which the bundled Qt 6.11.1 does not provide,
       and Qt guarantees no binary compatibility for private or QPA API across
@@ -540,10 +661,69 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       before anyone reopens this. Bundling Qt and using the host's styles are
       mutually exclusive by construction; the Flatpak escapes it only because
       its whole runtime is `org.kde.Platform`, which ships a matching Breeze.
-      What *does* cross the boundary is preferences, not renderers: the bundle
-      already carries the xdg-desktop-portal platform theme, and the portal
-      exposes colour scheme, accent colour and contrast over D-Bus.
+      What *does* cross the boundary is preferences, not renderers, which is
+      what `gui/appearance_portal.py` now reads.
       Do not re-derive any of this; it cost a full research pass.
+- [ ] **The 3:1 non-text contrast floor now lives nowhere in the app** — WCAG
+      2.1 SC 1.4.11 was dropped as a standing invariant (a deliberate decision,
+      not a drift: the app's control-border weight is a look choice and is
+      expected to sit below it), and the desktop portal's high-contrast
+      preference is read but acted on by nothing. So a user who has asked their
+      desktop for high contrast gets the same pixels as everyone else. Deciding
+      what to do about that is a scope question in its own right: honouring the
+      preference means a second set of border tokens and a rule for which
+      surfaces they cover — and note the app now has *one* edge token rather
+      than two, since the split that existed to hold control frames to the
+      floor was collapsed once the floor went. The answer probably belongs
+      with the deferred
+      in-app Light/Dark/System theme control rather than beside it.
+      `gui/appearance_portal.py` already returns the value; nothing consumes it.
+- [ ] **Two control primitives are still drawn by Fusion alone** —
+      `gui/style.py` overlays the checkbox indicator, the combo frame, the
+      spin frame and the push button frame. `QLineEdit`
+      (`PE_FrameLineEdit`/`PE_PanelLineEdit`) and
+      `QRadioButton` (`PE_IndicatorRadioButton`) are not touched, so they keep
+      Fusion's own untheme'd hairline, and since the control edge was
+      re-weighted that hairline is the *heavier* of the two: measured in one
+      card in the light scheme, the line edit's first border pixel is
+      `#ababab` where the combo, spin and time edit beside it read `#c7c7c7`.
+      That is visible on the Settings page, where the MAC address field sits
+      beside the Language dropdown, in every preset row, and in the setup
+      wizard, where two radio buttons render to different rules than the app's
+      checkboxes. Extending the overlay is small (a radio needs an ellipse
+      rather than a rounded rect), but it is a look change, so it belongs in
+      the same real-desktop pass as the border weight above rather than being
+      landed unseen.
+      **Half of this closed on 2026-08-17.** On a scrolling page the line
+      edit had no frame at all, because the scroll body's unqualified
+      `background: transparent` took every descendant off the style's box
+      model. Fixing that put Fusion's own hairline back and made the
+      mismatch real — `#ababab` against the `#cfcfd0` of the spin box in
+      the same card — so `QLineEdit` was brought onto the app's own
+      draw-through-then-overlay path, unchanged from the one the combo and
+      spin frames already use. **`QRadioButton` is what is left**, and it
+      is only reachable in the setup wizard, which no real-desktop pass has
+      covered yet; a radio needs an ellipse rather than a rounded rect.
+- [ ] **The scrollbar is Fusion's entirely, and is the least reference-like
+      control on screen** — reported 2026-08-17 from the installed package as
+      looking "cut off to the right" on the Automation page. It is Fusion as
+      designed: stepper arrows top and bottom, a 14px track, and a slider with
+      almost no contrast against its own groove, where the reference has no
+      arrows and a slim inset rounded bar. **Deferred by an explicit scope
+      decision, not overlooked** — owning it makes the scrollbar a fourth
+      control family the app draws, after frames, the button panel and the
+      checkbox indicator, and Phase 9's own constraint is not to widen what the
+      app overrides one complaint at a time. Two dead ends are already measured
+      out so nobody re-derives them: the desktop's own scrollbar cannot be
+      adopted, because it lives in the Breeze *style plugin* and a plugin loads
+      whole or not at all, so the private-API blocker takes it too; and there is
+      no cheap hook, because a scrollbar reaches `gui/style.py` as exactly one
+      `drawComplexControl(CC_ScrollBar)` call with Fusion painting groove,
+      slider and arrows internally. A working prototype (~55 lines over
+      `pixelMetric`, `subControlRect` and `drawComplexControl`) is described in
+      full in `.planning/todos/pending/2026-08-17-draw-the-scrollbar.md`,
+      together with what it still owes: hover, pressed and disabled states, a
+      horizontal orientation actually exercised, and the five-palette tests.
 - [ ] **The trimmed Qt is verified by nothing but the offscreen platform** —
       the RPM ships Qt cut down by ELF reachability, and every automatic check
       of it runs headless: the spec's `%check` and the suite force
