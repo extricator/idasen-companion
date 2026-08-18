@@ -92,9 +92,12 @@ PYEOF
 
 echo ">> Checking the sdist stays under the size ceiling..."
 SDIST_SIZE=$("$PYTHON" -c "import os,sys;print(os.path.getsize(sys.argv[1]))" "$SDIST")
-# 600000 bytes: comfortably above the ~385 kB sdist measured at 1.0.0, well
-# below the ~1.1 MB an untracked design-tool export once produced.
-SDIST_SIZE_CEILING=600000
+# 800000 bytes: comfortably above the ~600 kB sdist measured at 1.1.0, which
+# grew from ~385 kB at 1.0.0 as the GUI and the tests covering it did. Still
+# far below either accident this guards against -- an untracked design-tool
+# export once added ~1.1 MB, and the screenshot directory the metainfo points
+# at would add ~650 kB on its own, so both still land above this line.
+SDIST_SIZE_CEILING=800000
 if [ "$SDIST_SIZE" -gt "$SDIST_SIZE_CEILING" ]; then
     echo "error: sdist is ${SDIST_SIZE} bytes, over the ${SDIST_SIZE_CEILING}-byte ceiling" >&2
     exit 1
