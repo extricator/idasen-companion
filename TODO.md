@@ -363,6 +363,24 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **The Activity Log's colours are baked in at render time and do not
+      follow a palette change** — every row is written as rich text with its
+      timestamp, level and message colours resolved from `theme()` at the
+      moment it is rendered (`_row_html` in `gui/pages/activity_log.py`).
+      Everything else in the GUI restyles through `restyle.register`, which
+      re-runs on a palette change; the log view has no such hook, so switching
+      the desktop between light and dark leaves whatever rows are already on
+      screen in the old scheme. New rows arriving afterwards use the new one,
+      so the view can end up in two colour schemes at once, and the mismatch
+      persists until something rebuilds the document — a filter change, or
+      leaving and reopening the page.
+      Pre-existing, and untouched by the redraw and scroll work in
+      `3b29fa5`..`ca36a95`. The fix is to re-render on a palette change rather
+      than to change how a row is coloured: register the view with `restyle`
+      and have the callback force a rebuild. Note the rebuild now short-circuits
+      when the rendered rows are unchanged, and since the colours are part of
+      that rendered string a palette change already produces different rows —
+      so the skip does not stand in the way, and a call to `_redraw` is enough.
 - [ ] **Why a BLE link survived a suspend was never narrowed to one mechanism**
       — the fix (release the link before the sleep under a logind delay lock,
       reconcile against BlueZ on resume) is written to hold either way, and the

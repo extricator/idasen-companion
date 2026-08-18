@@ -18,12 +18,14 @@ import os  # noqa: E402
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from datetime import datetime  # noqa: E402
+
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox  # noqa: E402
 
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
 from idasen_companion.gui.util import (  # noqa: E402
-    fmt_duration, fmt_height, fmt_hm, fmt_number,
+    fmt_day_heading, fmt_duration, fmt_height, fmt_hm, fmt_number,
 )
 
 
@@ -61,6 +63,30 @@ def test_spanish_locale_uses_a_comma(locale):
 def test_trim_drops_a_trailing_zero_decimal(locale):
     assert fmt_number(60.0, 1, trim=True) == "60"
     assert fmt_number(60.5, 1, trim=True) == "60.5"
+
+
+@pytest.mark.parametrize("locale", ["en_US"], indirect=True)
+def test_day_heading_renders_english_weekday_and_month_names(locale):
+    when = datetime(2026, 8, 17)
+    heading = fmt_day_heading(when)
+    assert QLocale().dayName(when.isoweekday(),
+                             QLocale.FormatType.ShortFormat) in heading
+    assert QLocale().monthName(when.month,
+                               QLocale.FormatType.ShortFormat) in heading
+    assert "2026" in heading
+
+
+@pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
+def test_day_heading_renders_spanish_weekday_and_month_names(locale):
+    """Assert on the locale's own supplied names, not an exact string --
+    QLocale governs the words, this only checks they made it in."""
+    when = datetime(2026, 8, 17)
+    heading = fmt_day_heading(when)
+    assert QLocale().dayName(when.isoweekday(),
+                             QLocale.FormatType.ShortFormat) in heading
+    assert QLocale().monthName(when.month,
+                               QLocale.FormatType.ShortFormat) in heading
+    assert "2026" in heading
 
 
 # ---- call sites: spin suffixes and input, under the pinned/overridden locale

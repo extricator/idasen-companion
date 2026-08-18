@@ -372,6 +372,24 @@ def fmt_day_label(when: datetime) -> str:
     return QLocale().toString(QDate(when.year, when.month, when.day), "ddd dd")
 
 
+def fmt_day_heading(when: datetime) -> str:
+    """A full calendar date as a day-separator heading, e.g. "Mon 17 Aug 2026".
+
+    QLocale supplies the weekday and month names in the user's language --
+    Python's ``strftime`` would render C-locale English regardless of the app
+    language or ``$LANG``, the same trap :func:`fmt_day_label` records above.
+    Nothing here is marked with ``tr()``/``QT_TRANSLATE_NOOP``, so this
+    introduces no translatable string and neither catalog gains an entry.
+
+    The field order is fixed by the format string and suits the shipped
+    languages (en, es); a locale that leads with the year would want
+    ``QLocale.FormatType.LongFormat`` instead, at the cost of the compact
+    shape this heading is written to match.
+    """
+    return QLocale().toString(
+        QDate(when.year, when.month, when.day), "ddd dd MMM yyyy")
+
+
 def fmt_clock(when: datetime) -> str:
     """A wall-clock time in the user's locale, e.g. "14:32" or "2:32 PM".
 

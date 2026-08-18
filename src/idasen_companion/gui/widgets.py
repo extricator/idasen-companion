@@ -564,17 +564,18 @@ def spaced_label_parts(
     return icon_only, text_only
 
 
-class _PrimaryButton(QPushButton):
-    """A push button that lays its own icon and label out.
+class SpacedLabelButton(QPushButton):
+    """A push button that lays its own icon and label out, with the app's
+    own gap between them.
 
     Everything else about it is its stylesheet's, which is the point: a
     widget that declares a border in one is drawn by ``QStyleSheetStyle``,
     and ``QStyleSheetStyle`` renders a push button's label through
     ``QCommonStyle`` directly rather than through the application style, so
-    ``gui/style.py``'s spacing never reached this button. Measured, its gap
-    stayed at the toolkit's ~2px while every bare button beside it took the
-    app's, and Move sat in the Overview row visibly tighter than Sit,
-    Stand and Stop.
+    ``gui/style.py``'s spacing never reaches a button like this one. Measured
+    on ``_PrimaryButton`` below, its gap stayed at the toolkit's ~2px while
+    every bare button beside it took the app's, and Move sat in the Overview
+    row visibly tighter than Sit, Stand and Stop.
 
     Qt's stylesheet syntax has no icon-spacing property to declare it with
     (``spacing`` is not one of the properties a ``QPushButton`` rule
@@ -589,22 +590,12 @@ class _PrimaryButton(QPushButton):
     # sizeHint and paintEvent are Qt virtual overrides, dispatched by name
     # from Qt's C++ meta-object machinery.
     def sizeHint(self) -> QSize:  # pylint: disable=invalid-name
-        # The height is the app's own row height, restated here because
-        # this button is sized by QStyleSheetStyle from its stylesheet's
-        # padding, and that padding is added to the *contents* box -- the
-        # bounding box of the label's actual glyphs, which exceeds the line
-        # height at some font sizes and not others. Left alone it stood a
-        # pixel above the bare buttons beside it at 15 and 22pt while
-        # matching them at 10, 12 and 14, and its height depended on which
-        # letters were in it. Taken rather than floored, for that reason:
-        # the extra pixel is the thing being discarded.
         hint = super().sizeHint()
-        height = control_height(self.fontMetrics().height())
         if self.icon().isNull() or not self.text():
-            return QSize(hint.width(), height)
+            return hint
         return QSize(
             hint.width() + extra_icon_gap(self.fontMetrics().height()),
-            height)
+            hint.height())
 
     def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
         option = QStyleOptionButton()
@@ -628,6 +619,23 @@ class _PrimaryButton(QPushButton):
         for part in parts:
             self.style().drawControl(
                 QStyle.ControlElement.CE_PushButtonLabel, part, painter, self)
+
+
+class _PrimaryButton(SpacedLabelButton):
+    """The icon-gap layout above, sized to the app's own button row height."""
+
+    def sizeHint(self) -> QSize:  # pylint: disable=invalid-name
+        # The height is the app's own row height, restated here because
+        # this button is sized by QStyleSheetStyle from its stylesheet's
+        # padding, and that padding is added to the *contents* box -- the
+        # bounding box of the label's actual glyphs, which exceeds the line
+        # height at some font sizes and not others. Left alone it stood a
+        # pixel above the bare buttons beside it at 15 and 22pt while
+        # matching them at 10, 12 and 14, and its height depended on which
+        # letters were in it. Taken rather than floored, for that reason:
+        # the extra pixel is the thing being discarded.
+        return QSize(super().sizeHint().width(),
+                     control_height(self.fontMetrics().height()))
 
 
 def primary_button(text: str) -> QPushButton:
