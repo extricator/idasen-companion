@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.0.2
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -101,6 +101,14 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Tue Aug 18 2026 extricator <extricator@users.noreply.github.com> - 1.1.0-1
+- Ship a self-contained RPM that carries its own Python and Qt and installs on
+  any RPM-based distribution rather than a single Fedora release.
+- Follow the desktop's theme more closely throughout the window, including a
+  switch between light and dark while the app is open.
+- Group the activity log's entries under dated separators, and redraw the log
+  in one pass instead of row by row.
+
 * Fri Aug 14 2026 extricator <extricator@users.noreply.github.com> - 1.0.2-1
 - Release the desk's Bluetooth link before the machine sleeps, under a logind
   delay lock, and reconcile it against BlueZ on resume. A suspend entered

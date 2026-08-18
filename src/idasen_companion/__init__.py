@@ -1,6 +1,6 @@
 """Idasen Companion — automatic sit/stand companion for the IKEA Idåsen desk."""
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 APP_ID = "io.github.extricator.IdasenCompanion"
 DBUS_NAME = APP_ID

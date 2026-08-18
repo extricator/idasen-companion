@@ -96,6 +96,19 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.1.0" date="2026-08-18">
+      <description>
+        <p>
+          The package now carries everything it needs to run, so it installs on
+          any RPM-based distribution rather than on one release of Fedora.
+        </p>
+        <p>
+          The window follows the desktop's theme more closely, including a
+          switch between light and dark while it is open. The activity log
+          groups its entries by day and redraws without stuttering.
+        </p>
+      </description>
+    </release>
     <release version="1.0.2" date="2026-08-14">
       <description>
         <p>

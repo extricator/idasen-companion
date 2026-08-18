@@ -1,3 +1,14 @@
+idasen-companion (1.1.0-1) unstable; urgency=medium
+
+  * Ship a self-contained RPM that carries its own Python and Qt and installs
+    on any RPM-based distribution rather than a single Fedora release.
+  * Follow the desktop's theme more closely throughout the window, including
+    a switch between light and dark while the app is open.
+  * Group the activity log's entries under dated separators, and redraw the
+    log in one pass instead of row by row.
+
+ -- extricator <extricator@users.noreply.github.com>  Tue, 18 Aug 2026 00:00:00 +0000
+
 idasen-companion (1.0.2-1) unstable; urgency=medium
 
   * Release the desk's Bluetooth link before the machine sleeps, under a

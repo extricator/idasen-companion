@@ -4,6 +4,27 @@ Notable changes to Idasen Companion, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-18
+
+### Added
+
+- **The Activity Log dates its rows.** Entries sit under a dated separator, so
+  you can see which day a line belongs to without counting back from the top.
+
+### Changed
+
+- **The RPM installs on any RPM-based distribution, not only Fedora.** It
+  carries its own Python and Qt rather than relying on the machine's, so it
+  depends on nothing but the processor architecture.
+- **The window follows the desktop's theme more closely,** including a switch
+  between light and dark while it is open, which previously needed a relaunch.
+- **The Activity Log redraws faster,** without the stutter a long list used to
+  show.
+
+### Fixed
+
+- **The Activity Log no longer scrolls past its last line** when it redraws.
+
 ## [1.0.2] - 2026-08-14
 
 ### Fixed
