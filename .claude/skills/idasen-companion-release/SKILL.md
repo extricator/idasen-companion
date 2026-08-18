@@ -51,9 +51,9 @@ changes or as steps toward one. Then ask the user to choose.
 - **Release as it stands.** Go straight to A1. A long history is not a defect
   and this needs no justification. Take this as the answer to silence only if
   the user has already said so in this session; otherwise ask.
-- **Tidy first.** Stop here. Collapsing history is a separate job, with its own
-  backup and its own verification, and the user re-enters this skill when it is
-  done.
+- **Tidy first.** Stop here and hand over to the `idasen-companion-tidy-history`
+  skill, which carries its own backup and its own verification. The user
+  re-enters this skill when that is done.
 
 Never tidy anything yourself inside this skill, and never refuse a release over
 an untidy history.
