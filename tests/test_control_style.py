@@ -1826,25 +1826,48 @@ def test_a_line_edit_is_edged_in_the_apps_own_border(qapp):
         "with the app's own overlay removed entirely")
 
 
-def _edge_crossings(image, widget, host, edge: str) -> int:
-    """How many times a horizontal slice through ``widget`` crosses a
-    stroke in ``edge``.
+def _framing_strokes(image, widget, host, edge: str) -> int:
+    """How many separate vertical strokes in ``edge`` run down ``widget``.
 
     A control with one frame answers 2 -- its left side and its right. A
     box drawn inside a box answers more, which is the whole point: counted
     as *runs* of adjacent columns rather than as pixels, so antialiasing
-    across two columns still reads as one crossing.
+    across two columns still reads as one stroke.
+
+    A column counts only if the colour runs down at least half the
+    control. Reading a single row through the middle instead made the
+    answer depend on the host's font rendering, because that row passes
+    through the control's text: a glyph's antialiased fringe lands on the
+    frame colour exactly when text is rendered in greyscale, and does not
+    when it is rendered in subpixel colour. The same commit was green on a
+    developer machine and red in the RPM's build root for that reason
+    alone.
+
+    The two are not close once the whole column is read. Measured on the
+    render that failed, a frame column carries the colour for 19 to 21
+    pixels of a 31-pixel control, and every other column for 2 or 3 -- the
+    top and bottom borders it passes through, plus at most one text pixel.
     """
     origin = widget.mapTo(host, widget.rect().topLeft())
-    middle = origin.y() + widget.height() // 2
-    hits = [x for x in range(widget.width())
-            if image.pixelColor(origin.x() + x, middle).name() == edge]
-    crossings, previous = 0, None
-    for x in hits:
+    least = widget.height() // 2
+    columns = []
+    for x in range(widget.width()):
+        run = longest = 0
+        for y in range(widget.height()):
+            if image.pixelColor(origin.x() + x,
+                                origin.y() + y).name() == edge:
+                run += 1
+                longest = max(longest, run)
+            else:
+                run = 0
+        if longest >= least:
+            columns.append(x)
+    strokes, previous = 0, None
+    for x in columns:
         if previous is None or x - previous > 1:
-            crossings += 1
+            strokes += 1
         previous = x
-    return crossings
+    return strokes
 
 
 def test_no_framed_control_draws_a_box_inside_a_box(qapp):
@@ -1884,11 +1907,11 @@ def test_no_framed_control_draws_a_box_inside_a_box(qapp):
     edge = theme().border.name()
     for name, widget in (("QSpinBox", spin), ("QComboBox", combo),
                          ("QLineEdit", edit)):
-        crossings = _edge_crossings(image, widget, card, edge)
-        assert crossings == 2, (
-            f"a horizontal slice through a {name} crosses the app's own "
-            f"edge ({edge}) {crossings} times, not the 2 one frame comes "
-            "to -- something is drawing a box inside its box")
+        strokes = _framing_strokes(image, widget, card, edge)
+        assert strokes == 2, (
+            f"a {name} is framed by {strokes} vertical strokes in the app's "
+            f"own edge ({edge}), not the 2 one frame comes to -- something "
+            "is drawing a box inside its box")
 
 
 def _row_heights(qapp, point_size: int) -> dict:
