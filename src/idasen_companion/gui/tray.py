@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from datetime import date
+from functools import partial
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QIcon
@@ -106,8 +107,12 @@ class TrayIcon(QSystemTrayIcon):
             self.tr("Skip next transition"), client.skip_next)
         snooze_menu = menu.addMenu(self.tr("Snooze"))
         for minutes in SNOOZE_CHOICES:
+            # partial, not a lambda with a default argument: both freeze the
+            # loop variable, but only this one states that it is what it is
+            # doing, and PySide6's addAction overloads stopped inferring the
+            # lambda form in 6.11.2.
             snooze_menu.addAction(self.tr("%n minute(s)", "", minutes),
-                                  lambda m=minutes: client.snooze(m))
+                                  partial(client.snooze, minutes))
         # Hidden together when automation is off: all three act on a timer
         # that isn't running. The move actions above stay — they are the whole
         # point of using the app without automation.
@@ -453,7 +458,7 @@ class TrayIcon(QSystemTrayIcon):
             self._presets_menu.addAction(
                 self.tr("%s (%s)") % (preset_label(name),
                                       fmt_height(presets[name])),
-                lambda n=name: self._move(self.client.move_to_preset, n))
+                partial(self._move, self.client.move_to_preset, name))
         self._presets_menu.setEnabled(bool(presets))
 
     # ----- actions -----
