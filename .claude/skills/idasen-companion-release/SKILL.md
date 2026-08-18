@@ -11,6 +11,18 @@ section states the reasoning, and it wins if the two ever disagree.
 
 ## Refuse to start
 
+Fetch tags before you check anything else:
+
+```bash
+git fetch --tags origin
+```
+
+The Release workflow creates the tag on GitHub, so a clone that has not fetched
+since the last release does not hold it. `git describe` then names an older
+release, and Phase A1 goes on to classify commits that already shipped —
+re-announcing them in the notes and computing the bump over a superset. The
+existing-tag check below reads the remote for the same reason.
+
 Stop and tell the user when any of these is true:
 
 - The working tree is dirty. Run `git status --porcelain`.
@@ -20,6 +32,46 @@ Stop and tell the user when any of these is true:
 
 A released version is spent. Never move an existing tag. A defect found after
 a release ships as the next patch version.
+
+---
+
+## Phase 0 — offer to tidy the history
+
+```bash
+LAST=$(git describe --tags --abbrev=0)
+git log --oneline "$LAST..HEAD"
+git rev-list --count "$LAST..HEAD"
+git rev-list --count origin/main..HEAD
+```
+
+Report three things: how many commits stand between the last release and
+`HEAD`, how many of those are unpushed, and whether they read as finished
+changes or as steps toward one. Then ask the user to choose.
+
+- **Release as it stands.** Go straight to A1. A long history is not a defect
+  and this needs no justification. Take this as the answer to silence only if
+  the user has already said so in this session; otherwise ask.
+- **Tidy first.** Stop here. Collapsing history is a separate job, with its own
+  backup and its own verification, and the user re-enters this skill when it is
+  done.
+
+Never tidy anything yourself inside this skill, and never refuse a release over
+an untidy history.
+
+Whoever does the tidying — this session or a later one — is bound by two rules:
+
+- **Never rewrite a commit already on `origin/main`.** Rewriting changes a
+  commit's id, so the remote's copy can only be reconciled by overwriting it.
+  Phase D pushes with a plain `git push`, and branch protection will forbid the
+  alternative outright once the repository is public.
+- **Carry any `!` or `BREAKING CHANGE` marker onto the squashed message.** A1
+  computes the bump from subject lines, so a marker dropped in a squash turns a
+  major release into a patch. Nothing downstream catches it: the version tests
+  compare the seven manifests against `__version__`, never against what the
+  commits said.
+
+Either way the tidying happens before A1, because A1 reads the subject lines it
+would rewrite.
 
 ---
 
