@@ -174,9 +174,9 @@ class OverviewPage(Page):
         self.status_dot = StatusDot()
         # Emphasised head + plain-coloured reason as two labels (not RichText),
         # so emphasis is a QFont weight like everywhere else.
-        self.status_head = QLabel("—")
-        self.status_head.setFont(emphasize(self.status_head.font()))
-        self.status_head.setStyleSheet("border: none;")
+        self.status_head_lbl = QLabel("—")
+        self.status_head_lbl.setFont(emphasize(self.status_head_lbl.font()))
+        self.status_head_lbl.setStyleSheet("border: none;")
         self.status_reason = QLabel("")
         self.status_reason.setWordWrap(True)
 
@@ -185,7 +185,7 @@ class OverviewPage(Page):
 
         restyle.register(self.status_reason, _restyle_status_reason)
         status_row.addWidget(self.status_dot, 0, Qt.AlignmentFlag.AlignVCenter)
-        status_row.addWidget(self.status_head, 0)
+        status_row.addWidget(self.status_head_lbl, 0)
         status_row.addWidget(self.status_reason, 1)
         auto.body.addLayout(status_row)
 
@@ -481,7 +481,7 @@ class OverviewPage(Page):
         else:
             color, head, reason = tokens.muted, status_label(status), ""
         self.status_dot.set_color(color)
-        self.status_head.setText(head)
+        self.status_head_lbl.setText(head)
         self.status_reason.setText(f"— {reason}" if reason else "")
         # A failed move doesn't stop the cycle (a fresh one starts right
         # after), so hiding the countdown here would remove information

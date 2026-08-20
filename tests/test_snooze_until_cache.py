@@ -177,8 +177,8 @@ def page(qapp, tmp_path, monkeypatch):
 def test_the_deadline_redraws_the_page_when_it_arrives(page):
     page.client.statusChanged.emit("snoozed")
     # One round-trip behind the status, so the first draw can only say this.
-    assert page.status_head.text() == "Snoozed until later"
+    assert page.status_head_lbl.text() == "Snoozed until later"
     when = datetime(2026, 8, 1, 14, 30)
     page.client.deliver_snooze_until(when.timestamp())
-    assert page.status_head.text() == (
+    assert page.status_head_lbl.text() == (
         "Snoozed until %s" % fmt_clock(datetime(2026, 8, 3, 14, 30)))

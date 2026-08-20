@@ -935,11 +935,11 @@ def test_a_switch_does_not_change_the_reported_automation_status(qapp):
     page.client.statusChanged.emit("active")
     restyle.follow_palette(qapp)
     try:
-        head_before = page.status_head.text()
+        head_before = page.status_head_lbl.text()
 
         flip_palette(qapp, dark=True)
 
-        assert page.status_head.text() == head_before, (
+        assert page.status_head_lbl.text() == head_before, (
             "a palette switch changed the reported automation status")
         # pylint: disable=protected-access
         assert page.status_dot._color == theme().success, (
