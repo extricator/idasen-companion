@@ -434,7 +434,7 @@ def _scope_body(scope):
     return body if isinstance(body, list) else [body]
 
 
-def _function_scope(scope):
+def _scope_bindings(scope):
     """{name: [assigned value expressions]}, and the same shape for every
     `.append(...)`/`.extend(...)` call onto a name, gathered from `scope`'s
     own body -- never descending into a nested scope, which owns its own
@@ -511,7 +511,7 @@ def _glued_in_ast(tree, marked):
     value glued to something else anywhere in `tree`."""
     offenders = []
     for scope in _scopes(tree):
-        assigns, appends, extends = _function_scope(scope)
+        assigns, appends, extends = _scope_bindings(scope)
         for node in _own_body(scope):
             if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
                 if (_resolves_to_translated(node.left, marked, assigns)
