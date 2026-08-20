@@ -170,14 +170,6 @@
         <translation>%s durante</translation>
     </message>
     <message>
-        <source>Sit</source>
-        <translation>Sentarse</translation>
-    </message>
-    <message>
-        <source>Stand</source>
-        <translation>Levantarse</translation>
-    </message>
-    <message>
         <source>Count as away after</source>
         <translation>Considerar ausente tras</translation>
     </message>
@@ -652,10 +644,6 @@
         <translation>No se detectó bandeja del sistema (en GNOME, instala la extensión AppIndicator). Cerrar esta ventana mantiene la app en segundo plano; la automatización se ejecuta en el demonio de todos modos.</translation>
     </message>
     <message>
-        <source>Desk: on demand</source>
-        <translation>Escritorio: bajo demanda</translation>
-    </message>
-    <message>
         <source>The Idasen Companion daemon is not running, and is not set to start when you log in.</source>
         <translation>El demonio de Idasen Companion no está en ejecución y no está configurado para iniciarse al iniciar sesión.</translation>
     </message>
@@ -693,14 +681,6 @@ Prueba a ejecutar esto en una terminal:
     <message>
         <source>Move</source>
         <translation>Mover</translation>
-    </message>
-    <message>
-        <source>Sit</source>
-        <translation>Sentarse</translation>
-    </message>
-    <message>
-        <source>Stand</source>
-        <translation>Levantarse</translation>
     </message>
     <message>
         <source>Stop</source>
@@ -751,16 +731,8 @@ Prueba a ejecutar esto en una terminal:
         <translation>Moviéndose…</translation>
     </message>
     <message>
-        <source>Active</source>
-        <translation>Activa</translation>
-    </message>
-    <message>
         <source>alternating sit / stand while you&apos;re at the desk</source>
         <translation>alternando sentado / de pie mientras estás en el escritorio</translation>
-    </message>
-    <message>
-        <source>Paused</source>
-        <translation>En pausa</translation>
     </message>
     <message>
         <source>the desk won&apos;t move until you resume</source>
@@ -771,24 +743,12 @@ Prueba a ejecutar esto en una terminal:
         <translation>la automatización se reanuda sola</translation>
     </message>
     <message>
-        <source>You&apos;re away</source>
-        <translation>No estás</translation>
-    </message>
-    <message>
         <source>no input for %s min — the timer is paused</source>
         <translation>sin actividad durante %s min — el temporizador está en pausa</translation>
     </message>
     <message>
-        <source>In another session</source>
-        <translation>En otra sesión</translation>
-    </message>
-    <message>
         <source>switched to another user or console — the timer is paused until you&apos;re back</source>
         <translation>cambiaste a otro usuario o consola — el temporizador está en pausa hasta que vuelvas</translation>
-    </message>
-    <message>
-        <source>Session locked</source>
-        <translation>Sesión bloqueada</translation>
     </message>
     <message>
         <source>the timer is paused until you&apos;re back</source>
@@ -803,32 +763,16 @@ Prueba a ejecutar esto en una terminal:
         <translation>se ejecuta según un horario</translation>
     </message>
     <message>
-        <source>Outside schedule</source>
-        <translation>Fuera del horario</translation>
-    </message>
-    <message>
         <source>%s — the desk stays put</source>
         <translation>%s — el escritorio se queda quieto</translation>
-    </message>
-    <message>
-        <source>Automation off</source>
-        <translation>Automatización desactivada</translation>
     </message>
     <message>
         <source>presets and manual moves still work</source>
         <translation>los preajustes y los movimientos manuales siguen funcionando</translation>
     </message>
     <message>
-        <source>Off-cycle</source>
-        <translation>Fuera de ciclo</translation>
-    </message>
-    <message>
         <source>the desk was moved off sit / stand — automation resumes when it&apos;s back at a preset</source>
         <translation>el escritorio se movió fuera de sentado/de pie — la automatización se reanuda cuando vuelva a un preajuste</translation>
-    </message>
-    <message>
-        <source>Last move failed</source>
-        <translation>El último movimiento falló</translation>
     </message>
     <message>
         <source>the desk couldn&apos;t be reached — the cycle keeps running and will try again</source>
@@ -1055,10 +999,6 @@ Prueba a ejecutar esto en una terminal:
         <translation>La dirección Bluetooth está incompleta. Complétala o bórrala antes de aplicar.</translation>
     </message>
     <message>
-        <source>Sit</source>
-        <translation>Sentarse</translation>
-    </message>
-    <message>
         <source>Window &amp; tray</source>
         <translation>Ventana y bandeja</translation>
     </message>
@@ -1093,10 +1033,6 @@ Prueba a ejecutar esto en una terminal:
     <message>
         <source>No system tray detected, so these have no effect this session.</source>
         <translation>No se detectó bandeja del sistema, así que esto no tiene efecto en esta sesión.</translation>
-    </message>
-    <message>
-        <source>Stand</source>
-        <translation>Levantarse</translation>
     </message>
     <message>
         <source>Do nothing</source>
@@ -1269,14 +1205,6 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>Totales diarios — últimos 14 días</translation>
     </message>
     <message>
-        <source>Sitting</source>
-        <translation>Sentado</translation>
-    </message>
-    <message>
-        <source>Standing</source>
-        <translation>De pie</translation>
-    </message>
-    <message>
         <source>Recent transitions</source>
         <translation>Transiciones recientes</translation>
     </message>
@@ -1306,14 +1234,6 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
     <message>
         <source>Toggle sit / stand</source>
         <translation>Alternar sentado / de pie</translation>
-    </message>
-    <message>
-        <source>Sit</source>
-        <translation>Sentarse</translation>
-    </message>
-    <message>
-        <source>Stand</source>
-        <translation>Levantarse</translation>
     </message>
     <message>
         <source>Presets</source>
@@ -1590,6 +1510,30 @@ Prueba a ejecutar esto en una terminal y luego continúa:
     <message>
         <source>Paused — desk moved off sit/stand</source>
         <translation>En pausa — escritorio movido fuera de sentado/de pie</translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <translation>Activa</translation>
+    </message>
+    <message>
+        <source>You&apos;re away</source>
+        <translation>No estás</translation>
+    </message>
+    <message>
+        <source>In another session</source>
+        <translation>En otra sesión</translation>
+    </message>
+    <message>
+        <source>Session locked</source>
+        <translation>Sesión bloqueada</translation>
+    </message>
+    <message>
+        <source>Outside schedule</source>
+        <translation>Fuera del horario</translation>
+    </message>
+    <message>
+        <source>Off-cycle</source>
+        <translation>Fuera de ciclo</translation>
     </message>
     <message>
         <source>Sitting</source>

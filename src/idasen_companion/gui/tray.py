@@ -94,8 +94,8 @@ class TrayIcon(QSystemTrayIcon):
 
         menu.addAction(self.tr("Toggle sit / stand"),
                        lambda: self._move(client.toggle))
-        menu.addAction(self.tr("Sit"), lambda: self._move(client.sit))
-        menu.addAction(self.tr("Stand"), lambda: self._move(client.stand))
+        menu.addAction(preset_label("sit"), lambda: self._move(client.sit))
+        menu.addAction(preset_label("stand"), lambda: self._move(client.stand))
         self._presets_menu = menu.addMenu(self.tr("Presets"))
         menu.addAction(self.tr("Stop movement"), client.stop)
         menu.addSeparator()

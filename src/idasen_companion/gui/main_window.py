@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
         row.setContentsMargins(14, 6, 8, 0)
         row.setSpacing(7)
         self._conn_dot = StatusDot()
-        self._conn_footer = QLabel(self.tr("Desk: on demand"))
+        self._conn_footer = QLabel()
         row.addWidget(self._conn_dot)
         row.addWidget(self._conn_footer, 1)
         vbox.addWidget(footer)

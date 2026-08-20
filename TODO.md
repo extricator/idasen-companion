@@ -50,6 +50,27 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a full automation cycle against the desk from inside the sandbox.
 
 ## Features / enhancements (deferred)
+- [ ] **A `status` command, so the desk can be read from a terminal** — the
+      command line can only *write* today: `--toggle`, `--sit`, `--stand`,
+      `--stop` and `--preset` (`gui/main.py:39`) each fire one method and exit,
+      and every readable fact — height, sit/stand word, connection, cycle
+      position, next move — exists only in the GUI, so answering "am I due to
+      stand up?" means launching a window. Nothing is missing from the daemon:
+      `Desk1` and `Automation1` publish all of it as properties
+      (`daemon/service.py:44-56`, `daemon/service.py:129-157`) and
+      `Stats1.GetDaily` returns the day's totals as JSON. **Shape is settled**
+      (2026-08-19) — three labelled sections, Desk / Automation / Today,
+      carrying the Overview page's content in the *tray tooltip's* wording,
+      since the tooltip is the one place already tuned for a glance and its
+      "Standing for 42 min" and "sitting down in 17 min" both say things
+      Overview does not. **The reuse of `gui/util.py` is nearly free but not
+      free**: its formatters translate at call time and read a module-global
+      unit and `QLocale`, all set at `gui/main.py:178-183` — *after* the
+      one-shot short-circuit at `gui/main.py:150` — so a naive implementation
+      prints English on a Spanish desktop and centimetres to a user configured
+      for inches, with nothing failing. Full design, traps and open decisions
+      (what it exits with when the daemon is down) in
+      `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
 - [ ] **Clear statistics / history button** — a control on the Statistics page to
       wipe the recorded sit/stand history (the daily-totals data and the recent
       transitions). Needs a daemon-side method to clear the stats DB (wire
@@ -111,6 +132,62 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
+- [ ] **Decide whether the command line becomes a first-class front end** — it
+      is not one now: five flags living inside the GUI, declared at
+      `gui/main.py:135` and short-circuiting at `gui/main.py:150` before any
+      `QApplication` exists. That was right for what they are, and stops being
+      right the moment the command line has to *report* anything, which the
+      `status` item above starts doing. A CLI and a GUI over one daemon is the
+      ordinary arrangement for this kind of tool; what exists instead is a GUI
+      with flags attached, and the asymmetry already shows in packaging —
+      PySide6 is an *optional* extra (`pyproject.toml:29`) yet the
+      `idasen-companion` entry point runs `gui.main:main`, which imports
+      `QtWidgets` at module scope, so the flags need the GUI extra to fire one
+      D-Bus method. **The code separation is nearly free and the vocabulary
+      separation is the whole job.** `dbus-fast` is already a base dependency,
+      so a Qt-free client needs no new package, and the wire format is
+      deliberately flat-and-JSON already. But every string such a client needs
+      lives in `gui/util.py`, translated at call time through
+      `QCoreApplication.translate("util", …)` (`gui/util.py:48`) against the Qt
+      catalog, while the daemon translates through gettext against `po/*.po` —
+      so ~30 strings would cross catalogs and need re-translating into `es`,
+      in the exact area where an orphaned entry falls back to English with
+      nothing failing. Several of the helpers are also impure (`QLocale`, a
+      module-global display unit), so relocating them means deciding what
+      supplies locale and units outside Qt. **The prize is a headless
+      package** — daemon plus command line, no PySide6 anywhere. Measured
+      untrimmed, Qt is 648 MB against ~7.9 MB for the whole rest of the
+      closure, so it is not a component of this app's weight, it is nearly all
+      of it; the split spec is already `noarch` and needs only a GUI
+      subpackage to carry its unconditional `Requires: python3-pyside6`
+      (`packaging/idasen-companion.spec:28`), and the bundled spec might stop
+      vendoring an interpreter altogether — its reason for doing so is
+      cross-distro correctness rather than Qt, but the only compiled
+      extensions left outside Qt are `dbus-fast`'s nine and PyYAML's one, both
+      with pure-Python fallbacks nothing here is fast enough to miss.
+      **Deferred deliberately**: adding `status` needs none of this and would
+      be held up by all of it. All four options weighed — status-in-place,
+      extract the vocabulary into `core/`, a separate binary with duplicated
+      formatters (rejected on the naming rule), and a full surface redesign
+      covering subcommand grammar, the fate of the existing flags, `--json`,
+      `--watch`, the packaging split and configuration — are written up in
+      `.planning/todos/pending/2026-08-19-rethink-the-command-line-surface.md`.
+      **Configuration is the third front-end question and repeats the same
+      shape.** There is no way to change a setting outside the GUI, and the GUI
+      binary cannot even be pointed at another file (`--config` exists on the
+      daemon, `IDASEN_COMPANION_CONFIG` in `core/config.py:21`, neither on the
+      GUI). A generic `config set <section>.<key> <value>` is unusually cheap
+      because the dataclasses already *are* the schema and `_apply_section`
+      (`core/config.py:188`) already resolves, coerces and type-checks keys —
+      parse the argv value as a one-line TOML document and the types match the
+      file exactly. What blocks it is the same invariant problem as the
+      vocabulary: `AppContext.write_config` (`gui/context.py:62`) is the single
+      writer and owns tomlkit-preserving saves, the `configChanged` signal and
+      the `ReloadConfig` nudge, of which a CLI needs two and not the third.
+      Note also that temporary overrides mostly should *not* be config —
+      `Pause`, `Resume`, `SkipNext` and `Snooze` already exist as transient
+      daemon state (`daemon/service.py:161-177`) and a CLI should surface those
+      rather than coin a second way to say "not right now".
 - [ ] **Declare D-Bus signatures with `Annotated` so `service.py` is checked**
       — `daemon/service.py` is the only module excluded from type checking, via
       a scoped `disable_error_code` in `pyproject.toml`. It is the project's
@@ -363,6 +440,31 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **CLAUDE.md's documented development setup command is missing two
+      packages the CI gates section immediately below it depends on** —
+      the venv-creation line names `pytest` and `pytest-asyncio` and the GUI
+      extra by hand, but installs neither the coverage plugin the pytest
+      invocation two sections down requires, nor the stub package mypy needs
+      to run cleanly against this tree. Both already ship under the
+      project's `test` extra, so the documented line is what's wrong, not
+      the dependency set — pointing it at that extra (or adding the two
+      packages by name) is the fix. As written, a fresh clone following the
+      doc verbatim hits an unrecognized-argument error from the coverage
+      gate before a single test runs, and a naive `mypy` run reports
+      unrelated import errors. Found re-running the CI gates from a freshly
+      recreated venv during Phase 10; recorded rather than fixed here since
+      the section it sits in is being rewritten in the next phase.
+- [ ] **CLAUDE.md's coverage-floor parenthetical quotes a stale measured
+      total** — the note beside the pass threshold cites a specific
+      percentage as "the measured" total; the suite has grown since, and the
+      real number now sits well clear of both that quoted figure and the
+      floor. What it explains — that the coverage tool can print a failing
+      line and still exit success at the exact boundary, and that the total
+      wobbles slightly between identical runs — is still correct and worth
+      keeping; only the one number embedded in it has drifted. Prefer
+      unnumbered phrasing when this is corrected, the way this project's
+      README test-count claim was, since a number written into prose drifts
+      again the moment the suite grows.
 - [ ] **The Activity Log's colours are baked in at render time and do not
       follow a palette change** — every row is written as rich text with its
       timestamp, level and message colours resolved from `theme()` at the

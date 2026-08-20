@@ -306,6 +306,30 @@ def status_label(status: str) -> str:
     return _tr(label) if label is not None else status
 
 
+# The Overview status head shown beside the status dot. Shorter than the
+# equivalent STATUS_LABELS wording where the two differ; marked for
+# extraction here, translated in status_head() (import-time dict).
+STATUS_HEADS = {
+    "active": QT_TRANSLATE_NOOP("util", "Active"),
+    "paused": QT_TRANSLATE_NOOP("util", "Paused"),
+    "user-idle": QT_TRANSLATE_NOOP("util", "You're away"),
+    "away": QT_TRANSLATE_NOOP("util", "In another session"),
+    "locked": QT_TRANSLATE_NOOP("util", "Session locked"),
+    "out-of-schedule": QT_TRANSLATE_NOOP("util", "Outside schedule"),
+    "disabled": QT_TRANSLATE_NOOP("util", "Automation off"),
+    "held": QT_TRANSLATE_NOOP("util", "Off-cycle"),
+    "move-failed": QT_TRANSLATE_NOOP("util", "Last move failed"),
+}
+
+
+def status_head(status: str) -> str:
+    """Translated Overview status head word for a status wire value.
+
+    Falls back to the raw status string for an unrecognized key."""
+    label = STATUS_HEADS.get(status)
+    return _tr(label) if label is not None else status
+
+
 # The desk position wire values ("sitting"/"standing") shown as UI words.
 # Marked for extraction here; translated in position_label().
 POSITION_LABELS = {

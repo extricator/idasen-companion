@@ -17,7 +17,7 @@ from ..theme import css, theme
 from ..util import (
     PROTECTED_PRESETS, connection_state, due_now_label, fmt_countdown,
     fmt_days, fmt_height, from_display_height, height_decimals, height_step,
-    position_or_custom, preset_label, snooze_line, status_label,
+    position_or_custom, preset_label, snooze_line, status_head, status_label,
     suffix_height, to_display_height,
 )
 from ..widgets import (
@@ -148,10 +148,10 @@ class OverviewPage(Page):
 
         btn_row = QHBoxLayout()
         sit_btn = QPushButton(
-            icon("go-down", "arrow-down", "go-bottom"), self.tr("Sit"))
+            icon("go-down", "arrow-down", "go-bottom"), preset_label("sit"))
         sit_btn.clicked.connect(self.client.sit)
         stand_btn = QPushButton(
-            icon("go-up", "arrow-up", "go-top"), self.tr("Stand"))
+            icon("go-up", "arrow-up", "go-top"), preset_label("stand"))
         stand_btn.clicked.connect(self.client.stand)
         self.stop_btn = QPushButton(
             icon("media-playback-stop", "process-stop"), self.tr("Stop"))
@@ -434,26 +434,26 @@ class OverviewPage(Page):
         status = self._status
         config = self.ctx.cfg
         if status == "active":
-            color, head = tokens.success, self.tr("Active")
+            color, head = tokens.success, status_head(status)
             reason = self.tr("alternating sit / stand while you're at the desk")
         elif status == "paused":
-            color, head = tokens.warning, self.tr("Paused")
+            color, head = tokens.warning, status_head(status)
             reason = self.tr("the desk won't move until you resume")
         elif status == "snoozed":
             color, head = tokens.warning, snooze_line(self.client.snooze_until())
             reason = self.tr("automation resumes on its own")
         elif status == "user-idle":
             mins = config.automation.idle_threshold // 60 if config else 10
-            color, head = tokens.muted, self.tr("You're away")
+            color, head = tokens.muted, status_head(status)
             reason = self.tr(
                 "no input for %s min — the timer is paused") % mins
         elif status == "away":
-            color, head = tokens.muted, self.tr("In another session")
+            color, head = tokens.muted, status_head(status)
             reason = self.tr(
                 "switched to another user or console — the timer is paused "
                 "until you're back")
         elif status == "locked":
-            color, head = tokens.muted, self.tr("Session locked")
+            color, head = tokens.muted, status_head(status)
             reason = self.tr("the timer is paused until you're back")
         elif status == "out-of-schedule":
             if config:
@@ -462,19 +462,19 @@ class OverviewPage(Page):
                     config.schedule.end)
             else:
                 sched = self.tr("runs on a schedule")
-            color, head = tokens.muted, self.tr("Outside schedule")
+            color, head = tokens.muted, status_head(status)
             reason = self.tr("%s — the desk stays put") % sched
         elif status == "disabled":
-            color, head = tokens.muted, self.tr("Automation off")
+            color, head = tokens.muted, status_head(status)
             reason = self.tr(
                 "presets and manual moves still work")
         elif status == "held":
-            color, head = tokens.warning, self.tr("Off-cycle")
+            color, head = tokens.warning, status_head(status)
             reason = self.tr(
                 "the desk was moved off sit / stand — automation resumes "
                 "when it's back at a preset")
         elif status == "move-failed":
-            color, head = tokens.error, self.tr("Last move failed")
+            color, head = tokens.error, status_head(status)
             reason = self.tr(
                 "the desk couldn't be reached — the cycle keeps running "
                 "and will try again")
@@ -509,8 +509,8 @@ class OverviewPage(Page):
 
     def _update_countdown_text(self, remaining: float | None = None) -> None:
         remaining = self._remaining if remaining is None else remaining
-        next_pos = {"sitting": self.tr("Stand"),
-                    "standing": self.tr("Sit")}.get(self._position)
+        next_pos = {"sitting": preset_label("stand"),
+                    "standing": preset_label("sit")}.get(self._position)
         self.countdown_next_lbl.setText(self.tr("Next:") if next_pos else "")
         self.countdown_next_word.setText(next_pos or self.tr("Next change"))
         # A cycle with nothing left on the clock is *due*, not stalled: the

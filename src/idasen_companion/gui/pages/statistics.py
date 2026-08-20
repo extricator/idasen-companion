@@ -45,8 +45,8 @@ class StatisticsPage(Page):
         head.addStretch()
         sit_color, stand_color = DailyBarsChart.series_colors()
         legend_dots: list[StatusDot] = []
-        for color, name in ((sit_color, self.tr("Sitting")),
-                            (stand_color, self.tr("Standing"))):
+        for color, name in ((sit_color, position_label("sitting")),
+                            (stand_color, position_label("standing"))):
             dot = StatusDot(color)
             legend_dots.append(dot)
             label = QLabel(name)

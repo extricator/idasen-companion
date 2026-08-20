@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from ...core.config import AppConfig
 from .. import background_portal, service_ctl
 from ..i18n import SYSTEM, available_languages, language_display_name
+from ..util import preset_label
 from ..widgets import Card, SegmentedControl, section_label, separator
 from .settings_form import SettingsFormPage
 
@@ -68,8 +69,8 @@ class SettingsPage(SettingsFormPage):
         self._tray_actions = [
             ("window", self.tr("Open window")),
             ("toggle", self.tr("Toggle sit / stand")),
-            ("sit", self.tr("Sit")),
-            ("stand", self.tr("Stand")),
+            ("sit", preset_label("sit")),
+            ("stand", preset_label("stand")),
             ("none", self.tr("Do nothing")),
         ]
         self.tray_left_combo = self._action_combo()

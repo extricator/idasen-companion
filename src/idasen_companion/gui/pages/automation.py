@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import AppConfig, VALID_DAYS
 from .. import restyle
-from ..util import day_label, fmt_days, fmt_duration
+from ..util import day_label, fmt_days, fmt_duration, preset_label
 from ..widgets import (
     Card, SegmentedControl, section_label, segment_css, separator,
 )
@@ -91,9 +91,9 @@ class AutomationPage(SettingsFormPage):
             return self._settings_row(self.tr("%s for") % word, hbox)
 
         auto_details.addWidget(
-            interval_row(self.tr("Sit"), self.sit_dur, self.sit_var))
+            interval_row(preset_label("sit"), self.sit_dur, self.sit_var))
         auto_details.addWidget(
-            interval_row(self.tr("Stand"), self.stand_dur, self.stand_var))
+            interval_row(preset_label("stand"), self.stand_dur, self.stand_var))
         auto_details.addWidget(separator())
         self.idle_thresh = self._minutes_spin(1, 120)
         auto_details.addWidget(self._settings_row(
