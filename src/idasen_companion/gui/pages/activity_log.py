@@ -182,8 +182,11 @@ class ActivityLogPage(Page):
     def _copy_journal_cmd(self) -> None:
         QGuiApplication.clipboard().setText(self._JOURNAL_CMD)
         check = icon(*_COPIED_ICON_NAMES)
-        if check.isNull():   # icon theme lacks a checkmark (e.g. Adwaita)
-            self._journal_chip.setText("✓ " + self.tr("copied"))
+        if check.isNull():
+            # Icon theme lacks a checkmark (e.g. Adwaita). The mark is part
+            # of this one message, not glued onto a translated word, so a
+            # translator can move it, replace it, or drop it.
+            self._journal_chip.setText(self.tr("✓ copied"))
         else:
             self._chip_copied = True
             self._apply_journal_chip_icon()

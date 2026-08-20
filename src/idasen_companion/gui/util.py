@@ -11,7 +11,7 @@ a call site can format a height without being told which unit is in force.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import cast
+from typing import Any, Callable, TypeVar, cast
 
 from PySide6.QtCore import (
     QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
@@ -48,6 +48,30 @@ def _tr(text: object) -> str:
     return QCoreApplication.translate("util", cast(str, text))
 
 
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+# Names of every helper below whose return value is translated text.
+# tests/test_translation_markers.py reads this set to know which calls a
+# concatenation check must treat as equivalent to a bare _tr() call, and
+# checks it against the module's own call graph so the set can't drift from
+# what actually reaches _tr().
+RETURNS_TRANSLATED: set[str] = set()
+
+
+def returns_translated(func: _F) -> _F:
+    """Declare that ``func``'s return value is translated text.
+
+    A pure declaration, not behavior: it adds ``func.__name__`` to
+    :data:`RETURNS_TRANSLATED` and returns ``func`` unchanged. The test suite
+    reads the registry to decide which calls count as translated values when
+    checking for glued-together translations; a helper that reaches ``_tr()``
+    without this mark fails the suite at its own definition instead.
+    """
+    RETURNS_TRANSLATED.add(func.__name__)
+    return func
+
+
+@returns_translated
 def connection_state(tokens, connected: bool, available: bool, persistent: bool):
     """Desk connection appearance as ``(color, footer_text, chip_text)``.
 
@@ -161,37 +185,75 @@ def fmt_height_value(meters: float, trim: bool = False) -> str:
     return fmt_number(to_display_height(meters), height_decimals(), trim)
 
 
+@returns_translated
 def suffix_height() -> str:
     """Translated height suffix for a spin box, leading space."""
     # QAbstractSpinBox.setSuffix does not insert a separating space itself,
-    # so the leading space here is deliberate — do not strip it.
+    # so the leading space here is deliberate — do not strip it. This helper
+    # (and suffix_minutes/suffix_seconds below) exists only for that spin-box
+    # API — nothing else should call it; reach for fmt_height instead.
     if _unit == INCHES:
         return _tr(QT_TRANSLATE_NOOP("util", " in"))
     return _tr(QT_TRANSLATE_NOOP("util", " cm"))
 
 
+@returns_translated
 def fmt_height(meters: float, trim: bool = False) -> str:
     """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
 
-    Every height the GUI renders goes through here or through
-    :func:`fmt_height_value`; nothing converts on its own. That is what keeps
-    the unit a single decision rather than one per screen.
+    One whole translated message per unit, with the formatted number
+    substituted in — so a language can order or space the unit differently,
+    rather than always number-then-suffix. Every height the GUI renders goes
+    through here or through :func:`fmt_height_value`; nothing converts on its
+    own. That is what keeps the unit a single decision rather than one per
+    screen.
     """
-    return fmt_height_value(meters, trim) + suffix_height()
+    value = fmt_height_value(meters, trim)
+    if _unit == INCHES:
+        return _tr(QT_TRANSLATE_NOOP("util", "%(value)s in")) % {"value": value}
+    return _tr(QT_TRANSLATE_NOOP("util", "%(value)s cm")) % {"value": value}
 
 
+#: A preset tick's name next to its live height, e.g. "Sit · 110.5".
+#: %(name)s is the preset's display name (already translated where it is
+#: "Sit"/"Stand"; a user's own preset name is shown verbatim), %(height)s
+#: the bare formatted number the rail already shows alongside it.
+_PRESET_TICK = QT_TRANSLATE_NOOP("util", "%(name)s · %(height)s")
+
+
+@returns_translated
+def fmt_preset_tick(label: str, meters: float, trim: bool = False) -> str:
+    """A preset tick's name next to its height, e.g. "Sit · 110.5".
+
+    The one message both rails render a preset tick through, so the
+    separator is a catalog entry a language can change, and the two rails
+    cannot drift apart the way two identical ``f"{label} · {height}"``
+    call sites eventually would.
+
+    The height is deliberately the bare number from :func:`fmt_height_value`,
+    not :func:`fmt_height` — the rails name the unit once at the end of the
+    scale, which is why :func:`fmt_height_value` exists at all, and why this
+    helper is not built on :func:`fmt_height` instead.
+    """
+    return _tr(_PRESET_TICK) % {
+        "name": label, "height": fmt_height_value(meters, trim)}
+
+
+@returns_translated
 def suffix_minutes() -> str:
     """Translated minutes suffix for a spin box, leading space."""
     # See suffix_height — the leading space is deliberate, setSuffix adds none.
     return _tr(QT_TRANSLATE_NOOP("util", " min"))
 
 
+@returns_translated
 def suffix_seconds() -> str:
     """Translated seconds suffix for a spin box, leading space."""
     # See suffix_height — the leading space is deliberate, setSuffix adds none.
     return _tr(QT_TRANSLATE_NOOP("util", " s"))
 
 
+@returns_translated
 def fmt_hm(seconds: float) -> str:
     """3900 -> '1h 05m', 240 -> '4m'.
 
@@ -209,6 +271,7 @@ def fmt_hm(seconds: float) -> str:
     return _tr(QT_TRANSLATE_NOOP("util", "%(minutes)sm")) % {"minutes": minutes}
 
 
+@returns_translated
 def fmt_duration(seconds: float) -> str:
     """Like :func:`fmt_hm`, but keeps a sub-minute duration visible ('45s').
 
@@ -242,6 +305,7 @@ DAY_NAMES = {"mon": QT_TRANSLATE_NOOP("util", "Mon"),
              "sun": QT_TRANSLATE_NOOP("util", "Sun")}
 
 
+@returns_translated
 def day_label(key: str) -> str:
     """Translated short day name for a schedule day key ('mon' -> 'Lun').
 
@@ -260,7 +324,17 @@ def day_label(key: str) -> str:
 #: selected, e.g. "Automation runs no days, 09:00–17:00."
 _NO_DAYS = QT_TRANSLATE_NOOP("util", "no days")
 
+#: A run of three or more consecutive days collapsed into a range, e.g.
+#: "Mon–Fri". %(first)s is the run's first day, %(last)s its last.
+_DAY_RANGE = QT_TRANSLATE_NOOP("util", "%(first)s–%(last)s")
 
+#: Two day-list entries joined, e.g. "Mon, Wed". Folded left across a longer
+#: list to build the whole thing, e.g. "Mon, Wed, Fri" — %(first)s is
+#: everything assembled so far, %(second)s the next entry.
+_DAY_PAIR = QT_TRANSLATE_NOOP("util", "%(first)s, %(second)s")
+
+
+@returns_translated
 def fmt_days(days: list[str]) -> str:
     """['mon'..'fri'] -> 'Mon–Fri'; ['mon','wed','fri'] -> 'Mon, Wed, Fri'.
 
@@ -278,10 +352,20 @@ def fmt_days(days: list[str]) -> str:
     parts = []
     for run in runs:
         if len(run) >= 3:
-            parts.append(f"{day_label(run[0])}–{day_label(run[-1])}")
+            parts.append(_tr(_DAY_RANGE) % {
+                "first": day_label(run[0]), "last": day_label(run[-1])})
         else:
             parts.extend(day_label(d) for d in run)
-    return ", ".join(parts)
+    # One pair pattern, folded left across `parts`, rather than CLDR's
+    # four-key start/middle/end set: this is a unit list ("3 ft, 2 in"), not
+    # a sentence list, and both shipped languages render every position with
+    # the same plain comma join and no conjunction — a fuller key set would
+    # be catalog weight nobody can act on today. If a conjunction-taking
+    # language ships later, this fold is where the key set would grow.
+    result = parts[0]
+    for part in parts[1:]:
+        result = _tr(_DAY_PAIR) % {"first": result, "second": part}
+    return result
 
 
 # Marked for extraction here; translated in status_label() (import-time dict).
@@ -301,6 +385,7 @@ STATUS_LABELS = {
 }
 
 
+@returns_translated
 def status_label(status: str) -> str:
     label = STATUS_LABELS.get(status)
     return _tr(label) if label is not None else status
@@ -322,6 +407,7 @@ STATUS_HEADS = {
 }
 
 
+@returns_translated
 def status_head(status: str) -> str:
     """Translated Overview status head word for a status wire value.
 
@@ -338,6 +424,7 @@ POSITION_LABELS = {
 }
 
 
+@returns_translated
 def position_label(position: str) -> str:
     """Translated display word for a desk position wire value.
 
@@ -360,6 +447,7 @@ TRIGGER_LABELS = {
 }
 
 
+@returns_translated
 def trigger_label(trigger: str) -> str:
     """Translated word for a transition's trigger wire value."""
     label = TRIGGER_LABELS.get(trigger)
@@ -374,6 +462,7 @@ PRESET_LABELS = {
 }
 
 
+@returns_translated
 def preset_label(name: str) -> str:
     """Display name for a preset.
 
@@ -423,9 +512,19 @@ def fmt_clock(when: datetime) -> str:
                               QLocale.FormatType.ShortFormat)
 
 
+@returns_translated
 def fmt_day_and_clock(when: datetime) -> str:
-    """A day plus a wall-clock time, e.g. "Mon 03 14:32"."""
-    return f"{fmt_day_label(when)} {fmt_clock(when)}"
+    """A day plus a wall-clock time, e.g. "Mon 03 14:32".
+
+    Renders through one whole translated message so the separating space
+    stops being a Python literal — a language that separates a date from a
+    time differently has no other way to say so. Neither fmt_day_label nor
+    fmt_clock is itself a translated value (both format through QLocale and
+    carry no catalog entry, the same as fmt_height_value), so no mechanical
+    check can ever flag this site; it converts on that reasoning alone.
+    """
+    return _tr(QT_TRANSLATE_NOOP("util", "%(day)s %(clock)s")) % {
+        "day": fmt_day_label(when), "clock": fmt_clock(when)}
 
 
 # What the daemon's D-Bus error *names* mean, in the user's language.
@@ -457,6 +556,7 @@ DAEMON_ERROR_MESSAGES = {
 }
 
 
+@returns_translated
 def daemon_error_message(name: str, detail: str = "") -> str:
     """A translated sentence for a daemon D-Bus error name.
 
@@ -491,6 +591,7 @@ _DUE_NOW = QT_TRANSLATE_NOOP("util", "Due now")
 _CUSTOM = QT_TRANSLATE_NOOP("util", "Custom")
 
 
+@returns_translated
 def snooze_line(until: float) -> str:
     """"Snoozed until 14:32", or "…until later" before the deadline arrives.
 
@@ -503,10 +604,12 @@ def snooze_line(until: float) -> str:
     return _tr(_SNOOZED_UNTIL) % when
 
 
+@returns_translated
 def due_now_label() -> str:
     return _tr(_DUE_NOW)
 
 
+@returns_translated
 def position_or_custom(position: str) -> str:
     """The desk's position as a word, or "Custom" when it is at neither preset."""
     return position_label(position) or _tr(_CUSTOM)

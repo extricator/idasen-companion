@@ -92,6 +92,10 @@
         <translation>bajo demanda</translation>
     </message>
     <message>
+        <source>%(mac)s · %(mode)s</source>
+        <translation>%(mac)s · %(mode)s</translation>
+    </message>
+    <message>
         <source>not configured</source>
         <translation>no configurado</translation>
     </message>
@@ -151,8 +155,8 @@
         <translation>Copiar comando</translation>
     </message>
     <message>
-        <source>copied</source>
-        <translation>copiado</translation>
+        <source>✓ copied</source>
+        <translation>✓ copiado</translation>
     </message>
 </context>
 <context>
@@ -312,6 +316,17 @@
         <source>Start the desk automation automatically at login</source>
         <extracomment>What the portal autostarts. Always this project&apos;s own daemon executable name, a constant — never assembled from config or user input, since a granted request is a host autostart entry that runs at every login. Bounded so a portal that never answers — dead session, no backend, a user who walks away from the permission dialog — can&apos;t block the caller forever. Long enough that a slow read of that one-time dialog doesn&apos;t masquerade as a denial. Exact text passed to both QDBusConnection.connect() and disconnect() for the Response listener; kept in one place so the two calls can&apos;t drift.</extracomment>
         <translation>Iniciar la automatización del escritorio automáticamente al iniciar sesión</translation>
+    </message>
+</context>
+<context>
+    <name>DailyBarsChart</name>
+    <message>
+        <source>%(day)s: sitting %(sit)s, standing %(stand)s</source>
+        <translation>%(day)s: sentado %(sit)s, de pie %(stand)s</translation>
+    </message>
+    <message>
+        <source>%(day)s: no data</source>
+        <translation>%(day)s: sin datos</translation>
     </message>
 </context>
 <context>
@@ -779,6 +794,10 @@ Prueba a ejecutar esto en una terminal:
         <translation>no se pudo conectar con la mesa — el ciclo sigue y volverá a intentarlo</translation>
     </message>
     <message>
+        <source>— %(reason)s</source>
+        <translation>— %(reason)s</translation>
+    </message>
+    <message>
         <source>Resume</source>
         <translation>Reanudar</translation>
     </message>
@@ -1213,12 +1232,17 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>Actualizar</translation>
     </message>
     <message>
-        <source> 14-day average: %s%%.</source>
-        <translation> promedio de 14 días: %s%%.</translation>
+        <source>Standing share = standing time / tracked time per day. 14-day average: %(pct)s%%.</source>
+        <translation>Proporción de pie = tiempo de pie / tiempo registrado por día. Promedio de 14 días: %(pct)s%%.</translation>
     </message>
     <message>
         <source>Standing share = standing time / tracked time per day.</source>
         <translation>Proporción de pie = tiempo de pie / tiempo registrado por día.</translation>
+    </message>
+    <message>
+        <source>%(from)s → %(to)s</source>
+        <extracomment>The arrow and its surrounding spaces are part of the message so a right-to-left language can reverse the direction it reads.</extracomment>
+        <translation>%(from)s → %(to)s</translation>
     </message>
     <message>
         <source>interrupted</source>
@@ -1283,6 +1307,10 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>Conectando…</translation>
     </message>
     <message>
+        <source>Today: %s sitting / %s standing</source>
+        <translation>Hoy: %s sentado / %s de pie</translation>
+    </message>
+    <message>
         <source>%s (%s)</source>
         <translation>%s (%s)</translation>
     </message>
@@ -1305,12 +1333,6 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
     <message>
         <source>%s · %s</source>
         <translation>%s · %s</translation>
-    </message>
-    <message>
-        <source>
-Today: %s sitting / %s standing</source>
-        <translation>
-Hoy: %s sentado / %s de pie</translation>
     </message>
 </context>
 <context>
@@ -1411,6 +1433,19 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <translation> cm</translation>
     </message>
     <message>
+        <source>%(value)s in</source>
+        <translation>%(value)s pulg</translation>
+    </message>
+    <message>
+        <source>%(value)s cm</source>
+        <translation>%(value)s cm</translation>
+    </message>
+    <message>
+        <source>%(name)s · %(height)s</source>
+        <extracomment>A preset tick&apos;s name next to its live height, e.g. &quot;Sit · 110.5&quot;. %(name)s is the preset&apos;s display name (already translated where it is &quot;Sit&quot;/&quot;Stand&quot;; a user&apos;s own preset name is shown verbatim), %(height)s the bare formatted number the rail already shows alongside it.</extracomment>
+        <translation>%(name)s · %(height)s</translation>
+    </message>
+    <message>
         <source> min</source>
         <translation> min</translation>
     </message>
@@ -1462,6 +1497,16 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <source>no days</source>
         <extracomment>Stands in for the day list when an automation schedule has no days selected, e.g. &quot;Automation runs no days, 09:00–17:00.&quot;</extracomment>
         <translation>ningún día</translation>
+    </message>
+    <message>
+        <source>%(first)s–%(last)s</source>
+        <extracomment>A run of three or more consecutive days collapsed into a range, e.g. &quot;Mon–Fri&quot;. %(first)s is the run&apos;s first day, %(last)s its last.</extracomment>
+        <translation>%(first)s–%(last)s</translation>
+    </message>
+    <message>
+        <source>%(first)s, %(second)s</source>
+        <extracomment>Two day-list entries joined, e.g. &quot;Mon, Wed&quot;. Folded left across a longer list to build the whole thing, e.g. &quot;Mon, Wed, Fri&quot; — %(first)s is everything assembled so far, %(second)s the next entry.</extracomment>
+        <translation>%(first)s, %(second)s</translation>
     </message>
     <message>
         <source>Automation active</source>
@@ -1566,6 +1611,10 @@ Prueba a ejecutar esto en una terminal y luego continúa:
     <message>
         <source>Stand</source>
         <translation>Levantarse</translation>
+    </message>
+    <message>
+        <source>%(day)s %(clock)s</source>
+        <translation>%(day)s %(clock)s</translation>
     </message>
     <message>
         <source>The desk did not respond. Check that it is powered and in range, then try again.</source>

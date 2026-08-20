@@ -482,7 +482,12 @@ class OverviewPage(Page):
             color, head, reason = tokens.muted, status_label(status), ""
         self.status_dot.set_color(color)
         self.status_head_lbl.setText(head)
-        self.status_reason.setText(f"— {reason}" if reason else "")
+        # The separator is its own catalog entry (not a Python-literal em
+        # dash) so a language can move or drop it; the head/reason split
+        # itself stays two labels, styled by font weight rather than markup,
+        # per widgets.emphasize's convention.
+        self.status_reason.setText(
+            self.tr("— %(reason)s") % {"reason": reason} if reason else "")
         # A failed move doesn't stop the cycle (a fresh one starts right
         # after), so hiding the countdown here would remove information
         # exactly when the user needs it most.

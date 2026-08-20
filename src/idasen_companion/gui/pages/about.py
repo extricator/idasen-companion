@@ -248,7 +248,9 @@ class AboutPage(Page):
         if config and config.desk.mac:
             mode = (self.tr("persistent") if config.desk.connection == "persistent"
                     else self.tr("on demand"))
-            self._fields["Desk"].setText(f"{config.desk.mac} · {mode}")
+            self._fields["Desk"].setText(
+                self.tr("%(mac)s · %(mode)s")
+                % {"mac": config.desk.mac, "mode": mode})
         else:
             self._fields["Desk"].setText(self.tr("not configured"))
         self._fields["Idle detection"].setText(
@@ -266,9 +268,26 @@ class AboutPage(Page):
     def _copy_about(self) -> None:
         # Fields are already current (refreshed when the page was shown),
         # so copy the shown values rather than re-issuing D-Bus reads.
+        #
+        # The pasted block's field names render in English in every
+        # language, deliberately: this blob exists to be pasted into a bug
+        # report, and a maintainer reading it should not have to
+        # reverse-translate a field name to know what it names. The values
+        # stay in whatever language the UI is in, because they are what the
+        # user is looking at. That split is possible only because the loop
+        # below reads the stable lookup id `_fields` is keyed by, not the
+        # translated label shown beside it in the UI (see the comment above
+        # `_fields` in `_build`). This is a deliberate decision, not an
+        # oversight left over from how the field map happens to be keyed --
+        # do not "fix" it by swapping in the translated label.
         lines = [f"Idasen Companion {__version__}"]
         lines += [f"{key}: {value.text()}"
                   for key, value in self._fields.items()]
+        # Each line here is already whatever it is going to be -- the app
+        # name and version above, a stable field name paired with its
+        # already-rendered value below. Stacking them with a line break
+        # apiece lays the blob out; it does not build a sentence out of
+        # translated pieces, so only the order is fixed in code.
         QGuiApplication.clipboard().setText("\n".join(lines))
         self._copy_btn.setText(self.tr("Copied"))
         QTimer.singleShot(1500, lambda: self._copy_btn.setText(self.tr("Copy")))

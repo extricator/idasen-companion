@@ -770,7 +770,7 @@ class HeightRail(QWidget):
             painter.drawRoundedRect(fill, 3, 3)
 
         # Preset ticks + labels under the track.
-        from .util import fmt_height_value
+        from .util import fmt_preset_tick
 
         small = painter.font()
         small.setPointSizeF(small.pointSizeF() * 0.82)
@@ -780,7 +780,7 @@ class HeightRail(QWidget):
             tick_x = self._x(meters)
             painter.setPen(QPen(tokens.muted, 1.4))
             painter.drawLine(QPointF(tick_x, track_y + 5), QPointF(tick_x, track_y + 11))
-            text = f"{label} · {fmt_height_value(meters, trim=True)}"
+            text = fmt_preset_tick(label, meters, trim=True)
             text_width = metrics.horizontalAdvance(text)
             text_x = min(max(tick_x - text_width / 2, left - self._PAD + 2),
                          self.width() - text_width - 2)
@@ -827,7 +827,7 @@ class RangeRail(QWidget):
         return self._PAD + _clamp01(frac) * span
 
     def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
-        from .util import fmt_height_value, suffix_height
+        from .util import fmt_height, fmt_height_value, fmt_preset_tick, preset_label
 
         tokens = theme()
         painter = QPainter(self)
@@ -852,7 +852,7 @@ class RangeRail(QWidget):
                                 (self._lo, self.height() - metrics.descent())):
             if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
                 continue
-            label = fmt_height_value(meters, trim=True) + suffix_height()
+            label = fmt_height(meters, trim=True)
             painter.drawText(QPointF(self.width() - metrics.horizontalAdvance(label),
                                label_y), label)
 
@@ -867,7 +867,12 @@ class RangeRail(QWidget):
             painter.drawLine(QPointF(track_x - 4, tick_y), QPointF(track_x + 4, tick_y))
             painter.setFont(bold if at_preset else small)
             painter.setPen(color)
-            text = (f"{name} · {fmt_height_value(meters)}" if at_preset else name)
+            # Both branches label through preset_label deliberately: the
+            # protected presets must read the same words the Presets buttons
+            # and the horizontal rail already use, not the raw config key —
+            # do not reintroduce the bare `name` here.
+            text = (fmt_preset_tick(preset_label(name), meters) if at_preset
+                    else preset_label(name))
             painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
                        text)
             live_shown = live_shown or at_preset
@@ -919,8 +924,10 @@ class DailyBarsChart(QWidget):
     def _tooltip_for(self, index: int) -> str:
         from .util import fmt_hm
         label, sit, stand, _ = self._rows[index]
-        return (f"{label}: sitting {fmt_hm(sit)}, standing {fmt_hm(stand)}"
-                if sit or stand else f"{label}: no data")
+        if sit or stand:
+            return self.tr("%(day)s: sitting %(sit)s, standing %(stand)s") % {
+                "day": label, "sit": fmt_hm(sit), "stand": fmt_hm(stand)}
+        return self.tr("%(day)s: no data") % {"day": label}
 
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name
         from PySide6.QtWidgets import QToolTip

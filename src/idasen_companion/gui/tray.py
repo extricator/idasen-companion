@@ -421,9 +421,17 @@ class TrayIcon(QSystemTrayIcon):
         if stats:
             self._today = self._today_summary()
         self._status_action.setText(self._menu_line())
-        # `_today` already carries its own leading newline, because it is an
-        # optional trailing line rather than a member of the list.
-        detail = "\n".join(self._tooltip_lines()) + self._today
+        # `_today` is an optional final member of the list, present only
+        # when the daemon has totals to report.
+        lines = self._tooltip_lines()
+        if self._today:
+            lines = lines + [self._today]
+        # Stacking whole lines this way is layout, not sentence-building:
+        # each line above is already a complete message its own translator
+        # owns end to end, and only the order is fixed here. A break that
+        # instead sits inside one of those messages is a different thing
+        # and does not get this treatment -- see `_today_summary`.
+        detail = "\n".join(lines)
         self._set_tooltip(detail)
 
     def _set_tooltip(self, detail: str) -> None:
@@ -433,6 +441,11 @@ class TrayIcon(QSystemTrayIcon):
         The fallback keeps the title as its first line, so the plain
         ``QSystemTrayIcon`` string stays exactly what the split renders — the
         two differ in styling, never in words.
+
+        The title placed ahead of ``detail`` here is the app's brand name,
+        never translated -- so this is not a translated fragment stuck onto
+        anything else, the one thing about this line a reader might
+        otherwise flag.
         """
         self.setToolTip(f"{APP_TITLE}\n{detail}")
         if self._rich is not None:
@@ -446,7 +459,7 @@ class TrayIcon(QSystemTrayIcon):
         for _, state, seconds in self.client.get_daily_stats(today, today):
             totals[state] = seconds
         if totals["sitting"] or totals["standing"]:
-            return (self.tr("\nToday: %s sitting / %s standing")
+            return (self.tr("Today: %s sitting / %s standing")
                     % (fmt_hm(totals["sitting"]),
                        fmt_hm(totals["standing"])))
         return ""

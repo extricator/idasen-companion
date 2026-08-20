@@ -71,3 +71,100 @@ def test_qt_translate_noop_contexts_are_string_literals():
                     f"{path.name}:{node.lineno}: context is "
                     f"{ast.unparse(context)}, not a literal")
     assert not offenders, "; ".join(offenders)
+
+
+def _reaches_tr(tree):
+    """Module-level function names in `tree` whose body reaches `_tr()`,
+    directly or through another module-level function that already reaches
+    it. Walks each function's whole body with `ast.walk`, so a call made
+    from inside a nested `FunctionDef` or `Lambda` counts too -- a future
+    helper cannot evade this by tucking its `_tr()` call inside a closure.
+    `_tr` itself is never included in the result.
+    """
+    functions = {node.name: node for node in tree.body
+                 if isinstance(node, ast.FunctionDef)}
+
+    def _called_names(node):
+        return {call.func.id for call in ast.walk(node)
+                if isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)}
+
+    calls = {name: _called_names(node) for name, node in functions.items()}
+    reached = {name for name, called in calls.items() if "_tr" in called}
+    changed = True
+    while changed:
+        changed = False
+        for name, called in calls.items():
+            if name not in reached and called & reached:
+                reached.add(name)
+                changed = True
+    return reached - {"_tr"}
+
+
+# ---- Unit tests for the reachability rule itself ------------------------
+# Synthetic snippets, so the rule is provable independently of what
+# gui/util.py happens to contain today.
+
+def test_a_direct_tr_call_reaches_tr():
+    tree = ast.parse("def f():\n    return _tr('x')\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_call_through_a_second_function_reaches_tr():
+    tree = ast.parse(
+        "def f():\n    return _tr('x')\n"
+        "def g():\n    return f()\n")
+    assert _reaches_tr(tree) == {"f", "g"}
+
+
+def test_a_call_made_inside_a_nested_closure_reaches_tr():
+    tree = ast.parse(
+        "def f():\n"
+        "    def inner():\n"
+        "        return _tr('x')\n"
+        "    return inner()\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_function_reaching_neither_does_not_reach_tr():
+    tree = ast.parse("def f():\n    return 1\n")
+    assert _reaches_tr(tree) == set()
+
+
+# ---- Integration test against the real module ----------------------------
+
+def test_util_helpers_that_reach_tr_carry_the_mark():
+    """A `gui/util.py` helper gains a translated string, nobody decorates it
+    with `@returns_translated`, and the concatenation check this registry
+    feeds goes quietly blind at every call site that glues its result to
+    something else -- the mark stops meaning what it says without the
+    build failing anywhere. This holds the marked set against the module's
+    own call graph in both directions: a name that reaches `_tr()` without
+    the mark is a helper the concatenation check would not recognise, and a
+    marked name that does not reach `_tr()` is a locale formatter that would
+    make the check flag legitimate composition.
+
+    `RETURNS_TRANSLATED` is imported inside the test body, not at module
+    scope -- `gui/util.py` imports `PySide6.QtCore`, and a module-scope
+    import would take the two pure-AST checks above down with it in an
+    environment without PySide6.
+    """
+    from idasen_companion.gui.util import (  # pylint: disable=import-outside-toplevel
+        RETURNS_TRANSLATED,
+    )
+
+    path = SRC / "gui" / "util.py"
+    tree = ast.parse(path.read_text())
+    reaches_tr = _reaches_tr(tree)
+
+    missing_mark = reaches_tr - RETURNS_TRANSLATED
+    spurious_mark = RETURNS_TRANSLATED - reaches_tr
+    assert not missing_mark, (
+        "these gui/util.py helpers reach _tr() but carry no "
+        "@returns_translated mark -- the concatenation check would not "
+        f"recognise their result as translated text: {sorted(missing_mark)}")
+    assert not spurious_mark, (
+        "these gui/util.py names carry @returns_translated but do not "
+        "reach _tr() -- they are locale formatters, and marking them would "
+        f"make the concatenation check flag legitimate composition: "
+        f"{sorted(spurious_mark)}")

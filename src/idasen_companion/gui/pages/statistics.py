@@ -133,13 +133,14 @@ class StatisticsPage(Page):
         self.daily_chart.set_rows(rows)
         overall = total_sit + total_stand
         if overall:
-            avg = (self.tr(" 14-day average: %s%%.")
-                   % f"{total_stand / overall * 100:.0f}")
+            pct = f"{total_stand / overall * 100:.0f}"
+            footer = self.tr(
+                "Standing share = standing time / tracked time per day. "
+                "14-day average: %(pct)s%%.") % {"pct": pct}
         else:
-            avg = ""
-        self.stats_footer.setText(
-            self.tr("Standing share = standing time / tracked time per day.")
-            + avg)
+            footer = self.tr(
+                "Standing share = standing time / tracked time per day.")
+        self.stats_footer.setText(footer)
 
         clear_layout(self._trans_rows)
         for i, (occurred_at, from_state, to_state, trigger, interrupted) in enumerate(
@@ -169,8 +170,14 @@ class StatisticsPage(Page):
         when.setFixedWidth(
             when.fontMetrics().horizontalAdvance(
                 fmt_day_and_clock(datetime(2026, 12, 30, 23, 59))) + 8)
-        change = QLabel(f"{position_label(from_state)} → "
-                        f"{position_label(to_state)}")
+        # No tr()-only check would ever see this site: the arrow's operands
+        # are position_label's return value, a marked gui/util.py helper, not
+        # a direct translation call -- the reason the concatenation check has
+        # to know about marked helpers, not just tr() itself.
+        #: The arrow and its surrounding spaces are part of the message so a
+        #: right-to-left language can reverse the direction it reads.
+        change = QLabel(self.tr("%(from)s → %(to)s") % {
+            "from": position_label(from_state), "to": position_label(to_state)})
         change.setStyleSheet("border: none;")
         hbox.addWidget(when)
         hbox.addWidget(change)

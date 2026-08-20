@@ -243,6 +243,23 @@ class SetupWizard(QWizard):
         return self.tr("It will not start automatically when you log in — "
                        "you can turn that on in Settings.")
 
+    def _success_paragraphs(self, height: float) -> list[str]:
+        """The success dialog's body, as independent whole lines.
+
+        Each entry is already a complete, translator-owned sentence, and
+        stacking them with a blank line between is the same layout shape the
+        tray tooltip and the About page's copy blob use — only their order is
+        fixed here, not their wording. Produced inside this helper rather
+        than where they are joined, so the shape stays structurally the same
+        as those two sites end to end, not just in how it reads.
+        """
+        return [
+            self.tr("Success! Your desk is set up and currently at "
+                    "%s.") % fmt_height(height),
+            self._automation_note(),
+            self._enable_autostart(),
+        ]
+
     def accept(self) -> None:
         mac = self.scan_page.selected_mac()
         if not mac:
@@ -264,10 +281,7 @@ class SetupWizard(QWizard):
                 self.client.set_automation_enabled(False)
             QMessageBox.information(
                 self, self.tr("Desk connected"),
-                self.tr("Success! Your desk is set up and currently at "
-                        "%s.") % fmt_height(result)
-                + "\n\n" + self._automation_note()
-                + "\n\n" + self._enable_autostart())
+                "\n\n".join(self._success_paragraphs(result)))
             super().accept()
         else:
             QMessageBox.warning(
