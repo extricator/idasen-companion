@@ -252,6 +252,16 @@ class SetupWizard(QWizard):
         fixed here, not their wording. Produced inside this helper rather
         than where they are joined, so the shape stays structurally the same
         as those two sites end to end, not just in how it reads.
+
+        Say plainly what that costs: written inline at the join, this list
+        would be flagged — the check traces into a list literal, and the
+        first entry resolves to translated text. It passes because the join's
+        argument is a method call, which the check declines to follow into on
+        purpose. So the method boundary is the whole reason this site is
+        silent, and a list that genuinely did build a sentence out of pieces
+        would be just as silent behind one. The judgement above is a human's,
+        and the next stacked-lines site needs the same one made again rather
+        than read off a green suite.
         """
         return [
             self.tr("Success! Your desk is set up and currently at "

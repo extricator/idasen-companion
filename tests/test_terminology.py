@@ -6,9 +6,10 @@ same session. Compounding it, "posición" was *also* the app's translation
 of the desk's physical position in seven other strings -- one word covering
 two concepts, and one concept split across two words. The catalogs already
 enforce *completeness* (``CLAUDE.md`` forbids ``type="unfinished"`` and
-empty ``msgstr``), but nothing enforced *consistency*, so nothing caught
-it. A glossary alone was considered and rejected for the same reason it
-failed here: it's advisory, and advisory is exactly what failed.
+empty ``msgstr``, checked both in CI and, below, inside this suite), but
+nothing enforced *consistency*, so nothing caught it. A glossary alone was
+considered and rejected for the same reason it failed here: it's advisory,
+and advisory is exactly what failed.
 
 This is the enforcement instead: a term list plus a test, shaped like
 ``tests/test_log_catalog.py`` (the only reason catalog drift is caught
@@ -54,8 +55,11 @@ def _find_violation(source, translation, lang, exceptions=EXCEPTIONS):
     language's stem is matched as a substring of the translation (so
     "preajuste"/"preajustes" both satisfy "preajust" without hard-coding
     every inflected form). An empty translation is never reported --
-    completeness is GATE-03's job elsewhere, and double-reporting one
-    defect as two failures makes both easier to ignore.
+    completeness is GATE-03's job in CI and
+    test_ts_catalog_has_no_unfinished_or_empty_entry /
+    test_po_catalog_has_no_empty_translation's job below, and
+    double-reporting one defect as two failures makes both easier to
+    ignore.
     """
     if not translation:
         return None
@@ -180,7 +184,8 @@ def test_the_plural_preajustes_satisfies_the_preajust_stem():
 
 
 def test_an_empty_translation_is_not_reported():
-    # Completeness (no empty msgstr) is GATE-03's job, checked elsewhere.
+    # Completeness (no empty msgstr) is GATE-03's job in CI and
+    # test_po_catalog_has_no_empty_translation's job below.
     assert _find_violation("Save this preset", "", "es") is None
 
 
@@ -233,3 +238,67 @@ def test_po_terminology_is_consistent():
 @pytest.mark.parametrize("term", sorted(TERMS))
 def test_every_term_has_at_least_one_language(term):
     assert TERMS[term], f"{term!r} maps to no language at all"
+
+
+# ---- Shipped-catalog completeness -------------------------------------------
+# GATE-03's CI job (.github/workflows/checks.yml) already asserts this
+# property by regenerating both catalogs and grepping/msgattrib-ing the
+# result -- an enforcement external to the pytest suite that also runs
+# inside the RPM's %check. These two are the same property, asserted a
+# second way, so it travels inside the package's own test run rather than
+# living only in the workflow.
+
+
+def test_ts_catalog_has_no_unfinished_or_empty_entry():
+    """An incomplete catalog renders English inside a translated build, with
+    nothing failing at runtime -- a missing or unconfirmed entry just falls
+    back to its source text, silently. This reads
+    translations/idasen_companion_es.ts (``_TS_PATH``, the same file
+    ``_iter_ts_pairs`` above parses) directly, so it can also read each
+    ``<translation>``'s own ``type="unfinished"`` attribute rather than only
+    its text, and fails when any message is marked unfinished or carries no
+    translation text at all. A plural message stores its text across
+    several ``<numerusform>`` children rather than directly in
+    ``<translation>``, so those are read individually -- a plain
+    ``translation.text`` read is only the whitespace between them and would
+    misreport every plural entry as empty. Reports every offending source
+    string, not only the first, so one run tells the whole story.
+    """
+    tree = ET.parse(_TS_PATH)
+    offenders = []
+    for message in tree.getroot().iter("message"):
+        source = message.find("source")
+        if source is None or not source.text:
+            continue
+        translation = message.find("translation")
+        if translation is None:
+            offenders.append(source.text)
+            continue
+        if translation.get("type") == "unfinished":
+            offenders.append(source.text)
+            continue
+        numerus_forms = translation.findall("numerusform")
+        if numerus_forms:
+            empty = not all((form.text or "").strip() for form in numerus_forms)
+        else:
+            empty = not (translation.text or "").strip()
+        if empty:
+            offenders.append(source.text)
+    assert not offenders, (
+        "unfinished or empty translation in "
+        f"translations/idasen_companion_es.ts: {offenders}")
+
+
+def test_po_catalog_has_no_empty_translation():
+    """Same failure shape as above, for the daemon's gettext catalog: an
+    empty ``msgstr`` renders English notifications with nothing failing at
+    runtime. Iterates with ``_iter_po_pairs``, this file's own
+    multi-line-aware entry reader, so a translation spread over several
+    lines (``msgstr ""`` opening a continuation) is not misread as empty --
+    a naive single-line check would flag exactly that shape, the case
+    ``CLAUDE.md``'s own convention calls out. Skips the header entry, whose
+    ``msgid`` is empty by definition.
+    """
+    offenders = [msgid for msgid, msgstr in _iter_po_pairs()
+                 if msgid and not msgstr.strip()]
+    assert not offenders, f"empty translation in po/es.po for: {offenders}"

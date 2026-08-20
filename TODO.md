@@ -102,11 +102,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
-- [ ] **`widgets.py`'s `DailyBarsChart._tooltip_for` is untranslated** — its
-      Statistics-chart tooltip is built as a bare f-string
-      (`f"{label}: sitting {…}, standing {…}"`, `f"{label}: no data"`),
-      user-facing and not in any catalog. Pre-existing, not introduced by the
-      locale-formatting work above; needs its own new catalog entries.
 - [ ] **Non-Latin digit sets aren't handled by `fmt_hm`/`fmt_countdown`** — the
       locale-aware formatting task deliberately routed only the fractional
       centimetre values through `QLocale`; the small integers in
@@ -532,6 +527,24 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       Follow the GUI-test rules in `CLAUDE.md` when writing them: force
       `QT_QPA_PLATFORM=offscreen` before importing `QtWidgets` (`setdefault`
       is not enough), and destroy any tray icon explicitly at teardown.
+- [ ] **Nothing installs the compiled Spanish catalog and renders a
+      catalogued message through it** — `tests/test_log_catalog.py` and
+      `tests/test_command_errors.py` are thorough about *structure* (every id
+      has a twin, every parameter kind has a formatter, sample values render),
+      but every one of those checks runs the English source; a malformed
+      Spanish `%(...)s` substitution has no test that would notice.
+      `core/logmsg.py:560` and `:568` both swallow the `KeyError`/`ValueError`/
+      `TypeError` a bad substitution raises and silently render the raw
+      template instead — so a Spanish user would read the unsubstituted
+      pattern with the build staying green. The one-message-per-translatable-
+      unit milestone raises this item's value rather than lowering it: it
+      added several new `%(name)s`-substituted entries (`fmt_height`,
+      `fmt_days`' range/pair patterns, the About desk line, the Statistics
+      transition arrow, the setup wizard's success paragraphs) to exactly the
+      catalog surface this gap covers, on top of `core/logmsg.py`'s existing
+      62 `LogMessage` ids. `tests/test_command_errors.py:65` already installs
+      a compiled `.qm` and asserts on translated output for eight daemon error
+      strings — the template to extend, not a new mechanism to invent.
 - [ ] **Reassess `scripts/scan-secrets.sh` once GitHub's own secret scanning is
       on** — Phase 04.1 documented enabling it as the first post-flip step
       (`CONTRIBUTING.md` § "Cutting a release"), and once that lands the

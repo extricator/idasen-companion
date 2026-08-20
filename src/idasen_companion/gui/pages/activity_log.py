@@ -575,6 +575,25 @@ class ActivityLogPage(Page):
         scrollbar.setValue(maximum)
 
     def _row_html(self, entry: dict) -> str:
+        """One log row as markup: a timestamp, a severity label and the
+        message the catalog rendered.
+
+        The message is interpolated into that markup rather than being one
+        whole translated unit with the rest, and it is the one place in the
+        tree that does so. It is layout, not sentence-building -- the same
+        grounds the tray tooltip and the About page's copy blob stack whole
+        lines on: the rendered message is already a complete message its
+        translator owns end to end, and what surrounds it here is a clock
+        reading, a level word that is never translated, and the styling that
+        colors them. Nothing a language could want to reorder crosses that
+        seam.
+
+        Written down because the concatenation check cannot say it. The
+        marked set that check reads is `gui/util.py`'s registry, so a value
+        coming out of `log_catalog` is invisible to it -- this site is
+        silent there because the check does not look, not because it looked
+        and passed, and a future author owes the same reasoning by hand.
+        """
         tokens = theme()
         level = entry["level"]
         color = {"debug": tokens.muted, "info": tokens.accent_text,
