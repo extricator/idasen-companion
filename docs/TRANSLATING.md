@@ -151,11 +151,15 @@ LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
   every non-English user. Both live in the `util` catalog context, so a new
   call site adds no new translation entry.
 - **A translatable unit is a whole message with its substitutions named, not
-  a translated fragment joined to something else** with `+`, an f-string, or
-  `.join()` — a translator can't reorder pieces the code has already stuck
-  together, and a broken one still ships looking fine in English. The three
+  a translated fragment joined to something else** with `+`, `+=`, an
+  f-string, or `.join()` — a translator can't reorder pieces the code has
+  already stuck together, and a broken one still ships looking fine in
+  English. The three
   spin-box suffix helpers above are the only exception, because
   `QAbstractSpinBox`'s suffix API takes a plain string and adds no space of
-  its own. `tests/test_translation_markers.py` enforces this over the whole
-  tree; see `CLAUDE.md` § "Adding user-facing strings" for the full rule.
+  its own. `tests/test_translation_markers.py` enforces this in every scope
+  of every file under `src/idasen_companion` — module and class bodies
+  included, which is where a string that has to exist before the translator
+  loads lives; see `CLAUDE.md` § "Adding user-facing strings" for the full
+  rule.
 - After adding strings, run `scripts/build-translations.sh` and commit.

@@ -435,6 +435,28 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **Six translated messages carry unnamed format slots a translator
+      cannot reorder** — each is a single whole catalog entry, so the
+      concatenation gate correctly reports no offender and no v1.1.1
+      requirement is unmet: the rule those requirements enforce is about
+      joining a translated fragment to something else, and none of these
+      does that. What they do instead is take two substitutions positionally.
+      Python's percent-formatting has no indexed form, so the order the
+      English fixed is the order every language inherits, and a language
+      needing the two swapped has no way to ask for it. That is the same
+      shape of silent failure the milestone was built to remove — correct in
+      English, discovered only by a language whose word order differs. Six
+      sites, all with two or more slots: five in `gui/tray.py` (the
+      position-and-detail separator, the held-for line, the status-and-change
+      line, the daily totals line, and the preset menu's name-and-height
+      entry) and one in `gui/pages/presets.py` (the preset-set confirmation).
+      Spanish needs no reorder in any of them today, which is why nothing is
+      visibly wrong. The fix is to give each slot a name, the way the sites
+      converted in phase 11 already do, and to re-translate — mechanical, but
+      it moves catalog entries, so it wants its own change with the catalogs
+      regenerated alongside. Consider whether the concatenation gate should
+      grow a companion check for multi-slot unnamed formatting, since nothing
+      currently stops the next one. Found during the v1.1.1 milestone audit.
 - [ ] **CLAUDE.md's documented development setup command is missing two
       packages the CI gates section immediately below it depends on** —
       the venv-creation line names `pytest` and `pytest-asyncio` and the GUI
@@ -1247,3 +1269,18 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       api` calls. Order that works: `gh auth login`, confirm `gh auth status`
       without the variable, then delete `.envrc`, then revoke the old PAT at
       GitHub.
+- [ ] **`connection_state`'s mark says "returns translated text" and one
+      member of what it returns is a theme colour** — the helper hands back a
+      colour plus two translated strings, and the self-enforcing guard
+      *forces* the mark on it because its body reaches the translation
+      wrapper. So the registry's stated meaning and the guard's enforcement
+      disagree at this one member. Downstream, the concatenation check treats
+      the colour as translated text: it discards a subscript's index when it
+      resolves, and since unpacking now binds every name to the whole
+      right-hand side, all three unpacked names resolve that way. Harmless
+      today — nothing glues the colour, and erring toward flagging is the
+      safe direction — but it is the accuracy slip the naming convention's
+      first tier is about. Two ways out: soften the registry's wording to
+      "reaches a translation", or split the colour out into its own helper so
+      the mark means exactly what it says. Found reviewing the phase that
+      added the mark.
