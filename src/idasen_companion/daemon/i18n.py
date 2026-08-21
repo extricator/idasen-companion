@@ -1,61 +1,20 @@
-"""Runtime translation for the *daemon*'s user-facing strings.
+"""``human_delay`` stayed here on purpose when the rest of this module moved.
 
-The daemon is deliberately Qt-free, so it can't use Qt's ``tr()`` like the
-GUI does. The only daemon strings a user actually reads are the desktop
-**notifications** (pre-move warnings and their action buttons); those are
-localized here with the stdlib ``gettext`` catalog compiled from
-``po/<lang>.po`` into ``locale/<lang>/LC_MESSAGES/idasen_companion.mo`` (see
-``scripts/build-translations.sh``).
-
-Everything else the daemon emits stays English *at the source*, which is not
-the same as untranslated. journald is kept stable and greppable because that
-is what a bug report needs. Activity lines cross the wire as a catalogued id
-plus raw parameters (``Log1.Entry``), and the GUI re-renders them in the
-reader's language from ``gui/log_catalog.py`` — so the Activity Log translates
-like every other string in the app. Only free-form *diagnostic* lines
-(``RingLog.diag``) are English by design; see ``docs/LOGGING.md``.
-
-The active language is set by ``set_language()`` from the ``[ui] language``
-config value (the same setting the GUI uses): ``"system"`` follows the
-environment (``LANGUAGE``/``LC_ALL``/``LC_MESSAGES``/``LANG``), anything else is
-a catalog code like ``"es"``. The daemon calls it at startup and on config
-hot-reload, so notifications localize even when the systemd user service didn't
-inherit ``LANG``. ``fallback=True`` means a missing catalog yields the English
-source strings, so the daemon runs fine untranslated. ``_``/``ngettext`` are
-stable module functions that delegate to the current catalog, so importers
-(``from .i18n import _``) see language changes without re-importing.
+Its two plural literals (``"%d minute"``/``"%d minutes"``,
+``"%d second"``/``"%d seconds"``) are extracted today by
+``scripts/build-translations.sh``'s ``xgettext`` scan, which is scoped to this
+package (``daemon/``). Widening that scope to cover ``core/`` has to land in
+the same commit as the first ``core``-level translatable call — moving this
+function early is harmless, but moving it *without* widening the scope opens a
+window in which new strings are extracted by nothing and no gate notices.
+That widening is Phase 13's CAT-05, alongside PRES-03, which merges this
+function into the shared duration policy — this remainder is deliberately
+temporary. See ``core/i18n.py`` for the machinery this delegates to.
 """
 
 from __future__ import annotations
 
-import gettext
-from pathlib import Path
-
-DOMAIN = "idasen_companion"
-LOCALE_DIR = Path(__file__).resolve().parent.parent / "locale"
-SYSTEM = "system"
-
-_current: gettext.NullTranslations = gettext.NullTranslations()
-
-
-def set_language(language: str = SYSTEM) -> None:
-    """Bind the notification catalog to ``language`` (config value)."""
-    global _current
-    languages = None if language == SYSTEM else [language]
-    _current = gettext.translation(DOMAIN, localedir=str(LOCALE_DIR),
-                                   languages=languages, fallback=True)
-
-
-def _(message: str) -> str:
-    return _current.gettext(message)
-
-
-def ngettext(singular: str, plural: str, count: int) -> str:
-    return _current.ngettext(singular, plural, count)
-
-
-# Default to the environment locale until the daemon applies the config value.
-set_language(SYSTEM)
+from ..core.i18n import ngettext
 
 
 def human_delay(seconds: int) -> str:

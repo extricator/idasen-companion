@@ -31,6 +31,7 @@ from ..core.config import (
     load_config, save_config,
 )
 from ..core.durations import format_duration_human
+from ..core.i18n import _, set_language
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
     MoveFailed,
@@ -44,7 +45,7 @@ from ..desk.port import DeskPort
 
 from .bluez import merge_devices, parse_paired_desks
 from .dbus_util import DBusCallError, call
-from .i18n import _, human_delay, set_language
+from .i18n import human_delay
 from .idle import (
     IdleMonitor, LockMonitor, SEAT_BACKGROUND, SEAT_NONE, SEAT_UNKNOWN,
     SessionActiveMonitor,

@@ -185,7 +185,7 @@ LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
   "...")` and translate at the use-site — see `gui/util.py` and
   `gui/main_window.py`'s `NAV_ITEMS`.
 - **Daemon:** wrap notification strings in `_("...")` / `ngettext(...)` from
-  `daemon/i18n.py`. Keep journald/Activity-Log strings in English.
+  `core/i18n.py`. Keep journald/Activity-Log strings in English.
 - **Numbers and units:** render a height (or any other locale-sensitive
   decimal) with `gui/util.py`'s `fmt_number()`, not an f-string — it reads the
   default `QLocale` so `110.5` becomes `110,5` under `es`. Get a spin box's

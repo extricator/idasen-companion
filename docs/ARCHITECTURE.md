@@ -269,9 +269,11 @@ Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
   (default `"system"` = `QLocale.system()`). Sources: `translations/*.ts` →
   shipped `gui/translations/*.qm`. The language is chosen in **Settings →
   General**; because strings bake at construction it applies on relaunch.
-* **Daemon notifications** use stdlib `gettext` (`daemon/i18n.py` `_()` /
-  `ngettext`), since the daemon can't depend on Qt. Sources: `po/*.po` → shipped
-  `locale/<lang>/LC_MESSAGES/*.mo`.
+* **Daemon notifications** use stdlib `gettext` (`_()` / `ngettext`, in
+  `core/i18n.py` so any Qt-free caller can reach it), since the daemon can't
+  depend on Qt. Sources: `po/*.po` → shipped `locale/<lang>/LC_MESSAGES/*.mo`.
+  `daemon/i18n.py` keeps only `human_delay`, whose plural literals are
+  extracted from a `daemon/`-scoped scan.
 * **The Activity Log** takes a third route, because the daemon composes it and
   can't use Qt: the wire carries a message id plus raw parameters, and the GUI
   renders from `gui/log_catalog.py`. **journald stays English on purpose**

@@ -2,7 +2,7 @@
 # Extract, update, and compile all translation catalogs.
 #
 # Two independent catalogs (see docs/TRANSLATING.md and the module docstrings
-# in gui/i18n.py and daemon/i18n.py for *why* there are two):
+# in gui/i18n.py and core/i18n.py for *why* there are two):
 #
 #   * GUI  — Qt Linguist. Sources: gui/**/*.py wrapped in tr()/translate().
 #            .ts (editable, committed) -> .qm (compiled, shipped).
