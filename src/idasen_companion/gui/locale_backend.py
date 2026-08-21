@@ -1,23 +1,24 @@
 """The Qt half of the presentation seam.
 
-Wraps ``QLocale``'s own value-to-string conversions -- nothing else. A
-surface backend may decide how an atomic value is rendered; it may not
-decide product formatting policy -- that boundary, and everything on the
-policy side of it, belongs to ``core/units.py`` (plan 12-03), not here.
+Wraps ``QLocale``'s own value-to-string conversions and Qt's own translate
+call, nothing else. A surface backend may decide how an atomic value is
+rendered; it may not decide product formatting policy -- that boundary, and
+everything on the policy side of it, belongs to ``core/units.py`` (plan
+12-03), not here.
 
 Lives under ``gui/``, never under ``core/``: it imports Qt, and the
 dependency rule this project follows is one-directional -- ``gui``/
 ``daemon`` -> ``core`` -> nothing. ``core/presentation/protocols.py``
-declares the capability protocol this module implements structurally
-(``LocaleFormatter``); nothing here inherits from it -- Python's structural
-typing (``runtime_checkable``) is the whole contract.
+declares the two capability protocols this module implements structurally
+(``LocaleFormatter``, ``Translator``); nothing here inherits from either --
+Python's structural typing (``runtime_checkable``) is the whole contract.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import QDate, QLocale, QTime
+from PySide6.QtCore import QCoreApplication, QDate, QLocale, QTime
 
 from ..core.presentation.specs import (
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
@@ -88,3 +89,29 @@ class QtLocaleFormatter:
         if style is DateStyle.WEEKDAY_DAY_MONTH_YEAR:
             return self._locale.toString(moment, "ddd dd MMM yyyy")
         raise ValueError(f"unsupported date style: {style!r}")
+
+
+class QtTranslator:
+    """Looks a message up through Qt's own translate call.
+
+    Takes its Qt translation context once, at construction, from a literal
+    at the construction site -- never as a per-``message`` argument. Qt
+    keys a translation on the pair of context and source text, and the
+    context is a class or module name; a caller free to invent one per call
+    could key into a context no catalog entry has ever used, which fails by
+    silently falling back to the English source rather than by anything
+    going red. Fixing it at construction is what keeps "renamed the class,
+    forgot the catalog" a mistake ``lupdate``'s own extraction still
+    catches, instead of one this backend could hide a second way.
+
+    Raises nothing on a missing catalog entry, deliberately: Qt's own
+    ``translate`` already degrades to the English source text, and
+    wrapping it in a ``try``/``except`` here would only hide that.
+    """
+
+    def __init__(self, context: str) -> None:
+        self._context = context
+
+    def message(self, source: str, **values: object) -> str:
+        rendered = QCoreApplication.translate(self._context, source)
+        return rendered % values if values else rendered

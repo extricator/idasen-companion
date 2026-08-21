@@ -24,16 +24,20 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from datetime import datetime  # noqa: E402
 
+import shiboken6  # noqa: E402
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation.protocols import (  # noqa: E402
-    LocaleFormatter,
+    LocaleFormatter, Translator,
 )
 from idasen_companion.core.presentation.specs import (  # noqa: E402
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
 )
-from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
+from idasen_companion.gui import i18n  # noqa: E402
+from idasen_companion.gui.locale_backend import (  # noqa: E402
+    QtLocaleFormatter, QtTranslator,
+)
 
 
 @pytest.fixture(scope="session")
@@ -143,3 +147,45 @@ def test_formatter_reads_no_process_default(qapp):
         assert formatter.number(110.5, NumberSpec(decimals=1)) == "110,5"
     finally:
         QLocale.setDefault(QLocale("en_US"))
+
+
+# ---- QtTranslator: protocol conformance, fixed context, degrade-to-English
+
+
+def test_translator_satisfies_the_translator_protocol(qapp):
+    assert isinstance(QtTranslator("util"), Translator)
+
+
+def test_lookup_with_no_catalog_installed_returns_the_source_unchanged(qapp):
+    translator = QtTranslator("util")
+    assert translator.message("Desk: connected") == "Desk: connected"
+
+
+def test_named_substitution_fills_every_slot(qapp):
+    translator = QtTranslator("util")
+    rendered = translator.message(
+        "%(hours)sh %(minutes)sm", hours=1, minutes="05")
+    assert rendered == "1h 05m"
+
+
+@pytest.fixture
+def installed_spanish_catalog(qapp):
+    """The shipped Spanish catalog, installed and torn down through the
+    same installer the app uses at startup -- and explicitly removed and
+    deleted afterwards, since a `QTranslator` stays installed on `qapp` (a
+    session-scoped object shared with every other test module) otherwise."""
+    installed = i18n.install_translators(qapp, "es")
+    try:
+        yield
+    finally:
+        for translator in installed:
+            qapp.removeTranslator(translator)
+            shiboken6.delete(translator)
+        QLocale.setDefault(QLocale("en_US"))
+
+
+def test_lookup_with_the_shipped_spanish_catalog_returns_a_translation(
+        qapp, installed_spanish_catalog):
+    translator = QtTranslator("util")
+    rendered = translator.message("Desk: connected")
+    assert rendered != "Desk: connected"
