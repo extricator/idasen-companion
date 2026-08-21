@@ -53,6 +53,49 @@ suite fails a translation that uses a different word for a term the file
 already declares, so a colliding word choice is caught before it ships
 rather than found later.
 
+## Translation-key collisions
+
+Source-as-key (see the [Glossary](#glossary) above) cuts both ways: that
+section is one concept ending up with two words, and this one is the
+opposite — two concepts wanting the same word. One English source string
+maps to exactly one Spanish string project-wide, so when a second concept
+wants a source string another concept already owns, that's a collision.
+
+This project carries **no standing rewording rule** for it — that was a
+deliberate decision (D-05 in
+`.planning/phases/12-the-capability-seam-the-fakes-and-the-before-picture/12-CONTEXT.md`),
+taken because collisions may not materialise at all, and a rule invented
+before any instance exists is a rule invented without evidence. What exists
+instead is a check that makes each one visible the moment it happens, so it
+gets decided deliberately rather than resolved by reflex inside a large
+diff — which is exactly the failure the batching requirement (`CAT-08`)
+exists to prevent.
+
+**Procedure**, when one English source string is wanted for two different
+concepts:
+
+1. Decide case by case: reword one side's English so the two no longer
+   share a source string, accept the shared string as correct (the two
+   concepts genuinely mean the same thing, the way window chrome often
+   does), or split it another way.
+2. Record the decision as a new row in the collision log below, **in its
+   own commit** — never folded into a batch of string moves.
+3. If the decision keeps the shared string, also add the source string to
+   `REGISTERED_SHARED_STRINGS` in `tests/test_translation_collisions.py`,
+   with a one-line reason. A new log row and a new register entry are the
+   two halves of one decision; that test is what stops the second half
+   being forgotten — it fails until both exist.
+
+### Collision log
+
+Empty today, on purpose: no formatter has moved yet. Phases 13-15, which
+merge roughly twenty formatters into one shared vocabulary, are expected to
+produce the first rows.
+
+| Source string | The two concepts that wanted it | Decision | Commit |
+|---|---|---|---|
+| _none yet_ | | | |
+
 ## Prerequisites
 
 - PySide6 tools on `PATH`: `pyside6-lupdate`, `pyside6-lrelease`, and
