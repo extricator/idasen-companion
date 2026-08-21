@@ -38,6 +38,9 @@ from idasen_companion.gui import i18n  # noqa: E402
 from idasen_companion.gui.locale_backend import (  # noqa: E402
     QtLocaleFormatter, QtTranslator,
 )
+from idasen_companion.gui.util import (  # noqa: E402
+    fmt_clock, fmt_day_heading, fmt_day_label, fmt_hm, fmt_number,
+)
 
 
 @pytest.fixture(scope="session")
@@ -189,3 +192,68 @@ def test_lookup_with_the_shipped_spanish_catalog_returns_a_translation(
     translator = QtTranslator("util")
     rendered = translator.message("Desk: connected")
     assert rendered != "Desk: connected"
+
+
+# ---- Comparison: the backend reproduces today's gui/util.py output -------
+#
+# These expectations are the pre-migration contract: phases 13-15 replace
+# gui/util.py's bodies with calls through this backend, and this is what
+# proves, before anything moves, that the backend already answers the same
+# way for the values it can serve.
+
+
+@pytest.fixture
+def util_locale(locale_code):
+    """Set the default QLocale for gui/util.py's QLocale()-reading helpers,
+    restoring the previous one -- mirrors tests/test_locale_formatting.py's
+    own `locale` fixture."""
+    previous = QLocale()
+    QLocale.setDefault(QLocale(locale_code))
+    try:
+        yield
+    finally:
+        QLocale.setDefault(previous)
+
+
+def test_number_matches_util_fmt_number_at_one_and_two_decimals(
+        qapp, locale_code, locale, util_locale):
+    formatter = QtLocaleFormatter(locale)
+    assert (formatter.number(110.5, NumberSpec(decimals=1))
+            == fmt_number(110.5, decimals=1))
+    assert (formatter.number(110.5, NumberSpec(decimals=2))
+            == fmt_number(110.5, decimals=2))
+
+
+def test_number_matches_util_fmt_number_trim_case(
+        qapp, locale_code, locale, util_locale):
+    formatter = QtLocaleFormatter(locale)
+    spec = NumberSpec(decimals=1, trim_trailing_zeroes=True)
+    assert (formatter.number(60.0, spec)
+            == fmt_number(60.0, decimals=1, trim=True))
+
+
+def test_clock_matches_util_fmt_clock_morning_and_afternoon(
+        qapp, locale_code, locale, util_locale):
+    formatter = QtLocaleFormatter(locale)
+    for when in (datetime(2026, 8, 17, 9, 5), datetime(2026, 8, 17, 14, 32)):
+        assert (formatter.time(when, TimeStyle.HOUR_AND_MINUTE)
+                == fmt_clock(when))
+
+
+def test_date_matches_util_fmt_day_label_and_fmt_day_heading(
+        qapp, locale_code, locale, util_locale):
+    formatter = QtLocaleFormatter(locale)
+    when = datetime(2026, 8, 17)
+    assert (formatter.date(when, DateStyle.WEEKDAY_AND_DAY)
+            == fmt_day_label(when))
+    assert (formatter.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
+            == fmt_day_heading(when))
+
+
+def test_integer_matches_the_zero_padded_minutes_in_fmt_hm(
+        qapp, locale_code, locale, util_locale):
+    formatter = QtLocaleFormatter(locale)
+    # fmt_hm(3900) is "1h 05m" -- the padded minute value is what
+    # QtLocaleFormatter.integer(min_digits=2) must reproduce.
+    assert fmt_hm(3900).endswith("05m")
+    assert formatter.integer(5, IntegerSpec(min_digits=2)) == "05"
