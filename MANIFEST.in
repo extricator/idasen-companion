@@ -74,6 +74,13 @@ include debian/control
 include debian/rules
 include debian/changelog
 recursive-include tests *.py
+# Same reasoning as the naming checker and the pre-commit hook further down:
+# the suite ships whole and the RPM's %check runs it from an unpacked
+# tarball, so a data file a test opens has to travel with it too, or that
+# test dies at collection with FileNotFoundError while every local run
+# passes, because the file is sitting right there in the working tree.
+include tests/goldens/vocabulary_en.json
+include tests/goldens/vocabulary_es.json
 # Translations: editable sources (.ts/.po/.pot) + the build script, plus the
 # compiled catalogs that ship inside the package (.qm for the Qt GUI, .mo for
 # the daemon's gettext notifications). See docs/TRANSLATING.md.
