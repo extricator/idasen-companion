@@ -4,6 +4,38 @@ Notable changes to Idasen Companion, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-20
+
+### Fixed
+
+- **The Statistics range slider labelled its presets in English.** The ticks
+  under the range rail printed the raw preset name — lowercase `sit` and
+  `stand` — one screen away from Presets buttons reading the same two words
+  translated and capitalised. Both now read the same vocabulary as the rest of
+  the window. A preset you named yourself is still shown exactly as you typed
+  it.
+- **The daily chart's tooltip was never translated.** Hovering a bar on the
+  Statistics page showed English whatever language the rest of the window was
+  in.
+
+### Changed
+
+- **Every message is translated as a whole sentence now, rather than assembled
+  from translated pieces.** Heights, day and clock labels, day ranges, preset
+  ticks, the status reason, the statistics footer, position transitions, the
+  About desk line and the copied chip each became one catalog entry with its
+  substitutions named. A fragment glued to another fragment fixes English word
+  order for every language, and the seam shows up only in a language that needs
+  the parts in a different order — so nothing looked wrong before, and nothing
+  reads differently in English or Spanish now.
+- **A word that means one thing has one catalog entry.** Eight concepts reached
+  the catalog twice, once from the shared vocabulary and once from a page's own
+  copy of the wording. Copying wording between two places is not a mechanism for
+  keeping them in sync; the pages read the shared entry.
+- The suite fails a change that glues a translated value to anything, that lets
+  a concept reach the catalog twice, or that ships a catalog with an
+  untranslated entry.
+
 ## [1.1.0] - 2026-08-18
 
 ### Added

@@ -96,6 +96,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.1.1" date="2026-08-20">
+      <description>
+        <p>
+          Fixes two places on the Statistics page that showed English text
+          whatever language the rest of the window was in: the labels under
+          the range slider, and the tooltip on the daily chart.
+        </p>
+        <p>
+          Text throughout the window is now translated as whole sentences
+          rather than assembled from pieces, so a translation can order the
+          words the way its own language does.
+        </p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-08-18">
       <description>
         <p>

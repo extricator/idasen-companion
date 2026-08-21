@@ -1,3 +1,18 @@
+idasen-companion (1.1.1-1) unstable; urgency=medium
+
+  * Label the Statistics range slider's preset ticks through the shared
+    vocabulary, so they no longer print the raw lowercase preset key
+    untranslated.
+  * Translate the daily chart's tooltip, which shipped English in every
+    language.
+  * Render every user-facing string as one whole catalog entry with named
+    substitutions instead of joining translated fragments, so a translation
+    can reorder what English fixed in place.
+  * Merge eight concepts that each reached the Qt catalog twice into the one
+    shared entry, and gate all three rules in the test suite.
+
+ -- extricator <extricator@users.noreply.github.com>  Thu, 20 Aug 2026 00:00:00 +0000
+
 idasen-companion (1.1.0-1) unstable; urgency=medium
 
   * Ship a self-contained RPM that carries its own Python and Qt and installs

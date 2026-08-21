@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -101,6 +101,18 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Thu Aug 20 2026 extricator <extricator@users.noreply.github.com> - 1.1.1-1
+- Label the Statistics range slider's preset ticks through the shared
+  vocabulary, so they no longer print the raw lowercase preset key
+  untranslated.
+- Translate the daily chart's tooltip, which shipped English in every
+  language.
+- Render every user-facing string as one whole catalog entry with named
+  substitutions instead of joining translated fragments, so a translation
+  can reorder what English fixed in place.
+- Merge eight concepts that each reached the Qt catalog twice into the one
+  shared entry, and gate all three rules in the test suite.
+
 * Tue Aug 18 2026 extricator <extricator@users.noreply.github.com> - 1.1.0-1
 - Ship a self-contained RPM that carries its own Python and Qt and installs on
   any RPM-based distribution rather than a single Fedora release.
