@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .durations import format_duration_compact, parse_duration
+from .units import UnitSetting
 
 DEFAULT_CONFIG_DIR = Path(
     os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -54,7 +55,11 @@ VALID_CLOSE_ACTIONS = ("tray", "quit")
 # metres in this config, in the state machine, in the stats DB and on the
 # D-Bus wire, whatever this says. "system" derives the unit from the desktop
 # locale (see gui/util.resolve_height_unit); "cm" and "in" pin it.
-VALID_UNITS = ("system", "cm", "in")
+# Derived from UnitSetting rather than restated as three strings, so the
+# validator and the type cannot drift apart; its value and order are the
+# same three strings this held before ("system", "cm", "in") and reach the
+# validation message _require_choice below builds.
+VALID_UNITS = tuple(member.value for member in UnitSetting)
 
 # Physical limits of the Idåsen desk (from the Linak controller).
 MIN_HEIGHT = 0.62
@@ -133,6 +138,13 @@ class UiConfig:
     # is a first guess rather than an answer — plenty of people in metric
     # countries think about a desk in inches, and the reverse — so the two
     # explicit values exist to override it for good.
+    #
+    # Stays str, not UnitSetting: this attribute name is the TOML key
+    # (_apply_section resolves it with hasattr/getattr straight from
+    # tomllib), and the tomlkit write path in save_config below writes
+    # whatever this holds verbatim, so a StrEnum instance must never reach
+    # it. Coercion to UnitSetting happens at the point of use instead — the
+    # boundary core/units.py's resolve_height_unit sits behind.
     units: str = "system"
     # Window/tray behaviour. All of these only bite when a system tray exists;
     # with no tray the window always shows and closing it exits (see gui/main).
