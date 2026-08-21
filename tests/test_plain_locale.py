@@ -1,11 +1,19 @@
-"""Rendering assertions for `PlainLocaleFormatter`.
+"""Rendering assertions for `PlainLocaleFormatter`, plus the
+locale-independence gate for BACK-04.
 
-The locale-independence gate for BACK-04 (a structural AST check, plus a
-corroborating behavioural test) lives in this same file, appended below
-these rendering assertions — see the section header further down.
+The gate is deliberately two-legged, and the two legs are not peers: the
+**structural** check below (`test_structural_gate_holds_no_locale_reference`)
+is what proves the property, because it runs everywhere this suite runs,
+including the RPM's `%check` on a container that carries no non-English
+langpack. The **behavioural** test beside it is corroboration on a machine
+that happens to have both locales installed — it skips honestly, rather
+than failing, where they are not, and says so at the skip.
 """
 
+import ast
+import locale
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +24,11 @@ from idasen_companion.core.presentation.specs import (
     IntegerSpec,
     NumberSpec,
     TimeStyle,
+)
+
+PLAIN_LOCALE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "src" / "idasen_companion" / "core" / "presentation" / "plain_locale.py"
 )
 
 FORMATTER = PlainLocaleFormatter()
@@ -81,3 +94,96 @@ def test_date_weekday_and_day():
 def test_date_weekday_day_month_year():
     when = datetime(2026, 8, 21)
     assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "Fri 21 Aug 2026"
+
+
+# ---- Structural locale-independence gate -----------------------------------
+
+def _locale_offenders(tree: ast.AST) -> list[str]:
+    """Every node in `tree` that would let a rendered value vary with the
+    process locale: an import of the locale module under any alias, a call
+    that sets or reads through it, a bare reference to a locale-category
+    name, or a locale-sensitive number presentation type in a format spec.
+
+    Reads the parsed tree, never the file's own text, so an explanatory
+    comment sitting next to the code cannot satisfy this check by accident.
+    """
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "locale":
+                    offenders.append(f"{node.lineno}: import locale")
+        elif isinstance(node, ast.ImportFrom) and node.module == "locale":
+            offenders.append(f"{node.lineno}: from locale import ...")
+        elif isinstance(node, ast.Call):
+            func = node.func
+            called = (func.attr if isinstance(func, ast.Attribute)
+                       else func.id if isinstance(func, ast.Name) else None)
+            if called in {"setlocale", "format_string", "nl_langinfo", "localeconv"}:
+                offenders.append(f"{node.lineno}: {called}(...)")
+        elif isinstance(node, ast.Name) and node.id.startswith("LC_"):
+            offenders.append(f"{node.lineno}: {node.id}")
+        elif isinstance(node, ast.Attribute) and node.attr.startswith("LC_"):
+            offenders.append(f"{node.lineno}: .{node.attr}")
+        elif isinstance(node, ast.JoinedStr):
+            for part in node.values:
+                if not (isinstance(part, ast.FormattedValue)
+                        and part.format_spec is not None):
+                    continue
+                for spec_part in part.format_spec.values:
+                    if (isinstance(spec_part, ast.Constant)
+                            and isinstance(spec_part.value, str)
+                            and spec_part.value.endswith("n")):
+                        offenders.append(
+                            f"{node.lineno}: locale-sensitive 'n' format type")
+    return offenders
+
+
+def test_structural_gate_holds_no_locale_reference_in_plain_locale():
+    """The gate this property's proof is anchored on. It has been proven to
+    go red twice by hand (once for an added `import locale`, once for an
+    added `setlocale` call), each time reverted; see 12-05-SUMMARY.md for
+    the exact commands and observed exit statuses.
+    """
+    tree = ast.parse(PLAIN_LOCALE_PATH.read_text())
+    offenders = _locale_offenders(tree)
+    assert not offenders, (
+        "plain_locale.py reads process locale state, defeating BACK-04's "
+        "fixed-convention policy: " + "; ".join(offenders))
+
+
+# ---- Behavioural corroboration ---------------------------------------------
+
+def test_behavioural_corroboration_under_a_comma_and_12_hour_combination():
+    """Corroboration, not proof — the structural gate above is the proof,
+    because it runs everywhere this suite runs, including the RPM `%check`
+    on a container with no non-English langpack installed and no
+    `BuildRequires` added for one. This test only runs where the local
+    machine happens to carry both a comma-decimal locale (`de_DE.UTF-8`,
+    for `LC_NUMERIC`) and a 12-hour locale (`en_US.UTF-8`, for `LC_TIME` —
+    no single locale defines both properties, per RESEARCH.md), and skips
+    honestly, rather than failing, everywhere else.
+    """
+    saved_numeric = locale.setlocale(locale.LC_NUMERIC)
+    saved_time = locale.setlocale(locale.LC_TIME)
+    both_available = True
+    try:
+        locale.setlocale(locale.LC_NUMERIC, "de_DE.UTF-8")
+        locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+    except locale.Error:
+        both_available = False
+    try:
+        if not both_available:
+            pytest.skip(
+                "de_DE.UTF-8 and/or en_US.UTF-8 not installed on this "
+                "machine -- the structural gate above is what proves this "
+                "property, not this test; skipping honestly rather than "
+                "adding a BuildRequires for a langpack the RPM buildroot "
+                "would still not carry")
+        formatter = PlainLocaleFormatter()
+        when = datetime(2026, 8, 21, 14, 32)
+        assert formatter.number(1234.5, NumberSpec(decimals=1, grouping=True)) == "1,234.5"
+        assert formatter.time(when, TimeStyle.HOUR_AND_MINUTE) == "14:32"
+    finally:
+        locale.setlocale(locale.LC_NUMERIC, saved_numeric)
+        locale.setlocale(locale.LC_TIME, saved_time)
