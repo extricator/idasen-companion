@@ -318,6 +318,37 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
         `tests/test_dbus_contract.py`'s coverage, which scans for calls naming
         them — so it has to land together with a widened scan, the same way the
         `_iface(...).call()` gap was closed.
+- [ ] **ID-keyed translation (scheme C), deferred on sequencing rather than
+      merit** — settled during the Phase 12 discussion. Today's catalogs key on
+      the English source string; this reworks that to key on a stable id, e.g.
+      `Msg("status_standing", "Standing")` in a register, with the id reaching
+      the lookup and the register's own English serving as the runtime fallback
+      on a miss. It buys three things: rewording the English no longer orphans
+      the translation (today it does, silently); collisions between two
+      concepts that want the same English word stop being possible, since each
+      keeps its own id; and it deletes the class-rename trap `CLAUDE.md`
+      documents, because the Qt key stops being `(context, source)` with the
+      context a class name — renaming a GUI class today orphans every
+      `<message>` under its old context with nothing failing.
+      Not done now because re-keying while roughly twenty formatters are
+      simultaneously being merged into one shared vocabulary (Phases 13-15)
+      would put two changes in every diff — when a Spanish string lands wrong,
+      nothing says whether the move or the re-key did it. Doing it afterwards
+      instead means re-keying a settled target with the baseline harness this
+      milestone built already in place, the instrument that can prove a re-key
+      changed no rendered string. Whether it is worth doing at all is itself
+      evidence Phases 13-15 are expected to produce: reword-driven orphaning
+      and source-string collisions are being logged as they happen (see the
+      collision log in `docs/TRANSLATING.md`), and whether either actually
+      bites is the case for or against this.
+      Two obstacles are already verified on the Qt side rather than assumed:
+      PySide6's `QtCore` exposes `qtTrId` but not `QT_TRID_NOOP` (confirmed by
+      import — `QT_TRID_NOOP` is absent from `dir(QtCore)`), so the register
+      marker this shape needs is not available out of the box; and
+      `tests/test_catalog_contexts.py` is built entirely around Qt contexts,
+      which id-keying makes vestigial, so it needs substantial rework rather
+      than a small edit. `pyside6-lupdate` itself does already recognise
+      `qtTrId`, `QT_TRID_NOOP`, `QT_TRID_N_NOOP` and `qsTrId` as keywords.
 
 ## UI polish
 - [ ] **The setup wizard opens off-centre** — reported on the maintainer's
