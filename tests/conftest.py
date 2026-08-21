@@ -155,6 +155,11 @@ def _pin_default_locale():
     try:
         from PySide6.QtCore import QLocale
     except ImportError:
+        # `yield`, not a bare `return`. This is a generator fixture, so
+        # returning early yields nothing at all and pytest raises "did not
+        # yield a value" — and since this one is session-scoped and autouse,
+        # that error lands on every test in the run rather than on the Qt ones.
+        yield
         return
     previous = QLocale()
     QLocale.setDefault(QLocale("en_US"))
