@@ -81,6 +81,10 @@ recursive-include tests *.py
 # passes, because the file is sitting right there in the working tree.
 include tests/goldens/vocabulary_en.json
 include tests/goldens/vocabulary_es.json
+# The window before-picture's two goldens, for the same reason as the pair
+# above: a data file a test opens has to ship with the suite that opens it.
+include tests/goldens/window_en.json
+include tests/goldens/window_es.json
 # Translations: editable sources (.ts/.po/.pot) + the build script, plus the
 # compiled catalogs that ship inside the package (.qm for the Qt GUI, .mo for
 # the daemon's gettext notifications). See docs/TRANSLATING.md.
