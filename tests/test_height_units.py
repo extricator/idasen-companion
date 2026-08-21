@@ -23,6 +23,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from idasen_companion.core.config import (  # noqa: E402
     MAX_HEIGHT, MIN_HEIGHT, AppConfig, load_config, save_config,
 )
+from idasen_companion.core import units as core_units  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -79,6 +80,35 @@ def test_an_explicit_unit_ignores_the_locale(setting, locale):
 def test_system_follows_the_locale_with_the_uk_on_the_metric_side(
         locale, expected):
     assert util.resolve_height_unit("system") == expected
+
+
+# ---- Qt-free / Qt agreement ------------------------------------------------
+#
+# "system" resolution has two implementations for one phase: the Qt-based one
+# above, which the GUI keeps using this phase, and core.units's Qt-free one,
+# which PRES-06 (Phase 13) replaces it with. This is what makes that
+# replacement provably a no-op for the locales the product ships — see
+# core.units's module docstring for why the Qt-free policy answers `en_GB`
+# with centimetres even though Qt calls the UK imperial.
+
+
+@pytest.mark.parametrize("locale_name, expected", [
+    ("en_US", core_units.HeightUnit.INCHES),
+    ("es_ES", core_units.HeightUnit.CENTIMETRES),
+    ("en_GB", core_units.HeightUnit.CENTIMETRES),
+])
+def test_the_qt_free_resolver_agrees_with_the_qt_one(locale_name, expected):
+    previous = QLocale()
+    QLocale.setDefault(QLocale(locale_name))
+    try:
+        qt_answer = util.resolve_height_unit("system")
+    finally:
+        QLocale.setDefault(previous)
+
+    free_answer = core_units.resolve_height_unit(
+        core_units.UnitSetting.SYSTEM, language=locale_name, environ={})
+    assert free_answer == expected
+    assert free_answer.value == qt_answer
 
 
 # ---- the conversion itself ------------------------------------------------
