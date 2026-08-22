@@ -261,7 +261,7 @@ def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
     # without touching the real systemd user manager.
     monkeypatch.setattr(service_ctl, "autostart_state",
                         lambda: AutostartState("enabled", True, ""))
-    wizard = SetupWizard(client=object())
+    wizard = SetupWizard(client=object(), ctx=_widget_ctx())
     wizard.usage_page.automatic.setChecked(True)
 
     paragraphs = wizard._success_paragraphs(0.75)  # pylint: disable=protected-access

@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import service_ctl
+from .context import AppContext
 from .dbus_client import DaemonClient
 from .util import fmt_height
 
@@ -207,10 +208,17 @@ class UsagePage(QWizardPage):
 
 
 class SetupWizard(QWizard):
-    def __init__(self, client: DaemonClient, parent=None):
+    def __init__(self, client: DaemonClient, parent=None, *, ctx: AppContext):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Idasen Companion setup"))
         self.client = client
+        # Keyword-only, and stored rather than threaded through every page,
+        # matching gui/pages/base.py's Page. Nothing reads ``self.ctx.fmt``
+        # yet -- _success_paragraphs still calls gui/util.py's fmt_height --
+        # but once a call site does, reading it fresh at use time rather than
+        # snapshotting a Formatter is what lets a config change reach the
+        # next render of this page.
+        self.ctx = ctx
         self.addPage(WelcomePage(client))
         self.scan_page = ScanPage(client)
         self.addPage(self.scan_page)

@@ -345,6 +345,6 @@ class SettingsPage(SettingsFormPage):
         confirm = getattr(self.window(), "confirm_unapplied_edits", None)
         if confirm is not None and not confirm():
             return
-        wizard = SetupWizard(self.client, self)
+        wizard = SetupWizard(self.client, self, ctx=self.ctx)
         if wizard.exec():
             self.load()

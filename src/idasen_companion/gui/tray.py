@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 from ..core.machine import (
     COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES,
 )
+from ..core.presentation.formatter import Formatter
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, fmt_duration, fmt_height, fmt_hm,
@@ -504,6 +505,19 @@ class TrayIcon(QSystemTrayIcon):
         self._connecting = False
         self._connecting_timer.stop()
         self._refresh_texts()
+
+    def _fmt(self) -> Formatter:
+        """The current :class:`Formatter`, read fresh from the window's
+        context rather than stored.
+
+        ``self.window.ctx.fmt`` is rebuilt on every config change, so
+        reading it here at use time -- never caching it onto ``self`` --
+        is what lets a unit change reach the next tooltip or menu redraw
+        instead of keeping the previous unit around like a stale snapshot.
+        The same reasoning ``gui/widgets.py``'s ``HeightRail`` writes down
+        for its own ``paintEvent``.
+        """
+        return self.window.ctx.fmt
 
     def _action(self, name: str, default: str) -> str:
         # The configured action for a tray gesture, tolerating an unreadable

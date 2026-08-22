@@ -262,7 +262,7 @@ def main() -> int:
     if first_run:
         from .setup_wizard import SetupWizard
 
-        wizard = SetupWizard(client, window)
+        wizard = SetupWizard(client, window, ctx=window.ctx)
         wizard.accepted.connect(window.settings.load)
         wizard.open()
 
