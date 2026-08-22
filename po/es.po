@@ -136,6 +136,28 @@ msgid "Off-cycle"
 msgstr "Fuera de ciclo"
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "later"
+msgstr "más tarde"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "Snoozed until %s"
+msgstr "Pospuesto hasta %s"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Due now"
+msgstr "Ya toca"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Custom"
+msgstr "Personalizada"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(minutes)s:%(seconds)s"
+msgstr "%(minutes)s:%(seconds)s"
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Mon"
 msgstr "Lun"
 

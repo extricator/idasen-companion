@@ -21,6 +21,7 @@ from PySide6.QtCore import (
 from ..core.presentation import words
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import HeightUnit
+from .locale_backend import QtLocaleFormatter
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
@@ -118,11 +119,16 @@ def suffix_seconds() -> str:
     return _tr(QT_TRANSLATE_NOOP("util", " s"))
 
 
+@returns_translated
 def fmt_countdown(seconds: float) -> str:
-    """125 -> '2:05'."""
-    seconds = max(0, int(seconds))
-    minutes, secs = divmod(seconds, 60)
-    return f"{minutes}:{secs:02d}"
+    """125 -> '2:05'.
+
+    Both numbers now go through the locale backend and the separator
+    through a catalog entry, so this returns translated text and carries
+    the mark. Nothing about the rendered English changes.
+    """
+    return words.countdown(
+        GettextTranslator(), QtLocaleFormatter(QLocale()), seconds)
 
 
 @returns_translated
@@ -281,19 +287,11 @@ def daemon_error_message(name: str, detail: str = "") -> str:
 
 # ----- shared cycle rendering (the tray and Overview say the same things) -----
 #
-# These were written out in both gui/tray.py and gui/pages/overview.py, and
-# the duplication had already reached the catalogs: "later", "Snoozed until
-# %s", "Due now" and "Custom" each appeared twice in the .ts, under the
-# TrayIcon and OverviewPage contexts. Two entries per concept means a
-# translator can render one state two ways — which is the drift the tray's own
-# docstring says it copied Overview's wording to avoid.
-
-_LATER = QT_TRANSLATE_NOOP("util", "later")
-_SNOOZED_UNTIL = QT_TRANSLATE_NOOP("util", "Snoozed until %s")
-#: Shown where a countdown would be, once it has run out.
-_DUE_NOW = QT_TRANSLATE_NOOP("util", "Due now")
-#: The desk is at neither preset — parked somewhere of the user's choosing.
-_CUSTOM = QT_TRANSLATE_NOOP("util", "Custom")
+# The four words behind these helpers now live once in
+# core/presentation/register.py, which carries the reason they were
+# consolidated in the first place: each of them once appeared twice in the
+# .ts, under the TrayIcon and OverviewPage contexts, because the tray and
+# Overview each wrote it out.
 
 
 @returns_translated
@@ -303,18 +301,25 @@ def snooze_line(until: float) -> str:
     ``until`` is a unix timestamp, or 0 when it is not known yet: the client
     fetches ``SnoozeUntil`` asynchronously on the snoozed announcement, so the
     first render has no time to show.
+
+    The shared implementation takes the *finished* clock text, so this is
+    where the wall-clock formatting happens. When the clock formatter moves
+    to the shared layer, only what fills that argument changes; the message
+    itself needs no second edit.
     """
+    translator = GettextTranslator()
     when = (fmt_clock(datetime.fromtimestamp(until)) if until
-            else _tr(_LATER))
-    return _tr(_SNOOZED_UNTIL) % when
+            else words.later_label(translator))
+    return words.snooze_line(translator, when)
 
 
 @returns_translated
 def due_now_label() -> str:
-    return _tr(_DUE_NOW)
+    """Shown where a countdown would be, once it has run out."""
+    return words.due_now_label(GettextTranslator())
 
 
 @returns_translated
 def position_or_custom(position: str) -> str:
     """The desk's position as a word, or "Custom" when it is at neither preset."""
-    return position_label(position) or _tr(_CUSTOM)
+    return words.position_or_custom(GettextTranslator(), position)

@@ -131,6 +131,41 @@ STATUS_HEADS = {
     "move-failed": N_("Last move failed"),
 }
 
+# ----- the shared cycle vocabulary (the tray and Overview say the same) -----
+#
+# These four were written out in both gui/tray.py and gui/pages/overview.py,
+# and the duplication had already reached the catalogs: each appeared twice
+# in the .ts, under the TrayIcon and OverviewPage contexts. Two entries per
+# concept means a translator can render one state two ways — which is the
+# drift the tray's own docstring says it copied Overview's wording to avoid.
+# One entry each, here, is the fix, and it is why they are named once rather
+# than quoted at a call site.
+
+#: Stands in for the snooze deadline before the client has fetched it.
+LATER = N_("later")
+
+#: The snooze line, e.g. "Snoozed until 14:32". One whole message with the
+#: time substituted in — never a verb joined to a fragment — because a
+#: translator that cannot move the time relative to the words cannot
+#: translate this sentence at all. The substituted value is a finished
+#: clock string the caller formats; see ``core/presentation/words.py``'s
+#: ``snooze_line``.
+SNOOZED_UNTIL = N_("Snoozed until %s")
+
+#: Shown where a countdown would be, once it has run out.
+DUE_NOW = N_("Due now")
+
+#: The desk is at neither preset — parked somewhere of the user's choosing.
+CUSTOM = N_("Custom")
+
+#: A running countdown as minutes and zero-padded seconds, e.g. "2:05".
+#: Both halves are rendered by the locale backend and substituted in, so
+#: the separator is a catalog entry rather than a Python literal. It exists
+#: so a language that punctuates a countdown differently has somewhere to
+#: say so; Spanish does not, and its translation matches the English for
+#: the same reason :data:`DAY_RANGE` and the day/clock pattern do.
+COUNTDOWN = N_("%(minutes)s:%(seconds)s")
+
 #: The short weekday names an automation schedule is shown with, keyed by
 #: the schedule's own day wire values. Source strings carried over
 #: byte-for-byte from the ``util`` context of

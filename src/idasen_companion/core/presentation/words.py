@@ -32,14 +32,16 @@ per process; it is not re-granted here.
 
 from __future__ import annotations
 
-from .protocols import Translator
+from .protocols import LocaleFormatter, Translator
 from .register import (
     CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
     CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
-    CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND,
-    DAY_NAMES, DAY_PAIR, DAY_RANGE, NO_DAYS, POSITION_LABELS, PRESET_LABELS,
-    STATUS_HEADS, STATUS_LABELS, TRIGGER_LABELS,
+    CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND, COUNTDOWN,
+    CUSTOM, DAY_NAMES, DAY_PAIR, DAY_RANGE, DUE_NOW, LATER, NO_DAYS,
+    POSITION_LABELS, PRESET_LABELS, SNOOZED_UNTIL, STATUS_HEADS,
+    STATUS_LABELS, TRIGGER_LABELS,
 )
+from .specs import IntegerSpec
 
 #: The seven schedule day wire values in week order. Pure data — no
 #: translation, no catalog entry. It lives here rather than in ``gui/``
@@ -133,6 +135,57 @@ def trigger_label(translator: Translator, trigger: str) -> str:
     Falls back to the raw trigger string for an unrecognized key."""
     source = TRIGGER_LABELS.get(trigger)
     return translator.message(source) if source is not None else trigger
+
+
+def later_label(translator: Translator) -> str:
+    """The stand-in for a snooze deadline the client has not fetched yet."""
+    return translator.message(LATER)
+
+
+def snooze_line(translator: Translator, when_text: str) -> str:
+    """"Snoozed until 14:32" — one whole message, the time substituted in.
+
+    ``when_text`` is an *already-formatted* clock string, not a timestamp:
+    formatting a wall-clock time needs a locale backend and a timezone, and
+    the caller already has both. Taking the finished text keeps this
+    function a word rather than a date renderer, and means the eventual
+    move of the clock formatter changes only what fills this argument, not
+    this function.
+    """
+    return translator.message(SNOOZED_UNTIL) % when_text
+
+
+def due_now_label(translator: Translator) -> str:
+    """Shown where a countdown would be, once it has run out."""
+    return translator.message(DUE_NOW)
+
+
+def position_or_custom(translator: Translator, position: str) -> str:
+    """The desk's position as a word, or "Custom" at neither preset."""
+    return (position_label(translator, position)
+            or translator.message(CUSTOM))
+
+
+def countdown(translator: Translator, locale: LocaleFormatter,
+              seconds: float) -> str:
+    """A running countdown, e.g. 125 -> "2:05".
+
+    Takes both capabilities because a countdown needs both: the two numbers
+    are the locale backend's to render — including the zero padding, which
+    is :class:`~.specs.IntegerSpec`'s ``min_digits`` rather than a Python
+    format spec — and the separator between them is the translator's, so a
+    language that punctuates a countdown differently can say so. Nothing
+    here is assembled in Python.
+
+    A negative value clamps to zero, as it did before this rendered
+    through the shared layer: the clock the callers read is monotonic in
+    principle but not in practice.
+    """
+    minutes, secs = divmod(max(0, int(seconds)), 60)
+    return translator.message(
+        COUNTDOWN,
+        minutes=locale.integer(minutes, IntegerSpec()),
+        seconds=locale.integer(secs, IntegerSpec(min_digits=2)))
 
 
 def day_label(translator: Translator, key: str) -> str:

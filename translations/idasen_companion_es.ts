@@ -1451,23 +1451,5 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <source>The background service could not carry out that request.</source>
         <translation>El servicio en segundo plano no pudo llevar a cabo esa solicitud.</translation>
     </message>
-    <message>
-        <source>later</source>
-        <translation>más tarde</translation>
-    </message>
-    <message>
-        <source>Snoozed until %s</source>
-        <translation>Pospuesto hasta %s</translation>
-    </message>
-    <message>
-        <source>Due now</source>
-        <extracomment>Shown where a countdown would be, once it has run out.</extracomment>
-        <translation>Ya toca</translation>
-    </message>
-    <message>
-        <source>Custom</source>
-        <extracomment>The desk is at neither preset — parked somewhere of the user&apos;s choosing.</extracomment>
-        <translation>Personalizada</translation>
-    </message>
 </context>
 </TS>

@@ -14,8 +14,6 @@ decomposition (:func:`decompose_hms`). The *rendering* — including the
 journal's own English — sits one layer up, in
 ``core/presentation/formatter.py`` and ``core/presentation/english.py``:
 this module supplies only the numbers, never a translated string.
-``gui/util.py``'s ``fmt_countdown`` is the one renderer still outside that
-policy; it moves under PRES-01 in Phase 15.
 """
 
 from __future__ import annotations

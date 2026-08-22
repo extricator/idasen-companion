@@ -18,8 +18,9 @@ from __future__ import annotations
 import pytest
 
 from idasen_companion.core.presentation import register, words
+from idasen_companion.core.presentation.specs import IntegerSpec
 
-from presentation_fakes import FakeTranslator
+from presentation_fakes import FakeLocale, FakeTranslator
 
 
 @pytest.mark.parametrize("connected,available,persistent,expected", [
@@ -221,6 +222,60 @@ def test_the_day_list_is_rendered_in_week_order_not_argument_order():
     scrambled = words.fmt_days(translator, ["fri", "mon", "wed"])
     assert scrambled == words.fmt_days(FakeTranslator(),
                                        ["mon", "wed", "fri"])
+
+
+def test_snooze_line_substitutes_the_given_text_into_the_one_message():
+    """The clock arrives already formatted (D-10). `snooze_line` invents no
+    time of its own — it is a word, not a date renderer — so a caller with
+    no deadline yet supplies the `later` word instead.
+    """
+    translator = FakeTranslator()
+    assert (words.snooze_line(translator, "14:32")
+            == FakeTranslator().message(register.SNOOZED_UNTIL) % "14:32")
+    assert [call.source for call in translator.calls] == [
+        register.SNOOZED_UNTIL]
+
+
+def test_the_later_word_is_what_a_caller_with_no_deadline_supplies():
+    translator = FakeTranslator()
+    later = words.later_label(translator)
+    assert later == FakeTranslator().message(register.LATER)
+    assert (words.snooze_line(FakeTranslator(), later)
+            == FakeTranslator().message(register.SNOOZED_UNTIL) % later)
+
+
+def test_due_now_label_renders_its_own_register_entry():
+    translator = FakeTranslator()
+    assert (words.due_now_label(translator)
+            == FakeTranslator().message(register.DUE_NOW))
+
+
+def test_position_or_custom_falls_back_to_the_custom_word():
+    translator = FakeTranslator()
+    assert (words.position_or_custom(translator, "standing")
+            == FakeTranslator().message(register.POSITION_LABELS["standing"]))
+    assert (words.position_or_custom(translator, "")
+            == FakeTranslator().message(register.CUSTOM))
+
+
+@pytest.mark.parametrize("seconds,minutes,secs", [
+    (125, 2, 5),
+    (0, 0, 0),
+    (3661, 61, 1),
+    (-5, 0, 0),
+    (59.9, 0, 59),
+])
+def test_countdown_renders_both_halves_through_the_locale_backend(
+        seconds, minutes, secs):
+    """Neither number is formatted in Python, and the zero padding is the
+    locale backend's `min_digits` rather than a format spec. A negative
+    value clamps to zero, as it did before the move.
+    """
+    translator, locale = FakeTranslator(), FakeLocale()
+    words.countdown(translator, locale, seconds)
+    assert [(call.value, call.request) for call in locale.calls] == [
+        (minutes, IntegerSpec()), (secs, IntegerSpec(min_digits=2))]
+    assert [call.source for call in translator.calls] == [register.COUNTDOWN]
 
 
 def test_connection_phrases_reads_nothing_but_its_translator():

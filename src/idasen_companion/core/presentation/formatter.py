@@ -202,6 +202,27 @@ class Formatter:
         """The word for a transition's trigger wire value."""
         return words.trigger_label(self._context.translator, trigger)
 
+    def later_label(self) -> str:
+        """The stand-in for a snooze deadline not fetched yet."""
+        return words.later_label(self._context.translator)
+
+    def snooze_line(self, when_text: str) -> str:
+        """"Snoozed until 14:32", from an already-formatted clock string."""
+        return words.snooze_line(self._context.translator, when_text)
+
+    def due_now_label(self) -> str:
+        """Shown where a countdown would be, once it has run out."""
+        return words.due_now_label(self._context.translator)
+
+    def position_or_custom(self, position: str) -> str:
+        """The desk's position as a word, or "Custom" at neither preset."""
+        return words.position_or_custom(self._context.translator, position)
+
+    def countdown(self, seconds: float) -> str:
+        """A running countdown, e.g. 125 -> "2:05"."""
+        return words.countdown(
+            self._context.translator, self._context.locale, seconds)
+
     def day_label(self, key: str) -> str:
         """The short day name for a schedule day key ('mon' -> 'Lun')."""
         return words.day_label(self._context.translator, key)
