@@ -152,9 +152,9 @@ def test_a_redraw_formats_no_row_the_document_cannot_keep(page, monkeypatch):
     rendered_texts: list[str] = []
     real_render = log_catalog.render
 
-    def counting(msg_id, params, text):
+    def counting(msg_id, params, text, *, fmt):
         rendered_texts.append(text)
-        return real_render(msg_id, params, text)
+        return real_render(msg_id, params, text, fmt=fmt)
 
     monkeypatch.setattr(log_catalog, "render", counting)
     page._redraw()

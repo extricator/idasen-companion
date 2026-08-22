@@ -25,6 +25,7 @@ from typing import cast
 from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
 
 from ..core import logmsg
+from ..core.presentation.formatter import Formatter
 from ..core.logmsg import Param
 from .util import fmt_duration, fmt_height
 
@@ -59,15 +60,33 @@ def _state(value) -> str:
     return _tr(_STATE_WORDS.get(str(value), str(value)))
 
 
-FORMATTERS = {
-    Param.DURATION: lambda s: (_tr(_NOT_AVAILABLE) if s is None
-                               else fmt_duration(s)),
-    Param.HEIGHT: lambda h: (_tr(_NOT_AVAILABLE) if h is None
-                             else fmt_height(h)),
-    Param.STATE: _state,
-    Param.TEXT: lambda t: _tr(_NOT_AVAILABLE) if t is None else str(t),
-    Param.INT: lambda n: str(int(n)),
-}
+def build_formatters(  # pylint: disable=unused-argument
+        fmt: Formatter) -> dict:
+    """The per-``Param`` renderer table, built fresh for one render call.
+
+    A module-level dict would close over ``gui/util.py``'s bare functions
+    once, at import time, with no route to the caller's current
+    :class:`Formatter` — the same ambient-state trap D-07 closes for every
+    other GUI height/duration call site. Building it here instead means the
+    ``Param.DURATION``/``Param.HEIGHT`` entries can read ``fmt`` directly,
+    so a later plan can swap them onto ``fmt``'s own methods one line each
+    without touching this function's shape.
+
+    ``fmt`` is threaded through but not yet read: this commit changes
+    plumbing, not rendering, so the two entries below still call
+    ``gui/util.py``'s bare formatters. Plans 13-05 and 13-07 make ``fmt``
+    load-bearing when they swap the duration and height entries onto its
+    own methods.
+    """
+    return {
+        Param.DURATION: lambda s: (_tr(_NOT_AVAILABLE) if s is None
+                                   else fmt_duration(s)),
+        Param.HEIGHT: lambda h: (_tr(_NOT_AVAILABLE) if h is None
+                                 else fmt_height(h)),
+        Param.STATE: _state,
+        Param.TEXT: lambda t: _tr(_NOT_AVAILABLE) if t is None else str(t),
+        Param.INT: lambda n: str(int(n)),
+    }
 
 
 TEXTS = {
@@ -281,18 +300,23 @@ _FALLBACK_NOTES = {
 }
 
 
-def render(msg_id: str, params: dict, text: str) -> str:
+def render(msg_id: str, params: dict, text: str, *, fmt: Formatter) -> str:
     """The line to show for one log entry.
 
     ``text`` is the English the daemon already composed. It is the answer
     whenever this GUI doesn't recognize ``msg_id`` — an older client meeting a
     newer daemon, or a diagnostic line, which carries no id by design.
+
+    ``fmt`` is keyword-only so the previous positional call cannot silently
+    keep working with a wrong argument — every caller must now say
+    explicitly which :class:`Formatter` a duration or height in this line
+    renders through.
     """
     message = logmsg.get(msg_id)
     if message is None or msg_id not in TEXTS:
         return text
     return logmsg.render(
-        message, params, FORMATTERS,
+        message, params, build_formatters(fmt),
         text=_tr(TEXTS[msg_id]),
         cycle_note_text=_tr(CYCLE_NOTE),
         fallback_note=_tr(_FALLBACK_NOTES[msg_id])

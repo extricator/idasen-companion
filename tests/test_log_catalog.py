@@ -14,7 +14,22 @@ pytest.importorskip("PySide6.QtCore",
                     reason="GUI catalog needs PySide6")
 
 from idasen_companion.core import logmsg  # noqa: E402
+from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.formatter import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
+    PlainLocaleFormatter,
+)
+from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui import log_catalog  # noqa: E402
+
+
+def _formatter() -> Formatter:
+    context = PresentationContext(
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES)
+    return Formatter(context)
 
 
 def test_every_message_has_a_translatable_twin():
@@ -44,7 +59,24 @@ def test_every_fallback_note_has_a_twin():
 
 def test_the_gui_formats_every_parameter_kind():
     """A new Param kind with no GUI formatter would render as '?' at runtime."""
-    assert set(log_catalog.FORMATTERS) == set(logmsg.Param)
+    assert set(log_catalog.build_formatters(_formatter())) == set(logmsg.Param)
+
+
+def test_build_formatters_covers_every_param_the_journal_covers():
+    """The GUI's table and the journal's ``ENGLISH_FORMATTERS`` cannot drift
+    in *coverage* the same way the tests above already stop them drifting in
+    *text* — a ``Param`` member added to one without the other would render
+    ``?`` on whichever side got missed."""
+    assert (set(log_catalog.build_formatters(_formatter()))
+            == set(logmsg.ENGLISH_FORMATTERS))
+
+
+def test_render_requires_fmt():
+    """``fmt`` is keyword-only precisely so a caller cannot omit it and get a
+    stale or wrong renderer by accident -- omitting it must fail loudly."""
+    with pytest.raises(TypeError):
+        log_catalog.render("cycle.skipped", {"state": "sitting",
+                                             "next_target": 0}, "")
 
 
 def test_every_message_renders_in_the_gui():
@@ -57,31 +89,36 @@ def test_every_message_renders_in_the_gui():
         logmsg.Param.TEXT: "x",
         logmsg.Param.INT: 3,
     }
+    fmt = _formatter()
     for msg_id, message in logmsg.all_messages().items():
         params = {name: samples[kind] for name, kind in message.params.items()}
-        line = log_catalog.render(msg_id, params, "fallback")
+        line = log_catalog.render(msg_id, params, "fallback", fmt=fmt)
         assert line and "%(" not in line, f"{msg_id}: {line}"
 
 
 def test_an_unknown_id_falls_back_to_the_daemon_text():
     # An older GUI meeting a newer daemon shows the English it was sent
     # rather than nothing at all.
-    assert log_catalog.render("nope.not.here", {}, "English text") == "English text"
+    assert log_catalog.render(
+        "nope.not.here", {}, "English text", fmt=_formatter()) == "English text"
 
 
 def test_a_diagnostic_line_falls_back_to_its_text():
     # Diagnostic lines carry no id by design.
-    assert log_catalog.render("", {}, "BLE: connect failed") == "BLE: connect failed"
+    assert log_catalog.render(
+        "", {}, "BLE: connect failed", fmt=_formatter()) == "BLE: connect failed"
 
 
 def test_state_words_stay_lowercase_for_mid_sentence_use():
     line = log_catalog.render("cycle.skipped",
-                              {"state": "sitting", "next_target": 0}, "")
+                              {"state": "sitting", "next_target": 0}, "",
+                              fmt=_formatter())
     assert "staying sitting." in line
 
 
 def test_heights_render_in_centimetres_for_the_gui():
-    line = log_catalog.render("preset.saved", {"name": "desk", "height": 1.1}, "")
+    line = log_catalog.render("preset.saved", {"name": "desk", "height": 1.1}, "",
+                              fmt=_formatter())
     assert "110.0 cm" in line
 
 
@@ -89,9 +126,10 @@ def test_sub_minute_durations_stay_visible():
     """The GUI's minutes-and-hours format floored these to "0m" while the
     journal reported real seconds — and a lock reports an idle time near zero,
     so the disagreement was on screen routinely."""
-    line = log_catalog.render("presence.now_idle", {"idle_time": 0}, "")
+    fmt = _formatter()
+    line = log_catalog.render("presence.now_idle", {"idle_time": 0}, "", fmt=fmt)
     assert "0s" in line
-    line = log_catalog.render("presence.now_idle", {"idle_time": 45}, "")
+    line = log_catalog.render("presence.now_idle", {"idle_time": 45}, "", fmt=fmt)
     assert "45s" in line
-    line = log_catalog.render("presence.now_idle", {"idle_time": 3900}, "")
+    line = log_catalog.render("presence.now_idle", {"idle_time": 3900}, "", fmt=fmt)
     assert "1h 05m" in line

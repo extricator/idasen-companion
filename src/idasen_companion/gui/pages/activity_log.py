@@ -603,7 +603,7 @@ class ActivityLogPage(Page):
         label = "WARN" if level == "warning" else level.upper()
         pad = "&nbsp;" * (6 - len(label))
         message = log_catalog.render(entry["msg_id"], entry["params"],
-                                     entry["text"])
+                                     entry["text"], fmt=self.ctx.fmt)
         return (
             f'<span style="color:{css(tokens.muted)}">{stamp}</span>&nbsp;&nbsp;'
             f'<span style="color:{css(color)};font-weight:600">{label}</span>'
