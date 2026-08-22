@@ -26,7 +26,7 @@ are stable module functions that delegate to the current catalog, so importers
 (e.g. ``from ..core.i18n import _``) see language changes without
 re-importing.
 
-``daemon/i18n.py``'s ``human_delay`` reaches this catalog indirectly, through
+Every Qt-free caller reaches this catalog indirectly, through
 ``core/presentation/gettext_translator.py``'s ``GettextTranslator`` — see that
 module's docstring for the one deliberate exemption that lets a Translator
 backend delegate to this process-wide state at all.

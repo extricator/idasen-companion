@@ -50,13 +50,17 @@ from dataclasses import dataclass
 
 from .. import units
 from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
+from ..machine import DeskState
 from ..units import HeightUnit
 from . import words
 from .protocols import LocaleFormatter, Translator
 from .register import (
-    HEIGHT_CENTIMETRES, HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES,
-    HOURS_AND_MINUTES_COMPACT, MINUTES, MINUTES_COMPACT, PRESET_TICK,
-    SECONDS, SECONDS_COMPACT,
+    AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
+    HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT,
+    MINUTES, MINUTES_COMPACT, MOVE_FAILED_BODY, MOVE_FAILED_BODY_WITH_REASON,
+    MOVE_FAILED_SITTING, MOVE_FAILED_STANDING, PRESET_TICK, PRE_MOVE_BODY,
+    PRE_MOVE_SITTING, PRE_MOVE_STANDING, SECONDS, SECONDS_COMPACT,
+    SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
 from .specs import IntegerSpec, NumberSpec
 
@@ -202,6 +206,85 @@ class Formatter:
         """The word for a transition's trigger wire value."""
         return words.trigger_label(self._context.translator, trigger)
 
+    # ----- the daemon's desktop notifications ---------------------------
+    #
+    # Whole sentences, selected here rather than by the caller. The daemon
+    # used to hold both the desk-state branch and the substitution, which
+    # meant its notification wording was assembled locally in a process
+    # that could not be exercised by any shared test. These methods are
+    # what make "the daemon assembles no duration and no state wording"
+    # literally true at its call sites.
+
+    def pre_move_summary(self, to_state: DeskState, seconds: float) -> str:
+        """The pre-move warning's summary, e.g. "Standing up in about 5
+        minutes".
+
+        Takes the raw seconds rather than a rendered delay: rendering it
+        here is what leaves the caller with no duration to assemble. The
+        delay goes through :meth:`duration_verbose`, so a notification and
+        a tooltip cannot disagree about what "1 hour 5 minutes" looks like.
+
+        Each direction is a **whole sentence** with the delay substituted,
+        never a verb joined to a fragment. A translator has to be able to
+        move the delay relative to the words — and to choose different
+        words for rising and lowering — which a shared "%s in about %s"
+        shape would take away.
+        """
+        source = (PRE_MOVE_STANDING if to_state is DeskState.STANDING
+                  else PRE_MOVE_SITTING)
+        return self._context.translator.message(source) % \
+            self.duration_verbose(seconds)
+
+    def pre_move_body(self) -> str:
+        """The pre-move warning's body, under either summary."""
+        return self._context.translator.message(PRE_MOVE_BODY)
+
+    def snooze_action_label(self, minutes: int) -> str:
+        """The pre-move warning's snooze button, e.g. "Snooze 15 min"."""
+        return self._context.translator.message(SNOOZE_ACTION) % minutes
+
+    def skip_action_label(self) -> str:
+        """The pre-move warning's skip button."""
+        return self._context.translator.message(SKIP_ACTION)
+
+    def automation_paused_summary(self) -> str:
+        """Shown when the desk is parked at neither preset."""
+        return self._context.translator.message(AUTOMATION_PAUSED_SUMMARY)
+
+    def automation_paused_body(self) -> str:
+        """The body of the automation-paused notification."""
+        return self._context.translator.message(AUTOMATION_PAUSED_BODY)
+
+    def move_failed_summary(self, intended: DeskState) -> str:
+        """The failed-move summary, e.g. "The desk didn't stand up".
+
+        A **whole sentence** per direction, for the same reason
+        :meth:`pre_move_summary` is: a translator owns the word order, and
+        two languages do not negate a verb in the same place.
+        """
+        source = (MOVE_FAILED_STANDING if intended is DeskState.STANDING
+                  else MOVE_FAILED_SITTING)
+        return self._context.translator.message(source)
+
+    def move_failed_body(self, reason: str | None = None) -> str:
+        """The failed-move body, with the desk's reason when there is one.
+
+        ``reason`` is the daemon's own English diagnostic detail — it is
+        substituted, never translated, the same way a D-Bus error body is.
+        It is optional rather than defaulting to an empty string because
+        the daemon's own value genuinely is ``str | None``; treating
+        "absent" and "empty" alike here is what stops the caller having to
+        coerce one into the other before it can ask for a sentence.
+        """
+        translator = self._context.translator
+        if reason:
+            return translator.message(MOVE_FAILED_BODY_WITH_REASON) % reason
+        return translator.message(MOVE_FAILED_BODY)
+
+    def try_now_action_label(self) -> str:
+        """The failed-move notification's retry button."""
+        return self._context.translator.message(TRY_NOW_ACTION)
+
     def later_label(self) -> str:
         """The stand-in for a snooze deadline not fetched yet."""
         return words.later_label(self._context.translator)
@@ -245,8 +328,8 @@ class Formatter:
         Below :data:`~idasen_companion.core.durations.SUB_MINUTE_THRESHOLD_SECONDS`
         this renders the seconds count alone, floored to at least one
         second so a near-zero delay still reads as a duration rather than
-        "0 seconds" — the same floor ``daemon/i18n.py``'s ``human_delay``
-        applied on its own before this method absorbed it. At or above the
+        "0 seconds" — the floor the daemon's own notification helper
+        applied before this method absorbed it. At or above the
         threshold this decomposes into hours and minutes and, when both are
         present, nests two whole translated messages — one for the hours,
         one for the minutes — inside :data:`~.register.HOURS_AND_MINUTES`.

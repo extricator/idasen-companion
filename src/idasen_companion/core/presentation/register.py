@@ -131,6 +131,63 @@ STATUS_HEADS = {
     "move-failed": N_("Last move failed"),
 }
 
+# ----- the daemon's desktop notifications --------------------------------
+#
+# Whole sentences, not values dropped into a shape daemon/main.py assembles.
+# The summaries in particular are full sentences rather than a verb joined to
+# a fragment, which is what lets a translator control word order — the
+# reasoning daemon/main.py's own comments carried at both sites before these
+# moved here.
+#
+# Every source string below is carried over byte-for-byte from the literals
+# daemon/main.py passed to _() until this commit, so the extracted msgids
+# match what po/es.po already holds and the existing Spanish survives
+# msgmerge untouched. A single altered character loses it — note the
+# typographic apostrophes in "you're" and the three "didn't" strings.
+
+#: The pre-move warning's summary when the desk is about to rise. %s is a
+#: verbose delay, e.g. "1 hour 5 minutes".
+PRE_MOVE_STANDING = N_("Standing up in about %s")
+
+#: The pre-move warning's summary when the desk is about to lower.
+PRE_MOVE_SITTING = N_("Sitting down in about %s")
+
+#: The pre-move warning's body, under either summary.
+PRE_MOVE_BODY = N_("The desk will move once you're due.")
+
+#: The pre-move warning's snooze button. %d is a whole number of minutes.
+SNOOZE_ACTION = N_("Snooze %d min")
+
+#: The pre-move warning's skip button.
+SKIP_ACTION = N_("Skip this one")
+
+#: Shown when the desk is parked somewhere that is neither preset.
+AUTOMATION_PAUSED_SUMMARY = N_("Automation paused")
+
+#: The body of the same notification.
+AUTOMATION_PAUSED_BODY = N_("The desk was moved to an unrecognized position. "
+                            "It will resume once the desk is back at sit or "
+                            "stand.")
+
+#: The failed-move notification's summary when the desk should have risen.
+MOVE_FAILED_STANDING = N_("The desk didn't stand up")
+
+#: The failed-move notification's summary when it should have lowered.
+MOVE_FAILED_SITTING = N_("The desk didn't sit down")
+
+#: The failed-move body when the desk gave a reason. %s is that reason, in
+#: the daemon's English — diagnostic detail, not translated text.
+MOVE_FAILED_BODY_WITH_REASON = N_("It didn't respond (%s). The next change "
+                                  "is a whole interval away.")
+
+#: The failed-move body when no reason came back.
+MOVE_FAILED_BODY = N_("It didn't respond. The next change is a whole "
+                      "interval away.")
+
+#: The failed-move notification's retry button.
+TRY_NOW_ACTION = N_("Try now")
+
+
 # ----- what the daemon's D-Bus error *names* mean, in the reader's language --
 #
 # The daemon raises DBusError with an English body, and that body crosses the

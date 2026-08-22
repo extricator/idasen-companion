@@ -26,9 +26,9 @@ protocols on 3.11.12, 3.12.10 and 3.14.6 — not assumed from a changelog).
 The fallback is reached through a `getattr` probe, so the private call
 retires on its own once the project's floor rises past 3.13.
 
-The allowlists below are not meant to be static forever. Phase 13 adds a
-plural-aware member to `Translator` when `human_delay`'s duration formatting
-needs one, and that is a deliberate, reviewed edit to this file. What this
+The allowlists below are not meant to be static forever. Phase 13 added a
+plural-aware member to `Translator` when the notification delay's duration
+formatting needed one, and that is a deliberate, reviewed edit to this file. What this
 gate exists to make visible is the *other* kind of edit: widening an
 allowlist casually, in the middle of an unrelated change, to get something
 past the check rather than to declare a new capability on purpose.

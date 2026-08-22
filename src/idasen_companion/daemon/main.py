@@ -30,7 +30,7 @@ from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, MAX_HEIGHT, MIN_HEIGHT,
     load_config, save_config,
 )
-from ..core.i18n import _, set_language
+from ..core.i18n import set_language
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
     MoveFailed,
@@ -40,12 +40,15 @@ from ..core.machine import (
 )
 from ..core.migration import import_idasen_cli_config
 from ..core.presentation.english import format_duration_human
+from ..core.presentation.formatter import Formatter, PresentationContext
+from ..core.presentation.gettext_translator import GettextTranslator
+from ..core.presentation.plain_locale import PlainLocaleFormatter
+from ..core.units import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 
 from .bluez import merge_devices, parse_paired_desks
 from .dbus_util import DBusCallError, call
-from .i18n import human_delay
 from .idle import (
     IdleMonitor, LockMonitor, SEAT_BACKGROUND, SEAT_NONE, SEAT_UNKNOWN,
     SessionActiveMonitor,
@@ -84,6 +87,9 @@ class Daemon:
         # the annotation stops claiming a type the attribute does not yet hold.
         self.config: AppConfig
         self.desk: DeskPort
+        # Built from the config, so it cannot exist before `self.config`
+        # does -- see `_build_formatter` and its two call sites.
+        self.fmt: Formatter
         # The exception: `cycle_target` reads this to answer a D-Bus property
         # and guards on None, which needs the attribute to exist pre-`run`.
         self.machine: StateMachine = None  # type: ignore[assignment]
@@ -169,6 +175,49 @@ class Daemon:
         self._held_link_at_sleep = False
 
     # ----- setup -----
+
+    def _build_formatter(self, config: AppConfig) -> Formatter:
+        """The one place ``config`` becomes the daemon's :class:`Formatter`.
+
+        Shared by ``run()`` and :meth:`reload_config` so both construction
+        points read one expression rather than two copies of it — the same
+        shape ``gui/context.py``'s ``AppContext._build_formatter`` uses,
+        differing only in which locale backend it pairs with. The daemon
+        links no Qt, so this is the Qt-free pair.
+
+        **Why there are two catalogs, and what stays English on purpose.**
+        The notifications this formatter renders go through the ``gettext``
+        catalog, so a verbose delay translates — "2 minutes" / "30 seconds"
+        in the user's language. The journal's own lines do not: they render
+        through ``core/presentation/english.py`` and stay English and
+        greppable, because a log line is read by whoever is debugging it
+        rather than by whoever owns the desktop session. Two renderings of
+        the same duration policy, deliberately, and this is the one that
+        translates.
+
+        **A rebuild is for the unit, not the language.**
+        ``GettextTranslator`` looks the catalog up on every call, so the
+        ``set_language`` call beside each of this method's two call sites
+        already carries a language change through with no rebuilding at
+        all. What a reload actually has to refresh is the resolved height
+        unit, which is read once, here.
+
+        **One asymmetry worth writing down before it bites.** The GUI hands
+        ``resolve_height_unit`` a Qt-resolved locale name (``"es_ES"``),
+        because a bare catalog code carries no territory for
+        ``core/units.py`` to find. The daemon has no ``QLocale`` and passes
+        the raw ``[ui] language`` string, so a bare ``"es"`` falls through
+        to the POSIX-environ branch instead. That is unobservable today —
+        the daemon renders no height anywhere — and it is recorded here so
+        the first height-bearing notification does not discover it.
+        """
+        unit = resolve_height_unit(
+            UnitSetting(config.ui.units), language=config.ui.language,
+            environ=os.environ)
+        context = PresentationContext(
+            locale=PlainLocaleFormatter(), translator=GettextTranslator(),
+            unit=unit)
+        return Formatter(context)
 
     def _load_or_bootstrap_config(self) -> AppConfig:
         config = load_config(self.config_path)
@@ -602,6 +651,12 @@ class Daemon:
         # Localize notifications per the [ui] language setting (default
         # "system" = the daemon's environment locale).
         set_language(self.config.ui.language)
+        # Here rather than in __init__: `self.config` is assigned on the line
+        # above and does not exist before it, so building a config-derived
+        # formatter any earlier raises AttributeError at startup. The daemon
+        # still owns exactly one Formatter -- only the line it attaches to is
+        # later than it first looks.
+        self.fmt = self._build_formatter(self.config)
         self.activity_log.emit(logmsg.DAEMON_STARTING, version=__version__,
                        config=str(self.config_path))
         if self._unconfigured():
@@ -900,22 +955,16 @@ class Daemon:
         to_state = self.machine.state.opposite
         seconds = max(1, int(remaining))
         self._ifaces["automation"].PreMoveWarning(to_state.value, seconds)
-        delay = human_delay(seconds)
-        # Full sentences (not "verb" + fragment) so translators control word order.
-        if to_state is DeskState.STANDING:
-            summary = _("Standing up in about %s") % delay
-        else:
-            summary = _("Sitting down in about %s") % delay
         # Fire and forget: whether a popup was drawn is none of the control
         # loop's business, and awaiting the notification server here puts a
         # third-party GUI process on the critical path of every move.
         self._spawn(self._notifier.send(
-            summary,
-            _("The desk will move once you're due."),
+            self.fmt.pre_move_summary(to_state, seconds),
+            self.fmt.pre_move_body(),
             actions={
-                "snooze": (_("Snooze %d min") % SNOOZE_MINUTES,
+                "snooze": (self.fmt.snooze_action_label(SNOOZE_MINUTES),
                            lambda: self.snooze(SNOOZE_MINUTES)),
-                "skip": (_("Skip this one"), self.skip_next),
+                "skip": (self.fmt.skip_action_label(), self.skip_next),
             },
         ), "showing the pre-move warning")
 
@@ -971,9 +1020,8 @@ class Daemon:
             self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height)
             if self.config.notifications.enabled:
                 self._spawn(self._notifier.send(
-                    _("Automation paused"),
-                    _("The desk was moved to an unrecognized position. It will "
-                      "resume once the desk is back at sit or stand.")),
+                    self.fmt.automation_paused_summary(),
+                    self.fmt.automation_paused_body()),
                     "showing the automation-paused notification")
         elif isinstance(event, ResumedOnCycle):
             self.activity_log.emit(
@@ -1013,26 +1061,14 @@ class Daemon:
         # the lost interval something you choose to ignore rather than
         # something that happens to you. Its own field, not `enabled`: that one
         # announces what automation is about to *do*.
-        standing = event.intended is DeskState.STANDING
-        preset = "stand" if standing else "sit"
-        # Full sentences (not "verb" + fragment) so translators control word
-        # order.
-        if standing:
-            summary = _("The desk didn't stand up")
-        else:
-            summary = _("The desk didn't sit down")
-        if reason:
-            body = _("It didn't respond (%s). The next change is a "
-                     "whole interval away.") % reason
-        else:
-            body = _("It didn't respond. The next change is a whole "
-                     "interval away.")
+        preset = "stand" if event.intended is DeskState.STANDING else "sit"
         # Fire and forget, like the pre-move warning: whether a popup was drawn
         # is none of the control loop's business.
         self._spawn(self._notifier.send(
-            summary, body,
+            self.fmt.move_failed_summary(event.intended),
+            self.fmt.move_failed_body(reason),
             actions={"try-now": (
-                _("Try now"),
+                self.fmt.try_now_action_label(),
                 lambda: self._spawn(self._retry_failed_move(preset),
                                     "retrying the failed move"))},
         ), "showing the failed-move notification")
@@ -1253,6 +1289,7 @@ class Daemon:
                 new_config.automation.stand_variation))
         self.config = new_config
         set_language(new_config.ui.language)  # notifications follow the setting
+        self.fmt = self._build_formatter(new_config)
         self.machine.update_config(new_config,
                                    reroll_target=cycle_fields_changed)
         was_unconfigured = self.machine.unconfigured

@@ -136,6 +136,62 @@ msgid "Off-cycle"
 msgstr "Fuera de ciclo"
 
 #: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "Standing up in about %s"
+msgstr "De pie en aproximadamente %s"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "Sitting down in about %s"
+msgstr "Sentándose en aproximadamente %s"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "The desk will move once you're due."
+msgstr "El escritorio se moverá cuando corresponda."
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "Snooze %d min"
+msgstr "Posponer %d min"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Skip this one"
+msgstr "Omitir esta vez"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Automation paused"
+msgstr "Automatización en pausa"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid ""
+"The desk was moved to an unrecognized position. It will resume once the desk "
+"is back at sit or stand."
+msgstr ""
+"El escritorio se movió a una posición no reconocida. Se reanudará cuando "
+"vuelva a sentado o de pie."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "The desk didn't stand up"
+msgstr "El escritorio no subió"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "The desk didn't sit down"
+msgstr "El escritorio no bajó"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "It didn't respond (%s). The next change is a whole interval away."
+msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "It didn't respond. The next change is a whole interval away."
+msgstr "No respondió. El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Try now"
+msgstr "Intentar ahora"
+
+#: src/idasen_companion/core/presentation/register.py
 msgid ""
 "The desk did not respond. Check that it is powered and in range, then try "
 "again."
@@ -303,62 +359,6 @@ msgstr "No conectado · bajo demanda"
 #, python-format
 msgid "%(name)s · %(height)s"
 msgstr "%(name)s · %(height)s"
-
-#: src/idasen_companion/daemon/main.py
-#, python-format
-msgid "Standing up in about %s"
-msgstr "De pie en aproximadamente %s"
-
-#: src/idasen_companion/daemon/main.py
-#, python-format
-msgid "Sitting down in about %s"
-msgstr "Sentándose en aproximadamente %s"
-
-#: src/idasen_companion/daemon/main.py
-msgid "The desk will move once you're due."
-msgstr "El escritorio se moverá cuando corresponda."
-
-#: src/idasen_companion/daemon/main.py
-#, python-format
-msgid "Snooze %d min"
-msgstr "Posponer %d min"
-
-#: src/idasen_companion/daemon/main.py
-msgid "Skip this one"
-msgstr "Omitir esta vez"
-
-#: src/idasen_companion/daemon/main.py
-msgid "Automation paused"
-msgstr "Automatización en pausa"
-
-#: src/idasen_companion/daemon/main.py
-msgid ""
-"The desk was moved to an unrecognized position. It will resume once the desk "
-"is back at sit or stand."
-msgstr ""
-"El escritorio se movió a una posición no reconocida. Se reanudará cuando "
-"vuelva a sentado o de pie."
-
-#: src/idasen_companion/daemon/main.py
-msgid "The desk didn't stand up"
-msgstr "El escritorio no subió"
-
-#: src/idasen_companion/daemon/main.py
-msgid "The desk didn't sit down"
-msgstr "El escritorio no bajó"
-
-#: src/idasen_companion/daemon/main.py
-#, python-format
-msgid "It didn't respond (%s). The next change is a whole interval away."
-msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
-
-#: src/idasen_companion/daemon/main.py
-msgid "It didn't respond. The next change is a whole interval away."
-msgstr "No respondió. El próximo cambio tardará un intervalo completo."
-
-#: src/idasen_companion/daemon/main.py
-msgid "Try now"
-msgstr "Intentar ahora"
 
 #~ msgid "Toggle sit/stand"
 #~ msgstr "Alternar sentado/de pie"

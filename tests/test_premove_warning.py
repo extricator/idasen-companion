@@ -155,6 +155,10 @@ def warn_daemon(*, remaining, target=1500, status="active",
     # A real Status, not a MagicMock: _maybe_warn compares against
     # COUNTDOWN_STATUSES, and a stand-in matches nothing.
     d.machine.status.return_value = Status(status)
+    # A real Formatter, not a MagicMock: these tests assert on the rendered
+    # summary and body handed to the notifier, and __init__ is bypassed here
+    # so run()'s own _build_formatter never fires.
+    d.fmt = Daemon._build_formatter(d, d.config)
     d._warned_this_cycle = False
     d._ifaces = {"automation": MagicMock()}
     d._notifier = MagicMock()
