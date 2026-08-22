@@ -120,7 +120,7 @@ class OverviewPage(Page):
 
         rail_row = QHBoxLayout()
         rail_row.setSpacing(10)
-        self.height_rail = HeightRail(MIN_HEIGHT, MAX_HEIGHT)
+        self.height_rail = HeightRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
         self.height_rail.targetChanged.connect(self._on_rail_target)
         self.height_spin = QDoubleSpinBox()
         self._shape_height_spin()

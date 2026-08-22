@@ -159,8 +159,18 @@ def _drawn_texts(widget) -> list[str]:
     return texts
 
 
+def _widget_ctx() -> AppContext:
+    """A real ``AppContext``, so ``ctx.fmt`` renders through the same
+    ``QtLocaleFormatter``/``GettextTranslator`` pair the app builds --
+    these tests assert rendered text, so a fake ``Formatter`` would prove
+    nothing about what actually reaches the screen. The client is a bare
+    ``QObject``: these two widgets never call it, only ``AppContext``'s
+    constructor stores the reference."""
+    return AppContext(QObject(), tray_available=True)
+
+
 def test_range_rail_labels_its_presets_in_the_user_language(qapp):
-    rail = RangeRail(0.6, 1.2)
+    rail = RangeRail(0.6, 1.2, _widget_ctx())
     rail.resize(120, 300)
     rail.set_presets({"sit": 0.7, "stand": 1.1, "perch": 0.95})
     rail.set_height(0.7)  # exactly at "sit", so that tick shows the live height
@@ -177,7 +187,7 @@ def test_range_rail_labels_its_presets_in_the_user_language(qapp):
 
 
 def test_daily_chart_tooltip_is_translated(qapp):
-    chart = DailyBarsChart()
+    chart = DailyBarsChart(_widget_ctx())
     chart.set_rows([
         ("Mon 17", 3600, 1800, False),  # has data
         ("Tue 18", 0, 0, False),        # no data

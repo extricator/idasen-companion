@@ -98,7 +98,7 @@ class PresetsPage(Page):
         rail_card = Card()
         rail_card.setFixedWidth(156)
         rail_card.body.addWidget(section_label(self.tr("Range")))
-        self.range_rail = RangeRail(MIN_HEIGHT, MAX_HEIGHT)
+        self.range_rail = RangeRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
         rail_card.body.addWidget(self.range_rail, 1)
         layout.addWidget(rail_card)
 

@@ -70,7 +70,7 @@ class StatisticsPage(Page):
 
         restyle.register(self, _restyle_legend_dots)
         daily.body.addLayout(head)
-        self.daily_chart = DailyBarsChart()
+        self.daily_chart = DailyBarsChart(self.ctx)
         daily.body.addWidget(self.daily_chart)
         self.stats_footer = QLabel("")
 

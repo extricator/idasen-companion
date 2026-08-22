@@ -11,16 +11,18 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QSizePolicy, QStyle, QStyleOptionButton, QVBoxLayout,
-    QWidget,
+    QScrollArea, QSizePolicy, QStyle, QStyleOptionButton, QToolTip,
+    QVBoxLayout, QWidget,
 )
 
 from . import restyle
+from .context import AppContext
 from .theme import (
     BORDER_WIDTH, BUTTON_PADDING_H, BUTTON_PADDING_V, CONTROL_RADIUS,
     SURFACE_RADIUS, button_icon_gap, control_height, css, extra_icon_gap,
     theme,
 )
+from .util import fmt_height, fmt_hm, fmt_preset_tick, preset_label
 
 # paintEvent, sizeHint, mousePressEvent, mouseMoveEvent and mouseReleaseEvent
 # below are Qt virtual overrides, dispatched by name from Qt's C++
@@ -689,13 +691,19 @@ class HeightRail(QWidget):
     _TRACK_Y = 14      # track centerline
     _TRACK_H = 6
 
-    def __init__(self, min_height: float, max_height: float, parent: QWidget | None = None):
+    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+                 parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = min_height
         self._target = min_height
         self._dragging = False
         self._marks: list[tuple[str, float]] = []   # (label, meters)
+        # ctx, not a stored Formatter: AppContext.fmt is rebuilt on every
+        # config change, so paintEvent reads self.ctx.fmt at paint time
+        # rather than holding a snapshot that would keep painting the
+        # previous unit after the user switches it.
+        self.ctx = ctx
         self.setMinimumHeight(46)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -770,8 +778,6 @@ class HeightRail(QWidget):
             painter.drawRoundedRect(fill, 3, 3)
 
         # Preset ticks + labels under the track.
-        from .util import fmt_preset_tick
-
         small = painter.font()
         small.setPointSizeF(small.pointSizeF() * 0.82)
         painter.setFont(small)
@@ -805,11 +811,15 @@ class RangeRail(QWidget):
     _TRACK_X = 10
     MATCH = 0.0075  # meters within which the desk counts as "at" a preset
 
-    def __init__(self, min_height: float, max_height: float, parent: QWidget | None = None):
+    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+                 parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = 0.0
         self._presets: dict[str, float] = {}
+        # See HeightRail.__init__ for why this holds the context rather
+        # than a stored Formatter.
+        self.ctx = ctx
         self.setMinimumWidth(96)
         self.setMinimumHeight(180)
 
@@ -827,8 +837,6 @@ class RangeRail(QWidget):
         return self._PAD + _clamp01(frac) * span
 
     def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
-        from .util import fmt_height, fmt_height_value, fmt_preset_tick, preset_label
-
         tokens = theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -884,7 +892,7 @@ class RangeRail(QWidget):
             painter.setFont(bold)
             painter.setPen(tokens.accent_text)
             painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
-                       fmt_height_value(self._height))
+                       self.ctx.fmt.height_value(self._height))
         painter.end()
 
 
@@ -900,10 +908,13 @@ class DailyBarsChart(QWidget):
     SHARE_W = 44
     GAP = 2          # surface gap between the stacked segments
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, ctx: AppContext, parent: QWidget | None = None):
         super().__init__(parent)
         # rows: (label, sit_seconds, stand_seconds, is_today)
         self._rows: list[tuple[str, float, float, bool]] = []
+        # See HeightRail.__init__ for why this holds the context rather
+        # than a stored Formatter.
+        self.ctx = ctx
         self.setMouseTracking(True)
 
     # Already scheme-aware (branches on is_dark below) and called from
@@ -922,7 +933,6 @@ class DailyBarsChart(QWidget):
         self.update()
 
     def _tooltip_for(self, index: int) -> str:
-        from .util import fmt_hm
         label, sit, stand, _ = self._rows[index]
         if sit or stand:
             return self.tr("%(day)s: sitting %(sit)s, standing %(stand)s") % {
@@ -930,7 +940,6 @@ class DailyBarsChart(QWidget):
         return self.tr("%(day)s: no data") % {"day": label}
 
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name
-        from PySide6.QtWidgets import QToolTip
         index = int(event.position().y() // self.ROW_H)
         if 0 <= index < len(self._rows):
             QToolTip.showText(event.globalPosition().toPoint(),
