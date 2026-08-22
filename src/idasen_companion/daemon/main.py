@@ -1260,7 +1260,10 @@ class Daemon:
     def snooze(self, minutes: int) -> None:
         minutes = max(1, int(minutes))
         self.machine.snooze(minutes, time.time())
-        self.activity_log.emit(logmsg.AUTOMATION_SNOOZED, minutes=minutes)
+        # Param.DURATION is a seconds kind, so each side renders it with its
+        # own formatter rather than the sentence spelling out "minutes" itself.
+        self.activity_log.emit(
+            logmsg.AUTOMATION_SNOOZED, duration=minutes * 60)
         self._emit_automation_state()
 
     def reload_config(self) -> None:

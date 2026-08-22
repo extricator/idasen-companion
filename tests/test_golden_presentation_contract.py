@@ -239,6 +239,7 @@ ANCHORS: dict[str, object] = {
     "later_label": "later",
     "snooze_line": "Snoozed until 14:32",
     "due_now_label": "Due now",
+    "minutes_label": "5 minutes",
     "position_or_custom": "Standing",
     "countdown": "2:05",
     "day_label": "Mon",

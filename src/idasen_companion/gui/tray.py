@@ -111,7 +111,7 @@ class TrayIcon(QSystemTrayIcon):
             # loop variable, but only this one states that it is what it is
             # doing, and PySide6's addAction overloads stopped inferring the
             # lambda form in 6.11.2.
-            snooze_menu.addAction(self.tr("%n minute(s)", "", minutes),
+            snooze_menu.addAction(self._fmt().minutes_label(minutes),
                                   partial(client.snooze, minutes))
         # Hidden together when automation is off: all three act on a timer
         # that isn't running. The move actions above stay — they are the whole

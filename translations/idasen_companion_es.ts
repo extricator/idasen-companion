@@ -536,8 +536,8 @@
         <translation>Se omitirá el próximo cambio.</translation>
     </message>
     <message>
-        <source>Snoozed for %(minutes)s minutes.</source>
-        <translation>Pospuesto durante %(minutes)s minutos.</translation>
+        <source>Snoozed for %(duration)s.</source>
+        <translation>Pospuesto durante %(duration)s.</translation>
     </message>
     <message>
         <source>Manual move to %(target)s.</source>
@@ -1274,13 +1274,6 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
     <message>
         <source>Snooze</source>
         <translation>Posponer</translation>
-    </message>
-    <message numerus="yes">
-        <source>%n minute(s)</source>
-        <translation>
-            <numerusform>%n minuto</numerusform>
-            <numerusform>%n minutos</numerusform>
-        </translation>
     </message>
     <message>
         <source>Open window</source>

@@ -417,8 +417,8 @@ AUTOMATION_SKIP_NEXT = _m(Message(
 
 AUTOMATION_SNOOZED = _m(Message(
     id="automation.snoozed", level="info",
-    text="Snoozed for %(minutes)s minutes.",
-    params={"minutes": Param.INT}))
+    text="Snoozed for %(duration)s.",
+    params={"duration": Param.DURATION}))
 
 # ----- manual moves -----
 

@@ -37,7 +37,7 @@ from .register import (
     CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
     CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
     CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND, COUNTDOWN,
-    CUSTOM, DAY_NAMES, DAY_PAIR, DAY_RANGE, DUE_NOW, LATER, NO_DAYS,
+    CUSTOM, DAY_NAMES, DAY_PAIR, DAY_RANGE, DUE_NOW, LATER, MINUTES, NO_DAYS,
     POSITION_LABELS, PRESET_LABELS, SNOOZED_UNTIL, STATUS_HEADS,
     STATUS_LABELS, TRIGGER_LABELS,
 )
@@ -158,6 +158,22 @@ def snooze_line(translator: Translator, when_text: str) -> str:
 def due_now_label(translator: Translator) -> str:
     """Shown where a countdown would be, once it has run out."""
     return translator.message(DUE_NOW)
+
+
+def minutes_label(translator: Translator, count: int) -> str:
+    """The plural *word* for a count of minutes, e.g. 1 -> "1 minute",
+    5 -> "5 minutes" — selected by the catalog's own plural rule rather than
+    a Python ``count == 1`` check.
+
+    Deliberately narrower than :meth:`~.formatter.Formatter.duration_verbose`,
+    which this could otherwise be built from
+    (``duration_verbose(count * 60)``): that method decomposes into hours
+    and minutes, so a 60-minute value would render as "1 hour" — correct
+    for a duration, wrong here, where 60 is one of a fixed menu of minute
+    choices and must read as such. This function has no decomposition to
+    do, so it does none.
+    """
+    return translator.plural(*MINUTES, count) % count
 
 
 def position_or_custom(translator: Translator, position: str) -> str:

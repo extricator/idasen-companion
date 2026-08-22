@@ -95,6 +95,9 @@ SAMPLES: tuple[Sample, ...] = (
     Sample("later_label", "later_label", (), {}),
     Sample("snooze_line", "snooze_line", ("14:32",), {}),
     Sample("due_now_label", "due_now_label", (), {}),
+    # Not 1, so the singular form (covered by test_words.py's own dedicated
+    # assertion, not by this table) is never the row exercised here.
+    Sample("minutes_label", "minutes_label", (5,), {}),
     Sample("position_or_custom", "position_or_custom", ("standing",), {}),
     Sample("countdown", "countdown", (125,), {}),
     Sample("day_label", "day_label", ("mon",), {}),

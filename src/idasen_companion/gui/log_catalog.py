@@ -240,7 +240,7 @@ TEXTS = {
     "automation.skip_next": QT_TRANSLATE_NOOP(
         "LogMessage", "Next transition will be skipped."),
     "automation.snoozed": QT_TRANSLATE_NOOP(
-        "LogMessage", "Snoozed for %(minutes)s minutes."),
+        "LogMessage", "Snoozed for %(duration)s."),
     "manual.move": QT_TRANSLATE_NOOP(
         "LogMessage", "Manual move to %(target)s."),
     "manual.move_failed": QT_TRANSLATE_NOOP(

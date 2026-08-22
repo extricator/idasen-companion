@@ -298,6 +298,10 @@ class Formatter:
         """Shown where a countdown would be, once it has run out."""
         return words.due_now_label(self._context.translator)
 
+    def minutes_label(self, count: int) -> str:
+        """The plural word for a count of minutes, e.g. "5 minutes"."""
+        return words.minutes_label(self._context.translator, count)
+
     def position_or_custom(self, position: str) -> str:
         """The desk's position as a word, or "Custom" at neither preset."""
         return words.position_or_custom(self._context.translator, position)
