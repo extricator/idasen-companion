@@ -12,6 +12,16 @@ that make those calls resolve to the user's locale at startup:
 
 Everything degrades gracefully: a missing catalog just leaves the English
 source strings in place, so the app is fully functional untranslated.
+
+**The two catalogs, and the silent failure closed by ``apply_language``.**
+``core/i18n.py`` binds its own process-wide gettext catalog at import time
+from the POSIX environment (``set_language(SYSTEM)`` at that module's
+bottom), while :func:`install_translators` here binds Qt's catalog from
+``[ui] language``. Once the window renders shared messages through gettext
+too, a ``[ui] language = "es"`` on an English desktop would otherwise render
+half the window in each language, with both catalogs complete and no gate
+red. :func:`apply_language` binds both from the one config value, at every
+place the language is decided, so there is no second call to forget.
 """
 
 from __future__ import annotations
@@ -19,6 +29,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
+
+from ..core.i18n import set_language
 
 #: Base name of our compiled catalogs, e.g. ``idasen_companion_es.qm``.
 CATALOG = "idasen_companion"
@@ -98,3 +110,17 @@ def install_translators(app, language: str = SYSTEM) -> list[QTranslator]:
         installed.append(app_tr)
 
     return installed
+
+
+def apply_language(app, language: str = SYSTEM) -> list[QTranslator]:
+    """Bind BOTH catalogs to ``language`` — the Qt catalog and the shared
+    gettext catalog core-side code renders through.
+
+    One call for one operation, so a place that decides the language cannot
+    bind only one of the two catalogs by mistake — see the module docstring
+    for the failure this closes. :func:`install_translators` keeps its own
+    name and does only its own job — binding gettext there too would leave
+    its name no longer describing what it does.
+    """
+    set_language(language)
+    return install_translators(app, language)

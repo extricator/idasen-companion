@@ -22,7 +22,7 @@ from ..core.config import (
 )
 from . import appearance_portal, background_portal, restyle, util
 from .dbus_client import IFACE_DESK, DaemonClient
-from .i18n import install_translators
+from .i18n import apply_language
 from .main_window import MainWindow
 from .style import ControlStyle
 
@@ -175,7 +175,7 @@ def main() -> int:
         print(f"idasen-companion: {error}", file=sys.stderr)
         startup_cfg = AppConfig()
         config_ok = False
-    install_translators(application, startup_cfg.ui.language)
+    apply_language(application, startup_cfg.ui.language)
     # After the translators, which set the default QLocale that "system"
     # units resolve against; before any widget, since the height spin box is
     # shaped for its unit at construction. Kept current from here on by
