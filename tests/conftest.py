@@ -60,32 +60,6 @@ def no_real_subprocesses(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _restore_global_height_unit():
-    """Undo any test's mutation of gui/util.py's process-global height unit.
-
-    ``AppContext.__init__`` calls ``util.set_height_unit(cfg.ui.units)``, and
-    the shipped default is "system" — which, against the en_US default pinned
-    below, resolves to inches. So merely *constructing* an AppContext switched
-    every later test's height rendering to inches, permanently.
-
-    Nothing revealed it, because collection is alphabetical and the two
-    leakers happen to sort after their victims. The suite passed in file order
-    and failed 6 tests in reverse order; it would also have broken under
-    pytest-xdist, pytest-randomly, a -k filter, or simply a new test file whose
-    name sorts differently. Restoring here makes the suite order-independent by
-    construction rather than by luck.
-    """
-    try:
-        from idasen_companion.gui import util
-    except ImportError:
-        yield  # PySide6 not installed; the GUI tests importorskip themselves
-        return
-    previous = util._unit
-    yield
-    util._unit = previous
-
-
-@pytest.fixture(autouse=True)
 def _restore_the_application_style():
     """Undo any test's mutation of the session QApplication's style.
 

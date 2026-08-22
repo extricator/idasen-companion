@@ -52,8 +52,9 @@ from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from ..units import HeightUnit
 from .protocols import LocaleFormatter, Translator
 from .register import (
-    HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT, MINUTES,
-    MINUTES_COMPACT, SECONDS, SECONDS_COMPACT,
+    HEIGHT_CENTIMETRES, HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES,
+    HOURS_AND_MINUTES_COMPACT, MINUTES, MINUTES_COMPACT, PRESET_TICK,
+    SECONDS, SECONDS_COMPACT,
 )
 from .specs import IntegerSpec, NumberSpec
 
@@ -135,6 +136,37 @@ class Formatter:
         return self._context.locale.number(
             self.to_display_height(meters),
             NumberSpec(decimals=self.height_decimals(), trim_trailing_zeroes=trim))
+
+    def height(self, meters: float, trim: bool = False) -> str:
+        """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
+
+        One whole translated message per unit, with the formatted number
+        substituted in — so a language can order or space the unit
+        differently, rather than always number-then-suffix. Every height
+        the app renders goes through here or through :meth:`height_value`;
+        nothing converts on its own, which is what keeps the unit a single
+        decision rather than one per screen.
+        """
+        source = HEIGHT_INCHES if self.unit == HeightUnit.INCHES \
+            else HEIGHT_CENTIMETRES
+        return self._context.translator.message(
+            source, value=self.height_value(meters, trim))
+
+    def preset_tick(self, label: str, meters: float, trim: bool = False) -> str:
+        """A preset tick's name next to its height, e.g. "Sit · 110.5".
+
+        The one message every rail renders a preset tick through, so the
+        separator is a catalog entry a language can change, and two rails
+        cannot drift apart the way two identical ``f"{label} · {height}"``
+        call sites eventually would.
+
+        The height is deliberately the bare number from :meth:`height_value`,
+        not :meth:`height` — a rail names the unit once at the end of the
+        scale, which is why :meth:`height_value` exists at all, and why
+        this method is not built on :meth:`height` instead.
+        """
+        return self._context.translator.message(
+            PRESET_TICK, name=label, height=self.height_value(meters, trim))
 
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5

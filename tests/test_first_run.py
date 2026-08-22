@@ -60,7 +60,6 @@ def run_main(monkeypatch, qapp, *, mac, daemon_available,
     monkeypatch.setattr(gui_main, "load_config",
                         load_config or (lambda _p: cfg))
     monkeypatch.setattr(gui_main, "apply_language", lambda *a: None)
-    monkeypatch.setattr(gui_main.util, "set_height_unit", lambda _u: None)
     monkeypatch.setattr(gui_main.QDBusConnection, "sessionBus", staticmethod(lambda: bus))
     monkeypatch.setattr(gui_main, "DaemonClient", lambda: client)
     monkeypatch.setattr(gui_main.QSystemTrayIcon, "isSystemTrayAvailable",

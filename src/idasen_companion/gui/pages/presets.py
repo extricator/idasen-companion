@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
 from .. import restyle
 from ..theme import css, theme
-from ..util import PROTECTED_PRESETS, fmt_height, preset_label, suffix_height
+from ..util import PROTECTED_PRESETS, preset_label, suffix_height
 from ..widgets import (
     Card, RangeRail, ToolIconButton, card_scroll, clear_layout, emphasize,
     icon, pill, pill_css, section_label, segment_css, separator, tinted_icon,
@@ -133,7 +133,7 @@ class PresetsPage(Page):
                 lambda e=name_edit, n=name: self._rename_preset(n, e))
         height_row = QHBoxLayout()
         height_row.setSpacing(6)
-        height_label = QLabel(fmt_height(height))
+        height_label = QLabel(self.ctx.fmt.height(height))
 
         def _restyle_height_label(target: QLabel = height_label) -> None:
             target.setStyleSheet(
@@ -159,7 +159,8 @@ class PresetsPage(Page):
 
         move_btn = ToolIconButton(
             tinted_icon(icon("media-playback-start", "go-next"), theme().accent),
-            self.tr("Drive desk to %s") % fmt_height(height), fallback="▶")
+            self.tr("Drive desk to %s") % self.ctx.fmt.height(height),
+            fallback="▶")
 
         def _restyle_move_btn(target: ToolIconButton = move_btn) -> None:
             target.setIcon(tinted_icon(
@@ -242,7 +243,7 @@ class PresetsPage(Page):
         height = self._live_height
         # Without a height the button drops back to its plain label, rather
         # than keeping the last one it happened to be given.
-        text = (self.tr("+ New preset at %s") % fmt_height(height)
+        text = (self.tr("+ New preset at %s") % self.ctx.fmt.height(height)
                 if height > 0 else self.tr("+ New preset"))
         if self._new_at_btn.text() != text:
             self._new_at_btn.setText(text)
@@ -297,7 +298,7 @@ class PresetsPage(Page):
         if captured and isinstance(result, float):
             self._status_message(
                 self.tr("Preset '%s' set to %s.")
-                % (name, fmt_height(result)), 5000)
+                % (name, self.ctx.fmt.height(result)), 5000)
         else:
             QMessageBox.warning(
                 self, self.tr("Idasen Companion"),
@@ -321,7 +322,7 @@ class PresetsPage(Page):
             # The unit as a word, from the spin-box suffix so the two can
             # never disagree — its leading space is for setSuffix, which
             # inserts none, and is not wanted inside a sentence.
-            self.tr("Height (%s):") % suffix_height().strip(),
+            self.tr("Height (%s):") % suffix_height(fmt.unit).strip(),
             fmt.to_display_height(1.0),
             fmt.to_display_height(MIN_HEIGHT), fmt.to_display_height(MAX_HEIGHT),
             fmt.height_decimals())

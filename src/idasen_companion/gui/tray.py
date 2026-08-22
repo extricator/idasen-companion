@@ -21,8 +21,8 @@ from ..core.machine import (
 from ..core.presentation.formatter import Formatter
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
-from .util import (due_now_label, fmt_height, position_or_custom,
-                   preset_label, snooze_line, status_label)
+from .util import (due_now_label, position_or_custom, preset_label,
+                   snooze_line, status_label)
 
 SNOOZE_CHOICES = (5, 10, 15, 30, 60)
 
@@ -468,10 +468,11 @@ class TrayIcon(QSystemTrayIcon):
     def _rebuild_presets(self, presets: dict) -> None:
         self._presets = dict(presets)
         self._presets_menu.clear()
+        fmt = self._fmt()
         for name in sorted(presets):
             self._presets_menu.addAction(
                 self.tr("%s (%s)") % (preset_label(name),
-                                      fmt_height(presets[name])),
+                                      fmt.height(presets[name])),
                 partial(self._move, self.client.move_to_preset, name))
         self._presets_menu.setEnabled(bool(presets))
 

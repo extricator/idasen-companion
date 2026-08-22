@@ -133,16 +133,27 @@ _HEIGHT_METERS = 1.105
 _HEIGHT_METERS_WHOLE = 1.10
 
 
+def _height_formatter(unit: HeightUnit) -> Formatter:
+    # Same pair _duration_formatter() builds below (D-09), just parameterized
+    # on the unit under test rather than fixed at centimetres: each unit gets
+    # its own Formatter, per D-07, rather than a shared instance mutated
+    # through a process-global setter.
+    context = PresentationContext(
+        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        unit=unit)
+    return Formatter(context)
+
+
 def _height_cases() -> dict[str, str]:
     cases: dict[str, str] = {}
-    for unit in (util.CENTIMETRES, util.INCHES):
-        util.set_height_unit(unit)
-        cases[f"value_{unit}"] = util.fmt_height_value(_HEIGHT_METERS)
-        cases[f"value_trim_{unit}"] = util.fmt_height_value(
+    for unit in (HeightUnit.CENTIMETRES, HeightUnit.INCHES):
+        fmt = _height_formatter(unit)
+        cases[f"value_{unit}"] = fmt.height_value(_HEIGHT_METERS)
+        cases[f"value_trim_{unit}"] = fmt.height_value(
             _HEIGHT_METERS_WHOLE, trim=True)
-        cases[f"message_{unit}"] = util.fmt_height(_HEIGHT_METERS)
-        cases[f"suffix_{unit}"] = util.suffix_height()
-        cases[f"preset_tick_{unit}"] = util.fmt_preset_tick(
+        cases[f"message_{unit}"] = fmt.height(_HEIGHT_METERS)
+        cases[f"suffix_{unit}"] = util.suffix_height(unit)
+        cases[f"preset_tick_{unit}"] = fmt.preset_tick(
             "Sit", _HEIGHT_METERS, trim=True)
     return cases
 

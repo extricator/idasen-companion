@@ -20,7 +20,7 @@ from .. import APP_ID, DBUS_NAME, DBUS_PATH, __version__
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config,
 )
-from . import appearance_portal, background_portal, restyle, util
+from . import appearance_portal, background_portal, restyle
 from .dbus_client import IFACE_DESK, DaemonClient
 from .i18n import apply_language
 from .main_window import MainWindow
@@ -176,11 +176,6 @@ def main() -> int:
         startup_cfg = AppConfig()
         config_ok = False
     apply_language(application, startup_cfg.ui.language)
-    # After the translators, which set the default QLocale that "system"
-    # units resolve against; before any widget, since the height spin box is
-    # shaped for its unit at construction. Kept current from here on by
-    # AppContext (see gui/context.py).
-    util.set_height_unit(startup_cfg.ui.units)
     application.setApplicationDisplayName("Idasen Companion")
     application.setDesktopFileName(APP_ID)
 

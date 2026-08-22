@@ -28,7 +28,6 @@ from ..core.config import (
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import UnitSetting, resolve_height_unit
-from . import util
 from .dbus_client import DaemonClient
 from .i18n import apply_language, resolve_locale
 from .locale_backend import QtLocaleFormatter
@@ -95,7 +94,6 @@ class AppContext(QObject):
         except Exception as error:  # ConfigError — surface but keep the UI usable
             return str(error)
         apply_language(QApplication.instance(), self.cfg.ui.language)
-        util.set_height_unit(self.cfg.ui.units)
         self.fmt = self._build_formatter(self.cfg)
         self.configChanged.emit()
         return None
@@ -132,7 +130,6 @@ class AppContext(QObject):
         # response to configChanged has to see the unit — and, from here on,
         # the language — the same write chose.
         apply_language(QApplication.instance(), config.ui.language)
-        util.set_height_unit(config.ui.units)
         self.fmt = self._build_formatter(config)
         # Read-only consumers (footer, overview status) reflect the change.
         self.configChanged.emit()

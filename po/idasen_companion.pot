@@ -14,7 +14,7 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
@@ -57,6 +57,21 @@ msgstr ""
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
 msgid "%(seconds)ss"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(value)s cm"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(value)s in"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(name)s · %(height)s"
 msgstr ""
 
 #: src/idasen_companion/daemon/main.py

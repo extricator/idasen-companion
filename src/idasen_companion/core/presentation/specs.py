@@ -17,8 +17,9 @@ in the abstract:
   height cases — centimetres shown to one decimal, inches to two, because
   one inch (2.54 cm) is coarser than the desk's own millimetre resolution.
 - ``NumberSpec.trim_trailing_zeroes`` is the chart-label brevity
-  ``gui/util.py``'s ``fmt_number`` provides today through its ``trim``
-  argument: a whole value like ``110`` renders without a trailing ``.0``.
+  ``gui/util.py``'s ``fmt_number`` used to provide through its ``trim``
+  argument, before that function moved here: a whole value like ``110``
+  renders without a trailing ``.0``.
 - ``NumberSpec.grouping`` defaults to ``False`` because heights and
   durations never reach four digits in this app; a digit-group separator
   appearing there would be a locale mechanism answering a product question

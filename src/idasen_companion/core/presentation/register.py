@@ -80,3 +80,23 @@ MINUTES_COMPACT = N_("%(minutes)sm")
 #: :data:`HOURS_AND_MINUTES_COMPACT` above.
 SECONDS_COMPACT = N_("%(seconds)ss")
 
+#: A height shown in centimetres, e.g. "110.5 cm". Source string carried
+#: over byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``fmt_height``), so its existing Spanish survives the
+#: move between catalogs.
+HEIGHT_CENTIMETRES = N_("%(value)s cm")
+
+#: A height shown in inches, e.g. "43.50 in". Byte-identical to the
+#: existing ``util``-context source string — see :data:`HEIGHT_CENTIMETRES`
+#: above.
+HEIGHT_INCHES = N_("%(value)s in")
+
+#: A preset tick's name next to its live height, e.g. "Sit · 110.5".
+#: %(name)s is the preset's display name (already translated where it is
+#: "Sit"/"Stand"; a user's own preset name is shown verbatim), %(height)s
+#: the bare formatted number the rail already shows alongside it.
+#: Byte-identical to the existing ``util``-context source string — see
+#: :data:`HEIGHT_CENTIMETRES` above.
+PRESET_TICK = N_("%(name)s · %(height)s")
+

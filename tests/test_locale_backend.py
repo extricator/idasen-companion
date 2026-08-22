@@ -7,7 +7,11 @@ translation context fixed at construction). The comparison tests at the
 bottom are the pre-migration contract phases 13-15 must not move -- they
 assert the backend's output equals `gui/util.py`'s output for the same
 input, in both shipped languages, so nothing behind the seam is free to
-drift while the callers on top of it move across it.
+drift while the callers on top of it move across it. The number
+comparisons compare against `Formatter.height_value` rather than
+`gui/util.py`'s own number formatter now that plan 13-07 deleted it --
+`Formatter.height_value` is what carries that policy forward, so the
+comparison moves with it rather than being dropped.
 
 Skipped where PySide6 is missing, and forces the offscreen platform before
 any `QtWidgets` import -- see `tests/test_settings_form.py` for why both
@@ -44,7 +48,7 @@ from idasen_companion.gui.locale_backend import (  # noqa: E402
     QtLocaleFormatter, QtTranslator,
 )
 from idasen_companion.gui.util import (  # noqa: E402
-    fmt_clock, fmt_day_heading, fmt_day_label, fmt_number,
+    fmt_clock, fmt_day_heading, fmt_day_label,
 )
 
 
@@ -226,21 +230,34 @@ def util_locale(locale_code):
         QLocale.setDefault(previous)
 
 
-def test_number_matches_util_fmt_number_at_one_and_two_decimals(
+def test_number_matches_height_value_at_one_and_two_decimals(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
-    assert (formatter.number(110.5, NumberSpec(decimals=1))
-            == fmt_number(110.5, decimals=1))
-    assert (formatter.number(110.5, NumberSpec(decimals=2))
-            == fmt_number(110.5, decimals=2))
+    meters = 1.105
+    cm_fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
+    in_fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.INCHES))
+    assert (formatter.number(cm_fmt.to_display_height(meters),
+                             NumberSpec(decimals=1))
+            == cm_fmt.height_value(meters))
+    assert (formatter.number(in_fmt.to_display_height(meters),
+                             NumberSpec(decimals=2))
+            == in_fmt.height_value(meters))
 
 
-def test_number_matches_util_fmt_number_trim_case(
+def test_number_matches_height_value_trim_case(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
+    meters = 0.60  # 60 cm exactly, so the trim drops the ".0"
+    cm_fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
     spec = NumberSpec(decimals=1, trim_trailing_zeroes=True)
-    assert (formatter.number(60.0, spec)
-            == fmt_number(60.0, decimals=1, trim=True))
+    assert (formatter.number(cm_fmt.to_display_height(meters), spec)
+            == cm_fmt.height_value(meters, trim=True))
 
 
 def test_clock_matches_util_fmt_clock_morning_and_afternoon(

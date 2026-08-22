@@ -1401,7 +1401,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
     <name>util</name>
     <message>
         <source>Desk: connected</source>
-        <extracomment>The two height units, as stored in ``[ui] units`` (see core.config).</extracomment>
         <translation>Escritorio: conectado</translation>
     </message>
     <message>
@@ -1431,19 +1430,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
     <message>
         <source> cm</source>
         <translation> cm</translation>
-    </message>
-    <message>
-        <source>%(value)s in</source>
-        <translation>%(value)s pulg</translation>
-    </message>
-    <message>
-        <source>%(value)s cm</source>
-        <translation>%(value)s cm</translation>
-    </message>
-    <message>
-        <source>%(name)s · %(height)s</source>
-        <extracomment>A preset tick&apos;s name next to its live height, e.g. &quot;Sit · 110.5&quot;. %(name)s is the preset&apos;s display name (already translated where it is &quot;Sit&quot;/&quot;Stand&quot;; a user&apos;s own preset name is shown verbatim), %(height)s the bare formatted number the rail already shows alongside it.</extracomment>
-        <translation>%(name)s · %(height)s</translation>
     </message>
     <message>
         <source> min</source>

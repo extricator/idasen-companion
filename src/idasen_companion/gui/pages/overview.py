@@ -16,8 +16,8 @@ from .. import restyle
 from ..theme import css, theme
 from ..util import (
     PROTECTED_PRESETS, connection_state, due_now_label, fmt_countdown,
-    fmt_days, fmt_height, position_or_custom, preset_label, snooze_line,
-    status_head, status_label, suffix_height,
+    fmt_days, position_or_custom, preset_label, snooze_line, status_head,
+    status_label, suffix_height,
 )
 from ..widgets import (
     Card, ConnectionChip, HeightRail, StatusDot, emphasize, equal_height_row,
@@ -331,7 +331,7 @@ class OverviewPage(Page):
             spin.setRange(fmt.to_display_height(MIN_HEIGHT),
                           fmt.to_display_height(MAX_HEIGHT))
             spin.setSingleStep(fmt.height_step())
-            spin.setSuffix(suffix_height())
+            spin.setSuffix(suffix_height(fmt.unit))
             spin.setValue(fmt.to_display_height(self._target))
         finally:
             spin.blockSignals(False)
@@ -371,7 +371,7 @@ class OverviewPage(Page):
         if height <= 0:
             return
         self._height = height
-        self.height_label.setText(fmt_height(height))
+        self.height_label.setText(self.ctx.fmt.height(height))
         self.height_rail.set_height(height)
         # While idle the proposed target follows the desk; while moving,
         # or while the user is adjusting it, it stays put.
@@ -397,7 +397,7 @@ class OverviewPage(Page):
         # once at construction, so it needs telling.
         self._shape_height_spin()
         if self._height > 0:
-            self.height_label.setText(fmt_height(self._height))
+            self.height_label.setText(self.ctx.fmt.height(self._height))
         self.height_rail.update()
 
     def _update_connection_chip(self) -> None:

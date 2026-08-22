@@ -25,7 +25,6 @@ from idasen_companion.core.config import (  # noqa: E402
 )
 from idasen_companion.core import units as core_units  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
-from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
@@ -34,20 +33,6 @@ from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
 @pytest.fixture(scope="session")
 def qapp():
     return QApplication.instance() or QApplication([])
-
-
-@pytest.fixture(autouse=True)
-def restore_unit():
-    """Put the process-global unit back, whatever a test set it to.
-
-    It is module state by design (see ``gui/util``), so without this a test
-    that switches to inches silently re-renders every later test's heights.
-    """
-    previous = util.height_unit()
-    try:
-        yield
-    finally:
-        util.set_height_unit(previous)
 
 
 @pytest.fixture
@@ -62,77 +47,87 @@ def locale(request):
 
 
 # ---- resolving the setting ------------------------------------------------
-
-
-@pytest.mark.parametrize("setting", ["cm", "in"])
-@pytest.mark.parametrize("locale", ["en_US", "es_ES"], indirect=True)
-def test_an_explicit_unit_ignores_the_locale(setting, locale):
-    assert util.resolve_height_unit(setting) == setting
-
-
-@pytest.mark.parametrize("locale, expected", [
-    ("en_US", "in"),
-    # Qt calls the UK imperial, but a UK desk is sold in centimetres.
-    ("en_GB", "cm"),
-    ("es_ES", "cm"),
-    ("de_DE", "cm"),
-], indirect=["locale"])
-def test_system_follows_the_locale_with_the_uk_on_the_metric_side(
-        locale, expected):
-    assert util.resolve_height_unit("system") == expected
-
-
-# ---- Qt-free / Qt agreement ------------------------------------------------
 #
-# "system" resolution has two implementations for one phase: the Qt-based one
-# above, which the GUI keeps using this phase, and core.units's Qt-free one,
-# which PRES-06 (Phase 13) replaces it with. This is what makes that
-# replacement provably a no-op for the locales the product ships — see
-# core.units's module docstring for why the Qt-free policy answers `en_GB`
-# with centimetres even though Qt calls the UK imperial.
+# core.units.resolve_height_unit is the one place "system" resolves (D-07);
+# the Qt-based resolver gui/util.py used to carry is gone, on the evidence of
+# test_the_qt_free_resolver_agrees_with_the_qt_one, which passed before this
+# module deleted the resolver it compared against (see the plan's commit
+# message for the recorded result).
 
 
-@pytest.mark.parametrize("locale_name, expected", [
+@pytest.mark.parametrize("setting", [core_units.UnitSetting.CENTIMETRES,
+                                     core_units.UnitSetting.INCHES])
+@pytest.mark.parametrize("language", ["en_US", "es_ES"])
+def test_an_explicit_unit_ignores_the_locale(setting, language):
+    assert core_units.resolve_height_unit(
+        setting, language=language, environ={}) == core_units.HeightUnit(
+            setting.value)
+
+
+@pytest.mark.parametrize("language, expected", [
     ("en_US", core_units.HeightUnit.INCHES),
-    ("es_ES", core_units.HeightUnit.CENTIMETRES),
+    # core.units calls the UK metric, deliberately disagreeing with Qt's own
+    # measurementSystem() -- see core/units.py's module docstring.
     ("en_GB", core_units.HeightUnit.CENTIMETRES),
+    ("es_ES", core_units.HeightUnit.CENTIMETRES),
+    ("de_DE", core_units.HeightUnit.CENTIMETRES),
 ])
-def test_the_qt_free_resolver_agrees_with_the_qt_one(locale_name, expected):
-    previous = QLocale()
-    QLocale.setDefault(QLocale(locale_name))
-    try:
-        qt_answer = util.resolve_height_unit("system")
-    finally:
-        QLocale.setDefault(previous)
-
-    free_answer = core_units.resolve_height_unit(
-        core_units.UnitSetting.SYSTEM, language=locale_name, environ={})
-    assert free_answer == expected
-    assert free_answer.value == qt_answer
+def test_system_follows_the_locale_with_the_uk_on_the_metric_side(
+        language, expected):
+    assert core_units.resolve_height_unit(
+        core_units.UnitSetting.SYSTEM, language=language, environ={}) == expected
 
 
 # ---- the conversion itself ------------------------------------------------
 
 
+def _formatter(unit: core_units.HeightUnit):
+    from idasen_companion.core.presentation.english import EnglishTranslator
+    from idasen_companion.core.presentation.formatter import (
+        Formatter, PresentationContext,
+    )
+    from idasen_companion.core.presentation.plain_locale import (
+        PlainLocaleFormatter,
+    )
+
+    return Formatter(PresentationContext(
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=unit))
+
+
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_centimetres_render_as_before(locale):
-    util.set_height_unit("cm")
-    assert util.fmt_height(1.105) == "110.5 cm"
-    assert util.fmt_height_value(0.62, trim=True) == "62"
-    assert util.suffix_height() == " cm"
+    from idasen_companion.gui.util import suffix_height
+
+    fmt = _formatter(core_units.HeightUnit.CENTIMETRES)
+    assert fmt.height(1.105) == "110.5 cm"
+    assert fmt.height_value(0.62, trim=True) == "62"
+    assert suffix_height(core_units.HeightUnit.CENTIMETRES) == " cm"
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_inches_render_as_inches(locale):
-    util.set_height_unit("in")
-    assert util.fmt_height(1.105) == "43.50 in"
-    assert util.suffix_height() == " in"
+    from idasen_companion.gui.util import suffix_height
+
+    fmt = _formatter(core_units.HeightUnit.INCHES)
+    assert fmt.height(1.105) == "43.50 in"
+    assert suffix_height(core_units.HeightUnit.INCHES) == " in"
 
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
 def test_the_locale_still_owns_the_decimal_separator(locale):
-    util.set_height_unit("in")
-    assert util.fmt_height(1.105) == "43,50 in"
+    from idasen_companion.core.presentation.gettext_translator import (
+        GettextTranslator,
+    )
+    from idasen_companion.core.presentation.formatter import (
+        Formatter, PresentationContext,
+    )
+    from idasen_companion.gui.locale_backend import QtLocaleFormatter
+
+    fmt = Formatter(PresentationContext(
+        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        unit=core_units.HeightUnit.INCHES))
+    assert fmt.height(1.105).startswith("43,50")
 
 
 @pytest.mark.parametrize("unit", [core_units.HeightUnit.CENTIMETRES,
@@ -239,15 +234,14 @@ def test_the_settings_page_writes_the_chosen_unit(locale, ctx):
     assert load_config(context_mod.DEFAULT_CONFIG_PATH).ui.units == "in"
     # Applied to the running app, not just the file: this is the setting that
     # takes effect without a restart.
-    assert util.height_unit() == "in"
+    assert ctx.fmt.unit == core_units.HeightUnit.INCHES
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_overview_reshapes_its_spin_box_when_the_unit_changes(locale, ctx):
     # The page's spin box now reads its unit through ctx.fmt (PRES-06), not
-    # the process-global util._unit a bare set_height_unit() would move —
-    # start it from an explicit config write, the same path a real unit
-    # change takes.
+    # a process-global a bare set_height_unit() would move — start it from
+    # an explicit config write, the same path a real unit change takes.
     ctx.write_config(lambda cfg: setattr(cfg.ui, "units", "cm"))
     page = OverviewPage(ctx)
     page.client.heightChanged.emit(1.105)

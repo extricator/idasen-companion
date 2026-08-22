@@ -54,7 +54,7 @@ VALID_CLOSE_ACTIONS = ("tray", "quit")
 # units: how the GUI shows heights. A display setting only — heights are
 # metres in this config, in the state machine, in the stats DB and on the
 # D-Bus wire, whatever this says. "system" derives the unit from the desktop
-# locale (see gui/util.resolve_height_unit); "cm" and "in" pin it.
+# locale (see core/units.resolve_height_unit); "cm" and "in" pin it.
 # Derived from UnitSetting rather than restated as three strings, so the
 # validator and the type cannot drift apart; its value and order are the
 # same three strings this held before ("system", "cm", "in") and reach the

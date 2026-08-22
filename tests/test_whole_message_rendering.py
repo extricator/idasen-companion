@@ -36,9 +36,7 @@ from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
 from idasen_companion.gui.service_ctl import AutostartState  # noqa: E402
 from idasen_companion.gui.setup_wizard import SetupWizard  # noqa: E402
-from idasen_companion.gui.util import (  # noqa: E402
-    fmt_height, fmt_preset_tick, position_label, preset_label,
-)
+from idasen_companion.gui.util import position_label, preset_label  # noqa: E402
 from idasen_companion.gui.widgets import DailyBarsChart, RangeRail  # noqa: E402
 
 
@@ -170,7 +168,8 @@ def _widget_ctx() -> AppContext:
 
 
 def test_range_rail_labels_its_presets_in_the_user_language(qapp):
-    rail = RangeRail(0.6, 1.2, _widget_ctx())
+    ctx = _widget_ctx()
+    rail = RangeRail(0.6, 1.2, ctx)
     rail.resize(120, 300)
     rail.set_presets({"sit": 0.7, "stand": 1.1, "perch": 0.95})
     rail.set_height(0.7)  # exactly at "sit", so that tick shows the live height
@@ -179,7 +178,7 @@ def test_range_rail_labels_its_presets_in_the_user_language(qapp):
 
     # The live preset ("sit") renders through the shared tick message, with
     # its name already translated -- not the raw dict key.
-    assert fmt_preset_tick(preset_label("sit"), 0.7) in texts
+    assert ctx.fmt.preset_tick(preset_label("sit"), 0.7) in texts
     # The resting protected preset ("stand") is a bare translated label.
     assert preset_label("stand") in texts
     # A user-named preset is unaffected -- preset_label returns it verbatim.
@@ -263,10 +262,11 @@ def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
     # without touching the real systemd user manager.
     monkeypatch.setattr(service_ctl, "autostart_state",
                         lambda: AutostartState("enabled", True, ""))
-    wizard = SetupWizard(client=object(), ctx=_widget_ctx())
+    ctx = _widget_ctx()
+    wizard = SetupWizard(client=object(), ctx=ctx)
     wizard.usage_page.automatic.setChecked(True)
 
     paragraphs = wizard._success_paragraphs(0.75)  # pylint: disable=protected-access
 
     assert len(paragraphs) == 3
-    assert fmt_height(0.75) in paragraphs[0]
+    assert ctx.fmt.height(0.75) in paragraphs[0]

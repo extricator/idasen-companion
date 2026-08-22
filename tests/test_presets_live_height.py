@@ -58,11 +58,21 @@ def qapp():
 
 @pytest.fixture
 def page(qapp, tmp_path, monkeypatch):
+    config = AppConfig()
+    # Pinned explicitly rather than left at "system": the labels below are
+    # about the live-height marker, not about units, and "system" would
+    # otherwise resolve against the *real* machine's locale (core/units.py's
+    # resolver reads QLocale.system(), which tests/conftest.py's own locale
+    # pin does not reach), making these assertions depend on whatever $LANG
+    # the suite happens to run under.
+    config.ui.units = "cm"
     path = tmp_path / "config.toml"
-    save_config(AppConfig(), path)
+    save_config(config, path)
     monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
     client = FakeClient()
-    page = PresetsPage(AppContext(client, tray_available=True))
+    ctx = AppContext(client, tray_available=True)
+    ctx.reload_config()
+    page = PresetsPage(ctx)
     client.presetsChanged.emit(PRESETS)
     return page
 

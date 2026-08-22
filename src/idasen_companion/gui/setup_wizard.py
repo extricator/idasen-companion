@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
 from . import service_ctl
 from .context import AppContext
 from .dbus_client import DaemonClient
-from .util import fmt_height
 
 # validatePage, initializePage and isComplete below are QWizardPage virtual
 # overrides, dispatched by name from Qt's C++ meta-object machinery. Each
@@ -213,11 +212,10 @@ class SetupWizard(QWizard):
         self.setWindowTitle(self.tr("Idasen Companion setup"))
         self.client = client
         # Keyword-only, and stored rather than threaded through every page,
-        # matching gui/pages/base.py's Page. Nothing reads ``self.ctx.fmt``
-        # yet -- _success_paragraphs still calls gui/util.py's fmt_height --
-        # but once a call site does, reading it fresh at use time rather than
-        # snapshotting a Formatter is what lets a config change reach the
-        # next render of this page.
+        # matching gui/pages/base.py's Page. _success_paragraphs reads
+        # self.ctx.fmt fresh at use time rather than snapshotting a
+        # Formatter, which is what lets a config change reach the next
+        # render of this page.
         self.ctx = ctx
         self.addPage(WelcomePage(client))
         self.scan_page = ScanPage(client)
@@ -273,7 +271,7 @@ class SetupWizard(QWizard):
         """
         return [
             self.tr("Success! Your desk is set up and currently at "
-                    "%s.") % fmt_height(height),
+                    "%s.") % self.ctx.fmt.height(height),
             self._automation_note(),
             self._enable_autostart(),
         ]

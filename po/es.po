@@ -53,6 +53,21 @@ msgstr "%(minutes)s min"
 msgid "%(seconds)ss"
 msgstr "%(seconds)s s"
 
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(value)s cm"
+msgstr "%(value)s cm"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(value)s in"
+msgstr "%(value)s pulg"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(name)s · %(height)s"
+msgstr "%(name)s · %(height)s"
+
 #: src/idasen_companion/daemon/main.py
 #, python-format
 msgid "Standing up in about %s"

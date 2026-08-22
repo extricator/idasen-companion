@@ -1,11 +1,12 @@
 """Small GUI formatting helpers.
 
-Also the one place that knows what unit a height is *shown* in. Heights are
-metres everywhere else — config, state machine, stats DB, D-Bus wire — and
-become centimetres or inches only on their way to a widget. Nothing here
-takes the unit as an argument: it is process-global state set once from
-config, the same shape as the default ``QLocale`` that ``i18n`` installs, so
-a call site can format a height without being told which unit is in force.
+The height and duration renderers that once lived here now live under
+``core/presentation/``, reached through a :class:`~idasen_companion.core.presentation.formatter.Formatter`
+built onto an explicit unit (see ``gui/context.py``'s ``AppContext.fmt``) —
+nothing in this module reads a process-global unit any more (D-07). What
+stays here are the GUI-only spin-box suffix adapters (below), the words that
+have not moved yet (Phase 14/15), and the small non-Qt helpers those words
+still need.
 """
 
 from __future__ import annotations
@@ -17,19 +18,10 @@ from PySide6.QtCore import (
     QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
 )
 
-from ..core import units
 from ..core.units import HeightUnit
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
-
-#: The two height units, as stored in ``[ui] units`` (see core.config).
-CENTIMETRES = "cm"
-INCHES = "in"
-
-# Set by set_height_unit() at startup and on every config change. Centimetres
-# until then, so anything built before config is read still renders.
-_unit = CENTIMETRES  # pylint: disable=invalid-name  # mutable singleton, reassigned via `global` below, not a true constant
 
 
 def _tr(text: object) -> str:
@@ -87,128 +79,16 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
             _tr(QT_TRANSLATE_NOOP("util", "Not connected · on demand")))
 
 
-def fmt_number(value: float, decimals: int = 1, trim: bool = False) -> str:
-    """Locale-formatted decimal number ('110.5' -> '110,5' under es_ES).
-
-    Reads ``QLocale()`` — the default set by ``i18n.install_translators`` —
-    rather than taking a locale argument, so every call site gets the
-    desktop/config locale for free. ``trim`` drops a trailing ".0" (today's
-    `:g` brevity for the chart labels) without touching the locale's
-    ``zeroDigit()``/``decimalPoint()``, which a hand-rolled trim on the
-    formatted string would risk doing wrong for a non-Latin digit set.
-    """
-    value = float(value)
-    places = 0 if trim and value == int(value) else decimals
-    return QLocale().toString(value, "f", places)
-
-
-def resolve_height_unit(setting: str) -> str:
-    """A ``[ui] units`` value as a concrete unit, resolving ``"system"``.
-
-    Only US customary locales get inches. Qt reports the UK as imperial too,
-    but a UK desk is advertised, reviewed and sold in centimetres, so
-    following ``measurementSystem()`` literally there would hand most of
-    those users the unit they don't use. Either way this is a default the
-    Settings page can override for good.
-
-    Read from the effective ``QLocale()`` — the config language where one is
-    set, the desktop's otherwise — so the unit agrees with the decimal
-    separator printed next to it. Choosing a UI language therefore also moves
-    this default, which is the one case where the two questions come apart;
-    the explicit setting is the answer to it.
-    """
-    if setting in (CENTIMETRES, INCHES):
-        return setting
-    imperial_us = QLocale.MeasurementSystem.ImperialUSSystem
-    return INCHES if QLocale().measurementSystem() == imperial_us \
-        else CENTIMETRES
-
-
-def set_height_unit(setting: str) -> None:
-    """Adopt a ``[ui] units`` value for every height rendered from now on.
-
-    Called at startup and again whenever config changes — before
-    ``configChanged`` reaches the pages, so a page redrawing in response
-    already sees the new unit (see ``gui/context.py``).
-    """
-    global _unit
-    _unit = resolve_height_unit(setting)
-
-
-def height_unit() -> str:
-    """The unit heights are currently shown in (``"cm"`` or ``"in"``)."""
-    return _unit
-
-
-def fmt_height_value(meters: float, trim: bool = False) -> str:
-    """Locale-formatted height *number*, with no unit (1.105 -> '110.5').
-
-    For the places that draw the unit themselves or deliberately leave it off
-    — the rails label a tick with the bare number, having named the unit once
-    at the end of the scale. Everywhere else wants :func:`fmt_height`.
-
-    The conversion and decimal-count policy live in ``core/units.py``; this
-    module's own ``_unit`` — a plain ``"cm"``/``"in"`` string, not that
-    module's :class:`~idasen_companion.core.units.HeightUnit` — is converted
-    at the one call site that still needs it.
-    """
-    unit = HeightUnit(_unit)
-    return fmt_number(
-        units.to_display_height(meters, unit), units.height_decimals(unit), trim)
-
-
 @returns_translated
-def suffix_height() -> str:
+def suffix_height(unit: HeightUnit) -> str:
     """Translated height suffix for a spin box, leading space."""
     # QAbstractSpinBox.setSuffix does not insert a separating space itself,
     # so the leading space here is deliberate — do not strip it. This helper
     # (and suffix_minutes/suffix_seconds below) exists only for that spin-box
-    # API — nothing else should call it; reach for fmt_height instead.
-    if _unit == INCHES:
+    # API — nothing else should call it; reach for Formatter.height instead.
+    if unit == HeightUnit.INCHES:
         return _tr(QT_TRANSLATE_NOOP("util", " in"))
     return _tr(QT_TRANSLATE_NOOP("util", " cm"))
-
-
-@returns_translated
-def fmt_height(meters: float, trim: bool = False) -> str:
-    """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
-
-    One whole translated message per unit, with the formatted number
-    substituted in — so a language can order or space the unit differently,
-    rather than always number-then-suffix. Every height the GUI renders goes
-    through here or through :func:`fmt_height_value`; nothing converts on its
-    own. That is what keeps the unit a single decision rather than one per
-    screen.
-    """
-    value = fmt_height_value(meters, trim)
-    if _unit == INCHES:
-        return _tr(QT_TRANSLATE_NOOP("util", "%(value)s in")) % {"value": value}
-    return _tr(QT_TRANSLATE_NOOP("util", "%(value)s cm")) % {"value": value}
-
-
-#: A preset tick's name next to its live height, e.g. "Sit · 110.5".
-#: %(name)s is the preset's display name (already translated where it is
-#: "Sit"/"Stand"; a user's own preset name is shown verbatim), %(height)s
-#: the bare formatted number the rail already shows alongside it.
-_PRESET_TICK = QT_TRANSLATE_NOOP("util", "%(name)s · %(height)s")
-
-
-@returns_translated
-def fmt_preset_tick(label: str, meters: float, trim: bool = False) -> str:
-    """A preset tick's name next to its height, e.g. "Sit · 110.5".
-
-    The one message both rails render a preset tick through, so the
-    separator is a catalog entry a language can change, and the two rails
-    cannot drift apart the way two identical ``f"{label} · {height}"``
-    call sites eventually would.
-
-    The height is deliberately the bare number from :func:`fmt_height_value`,
-    not :func:`fmt_height` — the rails name the unit once at the end of the
-    scale, which is why :func:`fmt_height_value` exists at all, and why this
-    helper is not built on :func:`fmt_height` instead.
-    """
-    return _tr(_PRESET_TICK) % {
-        "name": label, "height": fmt_height_value(meters, trim)}
 
 
 @returns_translated
@@ -458,8 +338,9 @@ def fmt_day_and_clock(when: datetime) -> str:
     stops being a Python literal — a language that separates a date from a
     time differently has no other way to say so. Neither fmt_day_label nor
     fmt_clock is itself a translated value (both format through QLocale and
-    carry no catalog entry, the same as fmt_height_value), so no mechanical
-    check can ever flag this site; it converts on that reasoning alone.
+    carry no catalog entry, the same as Formatter.height_value), so no
+    mechanical check can ever flag this site; it converts on that reasoning
+    alone.
     """
     return _tr(QT_TRANSLATE_NOOP("util", "%(day)s %(clock)s")) % {
         "day": fmt_day_label(when), "clock": fmt_clock(when)}

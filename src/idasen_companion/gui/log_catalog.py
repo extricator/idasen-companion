@@ -29,7 +29,6 @@ from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
 from ..core import logmsg
 from ..core.presentation.formatter import Formatter
 from ..core.logmsg import Param
-from .util import fmt_height
 
 _CONTEXT = "LogMessage"
 
@@ -65,21 +64,17 @@ def _state(value) -> str:
 def build_formatters(fmt: Formatter) -> dict:
     """The per-``Param`` renderer table, built fresh for one render call.
 
-    A module-level dict would close over ``gui/util.py``'s bare functions
-    once, at import time, with no route to the caller's current
-    :class:`Formatter` — the same ambient-state trap D-07 closes for every
-    other GUI height/duration call site. Building it here instead means the
-    ``Param.DURATION``/``Param.HEIGHT`` entries can read ``fmt`` directly.
-
-    ``fmt`` renders the duration entry through its own ``duration`` method;
-    the height entry still calls ``gui/util.py``'s bare ``fmt_height`` --
-    that swap is a later plan's (PRES-06 covers height separately).
+    A module-level dict would close over a bare function once, at import
+    time, with no route to the caller's current :class:`Formatter` — the
+    same ambient-state trap D-07 closes for every other GUI height/duration
+    call site. Building it here instead means the ``Param.DURATION``/
+    ``Param.HEIGHT`` entries can read ``fmt`` directly.
     """
     return {
         Param.DURATION: lambda s: (_tr(_NOT_AVAILABLE) if s is None
                                    else fmt.duration(s)),
         Param.HEIGHT: lambda h: (_tr(_NOT_AVAILABLE) if h is None
-                                 else fmt_height(h)),
+                                 else fmt.height(h)),
         Param.STATE: _state,
         Param.TEXT: lambda t: _tr(_NOT_AVAILABLE) if t is None else str(t),
         Param.INT: lambda n: str(int(n)),

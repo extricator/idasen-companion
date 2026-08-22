@@ -22,7 +22,7 @@ from .theme import (
     SURFACE_RADIUS, button_icon_gap, control_height, css, extra_icon_gap,
     theme,
 )
-from .util import fmt_height, fmt_preset_tick, preset_label
+from .util import preset_label
 
 # paintEvent, sizeHint, mousePressEvent, mouseMoveEvent and mouseReleaseEvent
 # below are Qt virtual overrides, dispatched by name from Qt's C++
@@ -786,7 +786,7 @@ class HeightRail(QWidget):
             tick_x = self._x(meters)
             painter.setPen(QPen(tokens.muted, 1.4))
             painter.drawLine(QPointF(tick_x, track_y + 5), QPointF(tick_x, track_y + 11))
-            text = fmt_preset_tick(label, meters, trim=True)
+            text = self.ctx.fmt.preset_tick(label, meters, trim=True)
             text_width = metrics.horizontalAdvance(text)
             text_x = min(max(tick_x - text_width / 2, left - self._PAD + 2),
                          self.width() - text_width - 2)
@@ -860,7 +860,7 @@ class RangeRail(QWidget):
                                 (self._lo, self.height() - metrics.descent())):
             if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
                 continue
-            label = fmt_height(meters, trim=True)
+            label = self.ctx.fmt.height(meters, trim=True)
             painter.drawText(QPointF(self.width() - metrics.horizontalAdvance(label),
                                label_y), label)
 
@@ -879,8 +879,8 @@ class RangeRail(QWidget):
             # protected presets must read the same words the Presets buttons
             # and the horizontal rail already use, not the raw config key —
             # do not reintroduce the bare `name` here.
-            text = (fmt_preset_tick(preset_label(name), meters) if at_preset
-                    else preset_label(name))
+            text = (self.ctx.fmt.preset_tick(preset_label(name), meters)
+                    if at_preset else preset_label(name))
             painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
                        text)
             live_shown = live_shown or at_preset

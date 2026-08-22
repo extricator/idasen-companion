@@ -30,19 +30,19 @@ from idasen_companion.core.presentation.formatter import (  # noqa: E402
 from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
     PlainLocaleFormatter,
 )
+from idasen_companion.core.presentation.specs import NumberSpec  # noqa: E402
 from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
-from idasen_companion.gui.util import (  # noqa: E402
-    fmt_day_heading, fmt_height, fmt_number,
-)
+from idasen_companion.gui.util import fmt_day_heading  # noqa: E402
 
 
-def _plain_formatter() -> Formatter:
+def _plain_formatter(unit: HeightUnit = HeightUnit.CENTIMETRES) -> Formatter:
     # English backend, not the Qt catalog -- these two assertions are about
     # the number/padding policy, not translation.
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=unit))
 
 
 @pytest.fixture(scope="session")
@@ -63,8 +63,8 @@ def locale(request):
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_english_locale_output_is_unchanged(locale):
-    assert fmt_height(1.105) == "110.5 cm"
     fmt = _plain_formatter()
+    assert fmt.height(1.105) == "110.5 cm"
     assert fmt.duration_hm(3900) == "1h 05m"
     assert fmt.duration_hm(240) == "4m"
     assert fmt.duration(45) == "45s"
@@ -72,14 +72,20 @@ def test_english_locale_output_is_unchanged(locale):
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
 def test_spanish_locale_uses_a_comma(locale):
-    assert "," in fmt_number(110.5)
-    assert fmt_height(1.105).startswith("110,5")
+    formatter = QtLocaleFormatter(QLocale())
+    assert "," in formatter.number(110.5, NumberSpec(decimals=1))
+    fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
+    assert fmt.height(1.105).startswith("110,5")
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_trim_drops_a_trailing_zero_decimal(locale):
-    assert fmt_number(60.0, 1, trim=True) == "60"
-    assert fmt_number(60.5, 1, trim=True) == "60.5"
+    formatter = QtLocaleFormatter(QLocale())
+    spec = NumberSpec(decimals=1, trim_trailing_zeroes=True)
+    assert formatter.number(60.0, spec) == "60"
+    assert formatter.number(60.5, spec) == "60.5"
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
