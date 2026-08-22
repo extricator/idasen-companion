@@ -20,12 +20,15 @@ Design goals for a user with zero prior setup:
 
 from __future__ import annotations
 
+import typing
+
 from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer, Qt
 from PySide6.QtWidgets import (
     QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
     QRadioButton, QVBoxLayout, QWizard, QWizardPage,
 )
 
+from ..core.presentation.formatter import Formatter
 from . import service_ctl
 from .context import AppContext
 from .dbus_client import DaemonClient
@@ -132,9 +135,31 @@ class ScanPage(QWizardPage):
             # the only useful thing to do here, so don't make the user do it.
             self._scan()
 
+    def _fmt(self) -> Formatter:
+        """The current :class:`Formatter`, read fresh from the wizard's
+        context rather than stored.
+
+        ``self.wizard().ctx.fmt`` is rebuilt on every config change, so
+        reading it here at use time — never caching it onto ``self`` — is
+        what lets a unit change reach the next render of this page instead
+        of keeping a stale one around. The same idiom
+        ``gui/tray.py``'s ``TrayIcon._fmt()`` uses.
+
+        ``self.wizard()`` is typed as the base ``QWizard``, which has no
+        ``ctx``; narrowed with :func:`typing.cast` to this module's own
+        ``SetupWizard`` rather than by widening ``ScanPage.__init__``. It
+        is non-``None`` and already a live ``SetupWizard`` at every call
+        site that reaches this: :meth:`_scan` runs only from
+        :meth:`initializePage` or the Scan button's ``clicked`` signal,
+        and both fire after ``SetupWizard.__init__`` has already called
+        ``self.addPage(self.scan_page)``.
+        """
+        return typing.cast("SetupWizard", self.wizard()).ctx.fmt
+
     def _scan(self) -> None:
         self.scan_btn.setEnabled(False)
-        self.scan_btn.setText(self.tr("Scanning… (about 10 s)"))
+        self.scan_btn.setText(self.tr("Scanning… (about %(duration)s)") % {
+            "duration": self._fmt().duration(10)})
         QCoreApplication.processEvents()
         try:
             devices = self.client.discover(8)

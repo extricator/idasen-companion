@@ -218,10 +218,6 @@
         <translation>Desactivado</translation>
     </message>
     <message>
-        <source>%d min</source>
-        <translation>%d min</translation>
-    </message>
-    <message>
         <source>plus up to</source>
         <translation>más un máximo de</translation>
     </message>
@@ -726,10 +722,6 @@ Prueba a ejecutar esto en una terminal:
         <translation>Omitir siguiente</translation>
     </message>
     <message>
-        <source>Snooze 10 min</source>
-        <translation>Posponer 10 min</translation>
-    </message>
-    <message>
         <source>Turn off</source>
         <translation>Desactivar</translation>
     </message>
@@ -758,8 +750,12 @@ Prueba a ejecutar esto en una terminal:
         <translation>la automatización se reanuda sola</translation>
     </message>
     <message>
-        <source>no input for %s min — the timer is paused</source>
-        <translation>sin actividad durante %s min — el temporizador está en pausa</translation>
+        <source>Snooze %(duration)s</source>
+        <translation>Posponer %(duration)s</translation>
+    </message>
+    <message>
+        <source>no input for %(idle)s — the timer is paused</source>
+        <translation>sin actividad durante %(idle)s — el temporizador está en pausa</translation>
     </message>
     <message>
         <source>switched to another user or console — the timer is paused until you&apos;re back</source>
@@ -928,8 +924,8 @@ Prueba a ejecutar esto en una terminal:
         <translation>Encontrado sin buscar — si este es tu escritorio, simplemente continúa.</translation>
     </message>
     <message>
-        <source>Scanning… (about 10 s)</source>
-        <translation>Buscando… (unos 10 s)</translation>
+        <source>Scanning… (about %(duration)s)</source>
+        <translation>Buscando… (unos %(duration)s)</translation>
     </message>
     <message>
         <source>Scan again</source>

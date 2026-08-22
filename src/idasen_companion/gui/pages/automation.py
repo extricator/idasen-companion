@@ -255,16 +255,23 @@ class AutomationPage(SettingsFormPage):
 
         ``zero_label`` names the 0 entry for rows where a word reads better
         than a number ("Check position every **Off**"). Rows whose label is
-        read *through* a connective leave it unset and get "0 min", because
-        "plus up to Off" is not a sentence.
+        read *through* a connective leave it unset and get "0m", because
+        "plus up to Off" is not a sentence. The zero case renders through
+        :meth:`~idasen_companion.core.presentation.formatter.Formatter.duration_hm`,
+        not :meth:`~idasen_companion.core.presentation.formatter.Formatter.duration`:
+        this combo offers a minute-granularity scale and its zero is the
+        "off" end of that scale, so it must read in the minutes shape
+        rather than the sub-minute value ``duration`` would otherwise
+        render for a zero seconds count.
+
+        Every other row renders through ``duration``, which keeps a
+        sub-minute value visible ("30s") instead of rounding it into a
+        minute count nobody chose — reachable only from a hand-edited or
+        test config, since every offered choice is itself a whole number
+        of minutes.
         """
-        if seconds == 0 and zero_label:
-            return zero_label
-        if seconds % 60 == 0:
-            return self.tr("%d min") % (seconds // 60)
-        # Sub-minute: only reachable from a hand-edited config or a test one,
-        # and shown as it really is ("30s") rather than rounded into a minute
-        # count the user never chose.
+        if seconds == 0:
+            return zero_label or self.ctx.fmt.duration_hm(seconds)
         return self.ctx.fmt.duration(seconds)
 
     def _fill_intervals(self, combo, choices, seconds: int,

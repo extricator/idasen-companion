@@ -30,6 +30,11 @@ from .base import Page
 _RESUMABLE_VALUES = frozenset(s.value for s in RESUMABLE_STATUSES)
 _COUNTDOWN_VALUES = frozenset(s.value for s in COUNTDOWN_STATUSES)
 
+# The snooze button's duration, in minutes. Read by both the button's label
+# and its click handler, so the two cannot drift apart from separately edited
+# literals.
+_SNOOZE_MINUTES = 10
+
 
 class OverviewPage(Page):
     def __init__(self, ctx):
@@ -280,8 +285,10 @@ class OverviewPage(Page):
         skip_btn.clicked.connect(self.client.skip_next)
         snooze_btn = QPushButton(
             icon("alarm", "chronometer", "clock", "appointment-soon"),
-            self.tr("Snooze 10 min"))
-        snooze_btn.clicked.connect(lambda: self.client.snooze(10))
+            self.tr("Snooze %(duration)s") % {
+                "duration": self.ctx.fmt.duration(_SNOOZE_MINUTES * 60)})
+        snooze_btn.clicked.connect(
+            lambda: self.client.snooze(_SNOOZE_MINUTES))
         # Deliberately not a stop/pause icon: this isn't a stronger Pause, it's
         # a different kind of thing — a durable preference rather than a
         # "not right now". No confirmation, since the state announces itself
@@ -443,10 +450,11 @@ class OverviewPage(Page):
             color, head = tokens.warning, snooze_line(self.client.snooze_until())
             reason = self.tr("automation resumes on its own")
         elif status == "user-idle":
-            mins = config.automation.idle_threshold // 60 if config else 10
+            idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
             reason = self.tr(
-                "no input for %s min — the timer is paused") % mins
+                "no input for %(idle)s — the timer is paused") % {
+                    "idle": self.ctx.fmt.duration(idle_seconds)}
         elif status == "away":
             color, head = tokens.muted, status_head(status)
             reason = self.tr(

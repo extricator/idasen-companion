@@ -90,7 +90,7 @@ def test_an_out_of_list_value_is_kept_rather_than_snapped(page):
     # rewrite the user's setting to 5 or 10 on the next Apply.
     assert _round_trip(page, 7 * 60) == 7 * 60
     assert page.sync_combo.currentData() == 7 * 60
-    assert page.sync_combo.currentText() == "7 min"
+    assert page.sync_combo.currentText() == "7m"
 
 
 def test_an_out_of_list_value_is_offered_in_sorted_position(page):
