@@ -171,6 +171,12 @@ def test_named_substitution_fills_every_slot(qapp):
     assert rendered == "1h 05m"
 
 
+def test_plural_substitutes_n_with_no_translator_installed(qapp):
+    translator = QtTranslator("util")
+    rendered = translator.plural("%n item(s)", "%n item(s)", 5)
+    assert rendered == "5 item(s)"
+
+
 @pytest.fixture
 def installed_spanish_catalog(qapp):
     """The shipped Spanish catalog, installed and torn down through the

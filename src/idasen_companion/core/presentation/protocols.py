@@ -20,11 +20,14 @@ completely. A capability the shared layer needs belongs on the protocol as
 an operation (``number``, ``time``, ...), not as a field a caller reads and
 formats itself.
 
-``Translator`` carries only ``message`` today, deliberately. A plural-aware
-member (``ngettext``-shaped) is a real, later need — ``human_delay``'s
-duration formatting selects a plural in Phase 13 — but it is added at the
-point of use rather than spec'd in speculatively here, so the protocol's
-shape is driven by a caller that actually exists.
+``Translator`` carries ``plural`` alongside ``message`` because plural-form
+selection is the catalog's decision, not Python's. gettext's ``ngettext``
+and Qt's ``%n`` mechanism each already know how many forms a language needs
+and which one a given count selects, so a three-form language (Polish,
+Russian) is a catalog change, never a code change to this protocol or its
+backends. A backend that instead chose between ``singular``/``plural`` with
+a bare ``count == 1`` in Python could only ever express English's own
+two-form rule.
 """
 
 from __future__ import annotations
@@ -57,4 +60,8 @@ class Translator(Protocol):
     """Looks up a translated message by source string."""
 
     def message(self, source: str, **values: object) -> str:
+        ...
+
+    def plural(self, singular: str, plural: str, count: int,
+               **values: object) -> str:
         ...

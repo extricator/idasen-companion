@@ -20,12 +20,15 @@ different shape from a translator backend delegating, on every call, to
 the catalog it exists to wrap: there is no earlier value to freeze, and a
 later ``set_language()`` call is visible on the next lookup. A second
 module under ``core/presentation/`` reaching for ``core.i18n``'s catalog
-would not get this exemption; this is the one place it's granted.
+would not get this exemption; this is the one place it's granted. Both of
+this class's lookups — the plain message and the plural selection — go
+through this same exemption; it is one reason, covering both calls into
+``core.i18n``, not two.
 """
 
 from __future__ import annotations
 
-from ..i18n import _
+from ..i18n import _, ngettext
 
 
 class GettextTranslator:
@@ -33,4 +36,9 @@ class GettextTranslator:
 
     def message(self, source: str, **values: object) -> str:
         text = _(source)  # exempt: the one process-wide catalog lookup
+        return text % values if values else text
+
+    def plural(self, singular: str, plural: str, count: int,
+               **values: object) -> str:
+        text = ngettext(singular, plural, count)  # exempt: see message()
         return text % values if values else text

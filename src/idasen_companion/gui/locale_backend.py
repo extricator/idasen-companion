@@ -115,3 +115,23 @@ class QtTranslator:
     def message(self, source: str, **values: object) -> str:
         rendered = QCoreApplication.translate(self._context, source)
         return rendered % values if values else rendered
+
+    def plural(
+            self, singular: str, plural: str, count: int,
+            **values: object) -> str:
+        """Looks up a plural message through Qt's ``%n`` mechanism.
+
+        ``plural`` is deliberately unused. Qt encodes every numerus form
+        under one ``%n``-bearing source entry rather than two separate
+        literals, so there is no Qt counterpart for a second string the
+        way gettext's ``ngettext(singular, plural, count)`` has one --
+        ``singular`` is used as that one ``%n``-templated source, and the
+        installed catalog's own numerus forms (or Qt's built-in fallback
+        where none is installed) decide which form ``count`` selects.
+        Consequently, a source handed to this method must carry ``%n``,
+        and the register's gettext-shaped ``%d`` pairs (D-06) are not
+        usable through this backend.
+        """
+        rendered = QCoreApplication.translate(
+            self._context, singular, None, count)
+        return rendered % values if values else rendered

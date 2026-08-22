@@ -43,3 +43,15 @@ def test_message_returns_spanish_for_a_bound_catalog():
     i18n.set_language("es")
     translator = GettextTranslator()
     assert translator.message("%d minute") == "%d minuto"
+
+
+def test_plural_selects_the_singular_form_under_the_untranslated_catalog():
+    i18n.set_language(i18n.SYSTEM)
+    translator = GettextTranslator()
+    assert translator.plural("%d minute", "%d minutes", 1) == "%d minute"
+
+
+def test_plural_selects_the_plural_form_under_the_untranslated_catalog():
+    i18n.set_language(i18n.SYSTEM)
+    translator = GettextTranslator()
+    assert translator.plural("%d minute", "%d minutes", 2) == "%d minutes"

@@ -96,6 +96,23 @@ class TranslatorCall:
     values: dict[str, object]
 
 
+@dataclass(frozen=True)
+class PluralCall:
+    """One call made to :meth:`FakeTranslator.plural`, in the order it happened.
+
+    Kept as its own record type rather than reusing :class:`TranslatorCall`
+    — a plural call carries a singular literal, a plural literal and a
+    count that ``message`` never sees, so folding it into the two-field
+    shape would either drop information or overload ``source`` with a
+    meaning it doesn't have elsewhere.
+    """
+
+    singular: str
+    plural: str
+    count: int
+    values: dict[str, object]
+
+
 class FakeTranslator:
     """Records every source key and substitution set it is asked to look
     up, and returns a marker naming both instead of a translation.
@@ -107,7 +124,15 @@ class FakeTranslator:
 
     def __init__(self) -> None:
         self.calls: list[TranslatorCall] = []
+        self.plural_calls: list[PluralCall] = []
 
     def message(self, source: str, **values: object) -> str:
         self.calls.append(TranslatorCall(source, dict(values)))
         return f"MSG({source!r}, {sorted(values.items())!r})"
+
+    def plural(self, singular: str, plural: str, count: int,
+               **values: object) -> str:
+        self.plural_calls.append(
+            PluralCall(singular, plural, count, dict(values)))
+        return (f"PLURAL({singular!r}, {plural!r}, {count!r}, "
+                f"{sorted(values.items())!r})")
