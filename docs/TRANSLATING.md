@@ -96,6 +96,34 @@ produce the first rows.
 |---|---|---|---|
 | _none yet_ | | | |
 
+### One catalog per concept
+
+A different failure than either section above: not the same string wanted
+twice, and not one concept split into two words, but one concept holding an
+entry in *both* catalogs at once, in two different shapes. A word for a
+length of time or a height belongs in exactly one place project-wide — the
+shared gettext catalog, inside the shared formatter under
+`core/presentation/`. The Qt `.ts` catalog keeps the *sentence* that word
+sits in, with a named slot for it, never the word itself.
+
+`tests/test_catalog_concept_overlap.py` measures this rather than leaving it
+to review. It reads the shared formatter's own vocabulary structurally, so
+it never needs updating by hand when that vocabulary grows, and it fails the
+moment a new site in the Qt catalog bakes one of those words back in beside
+a placeholder or a literal number, or spells one out on its own.
+
+If that check fires on a change you're making: rewrite the site as a whole
+message with a named slot, filled by the shared duration or height
+formatter (reached through the window's `AppContext.fmt` or the daemon's
+equivalent), the same way the six sites earlier in this milestone were
+converted. Do not add an exemption — an exemption is for a word that turns
+out to be a coincidental homonym of something else entirely, not for a
+genuine second copy of the same concept. The one standing exception is the
+trio of spin-box suffix helpers in `gui/util.py`: they keep their unit word
+because `QAbstractSpinBox`'s suffix API takes a plain string and inserts no
+separating space of its own, which the check's own exemption table names at
+the site.
+
 ## Prerequisites
 
 - PySide6 tools on `PATH`: `pyside6-lupdate`, `pyside6-lrelease`, and
