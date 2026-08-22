@@ -1459,38 +1459,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <translation>%(first)s, %(second)s</translation>
     </message>
     <message>
-        <source>Sitting</source>
-        <translation>Sentado</translation>
-    </message>
-    <message>
-        <source>Standing</source>
-        <translation>De pie</translation>
-    </message>
-    <message>
-        <source>automation</source>
-        <translation>automatización</translation>
-    </message>
-    <message>
-        <source>manual</source>
-        <translation>manual</translation>
-    </message>
-    <message>
-        <source>external</source>
-        <translation>externo</translation>
-    </message>
-    <message>
-        <source>setup</source>
-        <translation>configuración</translation>
-    </message>
-    <message>
-        <source>Sit</source>
-        <translation>Sentarse</translation>
-    </message>
-    <message>
-        <source>Stand</source>
-        <translation>Levantarse</translation>
-    </message>
-    <message>
         <source>%(day)s %(clock)s</source>
         <translation>%(day)s %(clock)s</translation>
     </message>

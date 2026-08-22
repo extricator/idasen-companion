@@ -215,50 +215,19 @@ def status_head(status: str) -> str:
     return words.status_head(GettextTranslator(), status)
 
 
-# The desk position wire values ("sitting"/"standing") shown as UI words.
-# Marked for extraction here; translated in position_label().
-POSITION_LABELS = {
-    "sitting": QT_TRANSLATE_NOOP("util", "Sitting"),
-    "standing": QT_TRANSLATE_NOOP("util", "Standing"),
-}
-
-
 @returns_translated
 def position_label(position: str) -> str:
     """Translated display word for a desk position wire value.
 
     Falls back to a capitalized copy for anything unrecognized, and "" for an
     empty/unknown position (callers substitute their own placeholder)."""
-    label = POSITION_LABELS.get(position)
-    if label is not None:
-        return _tr(label)
-    return position.capitalize() if position else ""
-
-
-# What caused a recorded transition, as stored in the stats DB's `trigger`
-# column and shown as a pill on the Statistics page. Marked here, translated
-# in trigger_label().
-TRIGGER_LABELS = {
-    "automation": QT_TRANSLATE_NOOP("util", "automation"),
-    "manual": QT_TRANSLATE_NOOP("util", "manual"),
-    "external": QT_TRANSLATE_NOOP("util", "external"),
-    "setup": QT_TRANSLATE_NOOP("util", "setup"),
-}
+    return words.position_label(GettextTranslator(), position)
 
 
 @returns_translated
 def trigger_label(trigger: str) -> str:
     """Translated word for a transition's trigger wire value."""
-    label = TRIGGER_LABELS.get(trigger)
-    return _tr(label) if label is not None else trigger
-
-
-# The two protected presets, shown as UI words. User-created presets are the
-# user's own words and are returned unchanged.
-PRESET_LABELS = {
-    "sit": QT_TRANSLATE_NOOP("util", "Sit"),
-    "stand": QT_TRANSLATE_NOOP("util", "Stand"),
-}
+    return words.trigger_label(GettextTranslator(), trigger)
 
 
 @returns_translated
@@ -266,12 +235,8 @@ def preset_label(name: str) -> str:
     """Display name for a preset.
 
     ``sit``/``stand`` are ours and translate; anything else the user named
-    themselves and is shown verbatim. Replaces ``name.capitalize()``, which
-    left the rail ticks and the tray submenu in English next to buttons that
-    were translated — the same preset labelled two ways on one screen.
-    """
-    label = PRESET_LABELS.get(name)
-    return _tr(label) if label is not None else name
+    themselves and is shown verbatim."""
+    return words.preset_label(GettextTranslator(), name)
 
 
 def fmt_day_label(when: datetime) -> str:

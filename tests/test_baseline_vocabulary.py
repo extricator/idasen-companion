@@ -261,13 +261,13 @@ def _position_cases() -> dict[str, str]:
 
 
 def _trigger_cases() -> dict[str, str]:
-    cases = {key: util.trigger_label(key) for key in util.TRIGGER_LABELS}
+    cases = {key: util.trigger_label(key) for key in register.TRIGGER_LABELS}
     cases["unknown"] = util.trigger_label("unknown-trigger")
     return cases
 
 
 def _preset_cases() -> dict[str, str]:
-    cases = {key: util.preset_label(key) for key in util.PRESET_LABELS}
+    cases = {key: util.preset_label(key) for key in register.PRESET_LABELS}
     cases["custom"] = util.preset_label("my-custom-preset")
     return cases
 

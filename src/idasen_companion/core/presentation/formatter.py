@@ -190,6 +190,18 @@ class Formatter:
         """The short Overview status head word for a status wire value."""
         return words.status_head(self._context.translator, status)
 
+    def position_label(self, position: str) -> str:
+        """The display word for a desk position wire value."""
+        return words.position_label(self._context.translator, position)
+
+    def preset_label(self, name: str) -> str:
+        """The display name for a preset; a user's own name is verbatim."""
+        return words.preset_label(self._context.translator, name)
+
+    def trigger_label(self, trigger: str) -> str:
+        """The word for a transition's trigger wire value."""
+        return words.trigger_label(self._context.translator, trigger)
+
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5
         minutes" / "59 minutes" / "30 seconds".

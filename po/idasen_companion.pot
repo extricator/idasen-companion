@@ -142,6 +142,38 @@ msgid "Off-cycle"
 msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Sitting"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Standing"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Sit"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Stand"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "automation"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "manual"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "external"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "setup"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Desk: connected"
 msgstr ""
 

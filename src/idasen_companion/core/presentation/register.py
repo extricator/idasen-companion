@@ -131,6 +131,49 @@ STATUS_HEADS = {
     "move-failed": N_("Last move failed"),
 }
 
+#: The desk position wire values shown as UI words, capitalised because
+#: they stand alone as a label or a noun.
+#:
+#: These are *not* the same concept as the journal's own state words, which
+#: are lowercase because they sit mid-sentence, and the two must never be
+#: aliased to one entry however identical they look in English. One Spanish
+#: word cannot serve both as an adjective and as the object of a
+#: preposition, and a merge that assumed otherwise had to be split back
+#: apart once already. The journal's set also renders through
+#: ``core/presentation/english.py`` rather than through a catalog at all —
+#: see ``docs/LOGGING.md``.
+#:
+#: Source strings carried over byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``position_label``), so their existing Spanish
+#: survives the move between catalogs.
+POSITION_LABELS = {
+    "sitting": N_("Sitting"),
+    "standing": N_("Standing"),
+}
+
+#: The two protected presets, shown as UI words. A third distinct rendering
+#: of the same two physical states: these are the verb-imperative form a
+#: button is labelled with, where :data:`POSITION_LABELS` is what the desk
+#: currently *is*. A user-created preset is the user's own words and never
+#: reaches this table. Byte-identical to the existing ``util``-context
+#: source strings — see :data:`POSITION_LABELS` above.
+PRESET_LABELS = {
+    "sit": N_("Sit"),
+    "stand": N_("Stand"),
+}
+
+#: What caused a recorded transition, as stored in the stats DB's
+#: ``trigger`` column and shown as a pill on the Statistics page. Lowercase
+#: because the pill reads as a tag, not a sentence. Byte-identical to the
+#: existing ``util``-context source strings — see :data:`POSITION_LABELS`.
+TRIGGER_LABELS = {
+    "automation": N_("automation"),
+    "manual": N_("manual"),
+    "external": N_("external"),
+    "setup": N_("setup"),
+}
+
 #: The sidebar footer line while the desk is connected. Source string carried
 #: over byte-for-byte from the ``util`` context of
 #: ``translations/idasen_companion_es.ts`` (the pre-migration home of

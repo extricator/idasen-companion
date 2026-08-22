@@ -37,7 +37,8 @@ from .register import (
     CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
     CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
     CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND,
-    STATUS_HEADS, STATUS_LABELS,
+    POSITION_LABELS, PRESET_LABELS, STATUS_HEADS, STATUS_LABELS,
+    TRIGGER_LABELS,
 )
 
 
@@ -93,3 +94,36 @@ def status_head(translator: Translator, status: str) -> str:
     Falls back to the raw status string for an unrecognized key."""
     source = STATUS_HEADS.get(status)
     return translator.message(source) if source is not None else status
+
+
+def position_label(translator: Translator, position: str) -> str:
+    """The display word for a desk position wire value.
+
+    Falls back to a capitalized copy for anything unrecognized, and ``""``
+    for an empty/unknown position (callers substitute their own
+    placeholder).
+    """
+    source = POSITION_LABELS.get(position)
+    if source is not None:
+        return translator.message(source)
+    return position.capitalize() if position else ""
+
+
+def preset_label(translator: Translator, name: str) -> str:
+    """The display name for a preset.
+
+    ``sit``/``stand`` are ours and translate; anything else the user named
+    themselves and is shown verbatim. Replaces ``name.capitalize()``, which
+    left the rail ticks and the tray submenu in English next to buttons
+    that were translated — the same preset labelled two ways on one screen.
+    """
+    source = PRESET_LABELS.get(name)
+    return translator.message(source) if source is not None else name
+
+
+def trigger_label(translator: Translator, trigger: str) -> str:
+    """The word for a transition's trigger wire value.
+
+    Falls back to the raw trigger string for an unrecognized key."""
+    source = TRIGGER_LABELS.get(trigger)
+    return translator.message(source) if source is not None else trigger

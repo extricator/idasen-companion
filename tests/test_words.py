@@ -103,6 +103,58 @@ def test_the_two_status_tables_share_their_wording_where_it_matches():
     assert shared == {"paused", "disabled", "move-failed"}
 
 
+@pytest.mark.parametrize("lookup,table", [
+    (words.position_label, register.POSITION_LABELS),
+    (words.preset_label, register.PRESET_LABELS),
+    (words.trigger_label, register.TRIGGER_LABELS),
+])
+def test_a_known_key_renders_its_own_register_entry(lookup, table):
+    translator = FakeTranslator()
+    for key, source in table.items():
+        assert lookup(translator, key) == FakeTranslator().message(source)
+
+
+def test_an_unknown_position_capitalizes_and_an_empty_one_is_blank():
+    """Two different fallbacks, both today's behaviour: an unrecognized
+    position is still worth showing capitalized, but an empty one renders
+    as nothing so a caller can substitute its own placeholder.
+    """
+    translator = FakeTranslator()
+    assert words.position_label(translator, "custom-spot") == "Custom-spot"
+    assert words.position_label(translator, "") == ""
+    assert translator.calls == []
+
+
+def test_an_unknown_trigger_falls_back_to_the_raw_wire_value():
+    translator = FakeTranslator()
+    assert words.trigger_label(translator, "nope") == "nope"
+    assert translator.calls == []
+
+
+def test_a_user_named_preset_is_returned_verbatim():
+    """Only the two protected presets are ours to translate. A user's own
+    preset name is their words and is never capitalized, translated or
+    otherwise touched.
+    """
+    translator = FakeTranslator()
+    assert words.preset_label(translator, "my desk") == "my desk"
+    assert words.preset_label(translator, "SIT") == "SIT"
+    assert translator.calls == []
+
+
+def test_the_three_sit_stand_renderings_are_three_separate_entries():
+    """`f3c2add` records a merge that was wrong for exactly this reason.
+    The desk's *state* as a label, the preset *button*'s imperative, and
+    the journal's lowercase mid-sentence adjective are three concepts that
+    happen to collide in English; Spanish needs three different words, so
+    they must stay three catalog entries. This pins the two that live in
+    the register apart from each other — the third is `gui/log_catalog.py`'s
+    and renders through the English-only backend, not through a catalog.
+    """
+    assert (set(register.POSITION_LABELS.values())
+            & set(register.PRESET_LABELS.values())) == set()
+
+
 def test_connection_phrases_reads_nothing_but_its_translator():
     """PRES-02 in miniature: the same key rendered through two different
     translators gives two different answers, so nothing here is reaching

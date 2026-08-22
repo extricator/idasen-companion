@@ -348,8 +348,21 @@ def _capture_language(language: str) -> dict[str, str]:
             previous_translators = set(app.findChildren(QTranslator))
             if language == "en":
                 QLocale.setDefault(QLocale("en_US"))
+                # No shipped catalog for "en" (it's the source language);
+                # this binds gettext's own fallback deterministically rather
+                # than inheriting whatever the surrounding environment set.
+                core_i18n.set_language("en")
             else:
-                i18n.install_translators(app, language)
+                # apply_language, not install_translators: the app's own
+                # main() binds BOTH catalogs, and this capture is meant to
+                # install exactly what a real run installs. Binding only the
+                # Qt half used to be indistinguishable, because every word
+                # this window renders came from the Qt catalog. It is not
+                # any more -- Phase 14 moves the vocabulary to gettext, and
+                # a Qt-only bind leaves every widget built before the first
+                # mid-walk config reload captured in English while the rest
+                # of the page is Spanish.
+                i18n.apply_language(app, language)
             try:
                 window = mw.MainWindow(FakeClient(), tray_available=True)
                 try:
