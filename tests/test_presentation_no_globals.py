@@ -82,14 +82,6 @@ _LOCALE_SETTING_CALLS = frozenset({
     "setlocale", "getlocale", "getdefaultlocale", "resetlocale",
 })
 
-#: A message-lookup or extraction-marker call name. A string literal handed
-#: to one of these under this package would be invisible to today's narrower
-#: extraction scope (D-08) — see `test_no_translatable_literal_appears_yet`
-#: below for the retirement note.
-_TRANSLATION_CALLS = frozenset({
-    "_", "ngettext", "gettext", "tr", "translate", "QT_TRANSLATE_NOOP",
-})
-
 
 def _parse(path: Path) -> ast.Module:
     return ast.parse(path.read_text(), filename=str(path))
@@ -197,30 +189,6 @@ def _process_wide_catalog_offenders(tree: ast.Module, path: Path) -> list[str]:
     return offenders
 
 
-def _translatable_literal_offenders(tree: ast.Module, path: Path) -> list[str]:
-    """A string literal passed to a translation marker or lookup call —
-    deliberately temporary (D-08). Retire this rule in Phase 13's CAT-05
-    commit, the one that widens `scripts/build-translations.sh`'s extraction
-    scope to cover this package: before that commit a marked literal landing
-    here would be extracted by nothing and no completeness gate would notice,
-    so today the only safe answer is that none may land here at all.
-    Deleting this rule earlier reopens that window; leaving it after CAT-05
-    lands merely forbids a call this package is then meant to make.
-    """
-    offenders = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        name = _call_name(node)
-        if name not in _TRANSLATION_CALLS:
-            continue
-        for arg in node.args:
-            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                offenders.append(
-                    f"{path.name}:{node.lineno}: {name}({arg.value!r})")
-    return offenders
-
-
 @pytest.mark.parametrize("path", _MODULES, ids=lambda p: p.name)
 def test_no_module_level_mutable_state(path):
     tree = _parse(path)
@@ -258,16 +226,6 @@ def test_no_unexempted_reach_for_the_process_wide_catalog(path):
     assert not offenders, (
         "only the named exemption may reach core/i18n.py's process-wide "
         "catalog: " + "; ".join(offenders))
-
-
-@pytest.mark.parametrize("path", _MODULES, ids=lambda p: p.name)
-def test_no_translatable_literal_appears_yet(path):
-    tree = _parse(path)
-    offenders = _translatable_literal_offenders(tree, path)
-    assert not offenders, (
-        "this package's literals aren't in today's extraction scope, so a "
-        "marked one here would ship untranslated with nothing to notice: "
-        + "; ".join(offenders))
 
 
 def test_process_wide_catalog_exemption_has_exactly_one_named_reason():

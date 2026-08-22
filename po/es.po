@@ -12,19 +12,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/idasen_companion/daemon/i18n.py
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%d hour"
+msgid_plural "%d hours"
+msgstr[0] "%d hora"
+msgstr[1] "%d horas"
+
+#: src/idasen_companion/core/presentation/register.py
 #, python-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minuto"
 msgstr[1] "%d minutos"
 
-#: src/idasen_companion/daemon/i18n.py
+#: src/idasen_companion/core/presentation/register.py
 #, python-format
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d segundo"
 msgstr[1] "%d segundos"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(hours)s %(minutes)s"
+msgstr "%(hours)s y %(minutes)s"
 
 #: src/idasen_companion/daemon/main.py
 #, python-format

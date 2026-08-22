@@ -48,8 +48,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import units
+from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from ..units import HeightUnit
 from .protocols import LocaleFormatter, Translator
+from .register import HOURS, HOURS_AND_MINUTES, MINUTES, SECONDS
 from .specs import NumberSpec
 
 
@@ -130,3 +132,47 @@ class Formatter:
         return self._context.locale.number(
             self.to_display_height(meters),
             NumberSpec(decimals=self.height_decimals(), trim_trailing_zeroes=trim))
+
+    def duration_verbose(self, seconds: float) -> str:
+        """A verbose duration for notification prose, e.g. "1 hour 5
+        minutes" / "59 minutes" / "30 seconds".
+
+        Shares ``core/durations.py``'s decomposition and threshold with
+        every other duration renderer in the app (PRES-03's one policy),
+        but keeps its own verbose message set: this text lands inside a
+        notification sentence ("Desk will move in 1 hour 5 minutes"), where
+        the compact "1h 05m" the journal and the Activity Log use would
+        read as too terse.
+
+        Below :data:`~idasen_companion.core.durations.SUB_MINUTE_THRESHOLD_SECONDS`
+        this renders the seconds count alone, floored to at least one
+        second so a near-zero delay still reads as a duration rather than
+        "0 seconds" — the same floor ``daemon/i18n.py``'s ``human_delay``
+        applied on its own before this method absorbed it. At or above the
+        threshold this decomposes into hours and minutes and, when both are
+        present, nests two whole translated messages — one for the hours,
+        one for the minutes — inside :data:`~.register.HOURS_AND_MINUTES`.
+
+        That nesting is not a violation of the whole-message rule: it is
+        the exact shape ``gui/util.py``'s ``fmt_days``/``_DAY_PAIR`` already
+        uses and documents, whole labels substituted into a translated
+        pattern message, and ``tests/test_translation_markers.py``'s
+        concatenation check already accepts it — that check flags ``+``,
+        ``+=``, f-string interpolation and ``.join()``, never
+        ``%``-substitution into a catalog pattern. Both numbers still agree
+        correctly in any language, and the translator owns the separator
+        and the order as well as the words.
+        """
+        translator = self._context.translator
+        if seconds < SUB_MINUTE_THRESHOLD_SECONDS:
+            count = max(1, int(seconds))
+            return translator.plural(*SECONDS, count) % count
+        parts = decompose_hms(seconds)
+        if parts.hours and parts.minutes:
+            hours_part = translator.plural(*HOURS, parts.hours) % parts.hours
+            minutes_part = translator.plural(*MINUTES, parts.minutes) % parts.minutes
+            return translator.message(
+                HOURS_AND_MINUTES, hours=hours_part, minutes=minutes_part)
+        if parts.hours:
+            return translator.plural(*HOURS, parts.hours) % parts.hours
+        return translator.plural(*MINUTES, parts.minutes) % parts.minutes

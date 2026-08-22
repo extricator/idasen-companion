@@ -6,8 +6,10 @@
 #
 #   * GUI  — Qt Linguist. Sources: gui/**/*.py wrapped in tr()/translate().
 #            .ts (editable, committed) -> .qm (compiled, shipped).
-#   * daemon notifications — GNU gettext. Sources: daemon/*.py wrapped in _().
-#            .pot/.po (editable, committed) -> .mo (compiled, shipped).
+#   * daemon + core — GNU gettext. Sources: every *.py under the package
+#            except gui/, wrapped in _()/ngettext() (the daemon) or the
+#            marker functions in core/presentation/register.py (the shared
+#            layer). .pot/.po (editable, committed) -> .mo (compiled, shipped).
 #
 # Run after adding/changing user-facing strings, or to add a language. Adding
 # a language = add its code to LANGS below and re-run; then translate the new
@@ -60,20 +62,25 @@ for lang in "${LANGS[@]}"; do
         -qm "$PKG/gui/translations/idasen_companion_${lang}.qm"
 done
 
-# ---- Daemon notifications (GNU gettext) --------------------------------------
-daemon_sources=$(find "$PKG/daemon" -name '*.py' | sort)
+# ---- Daemon notifications + the shared presentation register (GNU gettext) --
+# Every source file under the package except gui/ — the GUI's strings are
+# extracted separately, above, into the Qt catalog. Widened from a
+# daemon/-only scan so the shared vocabulary under core/presentation/ is
+# reachable too; see core/presentation/register.py for the two marker
+# functions this scope now covers.
+core_sources=$(find "$PKG" -name '*.py' -not -path "$PKG/gui/*" | sort)
 
-echo ">> xgettext: extracting daemon strings -> po/idasen_companion.pot"
+echo ">> xgettext: extracting daemon and core strings -> po/idasen_companion.pot"
 # Filename-only location comments below, so lines added or removed above a
 # translatable string don't shift every `#:` comment in the file and churn
 # the diff on every run (deterministic output for GATE-02 CI).
 # shellcheck disable=SC2086
 xgettext --language=Python --from-code=UTF-8 \
-    --keyword=_ --keyword=ngettext:1,2 \
+    --keyword=_ --keyword=ngettext:1,2 --keyword=N_ --keyword=NP_:1,2 \
     --add-location=file \
     --package-name=idasen-companion \
     --msgid-bugs-address=https://github.com/extricator/idasen-companion/issues \
-    -o po/idasen_companion.pot $daemon_sources
+    -o po/idasen_companion.pot $core_sources
 
 # Pin the creation date: xgettext stamps the current time, which would churn
 # the diff on every run even with zero source changes (deterministic output

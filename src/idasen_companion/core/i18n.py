@@ -26,9 +26,10 @@ are stable module functions that delegate to the current catalog, so importers
 (e.g. ``from ..core.i18n import _``) see language changes without
 re-importing.
 
-``daemon/i18n.py``'s ``human_delay`` delegates to ``ngettext`` here but keeps
-its own two plural literals — see that module's docstring for why they didn't
-move with the rest of the machinery.
+``daemon/i18n.py``'s ``human_delay`` reaches this catalog indirectly, through
+``core/presentation/gettext_translator.py``'s ``GettextTranslator`` — see that
+module's docstring for the one deliberate exemption that lets a Translator
+backend delegate to this process-wide state at all.
 """
 
 from __future__ import annotations
