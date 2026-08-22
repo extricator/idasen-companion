@@ -206,13 +206,15 @@ LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
   `%(hours)s y %(minutes)s` — the conjunction Spanish uses where English
   keeps a bare space; match this terminology rather than inventing a second
   phrasing for the same duration vocabulary).
-- **Numbers and units:** render a height (or any other locale-sensitive
-  decimal) with `gui/util.py`'s `fmt_number()`, not an f-string — it reads the
-  default `QLocale` so `110.5` becomes `110,5` under `es`. Get a spin box's
-  unit suffix from `suffix_cm()`/`suffix_minutes()`/`suffix_seconds()` rather
-  than a literal `setSuffix(" cm")`, which is invisible to `lupdate` and to
-  every non-English user. Both live in the `util` catalog context, so a new
-  call site adds no new translation entry.
+- **Numbers and units:** render a height with `ctx.fmt.height()`, not an
+  f-string — it returns a whole translated message with the number rendered
+  by the context's own locale backend, so `110.5` becomes `110,5` under `es`
+  and the unit word comes from the gettext catalog. Get a spin box's unit
+  suffix from `gui/util.py`'s `suffix_height()`/`suffix_minutes()`/
+  `suffix_seconds()` rather than a literal `setSuffix(" cm")`, which is
+  invisible to `lupdate` and to every non-English user. Those three suffix
+  helpers live in the `util` catalog context, so a new call site adds no new
+  translation entry.
 - **A translatable unit is a whole message with its substitutions named, not
   a translated fragment joined to something else** with `+`, `+=`, an
   f-string, or `.join()` — a translator can't reorder pieces the code has

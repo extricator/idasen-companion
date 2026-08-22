@@ -6,7 +6,7 @@ through :meth:`~idasen_companion.core.presentation.formatter.Formatter.duration_
 own verbose message set kept because this text lands inside a notification
 *sentence* ("Desk will move in 1 hour 5 minutes") rather than the terse
 "1h 05m" shape the journal and the Activity Log render through
-:func:`idasen_companion.core.durations.format_duration_human`. See
+:func:`idasen_companion.core.presentation.english.format_duration_human`. See
 ``core/presentation/formatter.py`` for the merged policy and
 ``core/presentation/register.py`` for the marked constants it renders
 through.
@@ -23,8 +23,8 @@ from ..core.units import HeightUnit
 def human_delay(seconds: int) -> str:
     """A short, localized, correctly-pluralized delay for notifications.
 
-    Unlike ``core.durations.format_duration_human`` (English, shared with the
-    English-only journald/Activity-Log path), this renders through the
+    Unlike ``core.presentation.english.format_duration_human`` (English,
+    shared with the English-only journald path), this renders through the
     ``gettext`` catalog so "2 minutes" / "30 seconds" translate.
     """
     # A duration reads no unit; CENTIMETRES is stated explicitly rather than

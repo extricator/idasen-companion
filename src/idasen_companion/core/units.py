@@ -34,9 +34,10 @@ first of ``LC_ALL``, ``LC_MEASUREMENT``, ``LANG``, ``LANGUAGE`` present in
 ``environ`` that carries one. A territory of ``US`` or ``LR`` resolves to
 inches; everything else — including ``GB``, deliberately, because a UK desk
 is advertised, reviewed and sold in centimetres — resolves to centimetres.
-An absent or unparseable answer resolves to centimetres. This disagrees
-deliberately with the Qt-based resolver the GUI still uses this phase, which
-asks the desktop's own locale measurement system and calls the UK imperial.
+An absent or unparseable answer resolves to centimetres. This disagreed
+deliberately with the Qt-based resolver the GUI used to carry, which asked
+the desktop's own locale measurement system and called the UK imperial;
+that resolver is gone and this one now answers for both front ends.
 CLDR's own measurement-system field is coarser than this and is heading for
 deprecation; this is this project's own settled product default, which the
 Settings page can always override for good. The reasoning is settled and is

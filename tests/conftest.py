@@ -119,9 +119,9 @@ def _pin_timezone():
 def _pin_default_locale():
     """Pin QLocale's default to en_US for the whole run.
 
-    gui/util.py's fmt_number()/fmt_height() read QLocale() to render
-    decimals, so without this the builder's own $LANG leaks into their
-    output — test_log_catalog.py's "110.0 cm" assertion would only hold on
+    QtLocaleFormatter is built from QLocale() on every path that doesn't
+    name a language, so without this the builder's own $LANG leaks into a
+    rendered decimal — test_log_catalog.py's "110.0 cm" assertion would only hold on
     an English machine, and would silently fail the RPM's %check on a
     Spanish one. Guarded so the many non-Qt tests aren't made to depend on
     PySide6 being installed.
