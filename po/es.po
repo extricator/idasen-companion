@@ -300,6 +300,11 @@ msgid "%(first)s, %(second)s"
 msgstr "%(first)s, %(second)s"
 
 #: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(day)s %(clock)s"
+msgstr "%(day)s %(clock)s"
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Sitting"
 msgstr "Sentado"
 

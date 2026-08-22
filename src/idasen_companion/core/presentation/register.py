@@ -294,6 +294,16 @@ DAY_RANGE = N_("%(first)s–%(last)s")
 #: pattern folded left is the whole key set.
 DAY_PAIR = N_("%(first)s, %(second)s")
 
+#: A day plus a wall-clock time, e.g. "Mon 17 14:32". %(day)s and %(clock)s
+#: are both finished strings the caller renders through the locale backend
+#: before this pattern is applied — a language that separates a date from a
+#: time differently has no other way to say so. Source string carried over
+#: byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``fmt_day_and_clock``), so its existing Spanish
+#: survives the move between catalogs.
+DAY_AND_CLOCK = N_("%(day)s %(clock)s")
+
 #: The desk position wire values shown as UI words, capitalised because
 #: they stand alone as a label or a noun.
 #:

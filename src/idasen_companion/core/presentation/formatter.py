@@ -47,12 +47,13 @@ solved that on its own — PRES-06 did, by handing those widgets a
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from .. import units
 from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from ..machine import DeskState
 from ..units import HeightUnit
-from . import words
+from . import dates, words
 from .protocols import LocaleFormatter, Translator
 from .register import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
@@ -313,6 +314,45 @@ class Formatter:
     def fmt_days(self, days: list[str]) -> str:
         """A schedule's day list, with consecutive runs collapsed to ranges."""
         return words.fmt_days(self._context.translator, days)
+
+    # ----- the moment renderers: PRES-01's sanctioned divergence point ---
+    #
+    # These four ask the locale backend for a date/time *style* and never a
+    # pattern (see core/presentation/dates.py), which is what lets the
+    # Qt-free backend answer differently — a fixed ISO date rather than a
+    # weekday/month name table it would otherwise have to own itself.
+
+    def day_short(self, when: datetime) -> str:
+        """A short calendar day marker, e.g. "Mon 17" (Qt) / "2026-08-17"
+        (Qt-free).
+
+        Not to be confused with :meth:`day_label`, the unrelated
+        schedule-day-key word ('mon' -> 'Lun') — that collision is the
+        single most likely mistake at this site, which is why this method
+        is named ``day_short`` rather than reusing ``day_label``.
+        """
+        return dates.day_short(self._context.locale, when)
+
+    def day_heading(self, when: datetime) -> str:
+        """A full calendar date as a day-separator heading, e.g.
+        "Mon 17 Aug 2026" (Qt) / "2026-08-17" (Qt-free)."""
+        return dates.day_heading(self._context.locale, when)
+
+    def clock(self, when: datetime) -> str:
+        """The wall-clock render, e.g. "14:32" or, in a 12-hour locale,
+        "2:32 PM".
+
+        Also not to be confused with :meth:`day_label`, the unrelated
+        schedule-day-key word ('mon' -> 'Lun').
+        """
+        return dates.clock(self._context.locale, when)
+
+    def day_and_clock(self, when: datetime) -> str:
+        """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
+        translated message — see :mod:`.dates` for why the separating
+        space is a catalog entry rather than a Python literal."""
+        return dates.day_and_clock(
+            self._context.locale, self._context.translator, when)
 
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5

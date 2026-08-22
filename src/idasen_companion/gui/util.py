@@ -1,12 +1,16 @@
 """Small GUI formatting helpers.
 
-The height and duration renderers that once lived here now live under
-``core/presentation/``, reached through a :class:`~idasen_companion.core.presentation.formatter.Formatter`
+The height, duration, day and clock renderers that once lived here now live
+under ``core/presentation/``, reached through a :class:`~idasen_companion.core.presentation.formatter.Formatter`
 built onto an explicit unit (see ``gui/context.py``'s ``AppContext.fmt``) —
-nothing in this module reads a process-global unit any more (D-07). What
-stays here are the GUI-only spin-box suffix adapters (below), the words that
-have not moved yet (Phase 14/15), and the small non-Qt helpers those words
-still need.
+nothing in this module reads a process-global unit any more (D-07). Every
+formatter this app renders now has one implementation there; what stays
+here are the signature-unchanged forwarders that reach it, and the two
+permanent exceptions: ``connection_state``'s theme-colour pairing, which
+cannot live under ``core/`` because a theme is a Qt concept, and the three
+spin-box suffix adapters, which exist only because
+``QAbstractSpinBox.setSuffix`` takes a plain string and inserts no
+separating space of its own.
 """
 
 from __future__ import annotations
@@ -14,11 +18,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Callable, TypeVar, cast
 
-from PySide6.QtCore import (
-    QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
-)
+from PySide6.QtCore import QCoreApplication, QLocale, QT_TRANSLATE_NOOP
 
-from ..core.presentation import daemon_errors, words
+from ..core.presentation import daemon_errors, dates, words
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import HeightUnit
 from .locale_backend import QtLocaleFormatter
@@ -188,38 +190,30 @@ def preset_label(name: str) -> str:
 def fmt_day_label(when: datetime) -> str:
     """A day as "Mon 03", in the user's locale.
 
-    Python's ``strftime("%a %d")`` renders C-locale English regardless of the
-    app language or $LANG, because nothing calls ``locale.setlocale``. QLocale
-    is what every other user-visible value in this module goes through.
+    See ``core/presentation/dates.py``'s ``day_short`` for why this asks
+    the locale backend for a style rather than a ``strftime``-shaped
+    pattern.
     """
-    return QLocale().toString(QDate(when.year, when.month, when.day), "ddd dd")
+    return dates.day_short(QtLocaleFormatter(QLocale()), when)
 
 
 def fmt_day_heading(when: datetime) -> str:
     """A full calendar date as a day-separator heading, e.g. "Mon 17 Aug 2026".
 
-    QLocale supplies the weekday and month names in the user's language --
-    Python's ``strftime`` would render C-locale English regardless of the app
-    language or ``$LANG``, the same trap :func:`fmt_day_label` records above.
-    Nothing here is marked with ``tr()``/``QT_TRANSLATE_NOOP``, so this
-    introduces no translatable string and neither catalog gains an entry.
-
-    The field order is fixed by the format string and suits the shipped
-    languages (en, es); a locale that leads with the year would want
-    ``QLocale.FormatType.LongFormat`` instead, at the cost of the compact
-    shape this heading is written to match.
+    See ``core/presentation/dates.py``'s ``day_heading`` for why the field
+    order is fixed by its style. Nothing here is marked with
+    ``tr()``/``QT_TRANSLATE_NOOP``, so this introduces no translatable
+    string and neither catalog gains an entry.
     """
-    return QLocale().toString(
-        QDate(when.year, when.month, when.day), "ddd dd MMM yyyy")
+    return dates.day_heading(QtLocaleFormatter(QLocale()), when)
 
 
 def fmt_clock(when: datetime) -> str:
     """A wall-clock time in the user's locale, e.g. "14:32" or "2:32 PM".
 
-    Hardcoded ``%H:%M`` is wrong in a 12-hour locale.
+    See ``core/presentation/dates.py``'s ``clock``.
     """
-    return QLocale().toString(QTime(when.hour, when.minute),
-                              QLocale.FormatType.ShortFormat)
+    return dates.clock(QtLocaleFormatter(QLocale()), when)
 
 
 @returns_translated
@@ -229,13 +223,14 @@ def fmt_day_and_clock(when: datetime) -> str:
     Renders through one whole translated message so the separating space
     stops being a Python literal — a language that separates a date from a
     time differently has no other way to say so. Neither fmt_day_label nor
-    fmt_clock is itself a translated value (both format through QLocale and
-    carry no catalog entry, the same as Formatter.height_value), so no
-    mechanical check can ever flag this site; it converts on that reasoning
-    alone.
+    fmt_clock is itself a translated value (both format through the locale
+    backend and carry no catalog entry, the same as Formatter.height_value),
+    so no mechanical check can ever flag this site; it converts on that
+    reasoning alone. See ``core/presentation/dates.py``'s ``day_and_clock``
+    for the shared implementation.
     """
-    return _tr(QT_TRANSLATE_NOOP("util", "%(day)s %(clock)s")) % {
-        "day": fmt_day_label(when), "clock": fmt_clock(when)}
+    return dates.day_and_clock(
+        QtLocaleFormatter(QLocale()), GettextTranslator(), when)
 
 
 @returns_translated
@@ -272,9 +267,9 @@ def snooze_line(until: float) -> str:
     first render has no time to show.
 
     The shared implementation takes the *finished* clock text, so this is
-    where the wall-clock formatting happens. When the clock formatter moves
-    to the shared layer, only what fills that argument changes; the message
-    itself needs no second edit.
+    where the wall-clock formatting happens. Now that the clock formatter
+    has moved to the shared layer, only what fills that argument changed;
+    the message itself needed no second edit.
     """
     translator = GettextTranslator()
     when = (fmt_clock(datetime.fromtimestamp(until)) if until

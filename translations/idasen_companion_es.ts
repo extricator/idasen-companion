@@ -1415,9 +1415,5 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <source> s</source>
         <translation> s</translation>
     </message>
-    <message>
-        <source>%(day)s %(clock)s</source>
-        <translation>%(day)s %(clock)s</translation>
-    </message>
 </context>
 </TS>
