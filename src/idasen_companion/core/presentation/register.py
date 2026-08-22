@@ -63,3 +63,20 @@ SECONDS = NP_("%d second", "%d seconds")
 #: violation.
 HOURS_AND_MINUTES = N_("%(hours)s %(minutes)s")
 
+#: The compact hours-and-minutes duration, e.g. "1h 05m" — the journal's and
+#: the Activity Log's shared shape. Source string carried over byte-for-byte
+#: from the ``util`` context of ``translations/idasen_companion_es.ts`` (the
+#: pre-migration home of ``gui/util.py``'s ``fmt_hm``), so its existing
+#: Spanish survives the move between catalogs.
+HOURS_AND_MINUTES_COMPACT = N_("%(hours)sh %(minutes)sm")
+
+#: The compact minutes-only duration, e.g. "45m". Byte-identical to the
+#: existing ``util``-context source string — see
+#: :data:`HOURS_AND_MINUTES_COMPACT` above.
+MINUTES_COMPACT = N_("%(minutes)sm")
+
+#: The compact seconds-only duration, e.g. "45s". Byte-identical to the
+#: existing ``util``-context source string — see
+#: :data:`HOURS_AND_MINUTES_COMPACT` above.
+SECONDS_COMPACT = N_("%(seconds)ss")
+

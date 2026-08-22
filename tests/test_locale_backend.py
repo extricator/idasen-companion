@@ -28,18 +28,23 @@ import shiboken6  # noqa: E402
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.formatter import (  # noqa: E402
+    Formatter, PresentationContext,
+)
 from idasen_companion.core.presentation.protocols import (  # noqa: E402
     LocaleFormatter, Translator,
 )
 from idasen_companion.core.presentation.specs import (  # noqa: E402
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
 )
+from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui import i18n  # noqa: E402
 from idasen_companion.gui.locale_backend import (  # noqa: E402
     QtLocaleFormatter, QtTranslator,
 )
 from idasen_companion.gui.util import (  # noqa: E402
-    fmt_clock, fmt_day_heading, fmt_day_label, fmt_hm, fmt_number,
+    fmt_clock, fmt_day_heading, fmt_day_label, fmt_number,
 )
 
 
@@ -256,10 +261,13 @@ def test_date_matches_util_fmt_day_label_and_fmt_day_heading(
             == fmt_day_heading(when))
 
 
-def test_integer_matches_the_zero_padded_minutes_in_fmt_hm(
+def test_integer_matches_the_zero_padded_minutes_in_duration_hm(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
-    # fmt_hm(3900) is "1h 05m" -- the padded minute value is what
-    # QtLocaleFormatter.integer(min_digits=2) must reproduce.
-    assert fmt_hm(3900).endswith("05m")
+    # Formatter.duration_hm(3900) is "1h 05m" -- the padded minute value is
+    # what QtLocaleFormatter.integer(min_digits=2) must reproduce.
+    fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
+    assert fmt.duration_hm(3900).endswith("05m")
     assert formatter.integer(5, IntegerSpec(min_digits=2)) == "05"

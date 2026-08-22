@@ -38,6 +38,21 @@ msgstr[1] "%d segundos"
 msgid "%(hours)s %(minutes)s"
 msgstr "%(hours)s y %(minutes)s"
 
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(hours)sh %(minutes)sm"
+msgstr "%(hours)s h %(minutes)s min"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(minutes)sm"
+msgstr "%(minutes)s min"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(seconds)ss"
+msgstr "%(seconds)s s"
+
 #: src/idasen_companion/daemon/main.py
 #, python-format
 msgid "Standing up in about %s"

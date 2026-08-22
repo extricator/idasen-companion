@@ -5,9 +5,9 @@ from idasen_companion.core.durations import (
     DurationParts,
     decompose_hms,
     format_duration_compact,
-    format_duration_human,
     parse_duration,
 )
+from idasen_companion.core.presentation.english import format_duration_human
 from idasen_companion.core.units import UnitSetting
 
 
@@ -54,10 +54,15 @@ def test_compact_round_trip():
         assert parse_duration(format_duration_compact(seconds)) == seconds
 
 
-def test_format_human_matches_reference_style():
+def test_format_human_matches_the_activity_log_shape():
+    # D-01: the journal used to disagree with the Activity Log for the same
+    # Param.DURATION value ("45.0 minutes" / "30 seconds" here, "45m" there).
+    # It now renders the same compact shape.
     assert format_duration_human(None) == "N/A"
-    assert format_duration_human(30) == "30 seconds"
-    assert format_duration_human(2700) == "45.0 minutes"
+    assert format_duration_human(30) == "30s"
+    assert format_duration_human(2700) == "45m"
+    assert format_duration_human(3900) == "1h 05m"  # the hours split the
+    # journal's old style never had
 
 
 # ---- decompose_hms ---------------------------------------------------------

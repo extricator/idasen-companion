@@ -33,11 +33,21 @@ from datetime import date, datetime
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from types import SimpleNamespace  # noqa: E402
+
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.formatter import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
+    PlainLocaleFormatter,
+)
+from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -92,8 +102,26 @@ class FakeClient(QObject):
         return lambda *a, **kw: None
 
 
+class _NullSignal:
+    """Stands in for a Qt signal ``TrayIcon.__init__`` connects to, without
+    a real ``QObject`` behind it."""
+
+    def connect(self, *args, **kwargs):
+        pass
+
+
 class FakeWindow:
-    """No ``ctx``, so TrayIcon._action falls back to its defaults."""
+    """A ``ctx`` carrying only what ``TrayIcon`` reaches for -- ``cfg``
+    stays ``None`` so ``TrayIcon._action`` still falls back to its
+    defaults, exactly as it did before ``_fmt()`` had a caller."""
+
+    def __init__(self):
+        self.ctx = SimpleNamespace(
+            cfg=None,
+            configChanged=_NullSignal(),
+            fmt=Formatter(PresentationContext(
+                locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+                unit=HeightUnit.CENTIMETRES)))
 
 
 @pytest.fixture(scope="session")

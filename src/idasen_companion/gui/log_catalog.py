@@ -13,9 +13,11 @@ copies cannot drift silently, though: ``tests/test_log_catalog.py`` fails the
 build if an id, a parameter or a string differs between the two.
 
 Rendering differs from the daemon's on purpose. Same raw values, a different
-reader: the journal wants ``1.1000m`` and "45.0 minutes" (stable, greppable,
-the units the config speaks), the GUI wants ``110.0 cm`` and "45m" in the
-user's language, matching every other number on screen.
+reader: the journal wants ``1.1000m`` (stable, greppable, the units the
+config speaks) where the GUI wants ``110.0 cm`` in the user's language,
+matching every other number on screen. The duration itself now renders the
+same compact shape on both sides (PRES-03) — only the height keeps a
+second rendering.
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
 from ..core import logmsg
 from ..core.presentation.formatter import Formatter
 from ..core.logmsg import Param
-from .util import fmt_duration, fmt_height
+from .util import fmt_height
 
 _CONTEXT = "LogMessage"
 
@@ -60,27 +62,22 @@ def _state(value) -> str:
     return _tr(_STATE_WORDS.get(str(value), str(value)))
 
 
-def build_formatters(  # pylint: disable=unused-argument
-        fmt: Formatter) -> dict:
+def build_formatters(fmt: Formatter) -> dict:
     """The per-``Param`` renderer table, built fresh for one render call.
 
     A module-level dict would close over ``gui/util.py``'s bare functions
     once, at import time, with no route to the caller's current
     :class:`Formatter` — the same ambient-state trap D-07 closes for every
     other GUI height/duration call site. Building it here instead means the
-    ``Param.DURATION``/``Param.HEIGHT`` entries can read ``fmt`` directly,
-    so a later plan can swap them onto ``fmt``'s own methods one line each
-    without touching this function's shape.
+    ``Param.DURATION``/``Param.HEIGHT`` entries can read ``fmt`` directly.
 
-    ``fmt`` is threaded through but not yet read: this commit changes
-    plumbing, not rendering, so the two entries below still call
-    ``gui/util.py``'s bare formatters. Plans 13-05 and 13-07 make ``fmt``
-    load-bearing when they swap the duration and height entries onto its
-    own methods.
+    ``fmt`` renders the duration entry through its own ``duration`` method;
+    the height entry still calls ``gui/util.py``'s bare ``fmt_height`` --
+    that swap is a later plan's (PRES-06 covers height separately).
     """
     return {
         Param.DURATION: lambda s: (_tr(_NOT_AVAILABLE) if s is None
-                                   else fmt_duration(s)),
+                                   else fmt.duration(s)),
         Param.HEIGHT: lambda h: (_tr(_NOT_AVAILABLE) if h is None
                                  else fmt_height(h)),
         Param.STATE: _state,

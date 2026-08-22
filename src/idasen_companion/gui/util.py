@@ -253,40 +253,6 @@ def suffix_seconds() -> str:
     return _tr(QT_TRANSLATE_NOOP("util", " s"))
 
 
-@returns_translated
-def fmt_hm(seconds: float) -> str:
-    """3900 -> '1h 05m', 240 -> '4m'.
-
-    Only the unit letters are translated — the numbers stay under 100, so
-    there is no decimal separator or digit grouping for a locale to change.
-    Minutes are pre-padded here rather than through ``QLocale``, which has no
-    padded-integer overload.
-    """
-    minutes = int(seconds) // 60
-    hours, minutes = divmod(minutes, 60)
-    if hours:
-        return _tr(QT_TRANSLATE_NOOP(
-            "util", "%(hours)sh %(minutes)sm")) % {
-            "hours": hours, "minutes": f"{minutes:02d}"}
-    return _tr(QT_TRANSLATE_NOOP("util", "%(minutes)sm")) % {"minutes": minutes}
-
-
-@returns_translated
-def fmt_duration(seconds: float) -> str:
-    """Like :func:`fmt_hm`, but keeps a sub-minute duration visible ('45s').
-
-    The Activity Log reports durations that are genuinely shorter than a
-    minute — the idle time on a screen lock is near zero, and a test config can
-    set a 30-second cycle. `fmt_hm` floors those to "0m", so the journal read
-    "Now idle (0 seconds idle time)" while the GUI said "0m". Splits at a
-    minute exactly where the journal's own formatter does.
-    """
-    if seconds < 60:
-        return _tr(QT_TRANSLATE_NOOP("util", "%(seconds)ss")) % {
-            "seconds": f"{seconds:.0f}"}
-    return fmt_hm(seconds)
-
-
 def fmt_countdown(seconds: float) -> str:
     """125 -> '2:05'."""
     seconds = max(0, int(seconds))

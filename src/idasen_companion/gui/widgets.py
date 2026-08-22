@@ -22,7 +22,7 @@ from .theme import (
     SURFACE_RADIUS, button_icon_gap, control_height, css, extra_icon_gap,
     theme,
 )
-from .util import fmt_height, fmt_hm, fmt_preset_tick, preset_label
+from .util import fmt_height, fmt_preset_tick, preset_label
 
 # paintEvent, sizeHint, mousePressEvent, mouseMoveEvent and mouseReleaseEvent
 # below are Qt virtual overrides, dispatched by name from Qt's C++
@@ -936,7 +936,8 @@ class DailyBarsChart(QWidget):
         label, sit, stand, _ = self._rows[index]
         if sit or stand:
             return self.tr("%(day)s: sitting %(sit)s, standing %(stand)s") % {
-                "day": label, "sit": fmt_hm(sit), "stand": fmt_hm(stand)}
+                "day": label, "sit": self.ctx.fmt.duration_hm(sit),
+                "stand": self.ctx.fmt.duration_hm(stand)}
         return self.tr("%(day)s: no data") % {"day": label}
 
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name

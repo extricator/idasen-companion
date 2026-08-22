@@ -1,9 +1,9 @@
-"""Locale-aware number formatting in ``gui.util``.
+"""Locale-aware number formatting in ``gui.util`` and the shared ``Formatter``.
 
 Covers the scope decision recorded in the quick task: ``QLocale`` governs
 the fractional centimetre values (where a locale actually changes the
-glyphs), while the small integers in ``fmt_hm``/``fmt_duration`` keep Python
-formatting — only their unit letters are translated.
+glyphs), while the small integers in ``Formatter.duration``/``duration_hm``
+keep Python formatting — only their unit letters are translated.
 
 Skipped where PySide6 is missing, and forces the offscreen platform before
 any ``QtWidgets`` import — see ``test_settings_form.py`` for why both
@@ -23,10 +23,26 @@ from datetime import datetime  # noqa: E402
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox  # noqa: E402
 
+from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.formatter import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
+    PlainLocaleFormatter,
+)
+from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
 from idasen_companion.gui.util import (  # noqa: E402
-    fmt_day_heading, fmt_duration, fmt_height, fmt_hm, fmt_number,
+    fmt_day_heading, fmt_height, fmt_number,
 )
+
+
+def _plain_formatter() -> Formatter:
+    # English backend, not the Qt catalog -- these two assertions are about
+    # the number/padding policy, not translation.
+    return Formatter(PresentationContext(
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
 
 
 @pytest.fixture(scope="session")
@@ -48,9 +64,10 @@ def locale(request):
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_english_locale_output_is_unchanged(locale):
     assert fmt_height(1.105) == "110.5 cm"
-    assert fmt_hm(3900) == "1h 05m"
-    assert fmt_hm(240) == "4m"
-    assert fmt_duration(45) == "45s"
+    fmt = _plain_formatter()
+    assert fmt.duration_hm(3900) == "1h 05m"
+    assert fmt.duration_hm(240) == "4m"
+    assert fmt.duration(45) == "45s"
 
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)

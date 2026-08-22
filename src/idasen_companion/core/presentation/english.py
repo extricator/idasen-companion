@@ -26,6 +26,10 @@ nothing to build.
 
 from __future__ import annotations
 
+from ..units import HeightUnit
+from .formatter import Formatter, PresentationContext
+from .plain_locale import PlainLocaleFormatter
+
 
 class EnglishTranslator:
     """Returns every source string unchanged, selecting English's plural rule.
@@ -44,3 +48,35 @@ class EnglishTranslator:
                **values: object) -> str:
         text = singular if count == 1 else plural
         return text % values if values else text
+
+
+def format_duration_human(seconds: float | None) -> str:
+    """The journal's compact, greppable duration: "30s" / "45m" / "1h 05m".
+
+    Matches the shape ``gui/log_catalog.py`` renders the same
+    ``Param.DURATION`` value in, which closes the split PRES-03 exists to
+    close -- the same log event no longer reads "45.0 minutes" for journald
+    and "45m" for the Activity Log.
+
+    ``None`` renders as "N/A", the same convention
+    ``core/logmsg.py``'s ``Param.HEIGHT`` formatter already uses; nothing in
+    this move changes that.
+
+    Builds a throwaway :class:`~idasen_companion.core.presentation.formatter.Formatter`
+    per call rather than binding one at module level -- the module-level
+    instance :mod:`tests.test_presentation_no_globals` flags and PRES-02
+    forbids. It cannot live in ``core/durations.py`` instead:
+    ``core/presentation/formatter.py`` already imports that module for
+    ``decompose_hms``, so the reverse import here would be circular. The
+    unit is stated explicitly as centimetres, the same one-line convention
+    plan 13-03's ``daemon/i18n.py`` uses for its own throwaway context --
+    the journal never renders a height, so the unit is inert, but
+    :class:`~idasen_companion.core.presentation.formatter.PresentationContext`
+    carries no default for it to fall back on.
+    """
+    if seconds is None:
+        return "N/A"
+    context = PresentationContext(
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES)  # inert: this renderer never touches a height
+    return Formatter(context).duration(seconds)

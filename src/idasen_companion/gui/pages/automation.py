@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import AppConfig, VALID_DAYS
 from .. import restyle
-from ..util import day_label, fmt_days, fmt_duration, preset_label
+from ..util import day_label, fmt_days, preset_label
 from ..widgets import (
     Card, SegmentedControl, section_label, segment_css, separator,
 )
@@ -265,7 +265,7 @@ class AutomationPage(SettingsFormPage):
         # Sub-minute: only reachable from a hand-edited config or a test one,
         # and shown as it really is ("30s") rather than rounded into a minute
         # count the user never chose.
-        return fmt_duration(seconds)
+        return self.ctx.fmt.duration(seconds)
 
     def _fill_intervals(self, combo, choices, seconds: int,
                         zero_label: str = "") -> None:

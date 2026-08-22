@@ -37,7 +37,7 @@ from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
 from idasen_companion.gui.service_ctl import AutostartState  # noqa: E402
 from idasen_companion.gui.setup_wizard import SetupWizard  # noqa: E402
 from idasen_companion.gui.util import (  # noqa: E402
-    fmt_height, fmt_hm, fmt_preset_tick, position_label, preset_label,
+    fmt_height, fmt_preset_tick, position_label, preset_label,
 )
 from idasen_companion.gui.widgets import DailyBarsChart, RangeRail  # noqa: E402
 
@@ -187,7 +187,8 @@ def test_range_rail_labels_its_presets_in_the_user_language(qapp):
 
 
 def test_daily_chart_tooltip_is_translated(qapp):
-    chart = DailyBarsChart(_widget_ctx())
+    ctx = _widget_ctx()
+    chart = DailyBarsChart(ctx)
     chart.set_rows([
         ("Mon 17", 3600, 1800, False),  # has data
         ("Tue 18", 0, 0, False),        # no data
@@ -197,7 +198,8 @@ def test_daily_chart_tooltip_is_translated(qapp):
     no_data = chart._tooltip_for(1)  # pylint: disable=protected-access
 
     assert with_data == (
-        "Mon 17: sitting %s, standing %s" % (fmt_hm(3600), fmt_hm(1800)))
+        "Mon 17: sitting %s, standing %s"
+        % (ctx.fmt.duration_hm(3600), ctx.fmt.duration_hm(1800)))
     assert no_data == "Tue 18: no data"
 
 

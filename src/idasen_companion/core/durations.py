@@ -1,4 +1,4 @@
-"""Duration parsing and formatting.
+"""Duration parsing and compact config-file formatting.
 
 Parsing follows the reference script's grammar: a duration string is a
 sequence of ``<int><unit>`` groups with units ``h``, ``m``, ``s``
@@ -7,15 +7,15 @@ a string with no recognizable groups raises ``ValueError`` instead of
 silently parsing to 0 — this only affects config validation, never
 automation behavior.
 
-:func:`decompose_hms` extracts the arithmetic three GUI duration renderers
-each redo on their own today (``gui/util.py``'s ``fmt_hm``, ``fmt_duration``
-and ``fmt_countdown``): splitting a count of seconds into whole hours,
-minutes and seconds. This module extracts the decomposition without
-unifying the three renderers themselves — they still disagree on shape
-(``fmt_countdown`` never shows hours, ``fmt_duration`` alone keeps a
-sub-minute value visible) and still live where they are. Merging them into
-one policy is PRES-03, in Phase 13; § 20's migration order is not reordered
-here.
+This module owns the arithmetic every duration renderer in the app shares
+(PRES-03's one policy): the below-a-minute threshold
+(:data:`SUB_MINUTE_THRESHOLD_SECONDS`) and the hours/minutes/seconds
+decomposition (:func:`decompose_hms`). The *rendering* — including the
+journal's own English — sits one layer up, in
+``core/presentation/formatter.py`` and ``core/presentation/english.py``:
+this module supplies only the numbers, never a translated string.
+``gui/util.py``'s ``fmt_countdown`` is the one renderer still outside that
+policy; it moves under PRES-01 in Phase 15.
 """
 
 from __future__ import annotations
@@ -27,9 +27,9 @@ _UNIT_TO_SECONDS = {"h": 3600, "m": 60, "s": 1}
 _GROUP_RE = re.compile(r"(\d+)\s*([hms])")
 _FULL_RE = re.compile(r"(?:\s*\d+\s*[hms])+\s*")
 
-#: Below this many seconds, `fmt_duration` shows the count as seconds rather
-#: than flooring it to "0m" — the split point `gui/util.py`'s own duration
-#: formatter uses.
+#: Below this many seconds, a compact duration renders the count as seconds
+#: rather than flooring it to "0m" — the split point every compact renderer
+#: in the app shares.
 SUB_MINUTE_THRESHOLD_SECONDS = 60
 
 
@@ -58,15 +58,6 @@ def format_duration_compact(seconds: int) -> str:
         if amount:
             parts.append(f"{amount}{unit}")
     return "".join(parts)
-
-
-def format_duration_human(seconds: float | None) -> str:
-    """Human-readable duration for logs, matching the reference script's style."""
-    if seconds is None:
-        return "N/A"
-    if seconds >= 60:
-        return f"{seconds / 60:.1f} minutes"
-    return f"{seconds:.0f} seconds"
 
 
 @dataclass(frozen=True)

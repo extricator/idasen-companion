@@ -51,8 +51,11 @@ from .. import units
 from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from ..units import HeightUnit
 from .protocols import LocaleFormatter, Translator
-from .register import HOURS, HOURS_AND_MINUTES, MINUTES, SECONDS
-from .specs import NumberSpec
+from .register import (
+    HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT, MINUTES,
+    MINUTES_COMPACT, SECONDS, SECONDS_COMPACT,
+)
+from .specs import IntegerSpec, NumberSpec
 
 
 @dataclass(frozen=True)
@@ -176,3 +179,43 @@ class Formatter:
         if parts.hours:
             return translator.plural(*HOURS, parts.hours) % parts.hours
         return translator.plural(*MINUTES, parts.minutes) % parts.minutes
+
+    def duration_hm(self, seconds: float) -> str:
+        """A compact hours-and-minutes duration, e.g. "1h 05m" / "45m".
+
+        Floors a sub-minute value to "0m" rather than showing it — the
+        journal's and the Activity Log's shared shape for a duration that
+        has already crossed at least a minute (or hasn't, and is being
+        shown that way on purpose; see :meth:`duration` for the sibling
+        that keeps a sub-minute value visible instead).
+
+        The minutes half is zero-padded through the locale backend's own
+        ``integer(min_digits=2)`` operation, not a Python f-string — the
+        case :mod:`.specs`'s ``IntegerSpec(min_digits=2)`` exists for.
+        """
+        locale = self._context.locale
+        translator = self._context.translator
+        parts = decompose_hms(seconds)
+        if parts.hours:
+            hours = locale.integer(parts.hours, IntegerSpec())
+            minutes = locale.integer(parts.minutes, IntegerSpec(min_digits=2))
+            return translator.message(
+                HOURS_AND_MINUTES_COMPACT, hours=hours, minutes=minutes)
+        minutes = locale.integer(parts.minutes, IntegerSpec())
+        return translator.message(MINUTES_COMPACT, minutes=minutes)
+
+    def duration(self, seconds: float) -> str:
+        """A compact duration, keeping a sub-minute value visible ("45s").
+
+        Below :data:`~idasen_companion.core.durations.SUB_MINUTE_THRESHOLD_SECONDS`
+        this renders the seconds count alone; at or above it, this
+        delegates to :meth:`duration_hm`. One threshold, one decomposition,
+        one padding rule, shared with every other duration renderer in the
+        app (PRES-03).
+        """
+        if seconds < SUB_MINUTE_THRESHOLD_SECONDS:
+            locale = self._context.locale
+            translator = self._context.translator
+            secs = locale.integer(int(seconds), IntegerSpec())
+            return translator.message(SECONDS_COMPACT, seconds=secs)
+        return self.duration_hm(seconds)

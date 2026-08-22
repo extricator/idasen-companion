@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from .durations import format_duration_human
+from .presentation.english import format_duration_human
 
 
 class Channel(StrEnum):

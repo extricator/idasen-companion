@@ -1454,18 +1454,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <translation> s</translation>
     </message>
     <message>
-        <source>%(hours)sh %(minutes)sm</source>
-        <translation>%(hours)s h %(minutes)s min</translation>
-    </message>
-    <message>
-        <source>%(minutes)sm</source>
-        <translation>%(minutes)s min</translation>
-    </message>
-    <message>
-        <source>%(seconds)ss</source>
-        <translation>%(seconds)s s</translation>
-    </message>
-    <message>
         <source>Mon</source>
         <translation>Lun</translation>
     </message>

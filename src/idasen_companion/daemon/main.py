@@ -30,7 +30,6 @@ from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, MAX_HEIGHT, MIN_HEIGHT,
     load_config, save_config,
 )
-from ..core.durations import format_duration_human
 from ..core.i18n import _, set_language
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
@@ -40,6 +39,7 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.migration import import_idasen_cli_config
+from ..core.presentation.english import format_duration_human
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 

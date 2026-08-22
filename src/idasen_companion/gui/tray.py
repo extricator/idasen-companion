@@ -21,9 +21,8 @@ from ..core.machine import (
 from ..core.presentation.formatter import Formatter
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
-from .util import (due_now_label, fmt_duration, fmt_height, fmt_hm,
-                   position_or_custom, preset_label, snooze_line,
-                   status_label)
+from .util import (due_now_label, fmt_height, position_or_custom,
+                   preset_label, snooze_line, status_label)
 
 SNOOZE_CHOICES = (5, 10, 15, 30, 60)
 
@@ -286,14 +285,14 @@ class TrayIcon(QSystemTrayIcon):
     def _time_left(self, remaining: float) -> str:
         """The remaining time as a word: '11m', '45s'.
 
-        ``fmt_duration`` rather than ``fmt_hm`` because ``fmt_hm`` floors to
-        whole minutes, so it renders the entire final minute — 59 seconds of
-        it — as "0m". (``fmt_duration`` exists because that same flooring was
-        already found wrong once, for the Activity Log.) Truncated to whole
-        seconds first so the handover between the two bands reads "1m" rather
-        than a rounded-up "60s".
+        ``duration`` rather than ``duration_hm`` because ``duration_hm``
+        floors to whole minutes, so it renders the entire final minute — 59
+        seconds of it — as "0m". (``duration`` exists because that same
+        flooring was already found wrong once, for the Activity Log.)
+        Truncated to whole seconds first so the handover between the two
+        bands reads "1m" rather than a rounded-up "60s".
         """
-        return fmt_duration(int(remaining))
+        return self._fmt().duration(int(remaining))
 
     def _countdown_clause(self, remaining: float) -> str:
         """'11m left', or 'Due now' once the clock has actually run out.
@@ -364,7 +363,7 @@ class TrayIcon(QSystemTrayIcon):
         # while reading like a running clock. Showing nothing is the honest
         # version — the position word alone is still true.
         elapsed = None if self._cycle_stopped() else self._shown_elapsed()
-        held = (self.tr("%s for %s") % (position, fmt_duration(int(elapsed)))
+        held = (self.tr("%s for %s") % (position, self._fmt().duration(int(elapsed)))
                 if elapsed is not None else position)
 
         # "Automation active" is dropped when a countdown is showing: a visible
@@ -460,9 +459,10 @@ class TrayIcon(QSystemTrayIcon):
         for _, state, seconds in self.client.get_daily_stats(today, today):
             totals[state] = seconds
         if totals["sitting"] or totals["standing"]:
+            fmt = self._fmt()
             return (self.tr("Today: %s sitting / %s standing")
-                    % (fmt_hm(totals["sitting"]),
-                       fmt_hm(totals["standing"])))
+                    % (fmt.duration_hm(totals["sitting"]),
+                       fmt.duration_hm(totals["standing"])))
         return ""
 
     def _rebuild_presets(self, presets: dict) -> None:
