@@ -186,6 +186,26 @@ LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
   `gui/main_window.py`'s `NAV_ITEMS`.
 - **Daemon:** wrap notification strings in `_("...")` / `ngettext(...)` from
   `core/i18n.py`. Keep journald/Activity-Log strings in English.
+- **Shared layer (`core/`):** wrap a translatable constant with `N_("...")`
+  or, for a plural pair, `NP_("singular", "plural")` — both from
+  `core/presentation/register.py` — then have a `Formatter` method render it
+  through the injected `Translator`. Two things about these markers differ
+  from the GUI's `QT_TRANSLATE_NOOP`: neither takes a context argument,
+  because `po/idasen_companion.pot` is one flat catalog with no per-context
+  split for one to select; and `NP_` takes both plural forms on one call,
+  written down once in the register, rather than needing both literals again
+  at every call site the way gettext's own `ngettext()` does. The scope this
+  register is extracted from covers every source file in the package except
+  `gui/`; `tests/test_extraction_scope.py` fails the suite if a marker call
+  outside that scope, or a marker the extraction keyword list doesn't
+  recognize, has a literal that never made it into the `.pot`. This
+  register's own entries so far: `%d hour` / `%d hours` (Spanish `%d hora` /
+  `%d horas`), reusing the existing `%d minute` / `%d second` plural pairs,
+  and the joining pattern `%(hours)s %(minutes)s`, which substitutes two
+  already-translated duration messages into one sentence fragment (Spanish
+  `%(hours)s y %(minutes)s` — the conjunction Spanish uses where English
+  keeps a bare space; match this terminology rather than inventing a second
+  phrasing for the same duration vocabulary).
 - **Numbers and units:** render a height (or any other locale-sensitive
   decimal) with `gui/util.py`'s `fmt_number()`, not an f-string — it reads the
   default `QLocale` so `110.5` becomes `110,5` under `es`. Get a spin box's
