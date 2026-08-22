@@ -354,6 +354,41 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       which id-keying makes vestigial, so it needs substantial rework rather
       than a small edit. `pyside6-lupdate` itself does already recognise
       `qtTrId`, `QT_TRID_NOOP`, `QT_TRID_N_NOOP` and `qsTrId` as keywords.
+- [ ] **The "minutes" concept holds an entry in both catalogs** — a `CAT-04`
+      instance found while closing Phase 13, and `CAT-04` is Phase 15's, which
+      is why it was recorded rather than fixed on the spot. `po/` now owns the
+      shared duration vocabulary (`"%d minute"`/`"%d minutes"`,
+      `"%(minutes)sm"`, `"%(hours)sh %(minutes)sm"`, `"Snooze %d min"`) while
+      `translations/*.ts` still carries the same concept under five Qt
+      contexts: `AutomationPage`'s `"%d min"`, `OverviewPage`'s
+      `"no input for %s min — the timer is paused"` and `"Snooze 10 min"`,
+      `TrayIcon`'s `"%n minute(s)"` and `LogMessage`'s
+      `"Snoozed for %(minutes)s minutes."` — plus `ScanPage`'s
+      `"Scanning… (about 10 s)"` for seconds. `"Snooze 10 min"` against
+      `"Snooze %d min"` is the clearest case: one concept, two catalogs, two
+      Spanish strings free to drift apart with nothing failing.
+      Two sites also still decompose durations themselves —
+      `gui/pages/automation.py:264` (`tr("%d min") % (seconds // 60)`; its
+      sub-minute branch already reaches `ctx.fmt.duration`) and
+      `gui/pages/overview.py:446-449` (`idle_threshold // 60` interpolated into
+      a sentence). Neither is one of the four implementations `PRES-03` names,
+      which is why Phase 13 left them.
+      **Do not "fix" the five `// 60` sites a naive sweep also finds**
+      (`automation.py:293`, `:294`, `:299`, `:300` and `overview.py`'s spin
+      handling): those are spin-box value conversions — config stores seconds,
+      the box shows minutes — the same class as `to_display_height`, not
+      display decompositions.
+      The open judgement is whether these are the *same concept* as `po/`'s
+      minutes vocabulary or window-only chrome `CAT-04` lets the `.ts` keep;
+      decide it in the phase with the whole catalog in view, not per string.
+      Whatever the answer, moving any of them crosses catalogs and must satisfy
+      `CAT-07`, `tests/test_translation_collisions.py` and the
+      regenerate-and-diff gate in the same commit — which is what forces the
+      large atomic diffs Phase 13 already hit. Note `overview.py`'s value is
+      embedded in a sentence, so it needs rebuilding as one whole message with
+      its substitution named rather than a duration joined to a fragment. Full
+      evidence in
+      `.planning/todos/pending/2026-08-22-minutes-holds-an-entry-in-both-catalogs.md`.
 
 ## UI polish
 - [ ] **The setup wizard opens off-centre** — reported on the maintainer's
