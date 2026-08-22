@@ -102,13 +102,14 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
-- [ ] **Non-Latin digit sets aren't handled by `fmt_hm`/`fmt_countdown`** — the
-      locale-aware formatting task deliberately routed only the fractional
-      centimetre values through `QLocale`; the small integers in
-      `fmt_hm`/`fmt_duration`/`fmt_countdown` keep native Python formatting
-      because `QLocale.toString` has no padded-integer overload (breaking
-      `fmt_hm`'s `"1h 05m"` zero-padding and `fmt_countdown`'s `"2:05"`), and
-      padding a native-digit string with an ASCII `0` would be wrong. Only
+- [ ] **Non-Latin digit sets aren't handled by `fmt_countdown`** — half of
+      this item's original premise is now solved: `Formatter.duration_hm`'s
+      zero-padded minutes (`"1h 05m"`) go through the locale backend's own
+      `integer(IntegerSpec(min_digits=2))` operation, which `QtLocaleFormatter`
+      implements, rather than a Python f-string. What is left is
+      `fmt_countdown` (`gui/util.py`), whose `"2:05"` still keeps native
+      Python formatting because it has not moved onto the shared policy yet
+      (Phase 15, PRES-01) — and the standing judgement that this is only
       worth revisiting once a language with non-Latin digits actually ships.
 - [ ] **Proactive BLE warm-up** — connect *before* the user asks, so a tray
       click lands on a warm link. Measured cold connect is 2.2–2.6s in the good
