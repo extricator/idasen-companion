@@ -136,6 +136,50 @@ msgid "Off-cycle"
 msgstr "Fuera de ciclo"
 
 #: src/idasen_companion/core/presentation/register.py
+msgid ""
+"The desk did not respond. Check that it is powered and in range, then try "
+"again."
+msgstr ""
+"El escritorio no respondió. Comprueba que está encendido y al alcance, y "
+"vuelve a intentarlo."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid ""
+"Could not connect to the desk. Make sure it is powered, nearby, and in "
+"pairing mode."
+msgstr ""
+"No se pudo conectar con el escritorio. Asegúrate de que está encendido, "
+"cerca y en modo de emparejamiento."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Could not read the desk's height."
+msgstr "No se pudo leer la altura del escritorio."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "That height is outside the desk's range."
+msgstr "Esa altura está fuera del rango del escritorio."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "That preset name or height is not valid."
+msgstr "Ese nombre o altura de preajuste no es válido."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "There is no preset by that name."
+msgstr "No hay ningún preajuste con ese nombre."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid ""
+"Could not save the configuration. Check that your home directory is writable "
+"and has free space."
+msgstr ""
+"No se pudo guardar la configuración. Comprueba que tu carpeta personal tiene "
+"permisos de escritura y espacio libre."
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "The background service could not carry out that request."
+msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "later"
 msgstr "más tarde"
 

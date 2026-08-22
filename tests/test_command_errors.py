@@ -22,13 +22,14 @@ pytest.importorskip("PySide6")
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QCoreApplication, QLocale, QTranslator  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion import DBUS_NAME  # noqa: E402
-from idasen_companion.gui.util import (  # noqa: E402
-    DAEMON_ERROR_MESSAGES, daemon_error_message,
+from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from idasen_companion.core.presentation.register import (  # noqa: E402
+    DAEMON_ERROR_MESSAGES,
 )
+from idasen_companion.gui.util import daemon_error_message  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -64,19 +65,20 @@ def test_an_unknown_error_with_no_detail_still_says_something(qapp):
 @pytest.mark.parametrize("name", sorted(DAEMON_ERROR_MESSAGES))
 def test_every_mapped_error_is_translated_in_spanish(qapp, name):
     """These are the app's error messages; shipping them English-only on a
-    Spanish install is the failure this mapping exists to prevent."""
+    Spanish install is the failure this mapping exists to prevent.
+
+    Spanish is bound through the gettext catalog, not by loading the Qt
+    ``.qm``: the sentences moved to ``core/presentation/`` so the future CLI
+    can reach them without a second copy, and a shared word is looked up in
+    the shared catalog. The claim under test is unchanged — every mapped
+    name renders differently in Spanish than in English.
+    """
     english = daemon_error_message(name)
-    translator = QTranslator()
-    assert translator.load(
-        "src/idasen_companion/gui/translations/idasen_companion_es.qm")
-    previous = QLocale()
-    QLocale.setDefault(QLocale("es_ES"))
-    QCoreApplication.installTranslator(translator)
+    core_i18n.set_language("es")
     try:
         spanish = daemon_error_message(name)
     finally:
-        QCoreApplication.removeTranslator(translator)
-        QLocale.setDefault(previous)
+        core_i18n.set_language(core_i18n.SYSTEM)
     assert spanish != english, f"{name} is not translated"
 
 

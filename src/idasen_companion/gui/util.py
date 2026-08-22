@@ -18,7 +18,7 @@ from PySide6.QtCore import (
     QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
 )
 
-from ..core.presentation import words
+from ..core.presentation import daemon_errors, words
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import HeightUnit
 from .locale_backend import QtLocaleFormatter
@@ -238,35 +238,6 @@ def fmt_day_and_clock(when: datetime) -> str:
         "day": fmt_day_label(when), "clock": fmt_clock(when)}
 
 
-# What the daemon's D-Bus error *names* mean, in the user's language.
-#
-# The daemon raises DBusError with an English body, and that body crosses the
-# wire — so it cannot go through the daemon's own gettext (it would be in the
-# daemon's language, not the reader's) and it is in neither catalog. Keying on
-# the stable error *name* and owning the sentence here is what makes these
-# translatable at all. The English body is kept as diagnostic detail, not as
-# the user-facing text.
-DAEMON_ERROR_MESSAGES = {
-    "MoveFailed": QT_TRANSLATE_NOOP(
-        "util", "The desk did not respond. Check that it is powered and in "
-                "range, then try again."),
-    "SetupFailed": QT_TRANSLATE_NOOP(
-        "util", "Could not connect to the desk. Make sure it is powered, "
-                "nearby, and in pairing mode."),
-    "NoHeight": QT_TRANSLATE_NOOP(
-        "util", "Could not read the desk's height."),
-    "OutOfRange": QT_TRANSLATE_NOOP(
-        "util", "That height is outside the desk's range."),
-    "InvalidPreset": QT_TRANSLATE_NOOP(
-        "util", "That preset name or height is not valid."),
-    "UnknownPreset": QT_TRANSLATE_NOOP(
-        "util", "There is no preset by that name."),
-    "ConfigWriteFailed": QT_TRANSLATE_NOOP(
-        "util", "Could not save the configuration. Check that your home "
-                "directory is writable and has free space."),
-}
-
-
 @returns_translated
 def daemon_error_message(name: str, detail: str = "") -> str:
     """A translated sentence for a daemon D-Bus error name.
@@ -274,15 +245,13 @@ def daemon_error_message(name: str, detail: str = "") -> str:
     ``name`` may be the full ``…Error.MoveFailed`` or the bare tail. Falls back
     to the daemon's English detail — untranslated, but better than silence —
     and finally to a generic line.
+
+    The sentences themselves live in ``core/presentation/daemon_errors.py``,
+    which records why they must come from the *reader's* catalog and why that
+    module gets no ``Formatter`` method.
     """
-    key = name.rsplit(".", 1)[-1] if name else ""
-    label = DAEMON_ERROR_MESSAGES.get(key)
-    if label is not None:
-        return _tr(label)
-    if detail:
-        return detail
-    return _tr(QT_TRANSLATE_NOOP(
-        "util", "The background service could not carry out that request."))
+    return daemon_errors.daemon_error_message(
+        GettextTranslator(), name, detail)
 
 
 # ----- shared cycle rendering (the tray and Overview say the same things) -----

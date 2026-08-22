@@ -142,6 +142,44 @@ msgid "Off-cycle"
 msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
+msgid ""
+"The desk did not respond. Check that it is powered and in range, then try "
+"again."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid ""
+"Could not connect to the desk. Make sure it is powered, nearby, and in "
+"pairing mode."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Could not read the desk's height."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "That height is outside the desk's range."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "That preset name or height is not valid."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "There is no preset by that name."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid ""
+"Could not save the configuration. Check that your home directory is writable "
+"and has free space."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "The background service could not carry out that request."
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "later"
 msgstr ""
 

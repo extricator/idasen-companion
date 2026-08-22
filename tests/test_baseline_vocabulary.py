@@ -274,7 +274,7 @@ def _preset_cases() -> dict[str, str]:
 
 def _daemon_error_cases() -> dict[str, str]:
     cases = {key: util.daemon_error_message(key)
-             for key in util.DAEMON_ERROR_MESSAGES}
+             for key in register.DAEMON_ERROR_MESSAGES}
     cases["generic_fallback"] = util.daemon_error_message("", "")
     cases["unknown_with_detail"] = util.daemon_error_message(
         "org.freedesktop.DBus.Error.NoReply", "Message recipient disconnected")

@@ -131,6 +131,42 @@ STATUS_HEADS = {
     "move-failed": N_("Last move failed"),
 }
 
+# ----- what the daemon's D-Bus error *names* mean, in the reader's language --
+#
+# The daemon raises DBusError with an English body, and that body crosses the
+# wire — so it cannot go through the daemon's own gettext (it would be in the
+# daemon's language, not the reader's) and it is in neither catalog. Keying on
+# the stable error *name* and owning the sentence here is what makes these
+# translatable at all. The English body is kept as diagnostic detail, not as
+# the user-facing text. See core/presentation/daemon_errors.py, which is the
+# only module allowed to render these, and why.
+
+#: A translated sentence per D-Bus error name. Source strings carried over
+#: byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``daemon_error_message``), so their existing Spanish
+#: survives the move between catalogs.
+DAEMON_ERROR_MESSAGES = {
+    "MoveFailed": N_("The desk did not respond. Check that it is powered and "
+                     "in range, then try again."),
+    "SetupFailed": N_("Could not connect to the desk. Make sure it is "
+                      "powered, nearby, and in pairing mode."),
+    "NoHeight": N_("Could not read the desk's height."),
+    "OutOfRange": N_("That height is outside the desk's range."),
+    "InvalidPreset": N_("That preset name or height is not valid."),
+    "UnknownPreset": N_("There is no preset by that name."),
+    "ConfigWriteFailed": N_("Could not save the configuration. Check that "
+                            "your home directory is writable and has free "
+                            "space."),
+}
+
+#: The last step of the error fallback chain: an error name nobody has
+#: written a sentence for, arriving with no diagnostic detail either.
+#: Byte-identical to the existing ``util``-context source string.
+DAEMON_ERROR_GENERIC = N_(
+    "The background service could not carry out that request.")
+
+
 # ----- the shared cycle vocabulary (the tray and Overview say the same) -----
 #
 # These four were written out in both gui/tray.py and gui/pages/overview.py,

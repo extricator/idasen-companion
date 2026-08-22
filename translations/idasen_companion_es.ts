@@ -1419,37 +1419,5 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <source>%(day)s %(clock)s</source>
         <translation>%(day)s %(clock)s</translation>
     </message>
-    <message>
-        <source>The desk did not respond. Check that it is powered and in range, then try again.</source>
-        <translation>El escritorio no respondió. Comprueba que está encendido y al alcance, y vuelve a intentarlo.</translation>
-    </message>
-    <message>
-        <source>Could not connect to the desk. Make sure it is powered, nearby, and in pairing mode.</source>
-        <translation>No se pudo conectar con el escritorio. Asegúrate de que está encendido, cerca y en modo de emparejamiento.</translation>
-    </message>
-    <message>
-        <source>Could not read the desk&apos;s height.</source>
-        <translation>No se pudo leer la altura del escritorio.</translation>
-    </message>
-    <message>
-        <source>That height is outside the desk&apos;s range.</source>
-        <translation>Esa altura está fuera del rango del escritorio.</translation>
-    </message>
-    <message>
-        <source>That preset name or height is not valid.</source>
-        <translation>Ese nombre o altura de preajuste no es válido.</translation>
-    </message>
-    <message>
-        <source>There is no preset by that name.</source>
-        <translation>No hay ningún preajuste con ese nombre.</translation>
-    </message>
-    <message>
-        <source>Could not save the configuration. Check that your home directory is writable and has free space.</source>
-        <translation>No se pudo guardar la configuración. Comprueba que tu carpeta personal tiene permisos de escritura y espacio libre.</translation>
-    </message>
-    <message>
-        <source>The background service could not carry out that request.</source>
-        <translation>El servicio en segundo plano no pudo llevar a cabo esa solicitud.</translation>
-    </message>
 </context>
 </TS>

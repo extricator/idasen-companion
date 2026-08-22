@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pytest
 
-from idasen_companion.core.presentation import register, words
+from idasen_companion.core.presentation import daemon_errors, register, words
 from idasen_companion.core.presentation.specs import IntegerSpec
 
 from presentation_fakes import FakeLocale, FakeTranslator
@@ -276,6 +276,33 @@ def test_countdown_renders_both_halves_through_the_locale_backend(
     assert [(call.value, call.request) for call in locale.calls] == [
         (minutes, IntegerSpec()), (secs, IntegerSpec(min_digits=2))]
     assert [call.source for call in translator.calls] == [register.COUNTDOWN]
+
+
+def test_a_dotted_error_name_resolves_to_its_own_sentence():
+    """The wire carries the full interface-qualified name; only the tail
+    keys the table."""
+    translator = FakeTranslator()
+    assert (daemon_errors.daemon_error_message(
+        translator, "org.example.Error.NoHeight")
+        == FakeTranslator().message(
+            register.DAEMON_ERROR_MESSAGES["NoHeight"]))
+
+
+def test_an_unmapped_error_with_a_detail_returns_that_detail_untranslated():
+    """The daemon's English body is diagnostic detail, not user-facing text
+    — but it beats silence when nobody has written a sentence for the name.
+    It is returned verbatim, never handed to the translator.
+    """
+    translator = FakeTranslator()
+    assert daemon_errors.daemon_error_message(
+        translator, "org.example.Error.Nope", "raw detail") == "raw detail"
+    assert translator.calls == []
+
+
+def test_an_unmapped_error_with_no_detail_returns_the_generic_line():
+    translator = FakeTranslator()
+    assert (daemon_errors.daemon_error_message(translator, "", "")
+            == FakeTranslator().message(register.DAEMON_ERROR_GENERIC))
 
 
 def test_connection_phrases_reads_nothing_but_its_translator():
