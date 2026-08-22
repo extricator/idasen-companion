@@ -16,9 +16,8 @@ from .. import restyle
 from ..theme import css, theme
 from ..util import (
     PROTECTED_PRESETS, connection_state, due_now_label, fmt_countdown,
-    fmt_days, fmt_height, from_display_height, height_decimals, height_step,
-    position_or_custom, preset_label, snooze_line, status_head, status_label,
-    suffix_height, to_display_height,
+    fmt_days, fmt_height, position_or_custom, preset_label, snooze_line,
+    status_head, status_label, suffix_height,
 )
 from ..widgets import (
     Card, ConnectionChip, HeightRail, StatusDot, emphasize, equal_height_row,
@@ -129,7 +128,7 @@ class OverviewPage(Page):
         move_btn.setIcon(icon("media-playback-start", "go-next", "arrow-right"))
         move_btn.clicked.connect(
             lambda: self.client.move_to_height(
-                from_display_height(self.height_spin.value())))
+                self.ctx.fmt.from_display_height(self.height_spin.value())))
         # The spin box and Move read as one control pair, so they have to be
         # the same height — and neither height is knowable here. Move is a
         # button and takes the app's own button padding; the spin box is
@@ -325,14 +324,15 @@ class OverviewPage(Page):
         the height it means does not.
         """
         spin = self.height_spin
+        fmt = self.ctx.fmt
         spin.blockSignals(True)
         try:
-            spin.setDecimals(height_decimals())
-            spin.setRange(to_display_height(MIN_HEIGHT),
-                          to_display_height(MAX_HEIGHT))
-            spin.setSingleStep(height_step())
+            spin.setDecimals(fmt.height_decimals())
+            spin.setRange(fmt.to_display_height(MIN_HEIGHT),
+                          fmt.to_display_height(MAX_HEIGHT))
+            spin.setSingleStep(fmt.height_step())
             spin.setSuffix(suffix_height())
-            spin.setValue(to_display_height(self._target))
+            spin.setValue(fmt.to_display_height(self._target))
         finally:
             spin.blockSignals(False)
 
@@ -341,7 +341,7 @@ class OverviewPage(Page):
         the box's own valueChanged is what moves the rail the other way."""
         self.height_spin.blockSignals(True)
         try:
-            self.height_spin.setValue(to_display_height(meters))
+            self.height_spin.setValue(self.ctx.fmt.to_display_height(meters))
         finally:
             self.height_spin.blockSignals(False)
 
@@ -350,7 +350,7 @@ class OverviewPage(Page):
         self._set_spin_height(meters)
 
     def _on_spin_changed(self, value: float) -> None:
-        self._target = from_display_height(value)
+        self._target = self.ctx.fmt.from_display_height(value)
         self.height_rail.set_target(self._target)
 
     def _toggle_pause(self) -> None:

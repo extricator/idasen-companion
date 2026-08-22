@@ -17,15 +17,15 @@ from PySide6.QtCore import (
     QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
 )
 
+from ..core import units
+from ..core.units import HeightUnit
+
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
 
 #: The two height units, as stored in ``[ui] units`` (see core.config).
 CENTIMETRES = "cm"
 INCHES = "in"
-
-#: Metres per inch, exactly.
-_METRES_PER_INCH = 0.0254
 
 # Set by set_height_unit() at startup and on every config change. Centimetres
 # until then, so anything built before config is read still renders.
@@ -140,49 +140,21 @@ def height_unit() -> str:
     return _unit
 
 
-def to_display_height(meters: float) -> float:
-    """Metres as the number the user sees (1.105 -> 110.5 cm / 43.5 in)."""
-    if _unit == INCHES:
-        return meters / _METRES_PER_INCH
-    return meters * 100
-
-
-def from_display_height(value: float) -> float:
-    """The inverse of :func:`to_display_height`, back to metres.
-
-    Displayed values are converted back only to *act* on them — moving the
-    desk, or entering a brand-new preset. A height already in config is never
-    round-tripped through the display, so the rounding here can't drift one.
-    """
-    if _unit == INCHES:
-        return value * _METRES_PER_INCH
-    return value / 100
-
-
-def height_decimals() -> int:
-    """Decimal places a height is shown with.
-
-    Two for inches, because one (2.54 mm per step) is coarser than the desk's
-    own millimetre resolution — and Overview's Move button sends the spin
-    box's value back to the desk, so a user who never touched the box could
-    still shift the desk over a millimetre just by pressing Move.
-    """
-    return 2 if _unit == INCHES else 1
-
-
-def height_step() -> float:
-    """A single step of a height spin box, in display units."""
-    return 0.25 if _unit == INCHES else 0.5
-
-
 def fmt_height_value(meters: float, trim: bool = False) -> str:
     """Locale-formatted height *number*, with no unit (1.105 -> '110.5').
 
     For the places that draw the unit themselves or deliberately leave it off
     — the rails label a tick with the bare number, having named the unit once
     at the end of the scale. Everywhere else wants :func:`fmt_height`.
+
+    The conversion and decimal-count policy live in ``core/units.py``; this
+    module's own ``_unit`` — a plain ``"cm"``/``"in"`` string, not that
+    module's :class:`~idasen_companion.core.units.HeightUnit` — is converted
+    at the one call site that still needs it.
     """
-    return fmt_number(to_display_height(meters), height_decimals(), trim)
+    unit = HeightUnit(_unit)
+    return fmt_number(
+        units.to_display_height(meters, unit), units.height_decimals(unit), trim)
 
 
 @returns_translated

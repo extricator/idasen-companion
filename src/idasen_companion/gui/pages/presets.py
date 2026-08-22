@@ -13,10 +13,7 @@ from PySide6.QtWidgets import (
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
 from .. import restyle
 from ..theme import css, theme
-from ..util import (
-    PROTECTED_PRESETS, fmt_height, from_display_height, height_decimals,
-    preset_label, suffix_height, to_display_height,
-)
+from ..util import PROTECTED_PRESETS, fmt_height, preset_label, suffix_height
 from ..widgets import (
     Card, RangeRail, ToolIconButton, card_scroll, clear_layout, emphasize,
     icon, pill, pill_css, section_label, segment_css, separator, tinted_icon,
@@ -318,17 +315,19 @@ class PresetsPage(Page):
                                               self.tr("Preset name:"))
         if not (accepted and name.strip()):
             return
+        fmt = self.ctx.fmt
         height, accepted = QInputDialog.getDouble(
             self, self.tr("Add preset"),
             # The unit as a word, from the spin-box suffix so the two can
             # never disagree — its leading space is for setSuffix, which
             # inserts none, and is not wanted inside a sentence.
             self.tr("Height (%s):") % suffix_height().strip(),
-            to_display_height(1.0),
-            to_display_height(MIN_HEIGHT), to_display_height(MAX_HEIGHT),
-            height_decimals())
+            fmt.to_display_height(1.0),
+            fmt.to_display_height(MIN_HEIGHT), fmt.to_display_height(MAX_HEIGHT),
+            fmt.height_decimals())
         if accepted:
-            self.client.save_preset(name.strip(), from_display_height(height))
+            self.client.save_preset(
+                name.strip(), fmt.from_display_height(height))
 
     def _delete_preset(self, name: str) -> None:
         if name in PROTECTED_PRESETS:

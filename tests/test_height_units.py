@@ -135,18 +135,21 @@ def test_the_locale_still_owns_the_decimal_separator(locale):
     assert util.fmt_height(1.105) == "43,50 in"
 
 
-@pytest.mark.parametrize("unit", ["cm", "in"])
+@pytest.mark.parametrize("unit", [core_units.HeightUnit.CENTIMETRES,
+                                  core_units.HeightUnit.INCHES])
 @pytest.mark.parametrize("meters", [MIN_HEIGHT, 0.75, 1.105, MAX_HEIGHT])
 def test_a_displayed_height_survives_the_trip_back(unit, meters):
     """Show a height, then send exactly what was shown: the desk stays put.
 
     Overview's Move button does precisely this with a spin box the user never
     touched, so the rounding at display precision has to be smaller than the
-    desk cares about — and must never land outside its travel.
+    desk cares about — and must never land outside its travel. The
+    conversion is ``core/units.py``'s own — the same arithmetic
+    ``ctx.fmt.to_display_height``/``from_display_height`` reach it through.
     """
-    util.set_height_unit(unit)
-    shown = round(util.to_display_height(meters), util.height_decimals())
-    back = util.from_display_height(shown)
+    shown = round(core_units.to_display_height(meters, unit),
+                  core_units.height_decimals(unit))
+    back = core_units.from_display_height(shown, unit)
     assert abs(back - meters) < 0.001          # under a millimetre
     assert MIN_HEIGHT <= back <= MAX_HEIGHT
 
@@ -154,10 +157,8 @@ def test_a_displayed_height_survives_the_trip_back(unit, meters):
 def test_inches_carry_a_second_decimal():
     # One place is 2.54mm per step — coarser than the desk itself, and the
     # round trip above is what pays for it.
-    util.set_height_unit("in")
-    assert util.height_decimals() == 2
-    util.set_height_unit("cm")
-    assert util.height_decimals() == 1
+    assert core_units.height_decimals(core_units.HeightUnit.INCHES) == 2
+    assert core_units.height_decimals(core_units.HeightUnit.CENTIMETRES) == 1
 
 
 # ---- config ---------------------------------------------------------------
@@ -243,7 +244,11 @@ def test_the_settings_page_writes_the_chosen_unit(locale, ctx):
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_overview_reshapes_its_spin_box_when_the_unit_changes(locale, ctx):
-    util.set_height_unit("cm")
+    # The page's spin box now reads its unit through ctx.fmt (PRES-06), not
+    # the process-global util._unit a bare set_height_unit() would move —
+    # start it from an explicit config write, the same path a real unit
+    # change takes.
+    ctx.write_config(lambda cfg: setattr(cfg.ui, "units", "cm"))
     page = OverviewPage(ctx)
     page.client.heightChanged.emit(1.105)
     assert page.height_spin.value() == pytest.approx(110.5)
@@ -262,11 +267,11 @@ def test_overview_reshapes_its_spin_box_when_the_unit_changes(locale, ctx):
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_a_unit_change_keeps_the_target_the_user_dialled_in(locale, ctx):
     """Reshaping the box must not quietly re-aim it at a different height."""
-    util.set_height_unit("cm")
+    ctx.write_config(lambda cfg: setattr(cfg.ui, "units", "cm"))
     page = OverviewPage(ctx)
     page.height_spin.setValue(90.0)
 
     ctx.write_config(lambda cfg: setattr(cfg.ui, "units", "in"))
 
-    assert util.from_display_height(page.height_spin.value()) == pytest.approx(
-        0.90, abs=0.0005)
+    assert ctx.fmt.from_display_height(
+        page.height_spin.value()) == pytest.approx(0.90, abs=0.0005)

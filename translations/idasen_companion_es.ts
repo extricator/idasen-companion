@@ -1401,7 +1401,7 @@ Prueba a ejecutar esto en una terminal y luego continúa:
     <name>util</name>
     <message>
         <source>Desk: connected</source>
-        <extracomment>The two height units, as stored in ``[ui] units`` (see core.config). Metres per inch, exactly.</extracomment>
+        <extracomment>The two height units, as stored in ``[ui] units`` (see core.config).</extracomment>
         <translation>Escritorio: conectado</translation>
     </message>
     <message>
