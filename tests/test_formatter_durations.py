@@ -135,6 +135,21 @@ def test_duration_hm_clamps_a_negative_delay_to_zero():
     assert _formatter().duration_hm(-5) == "0m"
 
 
+def test_duration_clamps_a_negative_sub_minute_delay_to_zero():
+    # duration_hm(-5) clamped through decompose_hms from the first commit of
+    # this migration, but duration()'s own sub-minute branch never reached
+    # decompose_hms and so kept the sign: it rendered "-5s", and journald read
+    # it that way through format_duration_human. One policy has to mean both
+    # branches, not the one that happens to delegate.
+    assert _formatter().duration(-5) == "0s"
+
+
+def test_format_duration_human_clamps_a_negative_delay_to_zero():
+    # The journal's renderer reads through Formatter.duration, so the clamp
+    # above is what keeps a negative out of a greppable log line.
+    assert format_duration_human(-5) == "0s"
+
+
 def test_duration_floors_rather_than_rounds_a_sub_minute_value():
     # fmt_duration used f"{seconds:.0f}", which rounds: fmt_duration(45.6)
     # was "46s". decompose_hms's shared policy floors instead.

@@ -37,10 +37,11 @@ rejected: a Qt renderer and a headless renderer each reimplementing the
 same formatting policy. Here the policy is written once, in this facade's
 methods, and only the two small capabilities beneath it vary.
 
-**What this does not settle.** ``gui/widgets.py``'s paint method imports a
-height formatter directly because the widget it paints has no context to
-reach for. Neither this shape nor the rejected one solves that on its own;
-it is PRES-06's problem, not this plan's.
+**How a widget with no context reaches this.** ``gui/widgets.py``'s paint
+methods used to import a height formatter directly, because the widget they
+paint had nothing to reach for. Neither this shape nor the rejected one
+solved that on its own — PRES-06 did, by handing those widgets a
+``Formatter`` at construction. A widget that needs one now takes one.
 """
 
 from __future__ import annotations
@@ -244,10 +245,17 @@ class Formatter:
         delegates to :meth:`duration_hm`. One threshold, one decomposition,
         one padding rule, shared with every other duration renderer in the
         app (PRES-03).
+
+        A negative value clamps to zero, matching what
+        :func:`~idasen_companion.core.durations.decompose_hms` does for the
+        at-or-above-threshold branch. Both halves of this method have to
+        agree about it: the clock the callers read is monotonic in
+        principle but not in practice, and a delay computed across a
+        suspend can arrive negative.
         """
         if seconds < SUB_MINUTE_THRESHOLD_SECONDS:
             locale = self._context.locale
             translator = self._context.translator
-            secs = locale.integer(int(seconds), IntegerSpec())
+            secs = locale.integer(max(0, int(seconds)), IntegerSpec())
             return translator.message(SECONDS_COMPACT, seconds=secs)
         return self.duration_hm(seconds)
