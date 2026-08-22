@@ -63,14 +63,17 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       carrying the Overview page's content in the *tray tooltip's* wording,
       since the tooltip is the one place already tuned for a glance and its
       "Standing for 42 min" and "sitting down in 17 min" both say things
-      Overview does not. **The reuse of `gui/util.py` is nearly free but not
-      free**: its formatters translate at call time and read a module-global
-      unit and `QLocale`, all set at `gui/main.py:178-183` — *after* the
-      one-shot short-circuit at `gui/main.py:150` — so a naive implementation
-      prints English on a Spanish desktop and centimetres to a user configured
-      for inches, with nothing failing. Full design, traps and open decisions
-      (what it exits with when the daemon is down) in
-      `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
+      Overview does not. **The height and duration vocabulary is no longer
+      the obstacle it was.** It now lives under `core/presentation/`,
+      unit-explicit and Qt-free, reached through a `Formatter` built onto an
+      explicit `PresentationContext` a caller constructs — no module global,
+      no argument-less `QLocale()` read, nothing that only resolves correctly
+      after a GUI-specific startup sequence has run. What a status command
+      would still need from `gui/util.py` is the roughly 30 strings that
+      have not moved yet: the status, position, preset and trigger words
+      (Phase 14) and the four date/time helpers (Phase 15). Full design,
+      traps and open decisions (what it exits with when the daemon is down)
+      in `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
 - [ ] **Clear statistics / history button** — a control on the Statistics page to
       wipe the recorded sit/stand history (the daily-totals data and the recent
       transitions). Needs a daemon-side method to clear the stats DB (wire
@@ -140,17 +143,18 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       `idasen-companion` entry point runs `gui.main:main`, which imports
       `QtWidgets` at module scope, so the flags need the GUI extra to fire one
       D-Bus method. **The code separation is nearly free and the vocabulary
-      separation is the whole job.** `dbus-fast` is already a base dependency,
-      so a Qt-free client needs no new package, and the wire format is
-      deliberately flat-and-JSON already. But every string such a client needs
-      lives in `gui/util.py`, translated at call time through
-      `QCoreApplication.translate("util", …)` (`gui/util.py:48`) against the Qt
-      catalog, while the daemon translates through gettext against `po/*.po` —
-      so ~30 strings would cross catalogs and need re-translating into `es`,
-      in the exact area where an orphaned entry falls back to English with
-      nothing failing. Several of the helpers are also impure (`QLocale`, a
-      module-global display unit), so relocating them means deciding what
-      supplies locale and units outside Qt. **The prize is a headless
+      separation is most of the way done already.** `dbus-fast` is already a
+      base dependency, so a Qt-free client needs no new package, and the wire
+      format is deliberately flat-and-JSON already. The height and duration
+      words such a client would need are no longer the obstacle: they live
+      under `core/presentation/`, unit-explicit and Qt-free, reached through
+      a `Formatter` built onto an explicit context rather than through
+      `gui/util.py`'s `QCoreApplication.translate("util", …)` (`gui/util.py:27`)
+      against the Qt catalog. What is left in `gui/util.py` and would still
+      cross catalogs is the status, position, preset and trigger words
+      (Phase 14) and the four date/time helpers (Phase 15) — roughly 30
+      strings needing re-translation into `es`, in the exact area where an
+      orphaned entry falls back to English with nothing failing. **The prize is a headless
       package** — daemon plus command line, no PySide6 anywhere. Measured
       untrimmed, Qt is 648 MB against ~7.9 MB for the whole rest of the
       closure, so it is not a component of this app's weight, it is nearly all
