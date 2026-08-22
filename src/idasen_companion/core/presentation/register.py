@@ -92,6 +92,45 @@ HEIGHT_CENTIMETRES = N_("%(value)s cm")
 #: above.
 HEIGHT_INCHES = N_("%(value)s in")
 
+#: What the automation is doing, keyed by the wire value
+#: ``core/machine.py``'s ``Status`` enum carries. The long form, shown where
+#: there is room for a sentence. Source strings carried over byte-for-byte
+#: from the ``util`` context of ``translations/idasen_companion_es.ts`` (the
+#: pre-migration home of ``gui/util.py``'s ``status_label``), so their
+#: existing Spanish survives the move between catalogs.
+STATUS_LABELS = {
+    "active": N_("Automation active"),
+    "move-failed": N_("Last move failed"),
+    "unconfigured": N_("Not set up yet — no desk chosen"),
+    "disabled": N_("Automation off"),
+    "paused": N_("Paused"),
+    "snoozed": N_("Snoozed"),
+    "user-idle": N_("Waiting — you seem to be away"),
+    "locked": N_("Waiting — session locked"),
+    "away": N_("Waiting — switched to another session"),
+    "no-session": N_("On hold — no desktop session"),
+    "out-of-schedule": N_("Outside scheduled hours"),
+    "held": N_("Paused — desk moved off sit/stand"),
+}
+
+#: The same states as the Overview status head shown beside the status dot.
+#: Shorter than the equivalent :data:`STATUS_LABELS` wording *where the two
+#: differ* — where they do not, the same source string appears in both
+#: tables and is deliberately one catalog entry, not two, so a translator
+#: cannot render one state two ways. Byte-identical to the existing
+#: ``util``-context source strings — see :data:`STATUS_LABELS` above.
+STATUS_HEADS = {
+    "active": N_("Active"),
+    "paused": N_("Paused"),
+    "user-idle": N_("You're away"),
+    "away": N_("In another session"),
+    "locked": N_("Session locked"),
+    "out-of-schedule": N_("Outside schedule"),
+    "disabled": N_("Automation off"),
+    "held": N_("Off-cycle"),
+    "move-failed": N_("Last move failed"),
+}
+
 #: The sidebar footer line while the desk is connected. Source string carried
 #: over byte-for-byte from the ``util`` context of
 #: ``translations/idasen_companion_es.ts`` (the pre-migration home of

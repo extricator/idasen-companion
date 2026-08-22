@@ -40,6 +40,7 @@ from PySide6.QtCore import QCoreApplication, QLocale, QTranslator  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from idasen_companion.core.presentation import register  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -238,11 +239,14 @@ def _day_cases() -> dict[str, str]:
 
 
 def _status_cases() -> dict[str, str]:
+    # The key lists come from the register, which is where the tables live
+    # after Phase 14; every case still renders through `gui.util`, so the
+    # recorded values are unchanged by the move.
     cases = {f"label_{key}": util.status_label(key)
-             for key in util.STATUS_LABELS}
+             for key in register.STATUS_LABELS}
     cases["label_unknown"] = util.status_label("unknown-status")
     cases.update({f"head_{key}": util.status_head(key)
-                  for key in util.STATUS_HEADS})
+                  for key in register.STATUS_HEADS})
     cases["head_unknown"] = util.status_head("unknown-status")
     return cases
 

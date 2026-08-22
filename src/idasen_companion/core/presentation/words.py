@@ -37,6 +37,7 @@ from .register import (
     CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
     CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
     CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND,
+    STATUS_HEADS, STATUS_LABELS,
 )
 
 
@@ -72,3 +73,23 @@ def connection_phrases(translator: Translator, key: str) -> tuple[str, str]:
                 translator.message(CONNECTION_CHIP_DISCONNECTED))
     return (translator.message(CONNECTION_FOOTER_ON_DEMAND),
             translator.message(CONNECTION_CHIP_ON_DEMAND))
+
+
+def status_label(translator: Translator, status: str) -> str:
+    """The long automation-status sentence for a status wire value.
+
+    Falls back to the raw status string for an unrecognized key: a status
+    the app has not been taught yet is better shown as its wire value than
+    as nothing at all, and `tests/test_status_labels.py` is what stops that
+    fallback from becoming the way a new status ships.
+    """
+    source = STATUS_LABELS.get(status)
+    return translator.message(source) if source is not None else status
+
+
+def status_head(translator: Translator, status: str) -> str:
+    """The short Overview status head word for a status wire value.
+
+    Falls back to the raw status string for an unrecognized key."""
+    source = STATUS_HEADS.get(status)
+    return translator.message(source) if source is not None else status

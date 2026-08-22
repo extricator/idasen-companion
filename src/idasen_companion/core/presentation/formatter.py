@@ -182,6 +182,14 @@ class Formatter:
         key = words.connection_state_key(connected, available, persistent)
         return words.connection_phrases(self._context.translator, key)
 
+    def status_label(self, status: str) -> str:
+        """The long automation-status sentence for a status wire value."""
+        return words.status_label(self._context.translator, status)
+
+    def status_head(self, status: str) -> str:
+        """The short Overview status head word for a status wire value."""
+        return words.status_head(self._context.translator, status)
+
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5
         minutes" / "59 minutes" / "30 seconds".

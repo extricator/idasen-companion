@@ -70,6 +70,78 @@ msgid "%(value)s in"
 msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Automation active"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Last move failed"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Not set up yet — no desk chosen"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Automation off"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Paused"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Snoozed"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — you seem to be away"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — session locked"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — switched to another session"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "On hold — no desktop session"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Outside scheduled hours"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Paused — desk moved off sit/stand"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Active"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "You're away"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "In another session"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Session locked"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Outside schedule"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Off-cycle"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Desk: connected"
 msgstr ""
 

@@ -64,6 +64,78 @@ msgid "%(value)s in"
 msgstr "%(value)s pulg"
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Automation active"
+msgstr "Automatización activa"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Last move failed"
+msgstr "El último movimiento falló"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Not set up yet — no desk chosen"
+msgstr "Sin configurar — no has elegido escritorio"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Automation off"
+msgstr "Automatización desactivada"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Paused"
+msgstr "En pausa"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Snoozed"
+msgstr "Pospuesto"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — you seem to be away"
+msgstr "Esperando — parece que no estás"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — session locked"
+msgstr "Esperando — sesión bloqueada"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Waiting — switched to another session"
+msgstr "Esperando — cambiaste a otra sesión"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "On hold — no desktop session"
+msgstr "En espera — sin sesión de escritorio"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Outside scheduled hours"
+msgstr "Fuera del horario programado"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Paused — desk moved off sit/stand"
+msgstr "En pausa — escritorio movido fuera de sentado/de pie"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Active"
+msgstr "Activa"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "You're away"
+msgstr "No estás"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "In another session"
+msgstr "En otra sesión"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Session locked"
+msgstr "Sesión bloqueada"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Outside schedule"
+msgstr "Fuera del horario"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Off-cycle"
+msgstr "Fuera de ciclo"
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Desk: connected"
 msgstr "Escritorio: conectado"
 

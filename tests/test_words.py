@@ -70,6 +70,39 @@ def test_an_unrecognized_connection_key_falls_through_to_on_demand():
         register.CONNECTION_CHIP_ON_DEMAND]
 
 
+@pytest.mark.parametrize("lookup,table", [
+    (words.status_label, register.STATUS_LABELS),
+    (words.status_head, register.STATUS_HEADS),
+])
+def test_a_known_status_renders_its_own_register_entry(lookup, table):
+    translator = FakeTranslator()
+    for key, source in table.items():
+        assert lookup(translator, key) == FakeTranslator().message(source)
+
+
+@pytest.mark.parametrize("lookup", [words.status_label, words.status_head])
+def test_an_unrecognized_status_falls_back_to_the_raw_wire_value(lookup):
+    """A status the app has not been taught yet shows as its wire value
+    rather than as nothing. That was the behaviour before the move and a
+    forwarder changes no default (D-02); tests/test_status_labels.py is what
+    stops the fallback becoming the way a new status ships.
+    """
+    translator = FakeTranslator()
+    assert lookup(translator, "unknown-status") == "unknown-status"
+    assert translator.calls == []
+
+
+def test_the_two_status_tables_share_their_wording_where_it_matches():
+    """`Paused`, `Automation off` and `Last move failed` are one source
+    string in both tables, so they are one catalog entry and a translator
+    cannot render one state two ways. The heads table is shorter only where
+    the two genuinely differ.
+    """
+    shared = {key for key in register.STATUS_HEADS
+              if register.STATUS_HEADS[key] == register.STATUS_LABELS.get(key)}
+    assert shared == {"paused", "disabled", "move-failed"}
+
+
 def test_connection_phrases_reads_nothing_but_its_translator():
     """PRES-02 in miniature: the same key rendered through two different
     translators gives two different answers, so nothing here is reaching
