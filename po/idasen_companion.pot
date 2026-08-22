@@ -70,6 +70,30 @@ msgid "%(value)s in"
 msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Desk: connected"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Connected"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Desk: disconnected"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Disconnected"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Desk: on demand"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Not connected · on demand"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
 #, python-format
 msgid "%(name)s · %(height)s"
 msgstr ""

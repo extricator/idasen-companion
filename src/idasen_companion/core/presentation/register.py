@@ -92,6 +92,39 @@ HEIGHT_CENTIMETRES = N_("%(value)s cm")
 #: above.
 HEIGHT_INCHES = N_("%(value)s in")
 
+#: The sidebar footer line while the desk is connected. Source string carried
+#: over byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``connection_state``), so its existing Spanish survives
+#: the move between catalogs. A single altered character loses it.
+CONNECTION_FOOTER_CONNECTED = N_("Desk: connected")
+
+#: The Overview connection chip while the desk is connected. Byte-identical
+#: to the existing ``util``-context source string — see
+#: :data:`CONNECTION_FOOTER_CONNECTED` above.
+CONNECTION_CHIP_CONNECTED = N_("Connected")
+
+#: The sidebar footer line when the desk is unreachable, or when a persistent
+#: link is configured and not up. Byte-identical to the existing
+#: ``util``-context source string — see :data:`CONNECTION_FOOTER_CONNECTED`.
+CONNECTION_FOOTER_DISCONNECTED = N_("Desk: disconnected")
+
+#: The Overview connection chip for the same state. Byte-identical to the
+#: existing ``util``-context source string — see
+#: :data:`CONNECTION_FOOTER_CONNECTED` above.
+CONNECTION_CHIP_DISCONNECTED = N_("Disconnected")
+
+#: The sidebar footer line when the desk is reachable but only connected to
+#: on demand. Byte-identical to the existing ``util``-context source string —
+#: see :data:`CONNECTION_FOOTER_CONNECTED` above.
+CONNECTION_FOOTER_ON_DEMAND = N_("Desk: on demand")
+
+#: The Overview connection chip for the same state, which spells out what
+#: "on demand" means where the footer has less room. Byte-identical to the
+#: existing ``util``-context source string — see
+#: :data:`CONNECTION_FOOTER_CONNECTED` above.
+CONNECTION_CHIP_ON_DEMAND = N_("Not connected · on demand")
+
 #: A preset tick's name next to its live height, e.g. "Sit · 110.5".
 #: %(name)s is the preset's display name (already translated where it is
 #: "Sit"/"Stand"; a user's own preset name is shown verbatim), %(height)s

@@ -1400,30 +1400,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
 <context>
     <name>util</name>
     <message>
-        <source>Desk: connected</source>
-        <translation>Escritorio: conectado</translation>
-    </message>
-    <message>
-        <source>Connected</source>
-        <translation>Conectado</translation>
-    </message>
-    <message>
-        <source>Desk: disconnected</source>
-        <translation>Escritorio: desconectado</translation>
-    </message>
-    <message>
-        <source>Disconnected</source>
-        <translation>Desconectado</translation>
-    </message>
-    <message>
-        <source>Desk: on demand</source>
-        <translation>Escritorio: bajo demanda</translation>
-    </message>
-    <message>
-        <source>Not connected · on demand</source>
-        <translation>No conectado · bajo demanda</translation>
-    </message>
-    <message>
         <source> in</source>
         <translation> pulg</translation>
     </message>

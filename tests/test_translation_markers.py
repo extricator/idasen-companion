@@ -120,9 +120,21 @@ def _lambda_definitions(tree):
             if isinstance(node, ast.Lambda)}
 
 
+#: The calls that count as reaching a translator directly. Two entries,
+#: because `gui/util.py` now has two ways to ask for translated text: the
+#: module-private wrapper, and the shared presentation layer's Qt-free
+#: translator backend, which a forwarder constructs on the spot and hands to
+#: `core/presentation/words.py`. Such a forwarder's return value is still
+#: translated text -- it is simply looked up through gettext instead of
+#: through the wrapper -- so it must keep its mark, and this seed set is what
+#: lets it. Deleting the mark to make the check agree is forbidden; widening
+#: the seed is the correction.
+_TRANSLATOR_SEEDS = frozenset({"_tr", "GettextTranslator"})
+
+
 def _reaches_tr(tree):
     """Names in `tree` that can carry the mark and whose body reaches
-    `_tr()`, directly or through another such name.
+    a translator, directly or through another such name.
 
     Walks each definition's whole body with `ast.walk`, so a call made from
     inside a nested `FunctionDef` or `Lambda` counts too -- a future helper
@@ -147,7 +159,8 @@ def _reaches_tr(tree):
         return names
 
     calls = {name: _called_names(node) for name, node in definitions.items()}
-    reached = {name for name, called in calls.items() if "_tr" in called}
+    reached = {name for name, called in calls.items()
+               if called & _TRANSLATOR_SEEDS}
     changed = True
     while changed:
         changed = False
@@ -172,6 +185,18 @@ def test_a_call_through_a_second_function_reaches_tr():
         "def f():\n    return _tr('x')\n"
         "def g():\n    return f()\n")
     assert _reaches_tr(tree) == {"f", "g"}
+
+
+def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
+    """A `gui/util.py` forwarder that delegates the word itself to
+    `core/presentation/` no longer calls the module-private wrapper -- it
+    builds the Qt-free translator backend and hands it over. Its result is
+    still translated text, so it must still be seen to reach a translator.
+    """
+    tree = ast.parse(
+        "def f(key):\n"
+        "    return words.connection_phrases(GettextTranslator(), key)\n")
+    assert _reaches_tr(tree) == {"f"}
 
 
 def test_a_call_made_inside_a_nested_closure_reaches_tr():

@@ -64,6 +64,30 @@ msgid "%(value)s in"
 msgstr "%(value)s pulg"
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Desk: connected"
+msgstr "Escritorio: conectado"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Connected"
+msgstr "Conectado"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Desk: disconnected"
+msgstr "Escritorio: desconectado"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Disconnected"
+msgstr "Desconectado"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Desk: on demand"
+msgstr "Escritorio: bajo demanda"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Not connected · on demand"
+msgstr "No conectado · bajo demanda"
+
+#: src/idasen_companion/core/presentation/register.py
 #, python-format
 msgid "%(name)s · %(height)s"
 msgstr "%(name)s · %(height)s"

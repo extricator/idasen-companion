@@ -204,9 +204,17 @@ def installed_spanish_catalog(qapp):
 
 def test_lookup_with_the_shipped_spanish_catalog_returns_a_translation(
         qapp, installed_spanish_catalog):
+    """The probe is a spin-box suffix on purpose. It used to be one of the
+    connection phrases, which Phase 14 moved to the gettext catalog -- and
+    every other `util`-context string is on its way out too, to gettext in
+    Phase 14 or Phase 15. The three suffix helpers are the exception
+    PRES-05 keeps in `gui/` permanently (`QAbstractSpinBox.setSuffix` takes
+    a plain string), so this is the one `util` entry that will still be a
+    Qt-catalog lookup once the migration finishes.
+    """
     translator = QtTranslator("util")
-    rendered = translator.message("Desk: connected")
-    assert rendered != "Desk: connected"
+    rendered = translator.message(" in")
+    assert rendered != " in"
 
 
 # ---- Comparison: the backend reproduces today's gui/util.py output -------

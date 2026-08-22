@@ -18,6 +18,8 @@ from PySide6.QtCore import (
     QCoreApplication, QDate, QLocale, QTime, QT_TRANSLATE_NOOP,
 )
 
+from ..core.presentation import words
+from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import HeightUnit
 
 # The automation engine moves to these; they can't be deleted or renamed.
@@ -68,15 +70,26 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
     """Desk connection appearance as ``(color, footer_text, chip_text)``.
 
     Shared by the sidebar footer and the Overview connection chip so both
-    read the same state. ``tokens`` is the active theme."""
-    if connected:
-        return (tokens.success, _tr(QT_TRANSLATE_NOOP("util", "Desk: connected")),
-                _tr(QT_TRANSLATE_NOOP("util", "Connected")))
-    if not available or persistent:
-        return (tokens.error, _tr(QT_TRANSLATE_NOOP("util", "Desk: disconnected")),
-                _tr(QT_TRANSLATE_NOOP("util", "Disconnected")))
-    return (tokens.muted, _tr(QT_TRANSLATE_NOOP("util", "Desk: on demand")),
-            _tr(QT_TRANSLATE_NOOP("util", "Not connected · on demand")))
+    read the same state. ``tokens`` is the active theme.
+
+    **Why this one stays in ``gui/``.** Its words moved to
+    ``core/presentation/words.py`` with the rest of the app's vocabulary,
+    but what is left is a pairing of those words with a *theme colour*, and
+    a theme is a Qt concept. ``docs/ARCHITECTURE.md``'s ``gui``/``daemon``
+    -> ``core`` -> nothing rule keeps Qt out of ``core/``, so the pairing
+    has nowhere else to live. A caller that wants only the wording — the
+    daemon, or the future CLI — asks a ``Formatter`` for
+    ``connection_phrases`` instead and reaches the same implementation.
+    """
+    key = words.connection_state_key(connected, available, persistent)
+    if key == "connected":
+        color = tokens.success
+    elif key == "disconnected":
+        color = tokens.error
+    else:
+        color = tokens.muted
+    footer_text, chip_text = words.connection_phrases(GettextTranslator(), key)
+    return (color, footer_text, chip_text)
 
 
 @returns_translated

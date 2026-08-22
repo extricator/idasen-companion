@@ -51,6 +51,7 @@ from dataclasses import dataclass
 from .. import units
 from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from ..units import HeightUnit
+from . import words
 from .protocols import LocaleFormatter, Translator
 from .register import (
     HEIGHT_CENTIMETRES, HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES,
@@ -168,6 +169,18 @@ class Formatter:
         """
         return self._context.translator.message(
             PRESET_TICK, name=label, height=self.height_value(meters, trim))
+
+    def connection_phrases(self, connected: bool, available: bool,
+                           persistent: bool) -> tuple[str, str]:
+        """The desk's connection state as ``(footer_text, chip_text)``.
+
+        The door a caller with no Qt reaches the connection wording
+        through. The GUI's own ``connection_state`` pairs the same two
+        phrases with a theme colour and so stays in ``gui/``; both spellings
+        resolve to the one implementation in :mod:`.words`.
+        """
+        key = words.connection_state_key(connected, available, persistent)
+        return words.connection_phrases(self._context.translator, key)
 
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5
