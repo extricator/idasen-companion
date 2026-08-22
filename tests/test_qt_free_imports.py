@@ -72,6 +72,39 @@ for _name in {modules!r}:
 sys.stdout.write({present!r} if "PySide6" in sys.modules else {absent!r})
 """.strip()
 
+# The third leg's child program goes further than an import: it drives every
+# public Formatter method through a real call, from the same shared table
+# tests/test_golden_presentation_contract.py pins against, plus the one
+# daemon-reader sentence table that gets no Formatter method at all
+# (core/presentation/daemon_errors.py). ``-I`` strips PYTHONPATH, so the
+# repository's own src/ and tests/ directories are injected here, from the
+# parent process's own ROOT, rather than relied on to already be importable.
+_CALLABILITY_CHILD_PROGRAM = """
+import sys
+
+sys.path.insert(0, {tests_dir!r})
+sys.path.insert(0, {src_dir!r})
+
+import presentation_samples
+from idasen_companion.core.presentation import daemon_errors
+from idasen_companion.core.presentation.english import EnglishTranslator
+
+formatter = presentation_samples.build_plain_formatter()
+for row in presentation_samples.SAMPLES:
+    result = getattr(formatter, row.method)(*row.args, **row.kwargs)
+    if isinstance(result, tuple):
+        assert result, (row.case, result)
+        for part in result:
+            assert isinstance(part, str) and part, (row.case, result)
+    else:
+        assert isinstance(result, str) and result, (row.case, result)
+
+detail = daemon_errors.daemon_error_message(EnglishTranslator(), "MoveFailed")
+assert isinstance(detail, str) and detail
+
+sys.stdout.write({present!r} if "PySide6" in sys.modules else {absent!r})
+""".strip()
+
 
 def _dotted_module_names(package_dir: Path, package: str) -> list[str]:
     """Every module under ``package_dir``, as a dotted import path.
@@ -148,3 +181,22 @@ def test_the_daemon_entry_point_never_imports_qt(monkeypatch):
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "daemon/main.py")
+
+
+def test_every_shared_formatter_is_callable_with_no_qt_loaded(monkeypatch):
+    """PRES-01 asks for more than the two legs above prove. Those cover
+    *importability* -- that ``core/presentation/`` and the daemon's entry
+    point load with no windowing toolkit in ``sys.modules`` -- but say
+    nothing about a method that raises the moment it is actually invoked
+    without one backing it. This leg drives every public ``Formatter``
+    method, from the same ``tests/presentation_samples.py`` table
+    ``tests/test_golden_presentation_contract.py`` pins against, through a
+    real call in a process that has never loaded Qt, plus the one
+    daemon-reader sentence table that gets no ``Formatter`` method at all.
+    """
+    monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
+    program = _CALLABILITY_CHILD_PROGRAM.format(
+        tests_dir=str(ROOT / "tests"), src_dir=str(ROOT / "src"),
+        present=_PRESENT, absent=_ABSENT)
+    result = _run_isolated(program)
+    _assert_qt_free(result, "every shared formatter, called")
