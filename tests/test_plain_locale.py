@@ -75,6 +75,9 @@ def test_integer_zero_padded_to_min_digits():
     assert FORMATTER.integer(5, IntegerSpec(min_digits=2)) == "05"
 
 
+# The time cases below are unchanged by D-08 -- "14:32" already contains no
+# words, so the time half of this backend was never part of the divergence
+# the date half is settling here.
 @pytest.mark.parametrize("hour,minute,expected", [
     (9, 5, "09:05"),      # morning
     (12, 0, "12:00"),     # noon
@@ -86,14 +89,36 @@ def test_time_renders_two_digit_24_hour(hour, minute, expected):
     assert FORMATTER.time(when, TimeStyle.HOUR_AND_MINUTE) == expected
 
 
-def test_date_weekday_and_day():
-    when = datetime(2026, 8, 21)  # a Friday
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "Fri 21"
+def test_date_weekday_and_day_renders_iso_8601():
+    when = datetime(2026, 8, 17, 14, 32)
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "2026-08-17"
 
 
-def test_date_weekday_day_month_year():
-    when = datetime(2026, 8, 21)
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "Fri 21 Aug 2026"
+def test_date_weekday_day_month_year_renders_iso_8601():
+    when = datetime(2026, 8, 17, 14, 32)
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "2026-08-17"
+
+
+def test_date_zero_pads_a_single_digit_month_and_day():
+    when = datetime(2026, 1, 3)
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "2026-01-03"
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "2026-01-03"
+
+
+def test_date_the_two_styles_converge_on_the_same_rendering():
+    # D-08: both DateStyle members render an ISO 8601 date here, so this
+    # backend answers a short-marker request and a full-heading request
+    # identically -- an equality assertion records that relationship rather
+    # than a value either side could be seeded from a bug.
+    when = datetime(2026, 8, 17, 14, 32)
+    assert (FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY)
+            == FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR))
+
+
+def test_date_an_unsupported_style_still_raises():
+    when = datetime(2026, 8, 17)
+    with pytest.raises(ValueError):
+        FORMATTER.date(when, "not-a-style")
 
 
 # ---- Structural locale-independence gate -----------------------------------

@@ -16,6 +16,26 @@ decision (git, systemd, Deluge, borgbackup, llama.cpp) lives in
 ``.planning/notes/vocabulary-and-presentation-decisions.md`` § 2; this
 module implements that decision rather than re-arguing it.
 
+Both :class:`.specs.DateStyle` members render an ISO 8601 calendar date
+(``2026-08-17``) here, and deliberately converge on that one shape — a
+short day marker and a full calendar heading are two different Qt
+requests, but a Qt-free process answers them identically. ISO is named by
+a standard rather than invented in this module, carries no language, and
+is the readable choice in the journal lines and command-line output where
+Qt-free rendering actually surfaces. Fixed English weekday and month names
+were the rejected alternative: they hand a Spanish reader text that looks
+half-translated, with no way for a translator to fix it. Deleting the
+weekday and month abbreviation tables that used to sit here is the point
+of this choice, not a side effect of it — a private month-name table is
+exactly the ``month_names()`` accessor BACK-02 forbids, with the getter
+removed; keeping the tables private would only have hidden the same
+locale database this module exists not to have. None of this makes the
+divergence between the two backends disappear — the window still renders
+``lun 17 ago 2026`` where this module renders ``2026-08-17``, and
+``docs/ARCHITECTURE.md`` names that divergence as the invariant's
+boundary. What changes here is that the Qt-free side no longer disagrees
+with the window *in English words*.
+
 This backend satisfies :class:`.protocols.LocaleFormatter` and nothing
 else (BACK-01) — it renders values, and looks nothing up in a message
 catalog.
@@ -26,21 +46,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from .specs import DateStyle, IntegerSpec, NumberSpec, TimeStyle
-
-#: Fixed English weekday abbreviations, indexed by ``datetime.weekday()``
-#: (Monday = 0). Deliberately carries no translation marker: this backend's
-#: whole contract is invariance across machines and languages, and these two
-#: date/time helpers are the one place that contract is allowed to diverge
-#: from the Qt side's translated weekday names — the shape of that
-#: divergence is written down as Phase 15's contract, not this phase's.
-_WEEKDAY_ABBREVIATIONS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-
-#: Fixed English month abbreviations, indexed by calendar month minus one.
-#: Same deliberate-invariance rule as the weekday table above.
-_MONTH_ABBREVIATIONS = (
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-)
 
 
 class PlainLocaleFormatter:
@@ -68,10 +73,6 @@ class PlainLocaleFormatter:
         raise ValueError(f"unsupported time style: {style!r}")
 
     def date(self, value: datetime, style: DateStyle) -> str:
-        weekday = _WEEKDAY_ABBREVIATIONS[value.weekday()]
-        if style is DateStyle.WEEKDAY_AND_DAY:
-            return f"{weekday} {value.day:02d}"
-        if style is DateStyle.WEEKDAY_DAY_MONTH_YEAR:
-            month = _MONTH_ABBREVIATIONS[value.month - 1]
-            return f"{weekday} {value.day:02d} {month} {value.year:04d}"
-        raise ValueError(f"unsupported date style: {style!r}")
+        if style not in (DateStyle.WEEKDAY_AND_DAY, DateStyle.WEEKDAY_DAY_MONTH_YEAR):
+            raise ValueError(f"unsupported date style: {style!r}")
+        return f"{value.year:04d}-{value.month:02d}-{value.day:02d}"
