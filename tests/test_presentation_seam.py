@@ -21,6 +21,7 @@ from idasen_companion.core.presentation.formatter import (
 from idasen_companion.core.presentation.specs import (
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
 )
+from idasen_companion.core.units import HeightUnit
 
 
 def test_number_spec_is_frozen():
@@ -82,13 +83,17 @@ class _StandInTranslator:
 
 
 def _build_context() -> PresentationContext:
-    return PresentationContext(locale=_StandInLocale(), translator=_StandInTranslator())
+    return PresentationContext(
+        locale=_StandInLocale(), translator=_StandInTranslator(),
+        unit=HeightUnit.CENTIMETRES)
 
 
 def test_presentation_context_is_frozen():
     context = _build_context()
     with pytest.raises(dataclasses.FrozenInstanceError):
         context.locale = _StandInLocale()  # type: ignore[misc]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        context.unit = HeightUnit.INCHES  # type: ignore[misc]
 
 
 def test_formatter_exposes_its_context():

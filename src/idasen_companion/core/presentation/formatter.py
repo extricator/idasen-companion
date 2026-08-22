@@ -47,34 +47,44 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .. import units
+from ..units import HeightUnit
 from .protocols import LocaleFormatter, Translator
+from .specs import NumberSpec
 
 
 @dataclass(frozen=True)
 class PresentationContext:
-    """The capability pair a :class:`Formatter` renders through.
+    """The capability pair and unit a :class:`Formatter` renders through.
 
-    Holds exactly the two protocol instances a surface supplies — a
-    locale-rendering backend and a message-translating backend — and
-    nothing else. Frozen because it is built once per surface and handed
-    to every ``Formatter`` that surface constructs; nothing here changes
-    over the context's lifetime.
+    Holds the two protocol instances a surface supplies — a
+    locale-rendering backend and a message-translating backend — plus the
+    display unit a height renders in. Frozen because it is built once per
+    surface and handed to every ``Formatter`` that surface constructs;
+    nothing here changes over the context's lifetime.
+
+    ``unit`` carries no default. ``"system"`` is a setting, not a unit —
+    :func:`idasen_companion.core.units.resolve_height_unit` is the one
+    place that resolves it — and a default here would quietly let a
+    caller hand this context an unresolved policy question instead of an
+    answer.
     """
 
     locale: LocaleFormatter
     translator: Translator
+    unit: HeightUnit
 
 
 class Formatter:
     """Renders values and messages through an injected presentation context.
 
-    Holds a :class:`PresentationContext` and nothing else. This class
-    deliberately has **no formatting methods yet** — ``height``,
-    ``duration``, ``status`` and the rest arrive in Phases 13, 14 and 15,
-    one at a time, as each existing formatter moves onto this facade. Do
-    not "finish" this class by moving a formatter here early: this plan's
-    own constraints forbid it, and the phases after this one are where
-    that work is planned, tested and translated.
+    Holds a :class:`PresentationContext` and nothing else. A method here
+    owes exactly this: an atomic value goes through ``self._context.locale``,
+    a whole message goes through ``self._context.translator``, and nothing
+    is ever concatenated in Python — the values these two collaborators
+    produce are substituted into a translated pattern instead (see
+    ``core/presentation/formatter.py``'s callers and CLAUDE.md's
+    whole-message rule).
 
     See the module docstring for the recorded § 14 decision — this facade
     over an explicit context argument at every call site — and the
@@ -88,3 +98,35 @@ class Formatter:
     def context(self) -> PresentationContext:
         """The context this facade was built from."""
         return self._context
+
+    @property
+    def unit(self) -> HeightUnit:
+        """The unit heights render in, from the injected context."""
+        return self._context.unit
+
+    def to_display_height(self, meters: float) -> float:
+        """Metres as the number the user sees (1.105 -> 110.5 cm / 43.5 in)."""
+        return units.to_display_height(meters, self.unit)
+
+    def from_display_height(self, value: float) -> float:
+        """The inverse of :meth:`to_display_height`, back to metres."""
+        return units.from_display_height(value, self.unit)
+
+    def height_decimals(self) -> int:
+        """Decimal places a height is shown with, for the injected unit."""
+        return units.height_decimals(self.unit)
+
+    def height_step(self) -> float:
+        """A single step of a height spin box, in display units."""
+        return units.height_step(self.unit)
+
+    def height_value(self, meters: float, trim: bool = False) -> str:
+        """Locale-formatted height *number*, with no unit (1.105 -> '110.5').
+
+        Carries no translatable string — it is a bare number, never a unit
+        suffix — which is why it can land ahead of the CAT-05 extraction
+        widening.
+        """
+        return self._context.locale.number(
+            self.to_display_height(meters),
+            NumberSpec(decimals=self.height_decimals(), trim_trailing_zeroes=trim))

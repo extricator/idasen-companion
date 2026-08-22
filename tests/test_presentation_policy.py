@@ -60,7 +60,8 @@ def test_unit_choice_reaches_the_backend_as_a_request(unit, expected_decimals):
     assert spec.decimals == expected_decimals
 
     locale = FakeLocale()
-    context = PresentationContext(locale=locale, translator=FakeTranslator())
+    context = PresentationContext(
+        locale=locale, translator=FakeTranslator(), unit=HeightUnit.CENTIMETRES)
     Formatter(context)  # exercises the D-01 call-site shape
 
     context.locale.number(display_value, spec)
@@ -110,7 +111,8 @@ def test_duration_minutes_are_requested_through_a_two_digit_integer_spec():
     assert (parts.hours, parts.minutes, parts.seconds) == (1, 5, 0)
 
     locale = FakeLocale()
-    context = PresentationContext(locale=locale, translator=FakeTranslator())
+    context = PresentationContext(
+        locale=locale, translator=FakeTranslator(), unit=HeightUnit.CENTIMETRES)
     Formatter(context)
 
     minutes_spec = IntegerSpec(min_digits=2)
@@ -130,7 +132,8 @@ def test_message_selection_names_the_key_and_every_value():
     never a fragment — proving both the source key and every supplied
     value reached the translator."""
     translator = FakeTranslator()
-    context = PresentationContext(locale=FakeLocale(), translator=translator)
+    context = PresentationContext(
+        locale=FakeLocale(), translator=translator, unit=HeightUnit.CENTIMETRES)
     Formatter(context)
 
     marker = context.translator.message(
