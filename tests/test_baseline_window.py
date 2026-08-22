@@ -41,6 +41,17 @@ reader to rediscover:**
   ``test_baseline_vocabulary.py``'s ``_language`` does — a ``QSpinBox`` /
   ``QDoubleSpinBox`` / ``QTimeEdit`` reads ``QLocale::default()`` once, at
   construction, so setting it after the window exists would be too late.
+- **Both catalogs AppContext binds on a config reload** — Settings and
+  Automation each call ``ctx.reload_config()`` from ``load()``, and
+  ``AppContext`` now rebinds both catalogs from ``[ui] language`` on every
+  reload (see ``gui/context.py``'s ``apply_language`` calls). ``cfg.ui.language``
+  is set to the same value this capture installs manually, so a page visit
+  mid-walk reinforces the intended language rather than silently rebinding
+  back to "system". Every ``QTranslator`` installed on the session-scoped
+  ``app`` over the whole walk — not just the one this function installs up
+  front — is snapshotted and removed at teardown, and ``core/i18n.py``'s
+  gettext binding is reset the same way, so neither catalog leaks into the
+  next capture in the same process.
 - **The fake client** reports a fixed, unavailable state and answers every
   method call with a no-op — nothing on any page can render a value read
   from a live desk.
@@ -102,11 +113,13 @@ pytest.importorskip("PySide6")
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import shiboken6  # noqa: E402
 from PySide6.QtCore import (  # noqa: E402
-    QCoreApplication, QLocale, QObject, Signal, QThreadPool,
+    QCoreApplication, QLocale, QObject, QTranslator, Signal, QThreadPool,
 )
 from PySide6.QtWidgets import QApplication, QComboBox, QWidget  # noqa: E402
 
+from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.core import journal as journal_mod  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import background_portal  # noqa: E402
@@ -306,6 +319,12 @@ def _capture_language(language: str) -> dict[str, str]:
             config_path = tmp / "config.toml"
             cfg = AppConfig()
             cfg.desk.mac = MAC
+            # AppContext now binds both catalogs from this value on every
+            # config reload (see gui/context.py's apply_language calls), so
+            # it has to agree with the locale this capture installs below --
+            # otherwise a page visit that reloads config (Settings,
+            # Automation) would silently rebind back to "system" mid-walk.
+            cfg.ui.language = language
             save_config(cfg, config_path)
             mp.setattr(context_mod, "DEFAULT_CONFIG_PATH", config_path)
 
@@ -321,11 +340,16 @@ def _capture_language(language: str) -> dict[str, str]:
             mp.setattr(about_mod.Path, "home", staticmethod(lambda: fake_home))
 
             previous_locale = QLocale()
-            installed: list = []
+            # Every QTranslator already on the session-scoped app before this
+            # capture starts -- diffed against what's installed at teardown,
+            # since AppContext.reload_config() (Settings/Automation's load())
+            # now installs its own translators mid-walk, not only the ones
+            # this function installs up front.
+            previous_translators = set(app.findChildren(QTranslator))
             if language == "en":
                 QLocale.setDefault(QLocale("en_US"))
             else:
-                installed = i18n.install_translators(app, language)
+                i18n.install_translators(app, language)
             try:
                 window = mw.MainWindow(FakeClient(), tray_available=True)
                 try:
@@ -348,9 +372,11 @@ def _capture_language(language: str) -> dict[str, str]:
                             page.discard_edits()
                     window.close()
             finally:
-                for translator in installed:
+                for translator in set(app.findChildren(QTranslator)) - previous_translators:
                     QCoreApplication.removeTranslator(translator)
+                    shiboken6.delete(translator)
                 QLocale.setDefault(previous_locale)
+                core_i18n.set_language(core_i18n.SYSTEM)
 
 
 def _capture_in_subprocess(language: str) -> dict[str, str]:
