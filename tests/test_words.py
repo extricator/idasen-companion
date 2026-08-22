@@ -155,6 +155,74 @@ def test_the_three_sit_stand_renderings_are_three_separate_entries():
             & set(register.PRESET_LABELS.values())) == set()
 
 
+def test_every_day_key_renders_its_own_register_entry():
+    translator = FakeTranslator()
+    for key, source in register.DAY_NAMES.items():
+        assert (words.day_label(translator, key)
+                == FakeTranslator().message(source))
+
+
+def test_an_empty_day_list_renders_the_no_days_stand_in():
+    """Reachable: the Automation page lets every day chip be unchecked and
+    `_validate` does not refuse an empty list."""
+    translator = FakeTranslator()
+    assert (words.fmt_days(translator, [])
+            == FakeTranslator().message(register.NO_DAYS))
+    assert [call.source for call in translator.calls] == [register.NO_DAYS]
+
+
+def test_a_single_day_renders_as_that_day_alone():
+    translator = FakeTranslator()
+    assert (words.fmt_days(translator, ["mon"])
+            == FakeTranslator().message(register.DAY_NAMES["mon"]))
+    assert register.DAY_PAIR not in [c.source for c in translator.calls]
+
+
+def test_a_run_of_two_stays_a_comma_pair():
+    """Two consecutive days are below the run threshold, so they join
+    through the pair pattern rather than collapsing into a range."""
+    translator = FakeTranslator()
+    words.fmt_days(translator, ["mon", "tue"])
+    sources = [call.source for call in translator.calls]
+    assert register.DAY_RANGE not in sources
+    assert sources.count(register.DAY_PAIR) == 1
+
+
+def test_a_run_of_three_or_more_collapses_into_a_range():
+    translator = FakeTranslator()
+    words.fmt_days(translator, ["mon", "tue", "wed", "thu", "fri"])
+    sources = [call.source for call in translator.calls]
+    assert sources.count(register.DAY_RANGE) == 1
+    assert register.DAY_PAIR not in sources
+
+
+def test_a_mixed_list_folds_one_pair_pattern_left_across_its_parts():
+    """Three non-consecutive days need two joins, not one three-slot
+    message: the fold is deliberately one pair pattern applied repeatedly
+    rather than CLDR's start/middle/end key set.
+    """
+    translator = FakeTranslator()
+    words.fmt_days(translator, ["mon", "wed", "fri"])
+    sources = [call.source for call in translator.calls]
+    assert sources.count(register.DAY_PAIR) == 2
+    assert register.DAY_RANGE not in sources
+
+
+def test_a_range_and_a_loose_day_combine_through_both_patterns():
+    translator = FakeTranslator()
+    words.fmt_days(translator, ["mon", "tue", "wed", "fri"])
+    sources = [call.source for call in translator.calls]
+    assert sources.count(register.DAY_RANGE) == 1
+    assert sources.count(register.DAY_PAIR) == 1
+
+
+def test_the_day_list_is_rendered_in_week_order_not_argument_order():
+    translator = FakeTranslator()
+    scrambled = words.fmt_days(translator, ["fri", "mon", "wed"])
+    assert scrambled == words.fmt_days(FakeTranslator(),
+                                       ["mon", "wed", "fri"])
+
+
 def test_connection_phrases_reads_nothing_but_its_translator():
     """PRES-02 in miniature: the same key rendered through two different
     translators gives two different answers, so nothing here is reaching

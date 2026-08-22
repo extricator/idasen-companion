@@ -136,6 +136,48 @@ msgid "Off-cycle"
 msgstr "Fuera de ciclo"
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Mon"
+msgstr "Lun"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Tue"
+msgstr "Mar"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Wed"
+msgstr "Mié"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Thu"
+msgstr "Jue"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Fri"
+msgstr "Vie"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Sat"
+msgstr "Sáb"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Sun"
+msgstr "Dom"
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "no days"
+msgstr "ningún día"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(first)s–%(last)s"
+msgstr "%(first)s–%(last)s"
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(first)s, %(second)s"
+msgstr "%(first)s, %(second)s"
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Sitting"
 msgstr "Sentado"
 

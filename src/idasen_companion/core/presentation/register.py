@@ -131,6 +131,41 @@ STATUS_HEADS = {
     "move-failed": N_("Last move failed"),
 }
 
+#: The short weekday names an automation schedule is shown with, keyed by
+#: the schedule's own day wire values. Source strings carried over
+#: byte-for-byte from the ``util`` context of
+#: ``translations/idasen_companion_es.ts`` (the pre-migration home of
+#: ``gui/util.py``'s ``day_label``), so their existing Spanish survives the
+#: move between catalogs.
+DAY_NAMES = {
+    "mon": N_("Mon"),
+    "tue": N_("Tue"),
+    "wed": N_("Wed"),
+    "thu": N_("Thu"),
+    "fri": N_("Fri"),
+    "sat": N_("Sat"),
+    "sun": N_("Sun"),
+}
+
+#: Stands in for the day list when an automation schedule has no days
+#: selected, e.g. "Automation runs no days, 09:00–17:00." Reachable because
+#: the Automation page lets every day chip be unchecked and ``_validate``
+#: does not refuse an empty list.
+NO_DAYS = N_("no days")
+
+#: A run of three or more consecutive days collapsed into a range, e.g.
+#: "Mon–Fri". %(first)s is the run's first day, %(last)s its last. The
+#: separator is an en dash, not a hyphen.
+DAY_RANGE = N_("%(first)s–%(last)s")
+
+#: Two day-list entries joined, e.g. "Mon, Wed". Folded left across a longer
+#: list to build the whole thing, e.g. "Mon, Wed, Fri" — %(first)s is
+#: everything assembled so far, %(second)s the next entry. Both values are
+#: substituted as complete translated messages, never assembled fragments;
+#: see ``core/presentation/words.py``'s ``fmt_days`` for why one pair
+#: pattern folded left is the whole key set.
+DAY_PAIR = N_("%(first)s, %(second)s")
+
 #: The desk position wire values shown as UI words, capitalised because
 #: they stand alone as a label or a noun.
 #:

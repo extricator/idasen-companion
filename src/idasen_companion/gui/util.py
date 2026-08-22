@@ -125,44 +125,10 @@ def fmt_countdown(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 
 
-_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-# Marked for extraction here; translated in day_label() (see _tr note above).
-DAY_NAMES = {"mon": QT_TRANSLATE_NOOP("util", "Mon"),
-             "tue": QT_TRANSLATE_NOOP("util", "Tue"),
-             "wed": QT_TRANSLATE_NOOP("util", "Wed"),
-             "thu": QT_TRANSLATE_NOOP("util", "Thu"),
-             "fri": QT_TRANSLATE_NOOP("util", "Fri"),
-             "sat": QT_TRANSLATE_NOOP("util", "Sat"),
-             "sun": QT_TRANSLATE_NOOP("util", "Sun")}
-
-
 @returns_translated
 def day_label(key: str) -> str:
-    """Translated short day name for a schedule day key ('mon' -> 'Lun').
-
-    Public because the schedule day chips need it too: DAY_NAMES holds
-    QT_TRANSLATE_NOOP markers, so reading it directly yields the untranslated
-    source word.
-    """
-    return _tr(DAY_NAMES[key])
-
-
-# A module constant so lupdate sees the literal (see _tr's docstring); it is
-# reachable because the Automation page lets every day chip be unchecked and
-# _validate does not refuse an empty list.
-
-#: Stands in for the day list when an automation schedule has no days
-#: selected, e.g. "Automation runs no days, 09:00–17:00."
-_NO_DAYS = QT_TRANSLATE_NOOP("util", "no days")
-
-#: A run of three or more consecutive days collapsed into a range, e.g.
-#: "Mon–Fri". %(first)s is the run's first day, %(last)s its last.
-_DAY_RANGE = QT_TRANSLATE_NOOP("util", "%(first)s–%(last)s")
-
-#: Two day-list entries joined, e.g. "Mon, Wed". Folded left across a longer
-#: list to build the whole thing, e.g. "Mon, Wed, Fri" — %(first)s is
-#: everything assembled so far, %(second)s the next entry.
-_DAY_PAIR = QT_TRANSLATE_NOOP("util", "%(first)s, %(second)s")
+    """Translated short day name for a schedule day key ('mon' -> 'Lun')."""
+    return words.day_label(GettextTranslator(), key)
 
 
 @returns_translated
@@ -170,33 +136,7 @@ def fmt_days(days: list[str]) -> str:
     """['mon'..'fri'] -> 'Mon–Fri'; ['mon','wed','fri'] -> 'Mon, Wed, Fri'.
 
     Consecutive runs of three or more days collapse into a range."""
-    picked = [d for d in _DAY_ORDER if d in days]
-    if not picked:
-        return _tr(_NO_DAYS)
-    runs: list[list[str]] = []
-    for day in picked:
-        if runs and (_DAY_ORDER.index(day)
-                     - _DAY_ORDER.index(runs[-1][-1])) == 1:
-            runs[-1].append(day)
-        else:
-            runs.append([day])
-    parts = []
-    for run in runs:
-        if len(run) >= 3:
-            parts.append(_tr(_DAY_RANGE) % {
-                "first": day_label(run[0]), "last": day_label(run[-1])})
-        else:
-            parts.extend(day_label(d) for d in run)
-    # One pair pattern, folded left across `parts`, rather than CLDR's
-    # four-key start/middle/end set: this is a unit list ("3 ft, 2 in"), not
-    # a sentence list, and both shipped languages render every position with
-    # the same plain comma join and no conjunction — a fuller key set would
-    # be catalog weight nobody can act on today. If a conjunction-taking
-    # language ships later, this fold is where the key set would grow.
-    result = parts[0]
-    for part in parts[1:]:
-        result = _tr(_DAY_PAIR) % {"first": result, "second": part}
-    return result
+    return words.fmt_days(GettextTranslator(), days)
 
 
 @returns_translated

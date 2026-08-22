@@ -1416,49 +1416,6 @@ Prueba a ejecutar esto en una terminal y luego continúa:
         <translation> s</translation>
     </message>
     <message>
-        <source>Mon</source>
-        <translation>Lun</translation>
-    </message>
-    <message>
-        <source>Tue</source>
-        <translation>Mar</translation>
-    </message>
-    <message>
-        <source>Wed</source>
-        <translation>Mié</translation>
-    </message>
-    <message>
-        <source>Thu</source>
-        <translation>Jue</translation>
-    </message>
-    <message>
-        <source>Fri</source>
-        <translation>Vie</translation>
-    </message>
-    <message>
-        <source>Sat</source>
-        <translation>Sáb</translation>
-    </message>
-    <message>
-        <source>Sun</source>
-        <translation>Dom</translation>
-    </message>
-    <message>
-        <source>no days</source>
-        <extracomment>Stands in for the day list when an automation schedule has no days selected, e.g. &quot;Automation runs no days, 09:00–17:00.&quot;</extracomment>
-        <translation>ningún día</translation>
-    </message>
-    <message>
-        <source>%(first)s–%(last)s</source>
-        <extracomment>A run of three or more consecutive days collapsed into a range, e.g. &quot;Mon–Fri&quot;. %(first)s is the run&apos;s first day, %(last)s its last.</extracomment>
-        <translation>%(first)s–%(last)s</translation>
-    </message>
-    <message>
-        <source>%(first)s, %(second)s</source>
-        <extracomment>Two day-list entries joined, e.g. &quot;Mon, Wed&quot;. Folded left across a longer list to build the whole thing, e.g. &quot;Mon, Wed, Fri&quot; — %(first)s is everything assembled so far, %(second)s the next entry.</extracomment>
-        <translation>%(first)s, %(second)s</translation>
-    </message>
-    <message>
         <source>%(day)s %(clock)s</source>
         <translation>%(day)s %(clock)s</translation>
     </message>

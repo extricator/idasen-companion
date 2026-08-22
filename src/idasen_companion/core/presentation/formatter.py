@@ -202,6 +202,14 @@ class Formatter:
         """The word for a transition's trigger wire value."""
         return words.trigger_label(self._context.translator, trigger)
 
+    def day_label(self, key: str) -> str:
+        """The short day name for a schedule day key ('mon' -> 'Lun')."""
+        return words.day_label(self._context.translator, key)
+
+    def fmt_days(self, days: list[str]) -> str:
+        """A schedule's day list, with consecutive runs collapsed to ranges."""
+        return words.fmt_days(self._context.translator, days)
+
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5
         minutes" / "59 minutes" / "30 seconds".
@@ -223,8 +231,9 @@ class Formatter:
         one for the minutes — inside :data:`~.register.HOURS_AND_MINUTES`.
 
         That nesting is not a violation of the whole-message rule: it is
-        the exact shape ``gui/util.py``'s ``fmt_days``/``_DAY_PAIR`` already
-        uses and documents, whole labels substituted into a translated
+        the exact shape :func:`.words.fmt_days` and
+        :data:`~.register.DAY_PAIR` already use and document, whole labels
+        substituted into a translated
         pattern message, and ``tests/test_translation_markers.py``'s
         concatenation check already accepts it — that check flags ``+``,
         ``+=``, f-string interpolation and ``.join()``, never

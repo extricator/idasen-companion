@@ -142,6 +142,48 @@ msgid "Off-cycle"
 msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
+msgid "Mon"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Tue"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Wed"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Thu"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Fri"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Sat"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "Sun"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+msgid "no days"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(first)s–%(last)s"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
+msgid "%(first)s, %(second)s"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
 msgid "Sitting"
 msgstr ""
 

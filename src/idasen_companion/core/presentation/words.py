@@ -37,9 +37,15 @@ from .register import (
     CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
     CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
     CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND,
-    POSITION_LABELS, PRESET_LABELS, STATUS_HEADS, STATUS_LABELS,
-    TRIGGER_LABELS,
+    DAY_NAMES, DAY_PAIR, DAY_RANGE, NO_DAYS, POSITION_LABELS, PRESET_LABELS,
+    STATUS_HEADS, STATUS_LABELS, TRIGGER_LABELS,
 )
+
+#: The seven schedule day wire values in week order. Pure data — no
+#: translation, no catalog entry. It lives here rather than in ``gui/``
+#: because :func:`fmt_days` is its only consumer and a function under
+#: ``core/`` may not reach back into ``gui/``.
+DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
 def connection_state_key(connected: bool, available: bool,
@@ -127,3 +133,48 @@ def trigger_label(translator: Translator, trigger: str) -> str:
     Falls back to the raw trigger string for an unrecognized key."""
     source = TRIGGER_LABELS.get(trigger)
     return translator.message(source) if source is not None else trigger
+
+
+def day_label(translator: Translator, key: str) -> str:
+    """The short day name for a schedule day key ('mon' -> 'Lun').
+
+    Public because the schedule day chips need it too: :data:`DAY_NAMES`
+    holds unrendered source strings, so reading it directly yields the
+    untranslated English word.
+    """
+    return translator.message(DAY_NAMES[key])
+
+
+def fmt_days(translator: Translator, days: list[str]) -> str:
+    """['mon'..'fri'] -> 'Mon–Fri'; ['mon','wed','fri'] -> 'Mon, Wed, Fri'.
+
+    Consecutive runs of three or more days collapse into a range.
+    """
+    picked = [d for d in DAY_ORDER if d in days]
+    if not picked:
+        return translator.message(NO_DAYS)
+    runs: list[list[str]] = []
+    for day in picked:
+        if runs and (DAY_ORDER.index(day)
+                     - DAY_ORDER.index(runs[-1][-1])) == 1:
+            runs[-1].append(day)
+        else:
+            runs.append([day])
+    parts = []
+    for run in runs:
+        if len(run) >= 3:
+            parts.append(translator.message(
+                DAY_RANGE, first=day_label(translator, run[0]),
+                last=day_label(translator, run[-1])))
+        else:
+            parts.extend(day_label(translator, d) for d in run)
+    # One pair pattern, folded left across `parts`, rather than CLDR's
+    # four-key start/middle/end set: this is a unit list ("3 ft, 2 in"), not
+    # a sentence list, and both shipped languages render every position with
+    # the same plain comma join and no conjunction — a fuller key set would
+    # be catalog weight nobody can act on today. If a conjunction-taking
+    # language ships later, this fold is where the key set would grow.
+    result = parts[0]
+    for part in parts[1:]:
+        result = translator.message(DAY_PAIR, first=result, second=part)
+    return result
