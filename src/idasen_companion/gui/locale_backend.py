@@ -63,12 +63,12 @@ class QtLocaleFormatter:
         """A whole number, zero-padded to ``spec.min_digits``.
 
         The padding goes through Python's own formatting rather than Qt:
-        ``QLocale`` offers no padded-integer overload, and today's
-        hour/minute substitutions are plain Python integers padded the same
-        way (``f"{minutes:02d}"`` in ``gui/util.py``'s ``fmt_hm``) -- so this
-        is what reproduces current output exactly. It is a mechanism
-        choice, not a policy one. Grouping, where ``spec`` asks for it,
-        still goes through the locale.
+        ``QLocale`` offers no padded-integer overload, and this is what
+        reproduces the zero-padded minutes
+        (``core/presentation/formatter.py``'s ``duration_hm``, e.g.
+        "1h 05m") exactly. It is a mechanism choice, not a policy one.
+        Grouping, where ``spec`` asks for it, still goes through the
+        locale.
         """
         value = int(value)
         rendered = (QLocale(self._locale).toString(value)

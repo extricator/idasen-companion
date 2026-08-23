@@ -69,11 +69,12 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       explicit `PresentationContext` a caller constructs — no module global,
       no argument-less `QLocale()` read, nothing that only resolves correctly
       after a GUI-specific startup sequence has run. What a status command
-      would still need from `gui/util.py` is the roughly 30 strings that
-      have not moved yet: the status, position, preset and trigger words
-      (Phase 14) and the four date/time helpers (Phase 15). Full design,
-      traps and open decisions (what it exits with when the daemon is down)
-      in `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
+      needs from the shared vocabulary is fully available now: the status,
+      position, preset and trigger words (Phase 14) and the four date/time
+      helpers (Phase 15) all render through `core/presentation/`, reachable
+      with no `gui/util.py` involvement. Full design, traps and open
+      decisions (what it exits with when the daemon is down) in
+      `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
 - [ ] **Clear statistics / history button** — a control on the Statistics page to
       wipe the recorded sit/stand history (the daily-totals data and the recent
       transitions). Needs a daemon-side method to clear the stats DB (wire
@@ -105,15 +106,19 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
-- [ ] **Non-Latin digit sets aren't handled by `fmt_countdown`** — half of
-      this item's original premise is now solved: `Formatter.duration_hm`'s
-      zero-padded minutes (`"1h 05m"`) go through the locale backend's own
-      `integer(IntegerSpec(min_digits=2))` operation, which `QtLocaleFormatter`
-      implements, rather than a Python f-string. What is left is
-      `fmt_countdown` (`gui/util.py`), whose `"2:05"` still keeps native
-      Python formatting because it has not moved onto the shared policy yet
-      (Phase 15, PRES-01) — and the standing judgement that this is only
-      worth revisiting once a language with non-Latin digits actually ships.
+- [ ] **Non-Latin digit sets aren't handled by any locale backend's `integer()`
+      implementation** — the routing half of this item is now fully solved:
+      both `Formatter.duration_hm`'s zero-padded minutes (`"1h 05m"`) and
+      `fmt_countdown`'s `"2:05"` (via `core/presentation/words.py`'s
+      `countdown`, converted in Phase 14) go through the locale backend's own
+      `integer(IntegerSpec(min_digits=2))` operation rather than a Python
+      f-string at the call site. What is left is inside that operation
+      itself: `QtLocaleFormatter.integer`'s non-grouping path still renders
+      with `f"{value:d}"`, plain ASCII digits, so a backend for a language
+      with its own digit set would need to override this method — the shared
+      layer no longer stands in the way, but nothing implements it yet. The
+      standing judgement is unchanged: only worth revisiting once a language
+      with non-Latin digits actually ships.
 - [ ] **Proactive BLE warm-up** — connect *before* the user asks, so a tray
       click lands on a warm link. Measured cold connect is 2.2–2.6s in the good
       case and ~12.3s in the bad one (a discrete ~10.2s penalty inside BlueZ's
@@ -150,11 +155,10 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       under `core/presentation/`, unit-explicit and Qt-free, reached through
       a `Formatter` built onto an explicit context rather than through
       `gui/util.py`'s `QCoreApplication.translate("util", …)` (`gui/util.py:27`)
-      against the Qt catalog. What is left in `gui/util.py` and would still
-      cross catalogs is the status, position, preset and trigger words
-      (Phase 14) and the four date/time helpers (Phase 15) — roughly 30
-      strings needing re-translation into `es`, in the exact area where an
-      orphaned entry falls back to English with nothing failing. **The prize is a headless
+      against the Qt catalog. The status, position, preset and trigger words
+      (Phase 14) and the four date/time helpers (Phase 15) have since moved
+      to `core/presentation/` too, so nothing left in `gui/util.py` would
+      cross catalogs for a Qt-free client to reach. **The prize is a headless
       package** — daemon plus command line, no PySide6 anywhere. Measured
       untrimmed, Qt is 648 MB against ~7.9 MB for the whole rest of the
       closure, so it is not a component of this app's weight, it is nearly all
@@ -634,6 +638,24 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a mode and has three callers (the pre-commit hook, the `secrets` CI job
       and this one-time pre-flip scan), so thinning it is no longer the
       single-caller change the source note assumed.
+- [ ] **A `git commit` given a trailing pathspec can trip the pre-commit
+      hook's canary into a false refusal** — found and root-caused during
+      Phase 15, unrelated to that phase's own changes. `git commit -- <paths>`
+      makes git export a temporary lock-index path via `GIT_INDEX_FILE`; the
+      hook's nested canary `git -C $CANARY_DIR init`/`add` calls inherit that
+      variable because `-C` does not clear it, so the canary's synthetic
+      secret gets written into the *outer* repository's temp lock-index
+      instead of the canary's own fresh index. The containerized scanner never
+      sees `GIT_INDEX_FILE` and falls back to the canary's untouched real
+      index, finds nothing, and the hook correctly refuses on "canary reported
+      no findings" — its designed response to a broken scan, working exactly
+      as intended against a corrupted setup it didn't cause. Reproduced
+      deterministically: the same staged content commits cleanly with a plain
+      `git commit -m "..."` (no trailing pathspec) every time. Fix is to clear
+      `GIT_INDEX_FILE` (and `GIT_DIR`/`GIT_WORK_TREE`) before the nested canary
+      `git` calls in `scripts/scan-secrets.sh`; not fixed here since the
+      workaround (omit the trailing pathspec) is reliable for as long as a
+      caller stages exactly what it intends to commit.
 - [ ] **Fedora 42 cannot *build* this project's RPM: `setuptools>=77` unmet** —
       `pyproject.toml`'s `[build-system] requires` floors `setuptools` at 77,
       needed for PEP 639's SPDX `license`/`license-files` metadata. Fedora 42

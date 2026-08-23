@@ -282,6 +282,66 @@ Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
 Compiled catalogs are committed, and ship via `MANIFEST.in` +
 `[tool.setuptools.package-data]`.
 
+## The presentation invariant: rendering vs. policy
+
+**The rule.** A surface backend may decide **how an atomic value is
+rendered** — a number's decimal point, a time's hour format, where a
+message's text comes from — and may **not** independently decide **product
+formatting policy**: which threshold applies, which fields compose a
+sentence, whether a value shows at all. Concretely, a backend's protocol
+exposes operations (`number`, `integer`, `time`, `date`, `message`,
+`plural`) and never a locale-database field — no `decimal_separator()`, no
+`month_names()`, no `am_text()`, no `first_day_of_week()`. A capability the
+shared layer needs is an operation a caller asks the backend for, never a
+field a caller reads and formats itself.
+
+**The sanctioned divergence.** Four formatters are the one place the two
+backends are allowed to render differently: `fmt_clock`, `fmt_day_label`,
+`fmt_day_heading` and `fmt_day_and_clock` (`core/presentation/dates.py`'s
+`clock`, `day_short`, `day_heading`, `day_and_clock`, reached through
+`Formatter`). Qt renders through `QLocale` — `lun 17 ago 2026`, `14:32` in
+`es`; `Mon 17 Aug 2026`, `2:32 PM` (with a narrow no-break space) in `en`.
+The Qt-free backend renders both `DateStyle` members as one ISO 8601 date,
+`2026-08-17`, in both shipped languages, and `14:32` for the time style,
+unchanged.
+
+**Why.** glibc defines the 12-hour clock format as the empty string for
+`es_ES`, so deriving a 12-hour flag from the process locale would hand a
+Spanish reader a *worse* answer than a plain 24-hour `14:32` — not a
+locally correct one this backend happened to skip. The divergence between
+the two backends does not disappear; it is now `lun 17 ago 2026` versus
+`2026-08-17`, where it used to be against a private table of fixed English
+weekday and month names. What changed is that the Qt-free side no longer
+disagrees with the window *in English words*.
+
+**This is this project's own policy, not a claim about CLDR.** A
+wall-clock time and a calendar date are the two places where the locale
+genuinely owns the product decision on one surface — Qt's `QLocale` has a
+real answer — and cannot supply one at all on the other, since a Qt-free
+process has none. That is also why these four moved last: designing the
+whole abstraction around its one exception is how the exception stops
+looking like one.
+
+**Every formatter PRES-01 names, and where it ended up.** Sixteen of them —
+the height, duration, countdown, status/position/preset/trigger word,
+day-list and snooze/due/position-or-custom renderers, plus the four
+date/time helpers above — moved to `core/presentation/`, each with a thin
+`gui/util.py` forwarder of unchanged signature. Three did not move, and are
+recorded here rather than left for the next reader to find by searching:
+
+| Formatter | Disposition |
+|---|---|
+| `connection_state` | Its *words* moved to `words.connection_phrases`; what stays in `gui/util.py` is pairing them with a theme colour, and a theme is a Qt concept the `gui`/`daemon` → `core` → nothing rule keeps out of `core/`. A caller wanting only the wording asks a `Formatter` for `connection_phrases` instead. |
+| `daemon_error_message` | Moved to `core/presentation/daemon_errors.py`, deliberately with **no** `Formatter` method — its sentences must come from the *reader's* catalog, not the daemon's own. |
+| `suffix_height` / `suffix_minutes` / `suffix_seconds` | Stay in `gui/util.py`, solely because `QAbstractSpinBox.setSuffix` takes a bare string and inserts no separating space of its own — which is also why each keeps a deliberate leading space. Not named by PRES-01, but recorded here as the standing GUI-only exception it is. |
+
+**Where this is held mechanically, not just by review.**
+`tests/test_qt_free_imports.py` proves the Qt-free path never loads
+`PySide6`; `tests/test_golden_presentation_contract.py` pins Qt/Qt-free
+agreement for the shared formatters and the four date/time helpers'
+deliberate disagreement, hand-typed as an expectation rather than captured
+from a run.
+
 ## Config
 
 `~/.config/idasen-companion/config.toml`, overridable with the
