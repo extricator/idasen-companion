@@ -27,3 +27,7 @@ rpmbuild/
 # published — kept so a later `git add -A` cannot reintroduce them.
 .planning/
 CLAUDE.md
+
+# A third-party tool's local settings, written into the working tree. Nothing
+# in this project reads it and nothing builds from it.
+.impeccable/
