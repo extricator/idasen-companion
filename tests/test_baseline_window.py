@@ -35,6 +35,13 @@ reader to rediscover:**
   left to accident.
 - **Timezone** is pinned session-wide by ``tests/conftest.py``'s
   ``_pin_timezone`` fixture; this file adds nothing further.
+- **The process environment ``gui/context.py``'s height-unit resolution
+  reads** — ``[ui] language`` carries no territory for either shipped
+  catalog code (``"en"``, ``"es"``), so ``resolve_height_unit`` falls
+  through to ``LANG``/``LC_ALL``/``LC_MEASUREMENT``/``LANGUAGE`` in the real
+  ``os.environ``. Pinned to ``LANG=en_US.UTF-8`` with the others cleared, so
+  Overview's height renders in inches the same way on every machine rather
+  than following whichever locale happens to be ambient.
 - **The default ``QLocale``** is pinned explicitly by this file itself
   (``en_US`` for the English capture, the shipped ``es`` catalog's locale for
   the Spanish one) *before* the window is built, the same way
@@ -314,6 +321,16 @@ def _capture_language(language: str) -> dict[str, str]:
         mp.setattr(background_portal, "is_flatpak", lambda: False)
         mp.setattr(about_mod.AboutPage, "_lib_version",
                    staticmethod(_frozen_lib_version))
+        # gui/context.py's _build_formatter resolves a territory-less
+        # [ui] language (both shipped codes, "en" and "es") from the real
+        # os.environ -- pin it to a fixed United States locale so Overview's
+        # height renders in inches the same way on every machine and in CI,
+        # rather than following whatever the builder's own $LANG happens to
+        # be.
+        mp.setenv("LANG", "en_US.UTF-8")
+        mp.delenv("LC_ALL", raising=False)
+        mp.delenv("LC_MEASUREMENT", raising=False)
+        mp.delenv("LANGUAGE", raising=False)
         with tempfile.TemporaryDirectory() as tmp_str:
             tmp = Path(tmp_str)
             config_path = tmp / "config.toml"
