@@ -214,10 +214,27 @@ every automated check there is. And the tests switch schemes by calling
 `setPalette()` themselves, which is a plausible stand-in for what the desktop
 does to a running app and not the same event.
 
+`tests/test_sidebar_width.py` measures the navigation labels at the offscreen
+platform's own font, Sans Serif 9pt, and asserts each shipped language's
+`sizeHintForColumn(0)` fits inside the computed sidebar width, floor 176px and
+ceiling 260px. That catches the offscreen regression — a wrong chrome constant,
+a new label that no longer fits at that font. It cannot catch a real desktop
+running a larger interface font, which widens every label the same test
+measured narrower, so a real Spanish desktop still needs a human to confirm
+`Registro de actividad` renders whole rather than eliding.
+
 So, from the **installed package**, with the window already open — no restart
 between the switch and the walk, and no navigating away and back to make a page
 redraw:
 
+- [ ] With the display language set to Spanish, walk the sidebar at the
+      desktop's own interface font (not the offscreen suite's Sans Serif 9pt)
+      and confirm `Registro de activi…` never shows: the fifth item reads
+      `Registro de actividad` whole. Right: no navigation label elides. A
+      desktop running a larger font than the offscreen test's is exactly the
+      case the automated fit test above cannot see — it fits at the ceiling,
+      260px, but a font large enough to widen the label past that is a human
+      check, not an automated one.
 - [ ] Switch the desktop from light to dark, then walk all seven pages:
       Overview, Automation, Presets, Statistics, Activity Log, Settings,
       About. Then switch back to light and walk them again. Right: on every

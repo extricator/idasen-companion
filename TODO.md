@@ -474,34 +474,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
-- [ ] **The daemon and the GUI resolve `[ui] units = "system"` differently for
-      a territory-less language** — found while giving the daemon its own
-      `Formatter` in Phase 14, and recorded rather than fixed because the
-      *asymmetry between the two surfaces* is unobservable while the daemon
-      renders no height. **The GUI half is not unobservable, and the v1.1.2
-      close-out walk caught it**: on a United States machine with
-      `[ui] units = "system"`, choosing Spanish as the display language
-      silently switches heights to centimetres, because the call site hands
-      `resolve_height_unit` a Qt-resolved `"es_ES"` whose territory is Spain.
-      Measured 2026-08-23 — `language="system"` and `"en"` both give inches,
-      `"es"` gives centimetres. Written up, with the root cause and the open
-      question of whether the daemon shares the fault, in
-      `.planning/todos/pending/2026-08-23-choosing-spanish-silently-switches-units-to-centimetres.md`.
-      The mechanism below is that todo's mechanism too, so fix them together.
-      `core/units.resolve_height_unit` reads a territory
-      out of the `language` string it is handed and only falls through to the
-      process environment when it finds none. `gui/context.py` hands it a
-      Qt-resolved locale name (`QLocale("es").name()` → `"es_ES"`), so a bare
-      catalog code still answers from Qt's own locale database; the daemon has
-      no `QLocale` and hands it the raw `[ui] language` value, so `"es"`
-      carries no territory and falls through to `LC_ALL`/`LC_MEASUREMENT`/
-      `LANG` instead. Two surfaces, one setting, two answers — which nothing
-      can notice while the daemon renders no height anywhere. It becomes real
-      the first time a notification names one, and the fix is either to give
-      `core/units.py` a Qt-free territory resolver both surfaces call, or to
-      make the daemon's resolution explicitly environment-first with the
-      reason written down. The asymmetry itself is documented at
-      `Daemon._build_formatter`.
 - [ ] **Six translated messages carry unnamed format slots a translator
       cannot reorder** — each is a single whole catalog entry, so the
       concatenation gate correctly reports no offender and no v1.1.1
