@@ -27,9 +27,9 @@ from .pages import (
     SettingsPage, StatisticsPage,
 )
 from .pages.settings_form import SettingsFormPage
-from .theme import css, theme
+from .theme import NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css, theme
 from .util import connection_state, daemon_error_message
-from .widgets import StatusDot, icon, selectable_icon
+from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -196,7 +196,6 @@ class MainWindow(QMainWindow):
 
     def _build_sidebar(self) -> QWidget:
         sidebar = QWidget()
-        sidebar.setFixedWidth(176)
         sidebar.setAutoFillBackground(True)
         sidebar.setObjectName("Sidebar")
         self._sidebar = sidebar
@@ -232,6 +231,7 @@ class MainWindow(QMainWindow):
         vbox.addWidget(footer)
 
         restyle.register(self, self._restyle_sidebar)
+        restyle.register(self, self._resize_sidebar)
         restyle.register(self, self._update_conn_footer)
         return sidebar
 
@@ -242,7 +242,9 @@ class MainWindow(QMainWindow):
             f" border-right: 1px solid {css(tokens.separator)}; }}")
         self._nav.setStyleSheet(
             "QListWidget { background: transparent; outline: none; }"
-            "QListWidget::item { padding: 6px 8px; margin: 1px 6px;"
+            "QListWidget::item {"
+            f" padding: 6px {NAV_ITEM_PADDING_H}px;"
+            f" margin: 1px {NAV_ITEM_MARGIN_H}px;"
             " border-radius: 4px; }"
             f"QListWidget::item:selected {{ background: {css(tokens.accent)};"
             f" color: {css(tokens.selection_text)}; font-weight: bold; }}"
@@ -258,6 +260,24 @@ class MainWindow(QMainWindow):
                 selectable_icon(icon(*icon_names), tokens.selection_text,
                                 tokens.text))
         self._conn_footer.setStyleSheet(f"color: {css(tokens.secondary)};")
+
+    def _resize_sidebar(self) -> None:
+        """Size the sidebar to the widest label it is actually showing.
+
+        Reads the rendered text back off the built list rather than
+        re-translating ``NAV_ITEMS``, so this measures exactly what
+        ``_build_sidebar`` put on screen and cannot drift from it. Recomputed
+        on every restyle sweep because a palette or font change moves the
+        metrics this depends on -- registered after ``_restyle_sidebar`` so
+        the padding and margin it reads from the stylesheet are already in
+        place. Deliberately never persisted: a language change applies on
+        restart and the labels are baked in at construction, so a
+        construction-time computation is consistent with the rest of this
+        window's existing behaviour.
+        """
+        labels = [self._nav.item(i).text() for i in range(self._nav.count())]
+        self._sidebar.setFixedWidth(
+            sidebar_width_for_labels(labels, self._nav.font()))
 
     def _on_nav_changed(self, index: int) -> None:
         # currentRowChanged can emit -1 (no selection); ignore it rather than
