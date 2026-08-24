@@ -58,20 +58,20 @@ class AppContext(QObject):
         :meth:`write_config` so the three construction points read one
         expression rather than three copies of it.
 
-        ``resolve_height_unit``'s ``language`` is the *resolved* locale's own
-        name (``QLocale("es").name()`` -> ``"es_ES"``), not the bare
-        ``[ui] language`` value it came from. ``available_languages()``
-        offers catalog codes with no territory (``"es"``, never
-        ``"es_ES"``), which carries none for ``core/units.py``'s territory
-        lookup to find — resolving through the same ``QLocale`` this
-        formatter's own locale backend is built from is what keeps a
-        territory-less language code answering deterministically from Qt's
-        own locale database, the same way it did before this migration,
-        rather than falling through to the process environment's guess.
+        A display language is not a statement about measurement. The
+        environment is not a guess here — it is the only signal that
+        actually describes the user's country. ``core/units.py``'s own
+        module docstring lists the intended order (``language`` when it
+        names a territory, then ``LC_ALL``, ``LC_MEASUREMENT``, ``LANG``,
+        ``LANGUAGE``); passing the resolved locale's name manufactures a
+        territory (``"es"`` -> ``"es_ES"``) that was never in the setting,
+        defeating that order. Passing the raw setting is exactly what
+        ``daemon/main.py``'s ``_build_formatter`` already does, so the two
+        front ends now share one call shape and cannot drift apart again.
         """
         locale = resolve_locale(config.ui.language)
         unit = resolve_height_unit(
-            UnitSetting(config.ui.units), language=locale.name(),
+            UnitSetting(config.ui.units), language=config.ui.language,
             environ=os.environ)
         context = PresentationContext(
             locale=QtLocaleFormatter(locale),

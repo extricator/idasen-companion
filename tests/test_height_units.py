@@ -17,9 +17,15 @@ import os  # noqa: E402
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QLocale, QObject, Signal  # noqa: E402
+from contextlib import contextmanager  # noqa: E402
+
+import shiboken6  # noqa: E402
+from PySide6.QtCore import (  # noqa: E402
+    QCoreApplication, QLocale, QObject, QTranslator, Signal,
+)
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.core.config import (  # noqa: E402
     MAX_HEIGHT, MIN_HEIGHT, AppConfig, load_config, save_config,
 )
@@ -235,6 +241,56 @@ def test_the_settings_page_writes_the_chosen_unit(locale, ctx):
     # Applied to the running app, not just the file: this is the setting that
     # takes effect without a restart.
     assert ctx.fmt.unit == core_units.HeightUnit.INCHES
+
+
+@contextmanager
+def _teardown_language_state(app):
+    """Undo everything a ``reload_config()`` call may have installed.
+
+    ``AppContext.reload_config()`` calls ``apply_language()``, which binds
+    both a Spanish ``QTranslator`` on the session-scoped ``QApplication`` and
+    the process-wide gettext catalog -- neither of which pytest resets
+    between test modules. Mirrors the teardown
+    ``tests/test_baseline_window.py``'s ``_capture_language`` performs in its
+    own ``finally`` block, so the next module collected in this process does
+    not render in Spanish.
+    """
+    previous_translators = set(app.findChildren(QTranslator))
+    previous_locale = QLocale()
+    try:
+        yield
+    finally:
+        for translator in set(app.findChildren(QTranslator)) - previous_translators:
+            QCoreApplication.removeTranslator(translator)
+            shiboken6.delete(translator)
+        QLocale.setDefault(previous_locale)
+        core_i18n.set_language(core_i18n.SYSTEM)
+
+
+def test_a_spanish_display_language_does_not_change_the_unit_on_a_us_machine(
+        qapp, config_path, ctx, monkeypatch):
+    """Pins the GUI call site's *choice of argument* (D-05), not the resolver.
+
+    The resolver's own coverage lives in
+    ``test_system_follows_the_locale_with_the_uk_on_the_metric_side`` above,
+    which this test does not touch. Unlike that test's synthetic
+    ``environ={}``, this call site reads the real ``os.environ`` at call
+    time, so the environment is controlled with ``monkeypatch`` rather than a
+    dict literal.
+    """
+    monkeypatch.setenv("LANG", "en_US.UTF-8")
+    monkeypatch.delenv("LC_ALL", raising=False)
+    monkeypatch.delenv("LC_MEASUREMENT", raising=False)
+    monkeypatch.delenv("LANGUAGE", raising=False)
+
+    cfg = load_config(config_path)
+    cfg.ui.units = "system"
+    cfg.ui.language = "es"
+    save_config(cfg, config_path)
+
+    with _teardown_language_state(qapp):
+        assert ctx.reload_config() is None
+        assert ctx.fmt.unit == core_units.HeightUnit.INCHES
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
