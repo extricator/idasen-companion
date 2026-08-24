@@ -201,15 +201,6 @@ class Daemon:
         already carries a language change through with no rebuilding at
         all. What a reload actually has to refresh is the resolved height
         unit, which is read once, here.
-
-        **One asymmetry worth writing down before it bites.** The GUI hands
-        ``resolve_height_unit`` a Qt-resolved locale name (``"es_ES"``),
-        because a bare catalog code carries no territory for
-        ``core/units.py`` to find. The daemon has no ``QLocale`` and passes
-        the raw ``[ui] language`` string, so a bare ``"es"`` falls through
-        to the POSIX-environ branch instead. That is unobservable today —
-        the daemon renders no height anywhere — and it is recorded here so
-        the first height-bearing notification does not discover it.
         """
         unit = resolve_height_unit(
             UnitSetting(config.ui.units), language=config.ui.language,
