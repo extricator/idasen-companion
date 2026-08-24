@@ -5,6 +5,8 @@ platform palette."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap,
@@ -19,6 +21,7 @@ from . import restyle
 from .context import AppContext
 from .theme import (
     BORDER_WIDTH, BUTTON_PADDING_H, BUTTON_PADDING_V, CONTROL_RADIUS,
+    NAV_ICON_SIZE, NAV_ICON_TEXT_GAP, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H,
     SURFACE_RADIUS, button_icon_gap, control_height, css, extra_icon_gap,
     theme,
 )
@@ -165,6 +168,45 @@ def emphasize(font: QFont) -> QFont:
     emphasized = QFont(font)
     emphasized.setWeight(QFont.Weight.DemiBold)
     return emphasized
+
+
+# The floor is today's hardcoded sidebar width, so English -- which needs
+# only 132px including chrome -- is unchanged pixel for pixel (44px spare).
+SIDEBAR_WIDTH_FLOOR: int = 176
+# The ceiling leaves 500px of content at the app's 760px minimum window
+# width, even for a translation whose widest label is pathologically long.
+SIDEBAR_WIDTH_CEILING: int = 260
+
+
+def sidebar_width_for_labels(
+    labels: Sequence[str], font: QFont,
+    floor: int = SIDEBAR_WIDTH_FLOOR, ceiling: int = SIDEBAR_WIDTH_CEILING,
+) -> int:
+    """The width the sidebar needs to show the widest of ``labels`` in full.
+
+    Measured DemiBold, not at ``font``'s own weight: the sidebar's selected
+    row is drawn DemiBold (``MainWindow._bold_selected_nav``), and any row
+    can become the selected one, so a width computed from the normal weight
+    would clip whichever row the user is actually on -- measured, "Registro
+    de actividad" is 118px normal and 123px DemiBold. ``emphasize`` supplies
+    the weight so no call site has to remember it.
+
+    Clamped between ``floor`` and ``ceiling`` so English stays at today's
+    176px pixel for pixel, and so a pathological translation cannot eat the
+    window (see the two constants' own rationale above).
+
+    The four chrome numbers this adds to the widest label come from
+    ``gui/theme.py``, declared once and shared with ``_restyle_sidebar``'s
+    stylesheet; what actually keeps them honest is not this arithmetic but
+    ``tests/test_sidebar_width.py``'s fit test, which asks Qt's own layout
+    accounting whether every shipped language still fits.
+    """
+    metrics = QFontMetrics(emphasize(font))
+    widest = max((metrics.horizontalAdvance(label) for label in labels),
+                 default=0)
+    chrome = (2 * NAV_ITEM_PADDING_H + 2 * NAV_ITEM_MARGIN_H
+              + NAV_ICON_SIZE + NAV_ICON_TEXT_GAP)
+    return max(floor, min(ceiling, widest + chrome))
 
 
 def section_label(text: str) -> QLabel:

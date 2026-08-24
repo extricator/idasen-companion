@@ -70,6 +70,28 @@ BORDER_WIDTH: int = 1
 BUTTON_PADDING_V: int = 6
 BUTTON_PADDING_H: int = 14
 
+# The sidebar navigation row's own chrome, in logical pixels. Declared here
+# rather than only inside ``_restyle_sidebar``'s stylesheet string, because
+# ``gui/widgets.py::sidebar_width_for_labels`` reads the same four numbers to
+# size the sidebar around whatever the stylesheet actually leaves for a
+# label -- one declared home for both consumers, so they cannot drift apart
+# the way a hardcoded chrome figure once did.
+#
+# The horizontal padding inside one navigation row, per side.
+NAV_ITEM_PADDING_H: int = 8
+# The horizontal margin outside one navigation row, per side.
+NAV_ITEM_MARGIN_H: int = 6
+# The square edge of a navigation icon.
+NAV_ICON_SIZE: int = 22
+# The clear space Qt's own QListWidget leaves between an item's icon and its
+# text. Unlike the three constants above, this one is not a number the app
+# declares anywhere -- it is Qt's own layout and has to be measured rather
+# than assumed: built offscreen with every English NAV_ITEMS label at the
+# DemiBold weight and the icon size and stylesheet above, sizeHintForColumn(0)
+# came to 132px against a widest label of 70px, leaving 62px of chrome; 62
+# minus the three declared numbers above (2*8 + 2*6 + 22 = 50) leaves 12.
+NAV_ICON_TEXT_GAP: int = 12
+
 
 def control_height(text_height: float) -> int:
     """The height every control in a row stands at, for a label whose line
