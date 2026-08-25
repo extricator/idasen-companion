@@ -43,8 +43,10 @@ AFTERNOON = datetime(2026, 8, 17, 14, 32)
 MORNING = datetime(2026, 8, 17, 9, 5)
 
 #: One representative height, in metres, reused across every height-shaped
-#: sample below so a reader only has to learn one number.
-_HEIGHT_METERS = 1.105
+#: sample below -- and by the golden module's own hand-typed contract
+#: table -- so a reader only has to learn one number, and the two tables
+#: cannot end up pinning two different heights.
+HEIGHT_METERS = 1.105
 
 
 class Sample(NamedTuple):
@@ -69,10 +71,10 @@ class Sample(NamedTuple):
 #: two, at :data:`AFTERNOON` and :data:`MORNING`, so a 12-hour backend's two
 #: halves both get exercised by at least one row.
 SAMPLES: tuple[Sample, ...] = (
-    Sample("height_value", "height_value", (_HEIGHT_METERS,), {}),
-    Sample("height", "height", (_HEIGHT_METERS,), {}),
+    Sample("height_value", "height_value", (HEIGHT_METERS,), {}),
+    Sample("height", "height", (HEIGHT_METERS,), {}),
     Sample("preset_tick", "preset_tick",
-           ("Sit", _HEIGHT_METERS), {"trim": True}),
+           ("Sit", HEIGHT_METERS), {"trim": True}),
     Sample("connection_phrases_connected", "connection_phrases",
            (True, True, False), {}),
     Sample("connection_phrases_disconnected", "connection_phrases",
