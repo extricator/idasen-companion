@@ -21,9 +21,8 @@ expectation, no branch that writes one back to source, and no ``pytest.skip``
 that would let a mismatch be resolved any way other than fixing the code.
 (The offscreen-platform assignment and the PySide6 ``importorskip`` below are
 the suite's standard GUI-test preamble, and the one skip further down reports
-an absent system locale. None of the three can change what is expected.) The
-files under
-``tests/goldens/`` are a different, older artifact — Phase 12's
+an absent system locale. None of the three can change what is expected.)
+The files under ``tests/goldens/`` are a different, older artifact — Phase 12's
 before-picture, serving a different purpose (BACK-03) — and keep their own
 regeneration discipline entirely untouched by this module.
 
@@ -112,8 +111,8 @@ _NNBSP = "\u202f"
 #: an intention and not an enforcement of it: nothing relates a contract
 #: case's arguments to the sample row's arguments for the same case, so
 #: moving the shared moment left this module still pinning the old one and
-#: both modules green. ``tests/test_presentation_seam_sweep.py`` already
-#: read the shared table by reference; this now does too.
+#: both modules green. ``tests/test_presentation_divergence_surface.py``
+#: already read the shared table by reference; this now does too.
 _AFTERNOON = presentation_samples.AFTERNOON
 _MORNING = presentation_samples.MORNING
 _HEIGHT_METERS = presentation_samples.HEIGHT_METERS

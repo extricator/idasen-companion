@@ -368,9 +368,9 @@ recorded here rather than left for the next reader to find by searching:
 `PySide6`; `tests/test_golden_presentation_contract.py` pins Qt/Qt-free
 agreement for the shared formatters and the four date/time helpers'
 deliberate disagreement, hand-typed as an expectation rather than captured
-from a run; `tests/test_presentation_seam_sweep.py` sweeps the seam's
-whole surface — every `LocaleFormatter` operation crossed with every spec
-field and style member — with a recorded verdict per cell, so an
+from a run; `tests/test_presentation_divergence_surface.py` sweeps the
+seam's whole surface — every `LocaleFormatter` operation crossed with every
+spec field and style member — with a recorded verdict per cell, so an
 operation or a field added later with no verdict fails the build rather
 than quietly widening the claim above.
 
