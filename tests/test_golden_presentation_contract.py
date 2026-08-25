@@ -328,18 +328,29 @@ def test_every_language_row_set_covers_every_contract_case(language):
 # Half two: every other shared formatter, by backend equality plus anchor.
 # ----------------------------------------------------------------------
 
-#: The set of helpers pinned by hand above rather than by equality — every
-#: case reached through the ``Formatter`` facade (``through="formatter"``),
-#: so the grouping case's locale-level ``"number"`` helper can never shadow
-#: an actual ``Formatter`` method name here.
-_HAND_TYPED_HELPERS = frozenset(
-    case.helper for case in CONTRACT_CASES if case.through == "formatter")
+#: The cases pinned by hand above rather than by equality — every case
+#: reached through the ``Formatter`` facade (``through="formatter"``), so
+#: the grouping case, which reaches the locale backend directly and names no
+#: sample row at all, is not mistaken for one.
+#:
+#: Keyed by *case*, deliberately, and not by the method the case calls. A
+#: method can carry several sample rows (``connection_phrases`` has three,
+#: ``clock`` two), and the hand-typed contract takes cases one at a time. Key
+#: this by method and the first contract row added for a method that already
+#: has samples silently evicts *every* one of that method's rows from the
+#: equality half below — and, because the anchor check is keyed off what is
+#: left, then demands that method's anchor be deleted as stale. That is a
+#: coverage cliff the suite would push an author down rather than flag, so
+#: the two halves partition the sample table by case and
+#: test_the_two_halves_partition_every_sample holds them to it.
+_HAND_TYPED_CASES = frozenset(
+    case.case for case in CONTRACT_CASES if case.through == "formatter")
 
 #: The equality-pinned rows from the shared sample table: everything that is
 #: not one of the hand-typed cases above.
 _EQUALITY_SAMPLES = tuple(
     row for row in presentation_samples.SAMPLES
-    if row.method not in _HAND_TYPED_HELPERS)
+    if row.case not in _HAND_TYPED_CASES)
 
 #: One hand-typed anchor per distinct method among the equality-pinned
 #: samples, keyed by *case* rather than by method (``connection_phrases``
@@ -499,6 +510,31 @@ def test_every_distinct_equality_pinned_method_has_an_anchor():
     assert not missing and not stale, (
         f"no anchor recorded for: {sorted(missing)}; "
         f"anchor(s) for case(s) no longer equality-pinned: {sorted(stale)}")
+
+
+def test_the_two_halves_partition_every_sample():
+    """Every sample row belongs to exactly one half — hand-typed above or
+    equality-pinned below — and every hand-typed case names a real sample
+    row. The split is what makes a method's remaining cases keep their
+    equality coverage when one of its cases enters the hand-typed contract,
+    and this is what holds the two halves to it: a hand-typed case naming no
+    sample row is a contract row nothing else exercises, and a sample in
+    neither half is a formatter nothing pins.
+    """
+    sample_cases = {row.case for row in presentation_samples.SAMPLES}
+    orphaned = _HAND_TYPED_CASES - sample_cases
+    assert not orphaned, (
+        f"hand-typed case(s) naming no row in the shared sample table: "
+        f"{sorted(orphaned)} — the two tables have drifted apart on case "
+        f"names, and the equality half is silently covering a case the "
+        f"contract believes it owns")
+    equality_cases = {row.case for row in _EQUALITY_SAMPLES}
+    assert equality_cases | _HAND_TYPED_CASES == sample_cases, (
+        f"sample row(s) in neither half: "
+        f"{sorted(sample_cases - equality_cases - _HAND_TYPED_CASES)}")
+    assert not equality_cases & _HAND_TYPED_CASES, (
+        f"case(s) in both halves at once: "
+        f"{sorted(equality_cases & _HAND_TYPED_CASES)}")
 
 
 # ----------------------------------------------------------------------
