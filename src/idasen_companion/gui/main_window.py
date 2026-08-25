@@ -269,12 +269,16 @@ class MainWindow(QMainWindow):
         re-translating ``NAV_ITEMS``, so this measures exactly what
         ``_build_sidebar`` put on screen and cannot drift from it. Recomputed
         on every restyle sweep because a palette or font change moves the
-        metrics this depends on -- registered after ``_restyle_sidebar`` so
-        the padding and margin it reads from the stylesheet are already in
-        place. Deliberately never persisted: a language change applies on
-        restart and the labels are baked in at construction, so a
-        construction-time computation is consistent with the rest of this
-        window's existing behaviour.
+        metrics this depends on. Deliberately never persisted: a language
+        change applies on restart and the labels are baked in at
+        construction, so a construction-time computation is consistent with
+        the rest of this window's existing behaviour.
+
+        Registration order against ``_restyle_sidebar`` does not matter. The
+        chrome this width allows for comes from ``gui/theme.py``'s constants,
+        which both this and the stylesheet read directly -- neither waits on
+        the other, and nothing here queries a stylesheet that may not be
+        applied yet.
         """
         labels = [self._nav.item(i).text() for i in range(self._nav.count())]
         self._sidebar.setFixedWidth(
