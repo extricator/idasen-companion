@@ -55,7 +55,6 @@ import inspect
 import locale
 import os
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Iterator, NamedTuple
 
 import pytest
@@ -103,13 +102,17 @@ def _qt_formatter() -> Formatter:
 #: screen and fails the assertion.
 _NNBSP = "\u202f"
 
-_AFTERNOON = datetime(2026, 8, 17, 14, 32)
-_MORNING = datetime(2026, 8, 17, 9, 5)
-
-#: The representative height this module's cases render, mirroring
-#: ``presentation_samples.py``'s own representative height so a reader
-#: only has to learn one number.
-_HEIGHT_METERS = 1.105
+#: The two moments and the one height this module's cases render, read from
+#: the shared sample table rather than re-declared here. They were literals
+#: with a comment saying they mirrored that table, which is a description of
+#: an intention and not an enforcement of it: nothing relates a contract
+#: case's arguments to the sample row's arguments for the same case, so
+#: moving the shared moment left this module still pinning the old one and
+#: both modules green. ``tests/test_presentation_seam_sweep.py`` already
+#: read the shared table by reference; this now does too.
+_AFTERNOON = presentation_samples.AFTERNOON
+_MORNING = presentation_samples.MORNING
+_HEIGHT_METERS = presentation_samples.HEIGHT_METERS
 
 
 class ContractCase(NamedTuple):
