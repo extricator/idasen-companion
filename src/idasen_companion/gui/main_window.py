@@ -27,7 +27,8 @@ from .pages import (
     SettingsPage, StatisticsPage,
 )
 from .pages.settings_form import SettingsFormPage
-from .theme import NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css, theme
+from .theme import (NAV_ICON_SIZE, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css,
+                    theme)
 from .util import connection_state, daemon_error_message
 from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
 
@@ -205,7 +206,7 @@ class MainWindow(QMainWindow):
 
         nav_list = QListWidget()
         nav_list.setFrameShape(QListWidget.Shape.NoFrame)
-        nav_list.setIconSize(QSize(22, 22))
+        nav_list.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
         nav_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for label, _icon_names in NAV_ITEMS:
             nav_list.addItem(QListWidgetItem(self.tr(cast("str", label))))
