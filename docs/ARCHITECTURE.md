@@ -300,9 +300,9 @@ any of the seam's four `LocaleFormatter` operations may render an atomic
 value differently between backends — the same latitude the paragraph
 above grants, applied to a value's own representation rather than to
 whether it appears at all — and none may differ in product formatting
-policy. Swept and recorded cell by cell in
-`tests/test_presentation_seam_sweep.py`, six of the seam's eight surface
-cells diverge; the two that do not, `NumberSpec.trim_trailing_zeroes` and
+policy. Swept and recorded cell by cell across the seam's closed
+surface, six of the seam's eight surface cells diverge; the two that do
+not, `NumberSpec.trim_trailing_zeroes` and
 `IntegerSpec.min_digits`, both resolve through Python's own string
 handling before either backend renders a digit. The worked example is the
 four date/time helpers: `fmt_clock`, `fmt_day_label`, `fmt_day_heading`
