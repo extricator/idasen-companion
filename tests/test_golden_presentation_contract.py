@@ -476,9 +476,15 @@ def test_the_two_locale_bearing_backends_agree_in_every_shipped_language(
             f"above would never catch it")
 
 
+#: ``en`` is the baseline the loop below compares against, so it is not also
+#: one of the languages compared *to* it: that half of the parametrization
+#: asserted a value equals itself, and a green count inflated by tautologies
+#: reads as coverage it is not. Should ``es`` ever be dropped this loop
+#: generates nothing, which is honest — the POSIX-locale leg below is what
+#: keeps a shipped-language-independent axis under test either way.
 _LANGUAGE_ALL_SAMPLE_PAIRS = [
     (language, row)
-    for language in SHIPPED_LANGUAGES
+    for language in SHIPPED_LANGUAGES if language != "en"
     for row in presentation_samples.SAMPLES
 ]
 
