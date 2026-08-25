@@ -8,6 +8,15 @@ including the RPM's `%check` on a container that carries no non-English
 langpack. The **behavioural** test beside it is corroboration on a machine
 that happens to have both locales installed — it skips honestly, rather
 than failing, where they are not, and says so at the skip.
+
+**The structural gate covers the whole shared package, not one module.**
+BACK-04's promise is about what a Qt-free *process* renders, and a caller
+reaches that rendering through `Formatter`, `dates.py`, `words.py` and the
+rest of `core/presentation/` — a POSIX-locale-following call reintroduced
+into any of them breaks the promise exactly as one in `plain_locale.py`
+would. `tests/test_golden_presentation_contract.py` has the behavioural
+counterpart that drives every shared formatter under a hostile locale, and
+that one skips where the locale is absent; this is the leg that does not.
 """
 
 import ast
@@ -26,10 +35,16 @@ from idasen_companion.core.presentation.specs import (
     TimeStyle,
 )
 
-PLAIN_LOCALE_PATH = (
+PRESENTATION_DIR = (
     Path(__file__).resolve().parent.parent
-    / "src" / "idasen_companion" / "core" / "presentation" / "plain_locale.py"
+    / "src" / "idasen_companion" / "core" / "presentation"
 )
+
+PLAIN_LOCALE_PATH = PRESENTATION_DIR / "plain_locale.py"
+
+#: Every module of the shared presentation package, discovered rather than
+#: listed, so a module a later phase adds is gated the day it lands.
+PRESENTATION_MODULES = sorted(PRESENTATION_DIR.rglob("*.py"))
 
 FORMATTER = PlainLocaleFormatter()
 
@@ -126,11 +141,14 @@ def test_date_an_unsupported_style_still_raises():
 def _locale_offenders(tree: ast.AST) -> list[str]:
     """Every node in `tree` that would let a rendered value vary with the
     process locale: an import of the locale module under any alias, a call
-    that sets or reads through it, a bare reference to a locale-category
+    that sets or reads through it, a call into the C library's own
+    locale-sensitive date conversion, a bare reference to a locale-category
     name, or a locale-sensitive number presentation type in a format spec.
 
     Reads the parsed tree, never the file's own text, so an explanatory
-    comment sitting next to the code cannot satisfy this check by accident.
+    comment sitting next to the code cannot satisfy this check by accident —
+    and `specs.py`, whose docstrings discuss the very conversion named here
+    as the shape it exists not to be, stays clean for that reason.
     """
     offenders: list[str] = []
     for node in ast.walk(tree):
@@ -144,7 +162,8 @@ def _locale_offenders(tree: ast.AST) -> list[str]:
             func = node.func
             called = (func.attr if isinstance(func, ast.Attribute)
                        else func.id if isinstance(func, ast.Name) else None)
-            if called in {"setlocale", "format_string", "nl_langinfo", "localeconv"}:
+            if called in {"setlocale", "format_string", "nl_langinfo",
+                          "localeconv", "strftime", "strptime"}:
                 offenders.append(f"{node.lineno}: {called}(...)")
         elif isinstance(node, ast.Name) and node.id.startswith("LC_"):
             offenders.append(f"{node.lineno}: {node.id}")
@@ -175,6 +194,35 @@ def test_structural_gate_holds_no_locale_reference_in_plain_locale():
     assert not offenders, (
         "plain_locale.py reads process locale state, defeating BACK-04's "
         "fixed-convention policy: " + "; ".join(offenders))
+
+
+def test_the_package_walk_found_the_modules_it_gates():
+    """A parametrization over an empty list passes by generating nothing,
+    so the walk that feeds the gate below is asserted separately: a broken
+    path would otherwise silently retire the whole check.
+    """
+    found = {path.name for path in PRESENTATION_MODULES}
+    assert {"plain_locale.py", "formatter.py", "dates.py"} <= found, (
+        f"the presentation package walk found {sorted(found)} — the "
+        f"structural gate below is only as wide as this list")
+
+
+@pytest.mark.parametrize(
+    "module_path", PRESENTATION_MODULES, ids=lambda p: p.name)
+def test_no_module_of_the_shared_package_reads_process_locale_state(
+        module_path):
+    """The same gate, over every module a Qt-free caller's rendering passes
+    through. `PlainLocaleFormatter` is where the temptation is concentrated,
+    but it is not the only place a locale-following call would defeat
+    BACK-04: the journal's output is composed by `Formatter`, `dates.py` and
+    `words.py` on top of it, and a weekday rendered through the C library
+    there reads the process locale exactly as one rendered here would.
+    """
+    offenders = _locale_offenders(ast.parse(module_path.read_text()))
+    assert not offenders, (
+        f"{module_path.name} reads process locale state, so a Qt-free "
+        f"rendering would vary with the machine it runs on (BACK-04): "
+        + "; ".join(offenders))
 
 
 # ---- Behavioural corroboration ---------------------------------------------
