@@ -24,11 +24,9 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Iterator
 
 import pytest
 
@@ -36,10 +34,10 @@ pytest.importorskip("PySide6")
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QCoreApplication, QLocale, QTranslator  # noqa: E402
+from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.presentation import register  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
@@ -48,7 +46,7 @@ from idasen_companion.core.presentation.gettext_translator import (  # noqa: E40
     GettextTranslator,
 )
 from idasen_companion.core.units import HeightUnit  # noqa: E402
-from idasen_companion.gui import i18n, util  # noqa: E402
+from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 
 #: Set to regenerate the committed goldens instead of comparing against them.
@@ -68,46 +66,6 @@ _THEME = SimpleNamespace(success="success", error="error", muted="muted")
 @pytest.fixture(scope="session")
 def qapp():
     return QApplication.instance() or QApplication([])
-
-
-@contextmanager
-def _language(language: str) -> Iterator[None]:
-    """Install exactly what a real run installs for ``language``, then undo it.
-
-    ``"en"`` needs no catalog — it is the source language — but still pins
-    the default ``QLocale`` explicitly rather than trusting whatever the
-    surrounding suite happened to leave behind. ``"es"`` goes through
-    ``gui.i18n.apply_language``, the same call ``gui.main.main()`` makes at
-    startup, so this records what a Spanish install actually ships rather
-    than a hand-rolled approximation of it.
-
-    ``apply_language`` rather than the bare ``install_translators``: this
-    module's duration cases now render through the shared register (D-01),
-    which reads the gettext catalog, not the Qt one. Binding only the Qt
-    translators would leave those cases captured in English regardless of
-    ``language``, and the golden comparison would fail for the wrong reason
-    -- an unbound catalog, not a rendering bug. The gettext catalog is
-    process-wide state (``core/i18n.py``), so it is restored at teardown
-    alongside the Qt translators, the same way ``QLocale.setDefault`` is.
-    """
-    app = QApplication.instance()
-    previous_locale = QLocale()
-    if language == "en":
-        QLocale.setDefault(QLocale("en_US"))
-        installed: list[QTranslator] = []
-        # No shipped catalog for "en" (it's the source language), so this
-        # binds gettext's own fallback -- deterministic regardless of the
-        # surrounding process's environment, unlike SYSTEM.
-        core_i18n.set_language("en")
-    else:
-        installed = i18n.apply_language(app, language)
-    try:
-        yield
-    finally:
-        for translator in installed:
-            QCoreApplication.removeTranslator(translator)
-        QLocale.setDefault(previous_locale)
-        core_i18n.set_language(core_i18n.SYSTEM)
 
 
 # ----------------------------------------------------------------------

@@ -53,9 +53,8 @@ from __future__ import annotations
 
 import inspect
 import os
-from contextlib import contextmanager
 from datetime import datetime
-from typing import Iterator, NamedTuple
+from typing import NamedTuple
 
 import pytest
 
@@ -63,11 +62,13 @@ pytest.importorskip("PySide6")
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QCoreApplication, QLocale, QTranslator  # noqa: E402
+from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import presentation_samples  # noqa: E402
-from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from language_context import (  # noqa: E402
+    SHIPPED_LANGUAGES, installed_language as _language,
+)
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -76,38 +77,12 @@ from idasen_companion.core.presentation.gettext_translator import (  # noqa: E40
 )
 from idasen_companion.core.presentation.specs import NumberSpec  # noqa: E402
 from idasen_companion.core.units import HeightUnit  # noqa: E402
-from idasen_companion.gui import i18n  # noqa: E402
 from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 
 
 @pytest.fixture(scope="session")
 def qapp():
     return QApplication.instance() or QApplication([])
-
-
-@contextmanager
-def _language(language: str) -> Iterator[None]:
-    """Install exactly what a real run installs for ``language``, then undo
-    it. Copied from ``tests/test_baseline_vocabulary.py``'s own fixture of
-    the same name — see that module for the full reasoning; this is the
-    established en/es switching mechanism and this module reuses its shape
-    rather than inventing a second one.
-    """
-    app = QApplication.instance()
-    previous_locale = QLocale()
-    if language == "en":
-        QLocale.setDefault(QLocale("en_US"))
-        installed: list[QTranslator] = []
-        core_i18n.set_language("en")
-    else:
-        installed = i18n.apply_language(app, language)
-    try:
-        yield
-    finally:
-        for translator in installed:
-            QCoreApplication.removeTranslator(translator)
-        QLocale.setDefault(previous_locale)
-        core_i18n.set_language(core_i18n.SYSTEM)
 
 
 def _qt_formatter() -> Formatter:
@@ -199,12 +174,6 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
         (12345.5, NumberSpec(decimals=1, grouping=True)),
         qt_free="12,345.5", through="locale"),
 )
-
-# English is the source language and ships no compiled catalog, so the
-# GUI's own shipped-catalog enumeration below does not list it — every
-# caller here adds it itself, which is why a newly shipped catalog is
-# covered the day it lands rather than needing a second edit (D-10).
-SHIPPED_LANGUAGES: tuple[str, ...] = ("en", *i18n.available_languages())
 
 #: One row set per shipped language (D-12): a language costs one row set,
 #: and test_every_shipped_language_has_a_hand_typed_row_set (D-13) fails,

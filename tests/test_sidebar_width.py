@@ -31,22 +31,17 @@ import os
 # can't reach that display. Tests must not depend on an ambient one.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from contextlib import contextmanager
-from typing import Iterator
-
 import shiboken6  # noqa: E402
-from PySide6.QtCore import (  # noqa: E402
-    QCoreApplication, QLocale, QObject, Qt, QTranslator, Signal,
-)
+from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QFont, QFontMetrics, QIcon, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
     QApplication, QLabel, QListWidget, QListWidgetItem,
 )
 
-from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
-from idasen_companion.gui import i18n, main_window as mw, service_ctl  # noqa: E402
+from idasen_companion.gui import main_window as mw, service_ctl  # noqa: E402
 from idasen_companion.gui.i18n import available_languages  # noqa: E402
 from idasen_companion.gui.widgets import (  # noqa: E402
     SIDEBAR_WIDTH_CEILING, SIDEBAR_WIDTH_FLOOR, emphasize,
@@ -152,31 +147,6 @@ def _build_window(monkeypatch, tmp_path, language: str) -> mw.MainWindow:
     monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", config_path)
     monkeypatch.setattr(service_ctl, "autostart_state", _stub_autostart)
     return mw.MainWindow(FakeClient(), tray_available=True)
-
-
-@contextmanager
-def _language(language: str) -> Iterator[None]:
-    """Install exactly what a real run installs for ``language``, then undo
-    it -- including any translator ``AppContext.reload_config`` installs of
-    its own mid-test, which a fixed pre-recorded list of translators would
-    miss."""
-    app = QApplication.instance()
-    previous_locale = QLocale()
-    before = set(app.findChildren(QTranslator))
-    if language == "en":
-        QLocale.setDefault(QLocale("en_US"))
-        core_i18n.set_language("en")
-    else:
-        i18n.apply_language(app, language)
-    try:
-        yield
-    finally:
-        after = set(app.findChildren(QTranslator))
-        for translator in after - before:
-            QCoreApplication.removeTranslator(translator)
-            shiboken6.delete(translator)
-        QLocale.setDefault(previous_locale)
-        core_i18n.set_language(core_i18n.SYSTEM)
 
 
 # Not the hardcoded ["en", "es"] the pre-existing baseline tests use --

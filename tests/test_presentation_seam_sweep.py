@@ -16,12 +16,13 @@ eight cells and record a verdict for each" can be finished, then guarded by
 the completeness test below, which fails on a ninth cell exactly as it
 fails on an eighth going missing.
 
-There is no language-switching context manager here and no ``Translator``
-at all. ``QtLocaleFormatter`` takes its ``QLocale`` at construction — the
-locale is injected, not installed process-wide — and nothing this module
-calls reads a message catalog. Do not "fix" that by importing a fourth copy
-of a language-switching context manager; there is nothing here for one to
-install.
+This module installs no language and reaches no ``Translator`` at all.
+``QtLocaleFormatter`` takes its ``QLocale`` at construction — the locale is
+injected, not installed process-wide — and nothing this module calls reads a
+message catalog. It borrows only the shipped-language list and the
+code-to-``QLocale`` mapping from ``tests/language_context.py``; do not "fix"
+the absence of that module's context manager by wrapping these calls in it,
+because there is nothing here for it to install.
 
 Every expected value below is hand-typed from the documented rendering
 rule in ``plain_locale.py``, never seeded from a run: no environment
@@ -50,10 +51,10 @@ pytest.importorskip("PySide6")
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import presentation_samples  # noqa: E402
+from language_context import SHIPPED_LANGUAGES, qt_locale_for  # noqa: E402
 from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
     PlainLocaleFormatter,
 )
@@ -63,7 +64,6 @@ from idasen_companion.core.presentation.protocols import (  # noqa: E402
 from idasen_companion.core.presentation.specs import (  # noqa: E402
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
 )
-from idasen_companion.gui import i18n  # noqa: E402
 from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 
 
@@ -220,21 +220,6 @@ def test_the_sweep_records_a_verdict_for_every_cell_of_the_seam():
 # Every recorded verdict, checked against both real backends.
 # ----------------------------------------------------------------------
 
-#: English is the source language the enumeration below does not list —
-#: gui/pages/settings.py adds it the same way — so a newly shipped catalog
-#: is swept by this loop the day it lands, with no test edit.
-SHIPPED_LANGUAGES: tuple[str, ...] = ("en", *i18n.available_languages())
-
-
-def _qt_locale(language: str) -> QLocale:
-    """Map a shipped language code to the ``QLocale`` a real run would use.
-
-    ``"en_US"`` for ``"en"`` matches the choice
-    ``tests/test_golden_presentation_contract.py`` already makes.
-    """
-    return QLocale("en_US") if language == "en" else QLocale(language)
-
-
 @pytest.mark.parametrize(
     "cell", SEAM_SWEEP, ids=lambda c: f"{c.operation}-{c.knob}")
 def test_every_recorded_cell_renders_its_written_qt_free_value(cell):
@@ -260,7 +245,8 @@ def test_every_recorded_cell_diverges_exactly_where_the_sweep_says(qapp, cell):
     differing = []
     for language in SHIPPED_LANGUAGES:
         rendered = getattr(
-            QtLocaleFormatter(_qt_locale(language)), cell.operation)(*cell.args)
+            QtLocaleFormatter(qt_locale_for(language)),
+            cell.operation)(*cell.args)
         if rendered != cell.qt_free:
             differing.append((language, rendered))
     assert bool(differing) == cell.diverges, (
