@@ -129,6 +129,11 @@ _NNBSP = "\u202f"
 _AFTERNOON = datetime(2026, 8, 17, 14, 32)
 _MORNING = datetime(2026, 8, 17, 9, 5)
 
+#: The representative height this module's cases render, mirroring
+#: ``presentation_samples.py``'s own representative height so a reader
+#: only has to learn one number.
+_HEIGHT_METERS = 1.105
+
 
 class ContractCase(NamedTuple):
     """One hand-typed case: a case name, the method to call, the positional
@@ -184,6 +189,11 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
     ContractCase("clock_morning", "clock", (_MORNING,), qt_free="09:05"),
     ContractCase("day_and_clock", "day_and_clock", (_AFTERNOON,),
                  qt_free="2026-08-17 14:32"),
+    ContractCase("height_value", "height_value", (_HEIGHT_METERS,),
+                 qt_free="110.5"),
+    ContractCase("height", "height", (_HEIGHT_METERS,), qt_free="110.5 cm"),
+    ContractCase("preset_tick", "preset_tick", ("Sit", _HEIGHT_METERS, True),
+                 qt_free="Sit · 110.5"),
     ContractCase(
         "number_grouping", "number",
         (12345.5, NumberSpec(decimals=1, grouping=True)),
@@ -219,6 +229,10 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
                            daemon="09:05"),
         LanguageRendering("day_and_clock", window=f"Mon 17 2:32{_NNBSP}PM",
                            daemon="2026-08-17 14:32"),
+        LanguageRendering("height_value", window="110.5", daemon="110.5"),
+        LanguageRendering("height", window="110.5 cm", daemon="110.5 cm"),
+        LanguageRendering("preset_tick", window="Sit · 110.5",
+                           daemon="Sit · 110.5"),
         LanguageRendering("number_grouping", window="12,345.5",
                            daemon="12,345.5"),
     ),
@@ -230,6 +244,14 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         LanguageRendering("clock_morning", window="9:05", daemon="09:05"),
         LanguageRendering("day_and_clock", window="lun 17 14:32",
                            daemon="2026-08-17 14:32"),
+        # The window column carries a decimal comma here because Qt renders
+        # through QLocale; the daemon column carries a full stop because
+        # PlainLocaleFormatter reads no locale and the surrounding catalog
+        # pattern (po/es.po) is unchanged in Spanish.
+        LanguageRendering("height_value", window="110,5", daemon="110.5"),
+        LanguageRendering("height", window="110,5 cm", daemon="110.5 cm"),
+        LanguageRendering("preset_tick", window="Sit · 110,5",
+                           daemon="Sit · 110.5"),
         LanguageRendering("number_grouping", window="12.345,5",
                            daemon="12,345.5"),
     ),
@@ -357,9 +379,6 @@ _EQUALITY_SAMPLES = tuple(
 #: backends independently broke the same way. Typed from the spec, then
 #: cross-checked against a live run of both backends.
 ANCHORS: dict[str, object] = {
-    "height_value": "110.5",
-    "height": "110.5 cm",
-    "preset_tick": "Sit · 110.5",
     "connection_phrases_connected": ("Desk: connected", "Connected"),
     "status_label": "Automation active",
     "status_head": "Active",
@@ -397,40 +416,120 @@ def _rendered(formatter: Formatter, row: presentation_samples.Sample):
     return getattr(formatter, row.method)(*row.args, **row.kwargs)
 
 
+_LANGUAGE_EQUALITY_PAIRS = [
+    (language, row)
+    for language in SHIPPED_LANGUAGES
+    for row in _EQUALITY_SAMPLES
+]
+
+
 @pytest.mark.parametrize(
-    "row", _EQUALITY_SAMPLES, ids=lambda r: r.case)
-def test_every_other_formatter_agrees_between_backends(qapp, row):
-    """``qt_output == plain_output`` for everything that is not one of the
-    four sanctioned exceptions above. An equality assertion records a
-    relationship rather than a captured value, so it cannot be seeded with
-    a bug the way a value copied from a single run could be.
+    "language, row", _LANGUAGE_EQUALITY_PAIRS,
+    ids=[f"{language}-{row.case}" for language, row in _LANGUAGE_EQUALITY_PAIRS])
+def test_the_two_locale_bearing_backends_agree_in_every_shipped_language(
+        qapp, language, row):
+    """The window pairing (``QtLocaleFormatter`` + ``GettextTranslator``)
+    against the daemon pairing (``PlainLocaleFormatter`` +
+    ``GettextTranslator``), for every formatter that is not one of the
+    sanctioned exceptions above, in every shipped language. Both sides
+    carry the *same* translator, so the words match by construction and
+    any failure here is a genuine value-rendering difference, never a
+    translation difference. Neither side names any expected text — this is
+    an equality assertion, which pins a relationship rather than a
+    captured value, so it works in a language nobody has written yet.
+
+    The rejected alternative is comparing the window pairing against the
+    **journal** pairing in Spanish: that would compare translated text
+    against deliberately-untranslated text, so nearly every row would fail
+    for a reason that is not a defect — see the ``en``-only branch below
+    for where the journal comparison still belongs.
+
+    Both formatters are built *and* rendered inside one ``_language(...)``
+    block: ``GettextTranslator`` reads the process-wide gettext catalog at
+    call time, so it must be read from inside the same binding that
+    installed it.
     """
-    with _language("en"):
-        qt_output = _rendered(_qt_formatter(), row)
+    with _language(language):
+        window_output = _rendered(_qt_formatter(), row)
+        daemon_output = _rendered(
+            presentation_samples.build_daemon_formatter(), row)
+    assert window_output == daemon_output, (
+        f"{language}/{row.case}: the window pairing rendered "
+        f"{window_output!r}, the daemon pairing rendered {daemon_output!r} "
+        f"— these two are supposed to agree")
+
+    if language != "en":
+        return
+
+    # The journal pairing and the hand-typed anchors are English-only by
+    # construction: the journal's pass-through translator is deliberately
+    # untranslated (D-07), and the anchors below are typed in English, so
+    # neither check would mean anything run against another language.
     plain_output = _rendered(presentation_samples.build_plain_formatter(), row)
-    assert qt_output == plain_output, (
-        f"{row.case}: Qt/en rendered {qt_output!r}, the Qt-free backend "
-        f"rendered {plain_output!r} — these two are supposed to agree")
+    assert window_output == plain_output, (
+        f"{row.case}: Qt/en rendered {window_output!r}, the Qt-free "
+        f"journal backend rendered {plain_output!r} — these two are "
+        f"supposed to agree")
     anchor = ANCHORS.get(row.case)
     if anchor is not None:
-        assert qt_output == anchor, (
-            f"{row.case}: Qt/en rendered {qt_output!r}, expected the "
+        assert window_output == anchor, (
+            f"{row.case}: Qt/en rendered {window_output!r}, expected the "
             f"hand-typed anchor {anchor!r} — an anchor mismatch means both "
             f"backends could be wrong the same way and the equality check "
             f"above would never catch it")
 
 
-def test_every_distinct_equality_pinned_method_has_an_anchor():
-    """The anchor table is not allowed to quietly stop covering a method:
-    every distinct method among the equality-pinned samples needs at least
-    one of its cases in :data:`ANCHORS`, so the equality half can never pass
-    purely because two backends broke identically.
+_LANGUAGE_ALL_SAMPLE_PAIRS = [
+    (language, row)
+    for language in SHIPPED_LANGUAGES
+    for row in presentation_samples.SAMPLES
+]
+
+
+@pytest.mark.parametrize(
+    "language, row", _LANGUAGE_ALL_SAMPLE_PAIRS,
+    ids=[f"{language}-{row.case}" for language, row in _LANGUAGE_ALL_SAMPLE_PAIRS])
+def test_the_qt_free_backend_renders_the_same_in_every_shipped_language(
+        qapp, language, row):
+    """``BACK-04`` expressed as a check rather than as a promise: the
+    Qt-free backend reads no locale, and the pass-through English
+    translator reads no catalog, so the journal pairing's output must be
+    identical no matter which language the process has installed. This is
+    also what ``docs/LOGGING.md``'s stable greppable English promise
+    depends on — the journal must read the same in any language.
+
+    Every row in :data:`presentation_samples.SAMPLES` is checked here,
+    including the four moment renderers already pinned by hand above:
+    the journal pairing is language-independent for those too, and there
+    is no reason to exclude them from this check.
     """
+    with _language("en"):
+        baseline = _rendered(presentation_samples.build_plain_formatter(), row)
+    with _language(language):
+        other = _rendered(presentation_samples.build_plain_formatter(), row)
+    assert baseline == other, (
+        f"{row.case}: the Qt-free backend rendered {baseline!r} in en but "
+        f"{other!r} in {language} — it must read no locale (BACK-04)")
+
+
+def test_every_distinct_equality_pinned_method_has_an_anchor():
+    """The anchor table is guarded in both directions: every distinct
+    method among the equality-pinned samples needs at least one of its
+    cases in :data:`ANCHORS` (so the equality half can never pass purely
+    because two backends broke identically), and every key in
+    :data:`ANCHORS` must still name a case among the equality-pinned
+    samples (so a case that moves to the hand-typed contract cannot leave
+    a stale anchor behind that reads like coverage it no longer is).
+    """
+    equality_cases = {row.case for row in _EQUALITY_SAMPLES}
     anchored_methods = {row.method for row in _EQUALITY_SAMPLES
                          if row.case in ANCHORS}
     equality_methods = {row.method for row in _EQUALITY_SAMPLES}
     missing = equality_methods - anchored_methods
-    assert not missing, f"no anchor recorded for: {sorted(missing)}"
+    stale = set(ANCHORS) - equality_cases
+    assert not missing and not stale, (
+        f"no anchor recorded for: {sorted(missing)}; "
+        f"anchor(s) for case(s) no longer equality-pinned: {sorted(stale)}")
 
 
 # ----------------------------------------------------------------------
