@@ -2,10 +2,11 @@
 
 This is the sweep DOC-02 asks for: the closed set of ways the two
 ``LocaleFormatter`` backends can render the same request differently,
-checked against both real backends rather than argued from memory. The
-sentence in ``docs/ARCHITECTURE.md`` naming "the one place" the backends may
-diverge was wrong — this module is what the replacement sentence is written
-against.
+checked against both real backends rather than argued from memory.
+``docs/ARCHITECTURE.md`` used to name four formatters as "the one place"
+the backends may diverge. That was wrong, and its replacement — the
+sanctioned-divergence paragraph, stated as a category — is written against
+this module's recorded verdicts.
 
 The surface is closed, and therefore finishable: the four
 ``LocaleFormatter`` operations (``number``, ``integer``, ``time``, ``date``)
@@ -15,6 +16,14 @@ crossed with every ``NumberSpec``/``IntegerSpec`` field and every
 eight cells and record a verdict for each" can be finished, then guarded by
 the completeness test below, which fails on a ninth cell exactly as it
 fails on an eighth going missing.
+
+One cell per knob, though, not one per combination of knobs. Each knob's
+divergence is independent of the others in both backends today, and no
+shipped caller sets two at once — an integer asked for both a minimum
+width and grouping renders ``0012,345`` here against ``0012.345`` through
+Qt in Spanish, both malformed, and no cell isolates that interaction. A
+knob that begins interacting with another is not something the completeness
+test below can see.
 
 This module installs no language and reaches no ``Translator`` at all.
 ``QtLocaleFormatter`` takes its ``QLocale`` at construction — the locale is
@@ -26,9 +35,12 @@ because there is nothing here for it to install.
 
 Every expected value below is hand-typed from the documented rendering
 rule in ``plain_locale.py``, never seeded from a run: no environment
-variable, no branch that writes an expectation back to source, and no
-``pytest.skip`` that would let a mismatch be resolved any way other than
-fixing the code (GATE-15). A separate, older baseline mechanism elsewhere
+variable that selects or rewrites an expectation, no branch that writes one
+back to source, and no ``pytest.skip`` that would let a mismatch be resolved
+any way other than fixing the code (GATE-15). The offscreen-platform
+assignment and the PySide6 ``importorskip`` below are the suite's standard
+GUI-test preamble, and neither can change what is expected here. A separate,
+older baseline mechanism elsewhere
 in this test suite keeps its own regeneration discipline entirely apart
 from this module, which reads none of it and writes none of it.
 

@@ -16,9 +16,13 @@ neither pinned nor shared — so pinning them here costs nothing new.
 specific failure: a golden test seeded from whatever the code currently
 returns pins a bug as a contract, and a rewrite-on-demand command is what
 lets that seeding happen invisibly, again, the next time someone is in a
-hurry. So there is no environment variable here, no branch that writes an
-expectation back to source, and no ``pytest.skip`` that would let a mismatch
-be resolved any way other than fixing the code. The files under
+hurry. So there is no environment variable here that selects or rewrites an
+expectation, no branch that writes one back to source, and no ``pytest.skip``
+that would let a mismatch be resolved any way other than fixing the code.
+(The offscreen-platform assignment and the PySide6 ``importorskip`` below are
+the suite's standard GUI-test preamble, and the one skip further down reports
+an absent system locale. None of the three can change what is expected.) The
+files under
 ``tests/goldens/`` are a different, older artifact — Phase 12's
 before-picture, serving a different purpose (BACK-03) — and keep their own
 regeneration discipline entirely untouched by this module.
@@ -184,14 +188,22 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
 #: and test_every_shipped_language_has_a_hand_typed_row_set (D-13) fails,
 #: naming the language, rather than warning, when one is missing.
 #:
-#: The daemon column agrees with the qt_free column in every row below
-#: because the three gettext patterns these cases reach — the height-unit
-#: suffix, the day-and-clock join, and the preset-tick separator — are
-#: deliberately identical in Spanish today (``po/es.po``). That agreement
-#: is a fact being pinned, not a redundancy: the day a Spanish translation
-#: of one of those patterns changes, this daemon column goes red and the
-#: journal column (``build_plain_formatter``, reached by no catalog) does
-#: not.
+#: Three of the rows below reach a gettext pattern: ``height`` (the
+#: height-unit suffix), ``day_and_clock`` (the day-and-clock join) and
+#: ``preset_tick`` (the preset-tick separator). For those three the daemon
+#: column agreeing with the qt_free column is a fact being pinned — all
+#: three patterns are deliberately identical in Spanish today
+#: (``po/es.po``), and the day a Spanish translation of one of them
+#: changes, that daemon column goes red while the journal column
+#: (``build_plain_formatter``, reached by no catalog) does not.
+#:
+#: The other six rows reach no translator at all — ``day_short``,
+#: ``day_heading`` and the two clocks render through the locale backend
+#: only, ``height_value`` calls its number method only, and
+#: ``number_grouping`` bypasses the ``Formatter`` facade entirely. Their
+#: daemon column is identical to the qt_free column by construction, no
+#: catalog change can ever turn it red, and they are carried for table
+#: uniformity rather than for coverage.
 GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
     "en": (
         LanguageRendering("day_short", window="Mon 17", daemon="2026-08-17"),
