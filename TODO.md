@@ -474,21 +474,32 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
-- [ ] **BACK-04's POSIX-locale check never runs in CI** —
+- [ ] **CI generates no POSIX locale for any shipped language, so a
+      locale-sensitive gate only ever runs on a developer machine** — two
+      different things are called a language here and CI has only one of them.
+      The *catalog code* (`es`, from a compiled catalog) is committed and
+      ships, so the runner has it. The *POSIX locale* (`es_ES.UTF-8`,
+      generated in the operating system) is absent from both the GitHub runner
+      and the RPM buildroot. Any check needing the second kind skips there.
+      Today that is
       `tests/test_golden_presentation_contract.py`'s
-      `test_the_qt_free_backend_ignores_the_posix_locale_too` renders every
-      shared formatter under a Spanish or German numeric and time locale and
-      requires the output to match the `C` baseline, which catches a
-      `locale.format_string` or a C-library date conversion reintroduced
-      anywhere under `core/presentation/`. Neither the GitHub runner nor the
-      RPM buildroot generates a non-English locale, so it skips there and only
-      ever runs on a developer machine. The proof that does run everywhere is
+      `test_the_qt_free_backend_ignores_the_posix_locale_too`, which renders
+      every shared formatter under a non-English numeric and time locale and
+      requires the output to match the `C` baseline — `BACK-04` as a
+      behavioural check rather than a promise, and the leg that caught the real
+      hole in Phase 17 when a mutant using a C-library number and date
+      conversion passed everything else. The proof that does run everywhere is
       the structural gate in `tests/test_plain_locale.py`, which parses every
-      module of the package — this is corroboration on top, so the gap is
-      narrow rather than open. Closing it means generating a locale in the
-      test workflow (`locale-gen es_ES.UTF-8`, one step, no new dependency
-      for the RPM); worth doing the next time that workflow is touched, not
-      on its own.
+      module under `core/presentation/`, so the gap is narrow rather than open:
+      a source-level reintroduction is still caught, a behavioural one is not.
+      Closing it is one step in the test workflow, no new runtime dependency —
+      but generate the list **from the shipped catalogs** rather than naming a
+      language, and fix the test's own hardcoded candidate locales the same
+      way, or language three lands in exactly this position again. The catalog
+      code to locale name mapping is not mechanical (`pt` has two territories)
+      and wants an explicit answer in committed source. The RPM buildroot is a
+      separate decision — no workflow step reaches it, and closing it means a
+      langpack build dependency per language.
 - [ ] **The window's minimum size is a pixel constant chosen against English,
       and Spanish page content clips below it** — `gui/main_window.py` declares
       a fixed minimum size, but the width the layout actually needs is a
