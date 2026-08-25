@@ -52,9 +52,11 @@ stops both backends being broken identically from passing unnoticed.
 from __future__ import annotations
 
 import inspect
+import locale
 import os
+from contextlib import contextmanager
 from datetime import datetime
-from typing import NamedTuple
+from typing import Iterator, NamedTuple
 
 import pytest
 
@@ -471,12 +473,20 @@ _LANGUAGE_ALL_SAMPLE_PAIRS = [
     ids=[f"{language}-{row.case}" for language, row in _LANGUAGE_ALL_SAMPLE_PAIRS])
 def test_the_qt_free_backend_renders_the_same_in_every_shipped_language(
         qapp, language, row):
-    """``BACK-04`` expressed as a check rather than as a promise: the
-    Qt-free backend reads no locale, and the pass-through English
-    translator reads no catalog, so the journal pairing's output must be
+    """One of ``BACK-04``'s two axes as a check: the **app** language. The
+    pass-through English translator reads no catalog and the Qt-free locale
+    backend reads no ``QLocale``, so the journal pairing's output must be
     identical no matter which language the process has installed. This is
     also what ``docs/LOGGING.md``'s stable greppable English promise
     depends on — the journal must read the same in any language.
+
+    It is only that one axis. What :func:`_language` varies is the default
+    ``QLocale`` and the gettext catalog, and a backend that read the *POSIX*
+    locale instead — the reintroduced ``import locale`` or C-library date
+    conversion ``plain_locale.py``'s own docstring names as the trap — would
+    sail straight through this loop. The leg below varies that second axis,
+    and ``tests/test_plain_locale.py``'s structural gate is what holds it
+    where no foreign locale is installed to vary.
 
     Every row in :data:`presentation_samples.SAMPLES` is checked here,
     including the four moment renderers already pinned by hand above:
@@ -490,6 +500,78 @@ def test_the_qt_free_backend_renders_the_same_in_every_shipped_language(
     assert baseline == other, (
         f"{row.case}: the Qt-free backend rendered {baseline!r} in en but "
         f"{other!r} in {language} — it must read no locale (BACK-04)")
+
+
+#: Locales whose number and date conventions differ from ``C``'s, tried in
+#: order. Only the two categories that could change a rendering are bound:
+#: the C library's number conversion reads the numeric category and its date
+#: conversion reads the time one, and leaving the character-type and message
+#: categories alone keeps this from disturbing a Qt already loaded in the
+#: same process. ``tests/test_plain_locale.py`` binds the same two, for the
+#: same reason.
+_HOSTILE_POSIX_LOCALES = ("es_ES.UTF-8", "de_DE.UTF-8", "fr_FR.UTF-8")
+
+
+@contextmanager
+def _posix_locale(candidates: tuple[str, ...]) -> Iterator[str]:
+    """Bind the numeric and time categories to the first installed
+    candidate, then restore whatever was there.
+
+    Skips, rather than passes, where the C library has none of them
+    generated — a GitHub runner and the RPM buildroot both carry English
+    only. That is a capability-absent skip: it reports that this leg did not
+    run, and it cannot resolve a mismatch, so GATE-15's "no skip that lets a
+    mismatch be resolved by anything except fixing the code" is untouched by
+    it. The structural gate in ``tests/test_plain_locale.py`` is what proves
+    this property where this leg only corroborates it.
+    """
+    saved_numeric = locale.setlocale(locale.LC_NUMERIC)
+    saved_time = locale.setlocale(locale.LC_TIME)
+    try:
+        for candidate in candidates:
+            try:
+                locale.setlocale(locale.LC_NUMERIC, candidate)
+                locale.setlocale(locale.LC_TIME, candidate)
+            except locale.Error:
+                continue
+            yield candidate
+            return
+        pytest.skip(
+            f"none of {candidates} is generated on this machine — the "
+            f"structural gate in tests/test_plain_locale.py is what proves "
+            f"BACK-04's POSIX axis, not this leg")
+    finally:
+        locale.setlocale(locale.LC_NUMERIC, saved_numeric)
+        locale.setlocale(locale.LC_TIME, saved_time)
+
+
+@pytest.mark.parametrize(
+    "row", presentation_samples.SAMPLES, ids=lambda r: r.case)
+def test_the_qt_free_backend_ignores_the_posix_locale_too(row):
+    """``BACK-04``'s other axis, and the one the app language loop above
+    cannot reach: the POSIX locale. A ``locale.format_string`` or a
+    C-library date conversion reintroduced anywhere under
+    ``core/presentation/`` follows the numeric and time categories, and
+    follows nothing ``_language`` installs — under a Spanish POSIX locale
+    those would render ``110,5`` and ``lun 17`` where the journal must read
+    ``110.5`` and ``2026-08-17``, which is precisely the "Qt-free side
+    disagrees with the window in English words" outcome the design was
+    written to remove.
+
+    The baseline is taken under ``C`` rather than under whatever the runner
+    left behind, so this compares two named locales and not the ambient one
+    against itself — a machine already running in Spanish would otherwise
+    make the comparison vacuous.
+    """
+    with _posix_locale(("C",)):
+        baseline = _rendered(presentation_samples.build_plain_formatter(), row)
+    with _posix_locale(_HOSTILE_POSIX_LOCALES) as name:
+        under_locale = _rendered(
+            presentation_samples.build_plain_formatter(), row)
+    assert baseline == under_locale, (
+        f"{row.case}: the Qt-free backend rendered {baseline!r} under the C "
+        f"locale but {under_locale!r} under {name} — it must read no "
+        f"locale, POSIX included (BACK-04)")
 
 
 def test_every_distinct_equality_pinned_method_has_an_anchor():

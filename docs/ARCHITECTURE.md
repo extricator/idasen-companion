@@ -369,6 +369,20 @@ field and style member — with a recorded verdict per cell, so an
 operation or a field added later with no verdict fails the build rather
 than quietly widening the claim above.
 
+The Qt-free backend's own independence has two axes, and they are held in
+two different places. The **app language** — Qt's default `QLocale` and the
+gettext catalog — is varied per shipped language by the golden contract
+module, which renders every shared formatter through the journal pairing in
+each and requires the results to agree. The **POSIX locale** is the axis a
+reintroduced `import locale` or C-library date conversion would follow, and
+nothing in the app language loop touches it: the proof there is
+`tests/test_plain_locale.py`'s structural gate, which parses every module of
+`core/presentation/` and runs everywhere the suite runs, including a
+buildroot carrying no non-English langpack. Beside it, the golden module
+renders the same formatters under a Spanish or German numeric and time
+locale where the machine has one generated, and skips saying so where it
+does not — corroboration, not the proof.
+
 ## Config
 
 `~/.config/idasen-companion/config.toml`, overridable with the
