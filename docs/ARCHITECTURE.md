@@ -302,9 +302,14 @@ above grants, applied to a value's own representation rather than to
 whether it appears at all — and none may differ in product formatting
 policy. Swept and recorded cell by cell across the seam's closed
 surface, six of the seam's eight surface cells diverge; the two that do
-not, `NumberSpec.trim_trailing_zeroes` and
-`IntegerSpec.min_digits`, both resolve through Python's own string
-handling before either backend renders a digit. The worked example is the
+not, `NumberSpec.trim_trailing_zeroes` and `IntegerSpec.min_digits`, are
+mechanism rather than policy: the trim is lowered to a reduced decimal
+count each backend hands to its own conversion, and the padding is applied
+by Python to the string each backend has already rendered. Neither cell
+diverges at these sample values because neither leaves anything
+locale-specific to differ about — a trimmed `110` has no fraction and, at
+three digits, no group separator, and `05` is two ASCII digits. The worked
+example is the
 four date/time helpers: `fmt_clock`, `fmt_day_label`, `fmt_day_heading`
 and `fmt_day_and_clock` (`core/presentation/dates.py`'s `clock`,
 `day_short`, `day_heading`, `day_and_clock`, reached through `Formatter`).
