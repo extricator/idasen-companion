@@ -474,6 +474,25 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **The window's minimum size is a pixel constant chosen against English,
+      and Spanish page content clips below it** — `gui/main_window.py` declares
+      a fixed minimum size, but the width the layout actually needs is a
+      function of the translated strings inside it. Measured offscreen through
+      `tests/test_baseline_window.py`'s own harness,
+      `window.minimumSizeHint().width()` is 658 for English and 779 for
+      Spanish, so the app permits a Spanish window narrow enough to cut its own
+      Settings content off — which is exactly what a maintainer hit, at the
+      window size English had trained them to use. Pre-existing: Spanish
+      already needed 770 before Phase 16's sidebar work, ten over the declared
+      minimum; that phase's nine-pixel sidebar growth moved it to 779, making
+      it a contributor rather than the cause. Same root-cause family as both
+      defects Phase 16 fixed — a pixel constant measured against English with
+      nothing checking whether a translation fits — which is the argument for
+      fixing it by measuring rather than by raising the number. Measurements,
+      four options and the shape of the test that would catch it are written up
+      in `2026-08-24-window-minimum-width-clips-translated-pages.md`, with its
+      reproduction script beside it; read that rather than re-deriving any of
+      it. Found during the Phase 16 bilingual walk.
 - [ ] **Six translated messages carry unnamed format slots a translator
       cannot reorder** — each is a single whole catalog entry, so the
       concatenation gate correctly reports no offender and no v1.1.1
