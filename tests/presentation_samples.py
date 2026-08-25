@@ -28,6 +28,9 @@ from idasen_companion.core.presentation.english import EnglishTranslator
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.gettext_translator import (
+    GettextTranslator,
+)
 from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
 from idasen_companion.core.units import HeightUnit
 
@@ -131,13 +134,32 @@ NOT_FORMATTERS: dict[str, str] = {
 
 
 def build_plain_formatter() -> Formatter:
-    """The one Qt-free ``Formatter`` both consumers of this table build:
-    the fixed-policy locale backend paired with the pass-through English
-    translator, at centimetres — the same pair
+    """The **journal's** Qt-free ``Formatter`` pairing: the fixed-policy
+    locale backend paired with the pass-through English translator, at
+    centimetres — the same pair
     :func:`idasen_companion.core.presentation.english.format_duration_human`
     builds for the journal, reused here so both callers of this table
-    construct the Qt-free side identically.
+    construct the Qt-free side identically. ``docs/LOGGING.md``'s stable,
+    greppable English promise is what keeps this pairing worth its own
+    coverage rather than being folded into :func:`build_daemon_formatter`.
     """
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES))
+
+
+def build_daemon_formatter() -> Formatter:
+    """The Qt-free ``Formatter`` the daemon actually builds: the fixed-policy
+    locale backend paired with ``GettextTranslator`` — the pairing
+    ``daemon/main.py``'s ``_build_formatter`` constructs for real. The unit
+    is fixed at centimetres here, the same simplification
+    :func:`build_plain_formatter` already makes, while the real one resolves
+    it from config. ``GettextTranslator`` reads the process-wide gettext
+    catalog at call time, so this must be both constructed *and* rendered
+    inside the same language context that binds that catalog —
+    ``tests/test_golden_presentation_contract.py``'s ``_language(...)`` block
+    is where that discipline is kept.
+    """
+    return Formatter(PresentationContext(
+        locale=PlainLocaleFormatter(), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES))
