@@ -641,8 +641,22 @@ def test_every_public_formatter_method_has_a_sample_row():
     completeness shape ``tests/test_translation_collisions.py`` uses for its
     own register, so neither a missing row nor a dead one can accumulate
     silently.
+
+    The exclusion table is guarded first, and it has to be: it is the one
+    table that decides what everything below measures, and subtracting a
+    name that is not on ``Formatter`` at all takes nothing out of the
+    comparison and is never reported. A dead excuse then reads like a
+    decision someone made — and the same unguarded line is how a live
+    formatter could be excused out of the contract, the sweep and the
+    Qt-free callability leg at once.
     """
-    expected = _public_formatter_members() - set(presentation_samples.NOT_FORMATTERS)
+    public = _public_formatter_members()
+    excused = set(presentation_samples.NOT_FORMATTERS)
+    phantom = excused - public
+    assert not phantom, (
+        f"NOT_FORMATTERS excuses member(s) that are not on Formatter at "
+        f"all: {sorted(phantom)}")
+    expected = public - excused
     covered = {row.method for row in presentation_samples.SAMPLES}
     assert expected == covered, (
         f"missing sample rows: {sorted(expected - covered)}; "
