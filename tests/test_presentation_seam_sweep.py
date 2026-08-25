@@ -159,12 +159,24 @@ SEAM_SWEEP: tuple[SweepCell, ...] = (
 
 
 def _locale_formatter_operations() -> set[str]:
-    """Every public method ``LocaleFormatter`` declares, by name."""
+    """Every public member ``LocaleFormatter`` declares, by name.
+
+    A ``property`` counts, and that is the point rather than a nicety.
+    BACK-02's whole prohibition is on a locale-*database field* —
+    ``decimal_separator``, ``month_names``, ``am_text``,
+    ``first_day_of_week`` — and the natural Python spelling of a field on a
+    protocol is a property, not a method. Admitting only functions here
+    would let the completeness test below stay green through the addition
+    of the one member shape the seam is written to keep out. A property
+    landing here has no knob mapping, so it fails loudly instead. The
+    sibling helper in ``tests/test_golden_presentation_contract.py`` already
+    accepts both.
+    """
     names = set()
     for name, member in inspect.getmembers(LocaleFormatter):
         if name.startswith("_"):
             continue
-        if inspect.isfunction(member):
+        if inspect.isfunction(member) or isinstance(member, property):
             names.add(name)
     return names
 
