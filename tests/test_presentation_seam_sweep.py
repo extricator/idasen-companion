@@ -63,6 +63,8 @@ from idasen_companion.core.presentation.protocols import (  # noqa: E402
 from idasen_companion.core.presentation.specs import (  # noqa: E402
     DateStyle, IntegerSpec, NumberSpec, TimeStyle,
 )
+from idasen_companion.gui import i18n  # noqa: E402
+from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -212,3 +214,57 @@ def test_the_sweep_records_a_verdict_for_every_cell_of_the_seam():
     unexplained = sorted(
         f"{cell.operation}/{cell.knob}" for cell in SEAM_SWEEP if not cell.note)
     assert not unexplained, f"cells with no recorded reason: {unexplained}"
+
+
+# ----------------------------------------------------------------------
+# Every recorded verdict, checked against both real backends.
+# ----------------------------------------------------------------------
+
+#: English is the source language the enumeration below does not list —
+#: gui/pages/settings.py adds it the same way — so a newly shipped catalog
+#: is swept by this loop the day it lands, with no test edit.
+SHIPPED_LANGUAGES: tuple[str, ...] = ("en", *i18n.available_languages())
+
+
+def _qt_locale(language: str) -> QLocale:
+    """Map a shipped language code to the ``QLocale`` a real run would use.
+
+    ``"en_US"`` for ``"en"`` matches the choice
+    ``tests/test_golden_presentation_contract.py`` already makes.
+    """
+    return QLocale("en_US") if language == "en" else QLocale(language)
+
+
+@pytest.mark.parametrize(
+    "cell", SEAM_SWEEP, ids=lambda c: f"{c.operation}-{c.knob}")
+def test_every_recorded_cell_renders_its_written_qt_free_value(cell):
+    """This is BACK-04 as a check: the Qt-free backend reads no locale, so
+    one hand-typed column covers every language, and it is the anchor the
+    divergence verdict below is measured against, rather than the two
+    backends being compared only to each other.
+    """
+    rendered = getattr(PlainLocaleFormatter(), cell.operation)(*cell.args)
+    assert rendered == cell.qt_free, (
+        f"{cell.operation}/{cell.knob}: the Qt-free backend rendered "
+        f"{rendered!r}, the recorded anchor is {cell.qt_free!r}")
+
+
+@pytest.mark.parametrize(
+    "cell", SEAM_SWEEP, ids=lambda c: f"{c.operation}-{c.knob}")
+def test_every_recorded_cell_diverges_exactly_where_the_sweep_says(qapp, cell):
+    """A verdict of "diverges" means at least one shipped language
+    disagrees with the Qt-free anchor, not that all of them do — and a
+    newly shipped language that flips a verdict is meant to turn this red,
+    because that is a human's cue to look.
+    """
+    differing = []
+    for language in SHIPPED_LANGUAGES:
+        rendered = getattr(
+            QtLocaleFormatter(_qt_locale(language)), cell.operation)(*cell.args)
+        if rendered != cell.qt_free:
+            differing.append((language, rendered))
+    assert bool(differing) == cell.diverges, (
+        f"{cell.operation}/{cell.knob}: recorded diverges={cell.diverges}, "
+        f"but the languages differing from the Qt-free anchor "
+        f"{cell.qt_free!r} were "
+        f"{[(lang, repr(text)) for lang, text in differing]}")
