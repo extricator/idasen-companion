@@ -295,15 +295,38 @@ exposes operations (`number`, `integer`, `time`, `date`, `message`,
 shared layer needs is an operation a caller asks the backend for, never a
 field a caller reads and formats itself.
 
-**The sanctioned divergence.** Four formatters are the one place the two
-backends are allowed to render differently: `fmt_clock`, `fmt_day_label`,
-`fmt_day_heading` and `fmt_day_and_clock` (`core/presentation/dates.py`'s
-`clock`, `day_short`, `day_heading`, `day_and_clock`, reached through
-`Formatter`). Qt renders through `QLocale` — `lun 17 ago 2026`, `14:32` in
-`es`; `Mon 17 Aug 2026`, `2:32 PM` (with a narrow no-break space) in `en`.
-The Qt-free backend renders both `DateStyle` members as one ISO 8601 date,
+**The sanctioned divergence.** The permission is a category, not a list:
+any of the seam's four `LocaleFormatter` operations may render an atomic
+value differently between backends — the same latitude the paragraph
+above grants, applied to a value's own representation rather than to
+whether it appears at all — and none may differ in product formatting
+policy. Swept and recorded cell by cell in
+`tests/test_presentation_seam_sweep.py`, six of the seam's eight surface
+cells diverge; the two that do not, `NumberSpec.trim_trailing_zeroes` and
+`IntegerSpec.min_digits`, both resolve through Python's own string
+handling before either backend renders a digit. The worked example is the
+four date/time helpers: `fmt_clock`, `fmt_day_label`, `fmt_day_heading`
+and `fmt_day_and_clock` (`core/presentation/dates.py`'s `clock`,
+`day_short`, `day_heading`, `day_and_clock`, reached through `Formatter`).
+Qt renders through `QLocale` — `lun 17 ago 2026`, `14:32` in `es`;
+`Mon 17 Aug 2026`, `2:32 PM` (with a narrow no-break space) in `en`. The
+Qt-free backend renders both `DateStyle` members as one ISO 8601 date,
 `2026-08-17`, in both shipped languages, and `14:32` for the time style,
-unchanged.
+unchanged. Numbers diverge on the same permission: a height renders
+`110,5` through Qt in `es` and `110.5` through the Qt-free backend, which
+reaches every height the app shows — `height_value`, `height` and
+`preset_tick`.
+
+**`grouping` is named, and answered.** `NumberSpec.grouping` and
+`IntegerSpec.grouping` are a divergence the seam permits that no shipped
+caller reaches: both default to `False`, and only tests pass `True`. Were
+one to, Qt would render `12.345,5` in `es` against the Qt-free backend's
+`12,345.5` — five integer digits, not four, because Qt's Spanish CLDR data
+inserts no group separator below five, so a four-digit example would show
+only the decimal point differing. A backend answering a *style* or a
+*spec* differently, as all of the above do, is inside the permission; one
+deciding which threshold applies, which fields compose a sentence, or
+whether a value shows at all is not.
 
 **Why.** glibc defines the 12-hour clock format as the empty string for
 `es_ES`, so deriving a 12-hour flag from the process locale would hand a
