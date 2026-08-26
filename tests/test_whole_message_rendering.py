@@ -12,6 +12,15 @@ than a raw config key, and the daily chart's tooltip translated at all.
 Skipped where PySide6 is missing, since the RPM lists it as a runtime
 ``Requires`` rather than a ``BuildRequires`` and the spec's ``%check`` may run
 this suite without it.
+
+One test in this module, ``test_overview_status_branches_render_their_head_and_note``,
+covers something the window baseline structurally cannot:
+``tests/test_baseline_window.py``'s own docstring states its ``FakeClient``
+never pushes a status, so the Overview page's status head and reason stay
+empty for the whole capture and ``_widget_fields`` there records only truthy
+strings -- both labels are silently excluded from every window golden. This
+module's ``overview_page`` fixture drives ``statusChanged`` directly instead,
+so it is the only automated backstop the Overview status notes have.
 """
 
 import pytest
@@ -71,6 +80,11 @@ class _FakeOverviewClient(QObject):
     def move_to_height(self, height): ...
     def set_automation_enabled(self, enabled): ...
     def idle_provider(self): return "none"
+    # 0.0 is the wire value before the deadline has been fetched, which is
+    # the honest thing to pin here -- the "Snoozed until later" transient is
+    # a known, accepted gap (see CONTEXT.md's deferred list), not something
+    # this fixture should hide by seeding a fake real deadline.
+    def snooze_until(self): return 0.0
 
 
 @pytest.fixture
@@ -78,7 +92,14 @@ def overview_page(qapp, tmp_path, monkeypatch):
     path = tmp_path / "config.toml"
     save_config(AppConfig(), path)
     monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
-    return OverviewPage(AppContext(_FakeOverviewClient(), tray_available=True))
+    ctx = AppContext(_FakeOverviewClient(), tray_available=True)
+    # A loaded config is what makes _render_status's out-of-schedule branch
+    # take its config-loaded path (a named schedule) rather than its
+    # no-config fallback (empty, per 18-02-SUMMARY.md's ruling) -- without
+    # this, ctx.cfg stays None for the whole test and that branch could
+    # never be exercised.
+    ctx.reload_config()
+    return OverviewPage(ctx)
 
 
 class _FakeStatisticsClient(QObject):
@@ -253,6 +274,61 @@ def test_overview_status_reason_renders_with_no_separator(overview_page):
 
     overview_page.client.statusChanged.emit("does-not-exist")
     assert overview_page.status_reason.text() == ""
+
+
+# The ceiling D-05's table sets: the three longest reasons wrapped at the
+# window's 760px minimum in both shipped languages, and Spanish runs longer
+# than English for these four surviving notes -- so this English-side figure
+# is the loose half of the bound. It exists to catch an English regression,
+# not to prove the Spanish side fits.
+_STATUS_REASON_MAX_CHARS = 23
+
+# One row per branch of _render_status, in the order that function checks
+# them, plus the unrecognized-status fallback as its own row. Every expected
+# value here is hand-typed from D-05's table and 18-02-SUMMARY.md's ruling on
+# the two branches that table omitted (locked, and the out-of-schedule
+# no-config fallback) -- never captured from a run, which would only pin
+# whatever the code currently does, bug included.
+_STATUS_BRANCH_CASES = [
+    ("active", "Active", ""),
+    ("paused", "Paused", ""),
+    ("snoozed", "Snoozed until later", ""),
+    # The idle value still renders through the compact formatter here --
+    # plan 18-04 repoints it to the picker shape ("10 min") and updates this
+    # row's expectation in the same commit. Reading "10m" here is expected,
+    # not a regression, until that plan lands.
+    ("user-idle", "You're away", "no input for 10m"),
+    ("away", "In another session", ""),
+    ("locked", "Session locked", ""),
+    ("out-of-schedule", "Outside schedule", "Mon–Fri 09:00–17:00"),
+    ("disabled", "Automation off", ""),
+    ("held", "Off-cycle", "desk isn't at a preset"),
+    ("move-failed", "Last move failed", "couldn't reach the desk"),
+    ("does-not-exist", "does-not-exist", ""),
+]
+
+
+def test_overview_status_branches_render_their_head_and_note(overview_page):
+    """Drives every branch of ``_render_status`` and pins both rendered
+    labels literally. Kept in this module rather than a sibling one: the
+    ``overview_page`` fixture and ``_FakeOverviewClient`` are module-local
+    here, this is the module the one test that used to pin the separator
+    already lived in, and a sibling module would have to import the fixture
+    across files for no gain.
+    """
+    seen_reasons = []
+    for wire_status, expected_head, expected_reason in _STATUS_BRANCH_CASES:
+        overview_page.client.statusChanged.emit(wire_status)
+        assert overview_page.status_head_lbl.text() == expected_head, wire_status
+        assert overview_page.status_reason.text() == expected_reason, wire_status
+        seen_reasons.append(overview_page.status_reason.text())
+
+    # The property D-06 buys, and the one a future edit is most likely to
+    # undo by reflex: no rendered reason carries the structural dash back,
+    # for any branch. Range dashes (the day range, the time range above) are
+    # not that dash and are not checked for here.
+    assert not any("—" in reason for reason in seen_reasons)
+    assert all(len(reason) <= _STATUS_REASON_MAX_CHARS for reason in seen_reasons)
 
 
 def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
