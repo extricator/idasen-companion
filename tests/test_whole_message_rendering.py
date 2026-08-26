@@ -293,11 +293,9 @@ _STATUS_BRANCH_CASES = [
     ("active", "Active", ""),
     ("paused", "Paused", ""),
     ("snoozed", "Snoozed until later", ""),
-    # The idle value still renders through the compact formatter here --
-    # plan 18-04 repoints it to the picker shape ("10 min") and updates this
-    # row's expectation in the same commit. Reading "10m" here is expected,
-    # not a regression, until that plan lands.
-    ("user-idle", "You're away", "no input for 10m"),
+    # The idle value renders through the picker shape ("10 min"), the same
+    # shape every other control the user picks a duration from reads.
+    ("user-idle", "You're away", "no input for 10 min"),
     ("away", "In another session", ""),
     ("locked", "Session locked", ""),
     ("out-of-schedule", "Outside schedule", "Mon–Fri 09:00–17:00"),

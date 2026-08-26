@@ -253,26 +253,25 @@ class AutomationPage(SettingsFormPage):
     def _interval_label(self, seconds: int, zero_label: str = "") -> str:
         """Item text for one offered interval.
 
-        ``zero_label`` names the 0 entry for rows where a word reads better
-        than a number ("Check position every **Off**"). Rows whose label is
-        read *through* a connective leave it unset and get "0m", because
-        "plus up to Off" is not a sentence. The zero case renders through
-        :meth:`~idasen_companion.core.presentation.formatter.Formatter.duration_hm`,
-        not :meth:`~idasen_companion.core.presentation.formatter.Formatter.duration`:
-        this combo offers a minute-granularity scale and its zero is the
-        "off" end of that scale, so it must read in the minutes shape
-        rather than the sub-minute value ``duration`` would otherwise
-        render for a zero seconds count.
+        Every row — the zero row and every other one — renders through the
+        one picker shape this page's dropdowns share with every other
+        control a user picks a duration from. ``zero_label`` names the 0
+        entry for rows where a word reads better than a number ("Check
+        position every **Off**"); rows whose label is read *through* a
+        connective leave it unset and get "0 min", because "plus up to Off"
+        is not a sentence.
 
-        Every other row renders through ``duration``, which keeps a
-        sub-minute value visible ("30s") instead of rounding it into a
-        minute count nobody chose — reachable only from a hand-edited or
-        test config, since every offered choice is itself a whole number
-        of minutes.
+        A value that is not one of the offered choices — reachable only from
+        a hand-edited or older config, since every offered choice here is
+        itself a whole number of minutes — floors to whole minutes instead of
+        showing seconds. That is what a minute-granularity picker's scale
+        means: it used to keep a sub-minute value visible through ``duration``
+        instead, which is what "one picker shape everywhere" gives up in
+        exchange for no longer contradicting the spin boxes two rows above it.
         """
         if seconds == 0:
-            return zero_label or self.ctx.fmt.duration_hm(seconds)
-        return self.ctx.fmt.duration(seconds)
+            return zero_label or self.ctx.fmt.duration_minutes(seconds)
+        return self.ctx.fmt.duration_minutes(seconds)
 
     def _fill_intervals(self, combo, choices, seconds: int,
                         zero_label: str = "") -> None:

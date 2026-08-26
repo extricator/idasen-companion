@@ -90,7 +90,7 @@ def test_an_out_of_list_value_is_kept_rather_than_snapped(page):
     # rewrite the user's setting to 5 or 10 on the next Apply.
     assert _round_trip(page, 7 * 60) == 7 * 60
     assert page.sync_combo.currentData() == 7 * 60
-    assert page.sync_combo.currentText() == "7m"
+    assert page.sync_combo.currentText() == "7 min"
 
 
 def test_an_out_of_list_value_is_offered_in_sorted_position(page):
@@ -98,11 +98,16 @@ def test_an_out_of_list_value_is_offered_in_sorted_position(page):
     assert _values(page) == [0, 120, 300, 420, 600, 900, 1800, 3600]
 
 
-def test_a_sub_minute_value_survives_and_shows_its_real_size(page):
-    # The old page rounded these up to 1 min for display, so a 30 s config
-    # silently became 60 s on the next Apply.
+def test_a_sub_minute_value_survives_even_though_its_label_floors_to_zero(page):
+    # The value itself still round-trips exactly rather than being snapped to
+    # an offered choice — a config someone hand-edited to 30s is not silently
+    # rewritten to 0 or 120 on the next Apply. Its label reads "0 min" rather
+    # than keeping the seconds visible: this combo is a minute-granularity
+    # picker, and every row (including a spliced-in one) now reads that one
+    # shape rather than the sub-minute-preserving shape the old label used.
     assert _round_trip(page, 30) == 30
-    assert page.sync_combo.currentText() == "30s"
+    assert page.sync_combo.currentData() == 30
+    assert page.sync_combo.currentText() == "0 min"
 
 
 def test_a_one_off_entry_does_not_outlive_the_value_that_caused_it(page):

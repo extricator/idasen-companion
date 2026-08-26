@@ -7,7 +7,7 @@ count in that range, which makes a config holding 7 min ordinary rather than
 exotic. A value outside the offered list is a value someone chose, so it must
 survive being looked at rather than being snapped to the nearest offered one.
 
-Also pinned here: 0 reads "0m", not "Off". These labels are read through
+Also pinned here: 0 reads "0 min", not "Off". These labels are read through
 the row's connective, and "plus up to Off" is not a sentence.
 
 Skipped where PySide6 is missing, since the RPM lists it as a runtime
@@ -91,11 +91,11 @@ def test_each_offered_variation_round_trips(page, seconds):
 
 
 def test_no_variation_reads_as_a_number_not_off(page):
-    # The label is read through the row's connective: "plus up to 0m".
+    # The label is read through the row's connective: "plus up to 0 min".
     # "plus up to Off" is not a sentence, which is why this row does not
     # borrow the sync combo's word for zero.
     assert _round_trip(page, 0) == 0
-    assert page.sit_var.currentText() == "0m"
+    assert page.sit_var.currentText() == "0 min"
 
 
 def test_an_out_of_list_value_is_kept_rather_than_snapped(page):
@@ -103,7 +103,7 @@ def test_an_out_of_list_value_is_kept_rather_than_snapped(page):
     # is a setting someone chose — not a corruption to be cleaned up.
     assert _round_trip(page, 7 * 60) == 7 * 60
     assert page.sit_var.currentData() == 7 * 60
-    assert page.sit_var.currentText() == "7m"
+    assert page.sit_var.currentText() == "7 min"
 
 
 def test_an_out_of_list_value_is_offered_in_sorted_position(page):

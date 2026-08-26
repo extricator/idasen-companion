@@ -286,7 +286,8 @@ class OverviewPage(Page):
         snooze_btn = QPushButton(
             icon("alarm", "chronometer", "clock", "appointment-soon"),
             self.tr("Snooze %(duration)s") % {
-                "duration": self.ctx.fmt.duration(_SNOOZE_MINUTES * 60)})
+                "duration": self.ctx.fmt.duration_minutes(
+                    _SNOOZE_MINUTES * 60)})
         snooze_btn.clicked.connect(
             lambda: self.client.snooze(_SNOOZE_MINUTES))
         # Deliberately not a stop/pause icon: this isn't a stronger Pause, it's
@@ -453,7 +454,7 @@ class OverviewPage(Page):
             idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
             reason = self.tr("no input for %(idle)s") % {
-                "idle": self.ctx.fmt.duration(idle_seconds)}
+                "idle": self.ctx.fmt.duration_minutes(idle_seconds)}
         elif status == "away":
             color, head = tokens.muted, status_head(status)
             reason = ""

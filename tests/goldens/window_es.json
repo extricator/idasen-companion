@@ -63,7 +63,7 @@
   "automation.QComboBox#2.item3": "10 min",
   "automation.QComboBox#2.item4": "15 min",
   "automation.QComboBox#2.item5": "30 min",
-  "automation.QComboBox#2.item6": "1 h 00 min",
+  "automation.QComboBox#2.item6": "60 min",
   "automation.QLabel#0.text": "CICLO DE SENTADO / DE PIE",
   "automation.QLabel#1.text": "Sentarse durante",
   "automation.QLabel#10.text": "Devuelve el escritorio a donde empezó",
