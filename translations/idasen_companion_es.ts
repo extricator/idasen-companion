@@ -1177,10 +1177,6 @@ Prueba a ejecutar esto en una terminal:
         <translation>Configuración de Idasen Companion</translation>
     </message>
     <message>
-        <source>It will remind you to alternate sit and stand while you work.</source>
-        <translation>Te recordará alternar entre sentado y de pie mientras trabajas.</translation>
-    </message>
-    <message>
         <source>Automation is off — the desk will only move when you ask it to. You can turn it on any time in Settings.</source>
         <translation>La automatización está desactivada: el escritorio solo se moverá cuando se lo pidas. Puedes activarla cuando quieras en Configuración.</translation>
     </message>
@@ -1199,6 +1195,10 @@ Prueba a ejecutar esto en una terminal:
     <message>
         <source>Success! Your desk is set up and currently at %s.</source>
         <translation>¡Listo! Tu escritorio está configurado y actualmente a %s.</translation>
+    </message>
+    <message>
+        <source>It will move the desk between sit and stand while you work.</source>
+        <translation>Moverá el escritorio entre sentado y de pie mientras trabajas.</translation>
     </message>
     <message>
         <source>Could not reach the desk</source>
@@ -1331,8 +1331,8 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>¿Cómo quieres usarlo?</translation>
     </message>
     <message>
-        <source>Remind me to sit and stand</source>
-        <translation>Recordarme sentarme y levantarme</translation>
+        <source>Move the desk for me</source>
+        <translation>Mueve el escritorio por mí</translation>
     </message>
     <message>
         <source>The desk alternates between your sit and stand presets while you&apos;re working. You can change the timings, pause it, or turn it off later in Settings.</source>
@@ -1343,8 +1343,8 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>Solo quiero mover el escritorio</translation>
     </message>
     <message>
-        <source>No timer and no reminders. Presets, the tray menu and the statistics all still work — the desk only moves when you say so.</source>
-        <translation>Sin temporizador ni recordatorios. Los preajustes, el menú de la bandeja y las estadísticas siguen funcionando: el escritorio solo se mueve cuando tú lo indicas.</translation>
+        <source>No timer. Presets, the tray menu and the statistics all still work — the desk only moves when you say so.</source>
+        <translation>Sin temporizador. Los preajustes, el menú de la bandeja y las estadísticas siguen funcionando: el escritorio solo se mueve cuando tú lo indicas.</translation>
     </message>
 </context>
 <context>

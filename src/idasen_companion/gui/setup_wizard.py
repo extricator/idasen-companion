@@ -208,7 +208,7 @@ class UsagePage(QWizardPage):
         super().__init__()
         self.setTitle(self.tr("How do you want to use it?"))
         layout = QVBoxLayout(self)
-        self.automatic = QRadioButton(self.tr("Remind me to sit and stand"))
+        self.automatic = QRadioButton(self.tr("Move the desk for me"))
         self.automatic.setChecked(True)
         auto_note = QLabel(self.tr(
             "The desk alternates between your sit and stand presets while "
@@ -216,7 +216,7 @@ class UsagePage(QWizardPage):
             "it off later in Settings."))
         self.manual = QRadioButton(self.tr("Just let me move the desk"))
         manual_note = QLabel(self.tr(
-            "No timer and no reminders. Presets, the tray menu and the "
+            "No timer. Presets, the tray menu and the "
             "statistics all still work — the desk only moves when you say so."))
         for note in (auto_note, manual_note):
             note.setWordWrap(True)
@@ -250,7 +250,7 @@ class SetupWizard(QWizard):
 
     def _automation_note(self) -> str:
         if self.usage_page.wants_automation():
-            return self.tr("It will remind you to alternate sit and stand "
+            return self.tr("It will move the desk between sit and stand "
                            "while you work.")
         return self.tr("Automation is off — the desk will only move when you "
                        "ask it to. You can turn it on any time in Settings.")
@@ -316,7 +316,7 @@ class SetupWizard(QWizard):
             self.setEnabled(True)
         if verified and isinstance(result, float):
             # Only ever *turn off* from here. The daemon default is on, so a
-            # user who picked the reminder option needs no call — and one that
+            # user who picked automatic movement needs no call — and one that
             # wrote the config would clobber a value set by hand before setup.
             if not self.usage_page.wants_automation():
                 self.client.set_automation_enabled(False)
