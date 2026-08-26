@@ -53,6 +53,58 @@ suite fails a translation that uses a different word for a term the file
 already declares, so a colliding word choice is caught before it ships
 rather than found later.
 
+## Status-note shape and length
+
+A short UI line has its own house rule, learned from the Overview status
+line reading like logic description instead of a note: *"you're putting
+logic description for me there when it should be a short note if
+anything."*
+
+1. **A status note carries one fact the head does not have.** The head names
+   the state. The note adds a duration, a schedule, a position, a cause —
+   something the user cannot read off the head.
+2. **A note that would only repeat the head, reassure, or explain how the app
+   works is empty instead.** Two of the notes this rule retired were
+   narrating a widget on the same screen; a third described buttons that
+   were visible and enabled three lines above it.
+3. **A rendered line carries at most one dash.** Range dashes — the one
+   between two day names, the one between a start and an end time — are not
+   that dash and never count against it.
+4. **Length is the constraint the rule exists for.** Measured at the
+   window's declared 760px minimum width, in both shipped languages: three
+   of the nine reasons wrapped, and they were the three longest and the same
+   three that carried an inner dash. The longest note went from 84
+   characters to 23.
+
+**Why this is a shape-and-length rule and not a dash-only rule.** The
+requirement that produced this section literally asked for a dash rule. A
+dash-only rule would have permitted every line the human walk complained
+about, because each dash in those lines was correct on its own — what
+actually bit was length, not punctuation. So the rule that ships governs
+shape and length, with the dash clause folded inside it as one of four
+points rather than standing alone.
+
+**Worked example.** The schedule status line carried four dashes doing
+three different jobs:
+
+```
+Outside schedule — runs Mon–Sun 07:00–22:00 — the desk stays put
+                 ↑           ↑        ↑     ↑
+                 structural  range    range rhetorical
+```
+
+Both range dashes are exempt under clause 3. The structural dash (splitting
+head from note) and the rhetorical dash (a second, narrative clause) are the
+two the rule limits to one — and the rewritten note removes the rhetorical
+clause outright rather than choosing which dash to keep.
+
+**Held by review, not by a gate.** This project has no automated check for
+note shape — a note that quietly grows past this rule's intent will not fail
+a build on its own. `tests/test_whole_message_rendering.py` pins the
+rendered text of every status branch, which is the closest thing to a
+backstop this rule has: it catches a note drifting from what was decided,
+even though it cannot judge whether a *new* note obeys the rule above.
+
 ## Translation-key collisions
 
 Source-as-key (see the [Glossary](#glossary) above) cuts both ways: that
