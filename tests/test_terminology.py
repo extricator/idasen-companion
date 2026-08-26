@@ -35,6 +35,7 @@ _PO_PATH = _REPO_ROOT / "po" / "es.po"
 TERMS = {
     "preset": {"es": "preajust"},
     "position": {"es": "posici"},
+    "desk": {"es": "escritorio"},
 }
 
 # Source strings where the English term legitimately doesn't name a
