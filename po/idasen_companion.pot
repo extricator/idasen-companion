@@ -56,6 +56,11 @@ msgstr ""
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgid "%(minutes)s min"
+msgstr ""
+
+#: src/idasen_companion/core/presentation/register.py
+#, python-format
 msgid "%(seconds)ss"
 msgstr ""
 

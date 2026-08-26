@@ -110,6 +110,7 @@ SAMPLES: tuple[Sample, ...] = (
     Sample("duration_verbose", "duration_verbose", (3900,), {}),
     Sample("duration_hm", "duration_hm", (3900,), {}),
     Sample("duration", "duration", (45,), {}),
+    Sample("duration_minutes", "duration_minutes", (600,), {}),
     Sample("day_short", "day_short", (AFTERNOON,), {}),
     Sample("day_heading", "day_heading", (AFTERNOON,), {}),
     Sample("clock_afternoon", "clock", (AFTERNOON,), {}),

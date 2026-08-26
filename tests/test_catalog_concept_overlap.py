@@ -49,11 +49,15 @@ _TS_PATH = _REPO_ROOT / "translations" / "idasen_companion_es.ts"
 # identifier rather than by the words they carry -- see the module
 # docstring. An NP_ constant is a tuple of both plural forms; an N_ constant
 # is a single string. minutes_label (added by plan 15-05's caller) reaches
-# MINUTES directly, so it needs no separate entry here.
+# MINUTES directly, so it needs no separate entry here. The picker's minutes
+# entry (added by plan 18-04) is a second contributor of the same
+# abbreviated unit word SNOOZE_ACTION already carries, so naming it here
+# changes no token in the derived set.
 _REGISTER_CONSTANT_NAMES = (
     "HOURS", "MINUTES", "SECONDS",
     "HOURS_AND_MINUTES_COMPACT", "MINUTES_COMPACT", "SECONDS_COMPACT",
     "HEIGHT_CENTIMETRES", "HEIGHT_INCHES", "SNOOZE_ACTION",
+    "MINUTES_ABBREVIATED",
 )
 
 # A substitution placeholder immediately followed (at most one intervening

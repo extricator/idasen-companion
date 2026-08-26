@@ -58,10 +58,10 @@ from .protocols import LocaleFormatter, Translator
 from .register import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
     HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT,
-    MINUTES, MINUTES_COMPACT, MOVE_FAILED_BODY, MOVE_FAILED_BODY_WITH_REASON,
-    MOVE_FAILED_SITTING, MOVE_FAILED_STANDING, PRESET_TICK, PRE_MOVE_BODY,
-    PRE_MOVE_SITTING, PRE_MOVE_STANDING, SECONDS, SECONDS_COMPACT,
-    SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
+    MINUTES, MINUTES_ABBREVIATED, MINUTES_COMPACT, MOVE_FAILED_BODY,
+    MOVE_FAILED_BODY_WITH_REASON, MOVE_FAILED_SITTING, MOVE_FAILED_STANDING,
+    PRESET_TICK, PRE_MOVE_BODY, PRE_MOVE_SITTING, PRE_MOVE_STANDING, SECONDS,
+    SECONDS_COMPACT, SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
 from .specs import IntegerSpec, NumberSpec
 
@@ -449,3 +449,36 @@ class Formatter:
             secs = locale.integer(max(0, int(seconds)), IntegerSpec())
             return translator.message(SECONDS_COMPACT, seconds=secs)
         return self.duration_hm(seconds)
+
+    def duration_minutes(self, seconds: float) -> str:
+        """A duration for a control the user *picks* a value from, e.g.
+        "45 min" — a dropdown item, a menu entry, a button label. Never the
+        journal or the Activity Log, which keep :meth:`duration` and
+        :meth:`duration_hm`'s compact shapes; those two are not callers of
+        this method.
+
+        Renders whole minutes only, through the same locale-backend integer
+        operation every other duration method uses rather than a Python
+        format string. **3600 seconds renders "60 min", never an hour
+        decomposition** — the tray's own minutes-only design was deliberate,
+        and unifying every picker onto this shape honours that design
+        instead of quietly giving the tray hour decomposition it never
+        wanted.
+
+        **Zero renders "0 min".** A sub-minute value floors to zero minutes
+        rather than showing seconds — that is what a minute-granularity
+        picker's scale means; the seconds a sibling compact method would
+        keep visible have no place on a scale whose smallest offered choice
+        is a whole minute.
+
+        A negative value clamps to zero, matching what :meth:`duration` and
+        :func:`~idasen_companion.core.durations.decompose_hms` already do,
+        and for the same reason: the clock these callers read is monotonic
+        in principle and not in practice, and a delay computed across a
+        suspend can arrive negative.
+        """
+        locale = self._context.locale
+        translator = self._context.translator
+        total_minutes = max(0, int(seconds)) // 60
+        minutes = locale.integer(total_minutes, IntegerSpec())
+        return translator.message(MINUTES_ABBREVIATED, minutes=minutes)

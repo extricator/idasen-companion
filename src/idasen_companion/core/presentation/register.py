@@ -75,6 +75,28 @@ HOURS_AND_MINUTES_COMPACT = N_("%(hours)sh %(minutes)sm")
 #: :data:`HOURS_AND_MINUTES_COMPACT` above.
 MINUTES_COMPACT = N_("%(minutes)sm")
 
+#: The picker's minutes duration, e.g. "45 min" — the unit spelled as its
+#: word abbreviation with a space before it, where :data:`MINUTES_COMPACT`
+#: pushes a one-letter symbol straight onto the number with no space, and
+#: :data:`MINUTES` spells the word out in full. This is the shape for a
+#: control the user *picks* a value from (a dropdown, a menu item, a
+#: button label) — the compact form reads too terse in a control you choose
+#: a value from, which is why this entry exists beside it rather than
+#: replacing it.
+#:
+#: **Its Spanish is the same string as :data:`MINUTES_COMPACT`'s existing
+#: translation, and that is accepted rather than reworded.** Measured
+#: directly in ``po/es.po``: ``%(minutes)sm`` already translates to
+#: ``%(minutes)s min`` — Spanish's abbreviation for "minutes" already carries
+#: the space this entry's English needs, so the compact/picker split this
+#: entry exists for is an English-only problem. Spanish never had it. That
+#: makes the shared Spanish a translator's judgement working correctly, not a
+#: near-duplicate masking a missed distinction — rewording the Spanish so the
+#: two source strings' translations differ was considered and rejected,
+#: because it would invent a difference the language does not have purely to
+#: satisfy a check.
+MINUTES_ABBREVIATED = N_("%(minutes)s min")
+
 #: The compact seconds-only duration, e.g. "45s". Byte-identical to the
 #: existing ``util``-context source string — see
 #: :data:`HOURS_AND_MINUTES_COMPACT` above.

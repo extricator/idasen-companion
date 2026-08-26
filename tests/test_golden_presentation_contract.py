@@ -405,6 +405,7 @@ ANCHORS: dict[str, object] = {
     "duration_verbose": "1 hour 5 minutes",
     "duration_hm": "1h 05m",
     "duration": "45s",
+    "duration_minutes": "10 min",
 }
 
 
