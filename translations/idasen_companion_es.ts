@@ -738,60 +738,24 @@ Prueba a ejecutar esto en una terminal:
         <translation>Moviéndose…</translation>
     </message>
     <message>
-        <source>alternating sit / stand while you&apos;re at the desk</source>
-        <translation>alternando sentado / de pie mientras estás en el escritorio</translation>
+        <source>no input for %(idle)s</source>
+        <translation>sin actividad durante %(idle)s</translation>
     </message>
     <message>
-        <source>the desk won&apos;t move until you resume</source>
-        <translation>el escritorio no se moverá hasta que reanudes</translation>
+        <source>%(days)s %(start)s–%(end)s</source>
+        <translation>%(days)s %(start)s–%(end)s</translation>
     </message>
     <message>
-        <source>automation resumes on its own</source>
-        <translation>la automatización se reanuda sola</translation>
+        <source>desk isn&apos;t at a preset</source>
+        <translation>el escritorio no está en un preajuste</translation>
+    </message>
+    <message>
+        <source>couldn&apos;t reach the desk</source>
+        <translation>no se pudo conectar con el escritorio</translation>
     </message>
     <message>
         <source>Snooze %(duration)s</source>
         <translation>Posponer %(duration)s</translation>
-    </message>
-    <message>
-        <source>no input for %(idle)s — the timer is paused</source>
-        <translation>sin actividad durante %(idle)s — el temporizador está en pausa</translation>
-    </message>
-    <message>
-        <source>switched to another user or console — the timer is paused until you&apos;re back</source>
-        <translation>cambiaste a otro usuario o consola — el temporizador está en pausa hasta que vuelvas</translation>
-    </message>
-    <message>
-        <source>the timer is paused until you&apos;re back</source>
-        <translation>el temporizador está en pausa hasta que vuelvas</translation>
-    </message>
-    <message>
-        <source>runs %s %s–%s</source>
-        <translation>se ejecuta %s %s–%s</translation>
-    </message>
-    <message>
-        <source>runs on a schedule</source>
-        <translation>se ejecuta según un horario</translation>
-    </message>
-    <message>
-        <source>%s — the desk stays put</source>
-        <translation>%s — el escritorio se queda quieto</translation>
-    </message>
-    <message>
-        <source>presets and manual moves still work</source>
-        <translation>los preajustes y los movimientos manuales siguen funcionando</translation>
-    </message>
-    <message>
-        <source>the desk was moved off sit / stand — automation resumes when it&apos;s back at a preset</source>
-        <translation>el escritorio se movió fuera de sentado/de pie — la automatización se reanuda cuando vuelva a un preajuste</translation>
-    </message>
-    <message>
-        <source>the desk couldn&apos;t be reached — the cycle keeps running and will try again</source>
-        <translation>no se pudo conectar con la mesa — el ciclo sigue y volverá a intentarlo</translation>
-    </message>
-    <message>
-        <source>— %(reason)s</source>
-        <translation>— %(reason)s</translation>
     </message>
     <message>
         <source>Resume</source>

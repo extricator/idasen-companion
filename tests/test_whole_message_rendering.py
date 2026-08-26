@@ -247,10 +247,9 @@ def test_about_desk_line_renders_mac_and_mode_as_one_message(
         "AA:BB:CC:DD:EE:FF" + " · " + page.tr("persistent"))
 
 
-def test_overview_status_reason_renders_from_a_translated_prefix(overview_page):
+def test_overview_status_reason_renders_with_no_separator(overview_page):
     overview_page.client.statusChanged.emit("paused")
-    assert overview_page.status_reason.text() == (
-        "— the desk won't move until you resume")
+    assert overview_page.status_reason.text() == ""
 
     overview_page.client.statusChanged.emit("does-not-exist")
     assert overview_page.status_reason.text() == ""

@@ -442,60 +442,58 @@ class OverviewPage(Page):
         config = self.ctx.cfg
         if status == "active":
             color, head = tokens.success, status_head(status)
-            reason = self.tr("alternating sit / stand while you're at the desk")
+            reason = ""
         elif status == "paused":
             color, head = tokens.warning, status_head(status)
-            reason = self.tr("the desk won't move until you resume")
+            reason = ""
         elif status == "snoozed":
             color, head = tokens.warning, snooze_line(self.client.snooze_until())
-            reason = self.tr("automation resumes on its own")
+            reason = ""
         elif status == "user-idle":
             idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
-            reason = self.tr(
-                "no input for %(idle)s — the timer is paused") % {
-                    "idle": self.ctx.fmt.duration(idle_seconds)}
+            reason = self.tr("no input for %(idle)s") % {
+                "idle": self.ctx.fmt.duration(idle_seconds)}
         elif status == "away":
             color, head = tokens.muted, status_head(status)
-            reason = self.tr(
-                "switched to another user or console — the timer is paused "
-                "until you're back")
+            reason = ""
         elif status == "locked":
             color, head = tokens.muted, status_head(status)
-            reason = self.tr("the timer is paused until you're back")
+            reason = ""
         elif status == "out-of-schedule":
-            if config:
-                sched = self.tr("runs %s %s–%s") % (
-                    fmt_days(config.schedule.days), config.schedule.start,
-                    config.schedule.end)
-            else:
-                sched = self.tr("runs on a schedule")
             color, head = tokens.muted, status_head(status)
-            reason = self.tr("%s — the desk stays put") % sched
+            if config:
+                # Three substituted values -- the day range, the start time
+                # and the end time -- with a range separator between the
+                # last two. Not the single-placeholder msgid D-06 rejected:
+                # a language may reorder all three and choose its own
+                # separator between the times, the same way it already does
+                # inside fmt_days' own day range.
+                reason = self.tr("%(days)s %(start)s–%(end)s") % {
+                    "days": fmt_days(config.schedule.days),
+                    "start": config.schedule.start,
+                    "end": config.schedule.end}
+            else:
+                reason = ""
         elif status == "disabled":
             color, head = tokens.muted, status_head(status)
-            reason = self.tr(
-                "presets and manual moves still work")
+            reason = ""
         elif status == "held":
             color, head = tokens.warning, status_head(status)
-            reason = self.tr(
-                "the desk was moved off sit / stand — automation resumes "
-                "when it's back at a preset")
+            reason = self.tr("desk isn't at a preset")
         elif status == "move-failed":
             color, head = tokens.error, status_head(status)
-            reason = self.tr(
-                "the desk couldn't be reached — the cycle keeps running "
-                "and will try again")
+            reason = self.tr("couldn't reach the desk")
         else:
             color, head, reason = tokens.muted, status_label(status), ""
         self.status_dot.set_color(color)
         self.status_head_lbl.setText(head)
-        # The separator is its own catalog entry (not a Python-literal em
-        # dash) so a language can move or drop it; the head/reason split
-        # itself stays two labels, styled by font weight rather than markup,
-        # per widgets.emphasize's convention.
-        self.status_reason.setText(
-            self.tr("— %(reason)s") % {"reason": reason} if reason else "")
+        # Head and reason are already separated three ways -- the head's
+        # own font weight (widgets.emphasize), the reason's secondary
+        # colour (_restyle_status_reason above), and this row's own layout
+        # spacing (D-07). The separator this replaced was a fourth signal
+        # carrying nothing the other three didn't already show.
+        self.status_reason.setText(reason)
         # A failed move doesn't stop the cycle (a fresh one starts right
         # after), so hiding the countdown here would remove information
         # exactly when the user needs it most.
