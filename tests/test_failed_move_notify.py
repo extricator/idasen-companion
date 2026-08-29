@@ -21,6 +21,7 @@ from idasen_companion.core.machine import (
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.gettext_translator import (
     GettextTranslator,
 )
@@ -51,7 +52,8 @@ def _daemon(*, problems: bool = True, enabled: bool = False):
     # daemon builds for itself (D-06).
     d.fmt = Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     d._notifier = MagicMock(send=AsyncMock())
     d.manual_move_to_preset = AsyncMock()
     return d

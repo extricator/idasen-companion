@@ -81,11 +81,17 @@ class PresentationContext:
     place that resolves it — and a default here would quietly let a
     caller hand this context an unresolved policy question instead of an
     answer.
+
+    ``time_style`` carries no default for the same reason, and it is the
+    same shape of question: ``"system"`` is a clock-format setting, not a
+    clock, and one place resolves it into a style. A default here would
+    let a caller hand this context the question instead of the answer.
     """
 
     locale: LocaleFormatter
     translator: Translator
     unit: HeightUnit
+    time_style: TimeStyle
 
 
 class Formatter:
@@ -116,6 +122,11 @@ class Formatter:
     def unit(self) -> HeightUnit:
         """The unit heights render in, from the injected context."""
         return self._context.unit
+
+    @property
+    def time_style(self) -> TimeStyle:
+        """The clock wall-clock times render on, from the injected context."""
+        return self._context.time_style
 
     def to_display_height(self, meters: float) -> float:
         """Metres as the number the user sees (1.105 -> 110.5 cm / 43.5 in)."""
@@ -349,21 +360,16 @@ class Formatter:
         Also not to be confused with :meth:`day_label`, the unrelated
         schedule-day-key word ('mon' -> 'Lun').
         """
-        # Scaffolding: the style becomes the context's own resolved answer
-        # in the next commit, which adds the field to carry it. A literal
-        # here rather than a default on that field, because a default would
-        # let a construction site skip the question entirely.
         return dates.clock(
-            self._context.locale, TimeStyle.HOUR_AND_MINUTE, when)
+            self._context.locale, self._context.time_style, when)
 
     def day_and_clock(self, when: datetime) -> str:
         """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
         translated message — see :mod:`.dates` for why the separating
         space is a catalog entry rather than a Python literal."""
-        # Scaffolding, for the reason given in `clock` just above.
         return dates.day_and_clock(
             self._context.locale, self._context.translator,
-            TimeStyle.HOUR_AND_MINUTE, when)
+            self._context.time_style, when)
 
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5

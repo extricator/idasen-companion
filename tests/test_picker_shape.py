@@ -51,6 +51,7 @@ from idasen_companion.core.presentation.english import (  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
     PlainLocaleFormatter,
 )
@@ -75,7 +76,8 @@ def _plain_formatter() -> Formatter:
     gettext catalog binding."""
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 # ----------------------------------------------------------------------

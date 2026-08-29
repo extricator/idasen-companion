@@ -43,6 +43,7 @@ from ..core.presentation.english import format_duration_human
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.presentation.plain_locale import PlainLocaleFormatter
+from ..core.presentation.specs import TimeStyle
 from ..core.units import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
@@ -199,15 +200,19 @@ class Daemon:
         ``GettextTranslator`` looks the catalog up on every call, so the
         ``set_language`` call beside each of this method's two call sites
         already carries a language change through with no rebuilding at
-        all. What a reload actually has to refresh is the resolved height
-        unit, which is read once, here.
+        all. What a reload actually has to refresh is what is resolved
+        once and read here: the height unit, and the clock format.
         """
         unit = resolve_height_unit(
             UnitSetting(config.ui.units), language=config.ui.language,
             environ=os.environ)
         context = PresentationContext(
             locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-            unit=unit)
+            unit=unit,
+            # Placeholder, mirroring the window's own construction: this
+            # becomes the resolved clock format once the setting and its
+            # resolver exist.
+            time_style=TimeStyle.HOUR_AND_MINUTE)
         return Formatter(context)
 
     def _load_or_bootstrap_config(self) -> AppConfig:

@@ -22,6 +22,7 @@ from idasen_companion.core import i18n
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.gettext_translator import (
     GettextTranslator,
 )
@@ -45,7 +46,8 @@ def _delay(seconds: int) -> str:
     """
     context = PresentationContext(
         locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES)
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context).duration_verbose(seconds)
 
 

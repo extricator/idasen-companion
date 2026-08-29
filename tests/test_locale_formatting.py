@@ -30,7 +30,9 @@ from idasen_companion.core.presentation.formatter import (  # noqa: E402
 from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
     PlainLocaleFormatter,
 )
-from idasen_companion.core.presentation.specs import NumberSpec  # noqa: E402
+from idasen_companion.core.presentation.specs import (  # noqa: E402
+    NumberSpec, TimeStyle,
+)
 from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
@@ -42,7 +44,8 @@ def _plain_formatter(unit: HeightUnit = HeightUnit.CENTIMETRES) -> Formatter:
     # the number/padding policy, not translation.
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=unit))
+        unit=unit,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 @pytest.fixture(scope="session")
@@ -76,7 +79,8 @@ def test_spanish_locale_uses_a_comma(locale):
     assert "," in formatter.number(110.5, NumberSpec(decimals=1))
     fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.height(1.105).startswith("110,5")
 
 

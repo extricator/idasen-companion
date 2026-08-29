@@ -30,6 +30,7 @@ from idasen_companion.core.config import (  # noqa: E402
     MAX_HEIGHT, MIN_HEIGHT, AppConfig, load_config, save_config,
 )
 from idasen_companion.core import units as core_units  # noqa: E402
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
@@ -98,7 +99,8 @@ def _formatter(unit: core_units.HeightUnit):
 
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=unit))
+        unit=unit,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
@@ -132,7 +134,8 @@ def test_the_locale_still_owns_the_decimal_separator(locale):
 
     fmt = Formatter(PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
-        unit=core_units.HeightUnit.INCHES))
+        unit=core_units.HeightUnit.INCHES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.height(1.105).startswith("43,50")
 
 

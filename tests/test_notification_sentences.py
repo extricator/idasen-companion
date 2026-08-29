@@ -26,6 +26,7 @@ from idasen_companion.core.presentation import register
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.gettext_translator import (
     GettextTranslator,
 )
@@ -41,7 +42,8 @@ def fake():
     translator = FakeTranslator()
     context = PresentationContext(
         locale=FakeLocale(), translator=translator,
-        unit=HeightUnit.CENTIMETRES)
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context), translator
 
 
@@ -50,7 +52,8 @@ def _real(language: str) -> Formatter:
     i18n.set_language(language)
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 @pytest.fixture

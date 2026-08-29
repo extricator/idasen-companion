@@ -284,10 +284,12 @@ def test_number_matches_height_value_at_one_and_two_decimals(
     meters = 1.105
     cm_fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     in_fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
-        unit=HeightUnit.INCHES))
+        unit=HeightUnit.INCHES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert (formatter.number(cm_fmt.to_display_height(meters),
                              NumberSpec(decimals=1))
             == cm_fmt.height_value(meters))
@@ -302,7 +304,8 @@ def test_number_matches_height_value_trim_case(
     meters = 0.60  # 60 cm exactly, so the trim drops the ".0"
     cm_fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     spec = NumberSpec(decimals=1, trim_trailing_zeroes=True)
     assert (formatter.number(cm_fmt.to_display_height(meters), spec)
             == cm_fmt.height_value(meters, trim=True))
@@ -333,6 +336,7 @@ def test_integer_matches_the_zero_padded_minutes_in_duration_hm(
     # what QtLocaleFormatter.integer(min_digits=2) must reproduce.
     fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.duration_hm(3900).endswith("05m")
     assert formatter.integer(5, IntegerSpec(min_digits=2)) == "05"

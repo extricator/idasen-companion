@@ -28,6 +28,7 @@ from idasen_companion.core.presentation.english import EnglishTranslator
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.gettext_translator import (
     GettextTranslator,
 )
@@ -119,7 +120,7 @@ SAMPLES: tuple[Sample, ...] = (
 )
 
 #: Every public ``Formatter`` member deliberately absent from :data:`SAMPLES`,
-#: with the reason it is not a formatter written down beside it — the two
+#: with the reason it is not a formatter written down beside it — the three
 #: capability accessors, and the four helpers that hand back a bare number
 #: rather than rendered text.
 NOT_FORMATTERS: dict[str, str] = {
@@ -127,6 +128,8 @@ NOT_FORMATTERS: dict[str, str] = {
                "PresentationContext itself, not rendered text",
     "unit": "a capability accessor returning the injected HeightUnit, "
             "not rendered text",
+    "time_style": "a capability accessor returning the injected TimeStyle, "
+                  "not rendered text",
     "to_display_height": "returns a bare float conversion, never rendered "
                           "text",
     "from_display_height": "the inverse of to_display_height; also a bare "
@@ -148,7 +151,8 @@ def build_plain_formatter() -> Formatter:
     """
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE))
 
 
 def build_daemon_formatter() -> Formatter:
@@ -165,4 +169,5 @@ def build_daemon_formatter() -> Formatter:
     """
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE))

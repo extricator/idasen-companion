@@ -79,7 +79,9 @@ from idasen_companion.core.presentation.formatter import (  # noqa: E402
 from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
     GettextTranslator,
 )
-from idasen_companion.core.presentation.specs import NumberSpec  # noqa: E402
+from idasen_companion.core.presentation.specs import (  # noqa: E402
+    NumberSpec, TimeStyle,
+)
 from idasen_companion.core.units import HeightUnit  # noqa: E402
 from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 
@@ -92,7 +94,8 @@ def qapp():
 def _qt_formatter() -> Formatter:
     return Formatter(PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES))
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE))
 
 
 # ----------------------------------------------------------------------

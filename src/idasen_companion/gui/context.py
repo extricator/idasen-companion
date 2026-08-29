@@ -27,6 +27,7 @@ from ..core.config import (
 )
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
+from ..core.presentation.specs import TimeStyle
 from ..core.units import UnitSetting, resolve_height_unit
 from .dbus_client import DaemonClient
 from .i18n import apply_language, resolve_locale
@@ -75,7 +76,12 @@ class AppContext(QObject):
             environ=os.environ)
         context = PresentationContext(
             locale=QtLocaleFormatter(locale),
-            translator=GettextTranslator(), unit=unit)
+            translator=GettextTranslator(), unit=unit,
+            # Placeholder: this becomes the resolved clock format once the
+            # setting and its resolver exist. Passing the member that lets
+            # a backend choose keeps every rendering exactly as it is until
+            # then.
+            time_style=TimeStyle.HOUR_AND_MINUTE)
         return Formatter(context)
 
     @property

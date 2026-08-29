@@ -14,6 +14,7 @@ from idasen_companion.core.presentation.english import EnglishTranslator
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
 from idasen_companion.core.units import HeightUnit
 
@@ -24,7 +25,8 @@ HEIGHT_METERS = 1.105
 
 def _formatter(unit: HeightUnit) -> Formatter:
     context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(), unit=unit)
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(), unit=unit,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
 
 

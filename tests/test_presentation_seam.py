@@ -85,7 +85,8 @@ class _StandInTranslator:
 def _build_context() -> PresentationContext:
     return PresentationContext(
         locale=_StandInLocale(), translator=_StandInTranslator(),
-        unit=HeightUnit.CENTIMETRES)
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
 
 
 def test_presentation_context_is_frozen():

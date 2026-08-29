@@ -42,6 +42,7 @@ from idasen_companion.core.presentation import register  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
+from idasen_companion.core.presentation.specs import TimeStyle
 from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
     GettextTranslator,
 )
@@ -99,7 +100,8 @@ def _height_formatter(unit: HeightUnit) -> Formatter:
     # through a process-global setter.
     context = PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
-        unit=unit)
+        unit=unit,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
 
 
@@ -140,7 +142,8 @@ def _duration_formatter() -> Formatter:
     # _language() above just bound.
     context = PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES)
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
 
 
