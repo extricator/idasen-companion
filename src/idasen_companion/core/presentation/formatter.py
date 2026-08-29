@@ -363,6 +363,19 @@ class Formatter:
         return dates.clock(
             self._context.locale, self._context.time_style, when)
 
+    def clock_with_seconds(self, when: datetime) -> str:
+        """A wall-clock time to the second, e.g. "14:32:05" / "2:32:05 PM".
+
+        The Activity Log's row stamp, and the only surface that reads a
+        time to the second. It follows the same clock :meth:`clock` does —
+        one resolved answer, two shapes — because a screen showing a
+        12-hour tooltip beside a 24-hour log is the split this setting
+        exists to close. The seconds are what orders two events inside the
+        same minute, so they stay.
+        """
+        return dates.clock(
+            self._context.locale, self._context.time_style.with_seconds, when)
+
     def day_and_clock(self, when: datetime) -> str:
         """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
         translated message — see :mod:`.dates` for why the separating

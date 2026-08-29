@@ -17,12 +17,15 @@ import os  # noqa: E402
 # reach. See tests/test_settings_form.py for the same rule.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import dataclasses  # noqa: E402
 from datetime import datetime  # noqa: E402
 
 from PySide6.QtCore import QObject, QSize, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QFontMetricsF, QIcon, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
+from idasen_companion.core.presentation.formatter import Formatter  # noqa: E402
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import restyle, util  # noqa: E402
 from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa: E402
@@ -70,6 +73,43 @@ def _entry(ts: float, text: str, **kw) -> dict:
             "params": {}, "text": text}
     base.update(kw)
     return base
+
+
+# ----- the row stamp -----
+
+
+def _last_row(page) -> str:
+    """The most recently rendered row, separators excluded."""
+    lines = [line for line in page.log_view.document().toPlainText().split("\n")
+             if line.strip()]
+    return lines[-1]
+
+
+def test_the_row_stamp_reads_to_the_second(page):
+    """The seconds are what order two events inside the same minute, so a
+    log view keeps them whichever clock it is on."""
+    page._entries = [_entry(datetime(2026, 8, 17, 14, 32, 5).timestamp(),
+                            "a line")]
+    page._redraw()
+
+    assert _last_row(page).startswith("14:32:05  INFO")
+
+
+def test_the_row_stamp_follows_the_clock_format(page):
+    """This screen is a screen a person reads, not the journal. Leaving it
+    on one clock while the tray tooltip beside it read the other would ship
+    the split the setting exists to close — so it follows, on the next
+    redraw, through the same rebuilt formatter every other surface uses."""
+    page._entries = [_entry(datetime(2026, 8, 17, 14, 32, 5).timestamp(),
+                            "a line")]
+    page._redraw()
+    assert _last_row(page).startswith("14:32:05  INFO")
+
+    page.ctx.fmt = Formatter(dataclasses.replace(
+        page.ctx.fmt.context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
+    page._redraw()
+
+    assert _last_row(page).startswith("2:32:05 PM  INFO")
 
 
 # ----- history window -----

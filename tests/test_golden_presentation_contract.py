@@ -121,6 +121,7 @@ _NBSP = "\u00a0"
 #: already read the shared table by reference; this now does too.
 _AFTERNOON = presentation_samples.AFTERNOON
 _MORNING = presentation_samples.MORNING
+_AFTERNOON_TO_THE_SECOND = presentation_samples.AFTERNOON_TO_THE_SECOND
 _HEIGHT_METERS = presentation_samples.HEIGHT_METERS
 
 
@@ -185,6 +186,9 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
     ContractCase("clock_morning_12", "clock", (_MORNING,),
                  qt_free="9:05 AM",
                  time_style=TimeStyle.HOUR_AND_MINUTE_12),
+    ContractCase("clock_with_seconds_12", "clock_with_seconds",
+                 (_AFTERNOON_TO_THE_SECOND,), qt_free="2:32:05 PM",
+                 time_style=TimeStyle.HOUR_AND_MINUTE_12),
     ContractCase("day_and_clock_24", "day_and_clock", (_AFTERNOON,),
                  qt_free="2026-08-17 14:32"),
     ContractCase("day_and_clock_12", "day_and_clock", (_AFTERNOON,),
@@ -230,6 +234,8 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
                            daemon="2:32 PM"),
         LanguageRendering("clock_morning_12", window="9:05 AM",
                            daemon="9:05 AM"),
+        LanguageRendering("clock_with_seconds_12", window="2:32:05 PM",
+                           daemon="2:32:05 PM"),
         LanguageRendering("day_and_clock_24", window="Mon 17 14:32",
                            daemon="2026-08-17 14:32"),
         LanguageRendering("day_and_clock_12", window="Mon 17 2:32 PM",
@@ -255,6 +261,9 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
                            window=f"2:32 P.{_NBSP}M.", daemon="2:32 PM"),
         LanguageRendering("clock_morning_12",
                            window=f"9:05 A.{_NBSP}M.", daemon="9:05 AM"),
+        LanguageRendering("clock_with_seconds_12",
+                           window=f"2:32:05 P.{_NBSP}M.",
+                           daemon="2:32:05 PM"),
         LanguageRendering("day_and_clock_24", window="lun 17 14:32",
                            daemon="2026-08-17 14:32"),
         LanguageRendering("day_and_clock_12",
@@ -434,6 +443,7 @@ ANCHORS: dict[str, object] = {
     "position_or_custom": "Standing",
     "countdown": "2:05",
     "clock_afternoon_24": "14:32",
+    "clock_with_seconds_24": "14:32:05",
     "day_label": "Mon",
     "fmt_days": "Mon–Wed",
     "duration_verbose": "1 hour 5 minutes",

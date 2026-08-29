@@ -87,13 +87,34 @@ class TimeStyle(StrEnum):
     Two shapes — with and without seconds — each on two clocks. The
     twelve/twenty-four choice is a product decision resolved once from
     ``[ui] clock_format``; the with/without-seconds choice belongs to the
-    surface doing the rendering.
+    surface doing the rendering, which is why :attr:`with_seconds` relates
+    the two shapes instead of a second setting answering for them.
     """
 
     HOUR_AND_MINUTE_12 = "hour_and_minute_12"
     HOUR_AND_MINUTE_24 = "hour_and_minute_24"
     HOUR_MINUTE_AND_SECOND_12 = "hour_minute_and_second_12"
     HOUR_MINUTE_AND_SECOND_24 = "hour_minute_and_second_24"
+
+    @property
+    def with_seconds(self) -> TimeStyle:
+        """This style's seconds-bearing sibling, on the same clock.
+
+        Total and idempotent: a style that already carries seconds is its
+        own answer. This is a structural relation between two members, not
+        a policy — which clock is still whatever was resolved once and
+        handed down, and a surface that wants seconds asks for them here
+        rather than resolving anything a second time.
+        """
+        return _SECONDS_BEARING[self]
+
+
+_SECONDS_BEARING = {
+    TimeStyle.HOUR_AND_MINUTE_12: TimeStyle.HOUR_MINUTE_AND_SECOND_12,
+    TimeStyle.HOUR_AND_MINUTE_24: TimeStyle.HOUR_MINUTE_AND_SECOND_24,
+    TimeStyle.HOUR_MINUTE_AND_SECOND_12: TimeStyle.HOUR_MINUTE_AND_SECOND_12,
+    TimeStyle.HOUR_MINUTE_AND_SECOND_24: TimeStyle.HOUR_MINUTE_AND_SECOND_24,
+}
 
 
 class DateStyle(StrEnum):

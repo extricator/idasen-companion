@@ -44,6 +44,14 @@ from idasen_companion.core.units import HeightUnit
 AFTERNOON = datetime(2026, 8, 17, 14, 32)
 MORNING = datetime(2026, 8, 17, 9, 5)
 
+#: The afternoon moment with a non-zero seconds field, for the one renderer
+#: that shows seconds. A separate literal rather than seconds added to
+#: :data:`AFTERNOON`: every other recording in this suite is taken at that
+#: moment, and moving it would move goldens that have nothing to do with
+#: this. Non-zero deliberately — a ``:00`` would render whether the seconds
+#: field were real or padding.
+AFTERNOON_TO_THE_SECOND = datetime(2026, 8, 17, 14, 32, 5)
+
 #: One representative height, in metres, reused across every height-shaped
 #: sample below -- and by the golden module's own hand-typed contract
 #: table -- so a reader only has to learn one number, and the two tables
@@ -134,6 +142,10 @@ SAMPLES: tuple[Sample, ...] = (
            TimeStyle.HOUR_AND_MINUTE_12),
     Sample("clock_morning_12", "clock", (MORNING,), {},
            TimeStyle.HOUR_AND_MINUTE_12),
+    Sample("clock_with_seconds_24", "clock_with_seconds",
+           (AFTERNOON_TO_THE_SECOND,), {}, TimeStyle.HOUR_AND_MINUTE_24),
+    Sample("clock_with_seconds_12", "clock_with_seconds",
+           (AFTERNOON_TO_THE_SECOND,), {}, TimeStyle.HOUR_AND_MINUTE_12),
     Sample("day_and_clock_24", "day_and_clock", (AFTERNOON,), {},
            TimeStyle.HOUR_AND_MINUTE_24),
     Sample("day_and_clock_12", "day_and_clock", (AFTERNOON,), {},

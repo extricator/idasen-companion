@@ -53,6 +53,18 @@ def test_time_style_has_expected_members():
     assert TimeStyle.HOUR_MINUTE_AND_SECOND_24 == "hour_minute_and_second_24"
 
 
+@pytest.mark.parametrize("member", list(TimeStyle))
+def test_every_style_has_a_seconds_bearing_sibling(member):
+    """Total, so no surface has to guess, and idempotent, so a style that
+    already shows seconds is its own answer. Both halves keep the same
+    clock: which clock is resolved once from the setting, and asking for
+    seconds must never quietly change it."""
+    with_seconds = member.with_seconds
+    assert "second" in with_seconds.value
+    assert with_seconds.value.endswith(member.value[-3:])
+    assert with_seconds.with_seconds is with_seconds
+
+
 def test_date_style_has_expected_members():
     assert DateStyle.WEEKDAY_AND_DAY == "weekday_and_day"
     assert DateStyle.WEEKDAY_DAY_MONTH_YEAR == "weekday_day_month_year"

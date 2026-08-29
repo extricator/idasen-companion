@@ -593,13 +593,23 @@ class ActivityLogPage(Page):
         coming out of `log_catalog` is invisible to it -- this site is
         silent there because the check does not look, not because it looked
         and passed, and a future author owes the same reasoning by hand.
+
+        The stamp goes through the shared formatter rather than through a
+        fixed format string of its own, so it reads on whichever clock the
+        user chose. This screen is a screen a person reads, and leaving it
+        on one clock while the tray tooltip beside it reads the other would
+        ship the exact split the setting exists to close. It is not the
+        journal, whose own lines stay stable and greppable whatever the
+        session is set to; it is the window's view of them. The seconds
+        stay: they are what orders two events inside the same minute.
         """
         tokens = theme()
         level = entry["level"]
         color = {"debug": tokens.muted, "info": tokens.accent_text,
                  "warning": tokens.warning_text, "error": tokens.error}.get(
                      level, tokens.secondary)
-        stamp = datetime.fromtimestamp(entry["ts"]).strftime("%H:%M:%S")
+        stamp = self.ctx.fmt.clock_with_seconds(
+            datetime.fromtimestamp(entry["ts"]))
         label = "WARN" if level == "warning" else level.upper()
         pad = "&nbsp;" * (6 - len(label))
         message = log_catalog.render(entry["msg_id"], entry["params"],
