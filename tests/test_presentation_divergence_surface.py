@@ -11,11 +11,13 @@ this module's recorded verdicts.
 The surface is closed, and therefore finishable: the four
 ``LocaleFormatter`` operations (``number``, ``integer``, ``time``, ``date``)
 crossed with every ``NumberSpec``/``IntegerSpec`` field and every
-``TimeStyle``/``DateStyle`` member — eight cells, not a candidate list.
-"Look for other divergences" can only ever be abandoned; "enumerate these
-eight cells and record a verdict for each" can be finished, then guarded by
-the completeness test below, which fails on a ninth cell exactly as it
-fails on an eighth going missing.
+``TimeStyle``/``DateStyle`` member — a closed grid, not a candidate list.
+"Look for other divergences" can only ever be abandoned; "enumerate the
+grid and record a verdict for each cell" can be finished, then guarded by
+the completeness test below, which fails on a cell appearing exactly as it
+fails on one going missing. The count is deliberately not quoted here: it
+moves whenever a style member does, and a number in prose that nothing
+checks is a claim that goes stale in silence.
 
 One cell per knob, though, not one per combination of knobs. Each knob's
 divergence is independent of the others in both backends today, and no
@@ -45,9 +47,9 @@ in this test suite keeps its own regeneration discipline entirely apart
 from this module, which reads none of it and writes none of it.
 
 A "diverges" verdict below means at least one shipped language disagrees
-with the Qt-free anchor, not that every language does — ``time`` agrees in
-Spanish and disagrees in English, and the record would be wrong if it
-claimed otherwise.
+with the Qt-free anchor, not that every language does — the twelve-hour
+clock agrees in English and disagrees in Spanish, and the record would be
+wrong if it claimed otherwise.
 """
 
 from __future__ import annotations
@@ -144,14 +146,6 @@ SEAM_SWEEP: tuple[SweepCell, ...] = (
         "12,345", True,
         "The cleanest isolation of the separator divergence — no decimal "
         "point is involved at all.",
-    ),
-    SweepCell(
-        "time", "HOUR_AND_MINUTE",
-        (presentation_samples.AFTERNOON, TimeStyle.HOUR_AND_MINUTE),
-        "14:32", True,
-        "Qt's English short time is 12-hour; Spanish agrees with the "
-        "Qt-free 24-hour rendering, which is why the verdict is at least "
-        "one language, not every language.",
     ),
     SweepCell(
         "time", "HOUR_AND_MINUTE_24",

@@ -39,12 +39,12 @@ in the abstract:
 
 The styles are named for what the product is asking for, not for a Qt
 format code or a strftime directive: a member says "hour and minute, on a
-twelve-hour clock", never which pattern letters produce it. What the
-product asks for now includes which of the two clocks it means. That is a
-deliberate narrowing — a backend used to be free to answer "the clock"
-from its own environment, and the two front ends disagreed as a result.
-The choice is made once in ``core/`` and handed down; a backend renders
-the style it is given and decides only *how*.
+twelve-hour clock", never which pattern letters produce it. Which of the
+two clocks the product means is part of what it asks for, because that is
+a user setting resolved once in ``core/`` and handed down — never a
+backend reading its own environment, which is how the window and the
+daemon came to disagree. A backend renders the style it is given and
+decides only *how*.
 """
 
 from __future__ import annotations
@@ -89,11 +89,6 @@ class TimeStyle(StrEnum):
     ``[ui] clock_format``; the with/without-seconds choice belongs to the
     surface doing the rendering.
     """
-
-    # Superseded by the four members below, which name the clock they mean.
-    # Removed once every caller has been flipped; see the module docstring
-    # for why a backend no longer chooses.
-    HOUR_AND_MINUTE = "hour_and_minute"
 
     HOUR_AND_MINUTE_12 = "hour_and_minute_12"
     HOUR_AND_MINUTE_24 = "hour_and_minute_24"

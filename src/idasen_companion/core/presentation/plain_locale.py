@@ -75,8 +75,6 @@ class PlainLocaleFormatter:
         return rendered.rjust(spec.min_digits, "0")
 
     def time(self, value: datetime, style: TimeStyle) -> str:
-        if style is TimeStyle.HOUR_AND_MINUTE:
-            return f"{value.hour:02d}:{value.minute:02d}"
         if style is TimeStyle.HOUR_AND_MINUTE_24:
             return f"{value.hour:02d}:{value.minute:02d}"
         if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:

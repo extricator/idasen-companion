@@ -78,16 +78,25 @@ class QtLocaleFormatter:
     def time(self, value: datetime, style: TimeStyle) -> str:
         """A wall-clock time on the clock the style names.
 
-        The explicit patterns below deliberately bypass Qt's short-time
-        format, which picks the twelve-or-twenty-four answer out of the
-        locale — the very choice this app now makes once, in ``core/``,
-        from ``[ui] clock_format``. Asking the locale again here would let
-        the window disagree with the setting.
+        The explicit patterns below deliberately bypass Qt's own
+        locale-governed short time format, which picks the
+        twelve-or-twenty-four answer out of the locale — the very choice
+        this app now makes once, in ``core/``, from ``[ui] clock_format``.
+        Asking the locale again here would let the window disagree with the
+        setting.
+
+        The twelve-hour patterns use Qt's **upper-case** meridiem token,
+        not the lower-case one, and that is a decision rather than a
+        default: the Qt-free backend renders its own twelve-hour clock as
+        fixed upper-case English, so the upper-case token is what keeps the
+        English window rendering in the case it has always had — only the
+        separator byte before the designator changed. The consequence is
+        that Spanish renders its own CLDR designator in that same
+        upper-case form, which is a rendering divergence
+        ``docs/ARCHITECTURE.md`` already sanctions and not a policy one.
+        Switching tokens to make Spanish read more naturally would change
+        the English rendering's case, which nothing asked for.
         """
-        if style is TimeStyle.HOUR_AND_MINUTE:
-            return self._locale.toString(
-                QTime(value.hour, value.minute),
-                QLocale.FormatType.ShortFormat)
         moment = QTime(value.hour, value.minute, value.second)
         if style is TimeStyle.HOUR_AND_MINUTE_24:
             return self._locale.toString(moment, "HH:mm")

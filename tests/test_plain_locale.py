@@ -90,20 +90,6 @@ def test_integer_zero_padded_to_min_digits():
     assert FORMATTER.integer(5, IntegerSpec(min_digits=2)) == "05"
 
 
-# The time cases below are unchanged by D-08 -- "14:32" already contains no
-# words, so the time half of this backend was never part of the divergence
-# the date half is settling here.
-@pytest.mark.parametrize("hour,minute,expected", [
-    (9, 5, "09:05"),      # morning
-    (12, 0, "12:00"),     # noon
-    (14, 32, "14:32"),    # afternoon
-    (0, 0, "00:00"),      # midnight
-])
-def test_time_renders_two_digit_24_hour(hour, minute, expected):
-    when = datetime(2026, 8, 21, hour, minute)
-    assert FORMATTER.time(when, TimeStyle.HOUR_AND_MINUTE) == expected
-
-
 # The clock a style names is rendered, never chosen: the twelve-hour
 # members print fixed English AM/PM with no leading zero on the hour, the
 # same fixed-tokens call the ISO dates below make.
@@ -119,10 +105,10 @@ def test_time_renders_a_fixed_english_twelve_hour_clock(hour, minute, expected):
 
 
 @pytest.mark.parametrize("hour,minute,expected", [
-    (9, 5, "09:05"),
-    (12, 0, "12:00"),
-    (14, 32, "14:32"),
-    (0, 0, "00:00"),
+    (9, 5, "09:05"),      # morning
+    (12, 0, "12:00"),     # noon
+    (14, 32, "14:32"),    # afternoon
+    (0, 0, "00:00"),      # midnight
 ])
 def test_time_renders_the_named_twenty_four_hour_clock(hour, minute, expected):
     when = datetime(2026, 8, 21, hour, minute)
@@ -304,7 +290,8 @@ def test_behavioural_corroboration_under_a_comma_and_12_hour_combination():
         formatter = PlainLocaleFormatter()
         when = datetime(2026, 8, 21, 14, 32)
         assert formatter.number(1234.5, NumberSpec(decimals=1, grouping=True)) == "1,234.5"
-        assert formatter.time(when, TimeStyle.HOUR_AND_MINUTE) == "14:32"
+        assert formatter.time(
+            when, TimeStyle.HOUR_AND_MINUTE_24) == "14:32"
     finally:
         locale.setlocale(locale.LC_NUMERIC, saved_numeric)
         locale.setlocale(locale.LC_TIME, saved_time)

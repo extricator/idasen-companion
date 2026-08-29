@@ -113,19 +113,6 @@ def test_integer_zero_pads_with_python_formatting(qapp, locale):
             value, IntegerSpec(min_digits=min_digits)) == expected
 
 
-TIME_EXPECTED = {
-    "en_US": "2:32 PM",
-    "es_ES": "14:32",
-}
-
-
-def test_time_renders_the_short_form_for_the_locale(qapp, locale_code, locale):
-    formatter = QtLocaleFormatter(locale)
-    rendered = formatter.time(
-        datetime(2026, 8, 17, 14, 32), TimeStyle.HOUR_AND_MINUTE)
-    assert rendered == TIME_EXPECTED[locale_code]
-
-
 #: The no-break space (U+00A0) Qt places inside the Spanish meridiem
 #: designator ("P.\u00a0M."), written as the six-character Python escape
 #: below and never pasted: a plain space there looks identical on screen
@@ -314,7 +301,7 @@ def test_number_matches_height_value_trim_case(
 def test_clock_matches_util_fmt_clock_morning_and_afternoon(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
-    style = TimeStyle.HOUR_AND_MINUTE
+    style = TimeStyle.HOUR_AND_MINUTE_24
     fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES, time_style=style))

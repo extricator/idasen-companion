@@ -95,7 +95,7 @@ def _qt_formatter() -> Formatter:
     return Formatter(PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
-        time_style=TimeStyle.HOUR_AND_MINUTE))
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 # ----------------------------------------------------------------------

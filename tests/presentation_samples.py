@@ -182,7 +182,7 @@ def build_plain_formatter() -> Formatter:
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
-        time_style=TimeStyle.HOUR_AND_MINUTE))
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 def build_daemon_formatter() -> Formatter:
@@ -200,4 +200,4 @@ def build_daemon_formatter() -> Formatter:
     return Formatter(PresentationContext(
         locale=PlainLocaleFormatter(), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
-        time_style=TimeStyle.HOUR_AND_MINUTE))
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))

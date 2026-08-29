@@ -46,8 +46,11 @@ def test_date_style_members_are_strings(member):
     assert isinstance(member, str)
 
 
-def test_time_style_has_expected_member():
-    assert TimeStyle.HOUR_AND_MINUTE == "hour_and_minute"
+def test_time_style_has_expected_members():
+    assert TimeStyle.HOUR_AND_MINUTE_12 == "hour_and_minute_12"
+    assert TimeStyle.HOUR_AND_MINUTE_24 == "hour_and_minute_24"
+    assert TimeStyle.HOUR_MINUTE_AND_SECOND_12 == "hour_minute_and_second_12"
+    assert TimeStyle.HOUR_MINUTE_AND_SECOND_24 == "hour_minute_and_second_24"
 
 
 def test_date_style_has_expected_members():
