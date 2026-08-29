@@ -172,20 +172,29 @@ _CLOCK_CASES = (
 )
 
 
-def _clock_formatter() -> Formatter:
-    """The window's pairing at the clock style every recording here has
-    always used. Named separately from :func:`_height_formatter` so the two
-    axes this module records -- the unit and the clock -- move one at a time
-    and a regeneration diff says which."""
+#: The two clocks every wall-clock recording below is taken on. Which one a
+#: user sees is a setting now, so recording only one would pin an arbitrary
+#: half of this surface -- and the half nobody set.
+_CLOCKS = {
+    "12": TimeStyle.HOUR_AND_MINUTE_12,
+    "24": TimeStyle.HOUR_AND_MINUTE_24,
+}
+
+
+def _clock_formatter(style: TimeStyle) -> Formatter:
+    """The window's pairing on one clock. Named separately from
+    :func:`_height_formatter` so the two axes this module records -- the
+    unit and the clock -- move one at a time and a regeneration diff says
+    which."""
     return Formatter(PresentationContext(
         locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
-        unit=HeightUnit.CENTIMETRES,
-        time_style=TimeStyle.HOUR_AND_MINUTE))
+        unit=HeightUnit.CENTIMETRES, time_style=style))
 
 
 def _clock_cases() -> dict[str, str]:
-    fmt = _clock_formatter()
-    return {name: util.fmt_clock(fmt, when) for name, when in _CLOCK_CASES}
+    return {f"{name}_{clock}": util.fmt_clock(_clock_formatter(style), when)
+            for clock, style in _CLOCKS.items()
+            for name, when in _CLOCK_CASES}
 
 
 _DAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -205,8 +214,9 @@ def _day_cases() -> dict[str, str]:
     cases = {f"label_{key}": util.day_label(key) for key in _DAY_KEYS}
     cases.update({f"list_{name}": util.fmt_days(days)
                   for name, days in _DAY_LIST_CASES})
-    cases["and_clock"] = util.fmt_day_and_clock(
-        _clock_formatter(), _DAY_WHEN)
+    for clock, style in _CLOCKS.items():
+        cases[f"and_clock_{clock}"] = util.fmt_day_and_clock(
+            _clock_formatter(style), _DAY_WHEN)
     cases["bare_label"] = util.fmt_day_label(_DAY_WHEN)
     cases["heading"] = util.fmt_day_heading(_DAY_WHEN)
     return cases
@@ -262,14 +272,20 @@ _SNOOZE_UNTIL = 1_800_000_000.0
 
 
 def _cycle_cases() -> dict[str, str]:
-    return {
-        "snooze_later": util.snooze_line(_clock_formatter(), 0),
-        "snooze_specific": util.snooze_line(
-            _clock_formatter(), _SNOOZE_UNTIL),
+    cases = {
         "due_now": util.due_now_label(),
         "position_or_custom_known": util.position_or_custom("standing"),
         "position_or_custom_custom": util.position_or_custom(""),
     }
+    for clock, style in _CLOCKS.items():
+        fmt = _clock_formatter(style)
+        # The "later" branch renders no clock at all, so both recordings of
+        # it are identical by construction -- kept per clock anyway, so the
+        # day one of them stops being identical the diff says so.
+        cases[f"snooze_later_{clock}"] = util.snooze_line(fmt, 0)
+        cases[f"snooze_specific_{clock}"] = util.snooze_line(
+            fmt, _SNOOZE_UNTIL)
+    return cases
 
 
 #: Every group `<interfaces>` names, and the minimum size that keeps it
