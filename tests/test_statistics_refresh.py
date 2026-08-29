@@ -29,12 +29,18 @@ import os
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import dataclasses  # noqa: E402
+from datetime import datetime  # noqa: E402
+
 from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtWidgets import QLabel  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
+from idasen_companion.core.presentation.formatter import Formatter  # noqa: E402
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
 from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
 
 
@@ -78,6 +84,46 @@ def page(qapp, tmp_path, monkeypatch):
     save_config(AppConfig(), path)
     monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
     return StatisticsPage(AppContext(FakeClient(), tray_available=True))
+
+
+def test_a_rebuilt_formatter_reaches_the_next_transitions_redraw(qapp, tmp_path,
+                                                                monkeypatch):
+    """The transitions list follows a clock-format change on the next
+    redraw, through the formatter the page reads off the shared context
+    rather than one it built for itself. The same mechanism the tray
+    tooltip uses, pinned on the other surface that renders a wall-clock
+    time.
+    """
+    path = tmp_path / "config.toml"
+    save_config(AppConfig(), path)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
+    client = FakeClient()
+    occurred_at = datetime(2026, 8, 17, 14, 32).timestamp()
+    client.get_transitions = lambda limit=50: [
+        [occurred_at, "sitting", "standing", "automation", False]]
+    page = StatisticsPage(AppContext(client, tray_available=True))
+
+    page.on_shown()
+    assert "PM" not in _transition_row_texts(page)
+
+    context = page.ctx.fmt.context
+    page.ctx.fmt = Formatter(dataclasses.replace(
+        context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
+    page.on_shown()
+
+    assert "2:32 PM" in _transition_row_texts(page)
+
+
+def _transition_row_texts(page) -> str:
+    """Every label the transitions list currently shows, joined for a
+    substring assertion — the rows are rebuilt wholesale on each refresh,
+    so reaching for a stored widget would read a destroyed one."""
+    rows = page._trans_rows
+    return " ".join(
+        label.text()
+        for index in range(rows.count())
+        if rows.itemAt(index).widget() is not None
+        for label in rows.itemAt(index).widget().findChildren(QLabel))
 
 
 def test_opening_the_page_re_reads_the_totals(page):

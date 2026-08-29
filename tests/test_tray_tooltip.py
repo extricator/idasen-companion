@@ -40,6 +40,8 @@ from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+import dataclasses  # noqa: E402
+
 from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
@@ -259,6 +261,28 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
     assert icon.toolTip().split("\n")[2] == (
         "Snoozed until %s" % fmt_clock(
             icon.window.ctx.fmt, datetime(2026, 8, 3, 14, 32)))
+
+
+def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(tray):
+    """The clock format applies on Apply, and this is the whole mechanism:
+    `AppContext.write_config` rebuilds `ctx.fmt`, and the tray reads that
+    formatter fresh at every redraw instead of caching it. No new signal and
+    no restart — so what is pinned here is that the surface re-reads, not
+    that the helper formats correctly, which its own tests already own.
+    """
+    icon, client = tray
+    standing_and_active(icon)
+    icon._on_status("snoozed")
+    deadline = datetime(2026, 8, 3, 14, 32)
+    client.set_snooze_until(deadline.timestamp())
+    assert "PM" not in icon.toolTip()
+
+    context = icon.window.ctx.fmt.context
+    icon.window.ctx.fmt = Formatter(dataclasses.replace(
+        context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
+    client.set_snooze_until(deadline.timestamp())
+
+    assert icon.toolTip().split("\n")[2] == "Snoozed until 2:32 PM"
 
 
 def test_snoozed_tooltip_says_later_until_the_deadline_arrives(tray):
