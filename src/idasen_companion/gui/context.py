@@ -25,9 +25,9 @@ from PySide6.QtWidgets import QApplication
 from ..core.config import (
     DEFAULT_CONFIG_PATH, AppConfig, load_config, save_config,
 )
+from ..core.clock_format import ClockSetting, resolve_clock_style
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.presentation.specs import TimeStyle
 from ..core.units import UnitSetting, resolve_height_unit
 from .dbus_client import DaemonClient
 from .i18n import apply_language, resolve_locale
@@ -69,19 +69,21 @@ class AppContext(QObject):
         defeating that order. Passing the raw setting is exactly what
         ``daemon/main.py``'s ``_build_formatter`` already does, so the two
         front ends now share one call shape and cannot drift apart again.
+        The clock-format call takes the raw setting for the same reason,
+        and both front ends run that same pure resolver over their own
+        environment — which is what makes them agree without any D-Bus
+        plumbing to carry the answer across.
         """
         locale = resolve_locale(config.ui.language)
         unit = resolve_height_unit(
             UnitSetting(config.ui.units), language=config.ui.language,
             environ=os.environ)
+        time_style = resolve_clock_style(
+            ClockSetting(config.ui.clock_format), language=config.ui.language,
+            environ=os.environ)
         context = PresentationContext(
             locale=QtLocaleFormatter(locale),
-            translator=GettextTranslator(), unit=unit,
-            # Placeholder: this becomes the resolved clock format once the
-            # setting and its resolver exist. Passing the member that lets
-            # a backend choose keeps every rendering exactly as it is until
-            # then.
-            time_style=TimeStyle.HOUR_AND_MINUTE)
+            translator=GettextTranslator(), unit=unit, time_style=time_style)
         return Formatter(context)
 
     @property

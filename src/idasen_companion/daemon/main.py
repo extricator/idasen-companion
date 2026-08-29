@@ -39,11 +39,11 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.migration import import_idasen_cli_config
+from ..core.clock_format import ClockSetting, resolve_clock_style
 from ..core.presentation.english import format_duration_human
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.presentation.plain_locale import PlainLocaleFormatter
-from ..core.presentation.specs import TimeStyle
 from ..core.units import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
@@ -202,17 +202,23 @@ class Daemon:
         already carries a language change through with no rebuilding at
         all. What a reload actually has to refresh is what is resolved
         once and read here: the height unit, and the clock format.
+
+        **Why the clock is wired here when nothing renders one yet.** No
+        shipped notification prints a wall-clock time — they speak in
+        relative durations ("in about 5 minutes") — so this resolution is
+        observable in no daemon output today. It is here so that the first
+        notification that does render a clock is already correct, rather
+        than needing a second wiring pass nobody would think to look for.
         """
         unit = resolve_height_unit(
             UnitSetting(config.ui.units), language=config.ui.language,
             environ=os.environ)
+        time_style = resolve_clock_style(
+            ClockSetting(config.ui.clock_format), language=config.ui.language,
+            environ=os.environ)
         context = PresentationContext(
             locale=PlainLocaleFormatter(), translator=GettextTranslator(),
-            unit=unit,
-            # Placeholder, mirroring the window's own construction: this
-            # becomes the resolved clock format once the setting and its
-            # resolver exist.
-            time_style=TimeStyle.HOUR_AND_MINUTE)
+            unit=unit, time_style=time_style)
         return Formatter(context)
 
     def _load_or_bootstrap_config(self) -> AppConfig:
