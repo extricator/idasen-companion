@@ -157,7 +157,8 @@ class StatisticsPage(Page):
         hbox = QHBoxLayout(row_widget)
         hbox.setContentsMargins(2, 6, 2, 6)
         hbox.setSpacing(10)
-        when = QLabel(fmt_day_and_clock(datetime.fromtimestamp(occurred_at)))
+        when = QLabel(fmt_day_and_clock(
+            self.ctx.fmt, datetime.fromtimestamp(occurred_at)))
 
         def _restyle_when(target: QLabel = when) -> None:
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
@@ -169,7 +170,8 @@ class StatisticsPage(Page):
         # locale-formatted now, so "Wed 30 23:59" is no longer what it says.
         when.setFixedWidth(
             when.fontMetrics().horizontalAdvance(
-                fmt_day_and_clock(datetime(2026, 12, 30, 23, 59))) + 8)
+                fmt_day_and_clock(
+                    self.ctx.fmt, datetime(2026, 12, 30, 23, 59))) + 8)
         # No tr()-only check would ever see this site: the arrow's operands
         # are position_label's return value, a marked gui/util.py helper, not
         # a direct translation call -- the reason the concatenation check has

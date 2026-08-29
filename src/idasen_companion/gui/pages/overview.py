@@ -448,7 +448,8 @@ class OverviewPage(Page):
             color, head = tokens.warning, status_head(status)
             reason = ""
         elif status == "snoozed":
-            color, head = tokens.warning, snooze_line(self.client.snooze_until())
+            color, head = tokens.warning, snooze_line(
+                self.ctx.fmt, self.client.snooze_until())
             reason = ""
         elif status == "user-idle":
             idle_seconds = config.automation.idle_threshold if config else 600

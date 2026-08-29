@@ -42,7 +42,7 @@ from idasen_companion.core.presentation import register  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
 from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
     GettextTranslator,
 )
@@ -172,8 +172,20 @@ _CLOCK_CASES = (
 )
 
 
+def _clock_formatter() -> Formatter:
+    """The window's pairing at the clock style every recording here has
+    always used. Named separately from :func:`_height_formatter` so the two
+    axes this module records -- the unit and the clock -- move one at a time
+    and a regeneration diff says which."""
+    return Formatter(PresentationContext(
+        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE))
+
+
 def _clock_cases() -> dict[str, str]:
-    return {name: util.fmt_clock(when) for name, when in _CLOCK_CASES}
+    fmt = _clock_formatter()
+    return {name: util.fmt_clock(fmt, when) for name, when in _CLOCK_CASES}
 
 
 _DAY_KEYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -193,7 +205,8 @@ def _day_cases() -> dict[str, str]:
     cases = {f"label_{key}": util.day_label(key) for key in _DAY_KEYS}
     cases.update({f"list_{name}": util.fmt_days(days)
                   for name, days in _DAY_LIST_CASES})
-    cases["and_clock"] = util.fmt_day_and_clock(_DAY_WHEN)
+    cases["and_clock"] = util.fmt_day_and_clock(
+        _clock_formatter(), _DAY_WHEN)
     cases["bare_label"] = util.fmt_day_label(_DAY_WHEN)
     cases["heading"] = util.fmt_day_heading(_DAY_WHEN)
     return cases
@@ -250,8 +263,9 @@ _SNOOZE_UNTIL = 1_800_000_000.0
 
 def _cycle_cases() -> dict[str, str]:
     return {
-        "snooze_later": util.snooze_line(0),
-        "snooze_specific": util.snooze_line(_SNOOZE_UNTIL),
+        "snooze_later": util.snooze_line(_clock_formatter(), 0),
+        "snooze_specific": util.snooze_line(
+            _clock_formatter(), _SNOOZE_UNTIL),
         "due_now": util.due_now_label(),
         "position_or_custom_known": util.position_or_custom("standing"),
         "position_or_custom_custom": util.position_or_custom(""),

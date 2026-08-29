@@ -120,16 +120,25 @@ def _lambda_definitions(tree):
             if isinstance(node, ast.Lambda)}
 
 
-#: The calls that count as reaching a translator directly. Two entries,
-#: because `gui/util.py` now has two ways to ask for translated text: the
-#: module-private wrapper, and the shared presentation layer's Qt-free
-#: translator backend, which a forwarder constructs on the spot and hands to
-#: `core/presentation/words.py`. Such a forwarder's return value is still
-#: translated text -- it is simply looked up through gettext instead of
-#: through the wrapper -- so it must keep its mark, and this seed set is what
-#: lets it. Deleting the mark to make the check agree is forbidden; widening
-#: the seed is the correction.
-_TRANSLATOR_SEEDS = frozenset({"_tr", "GettextTranslator"})
+#: The calls that count as reaching a translator directly. `gui/util.py` has
+#: three ways to ask for translated text: the module-private wrapper; the
+#: shared presentation layer's Qt-free translator backend, which a forwarder
+#: constructs on the spot and hands to `core/presentation/words.py`; and a
+#: `Formatter` the *caller* supplies, whose message-rendering methods reach
+#: that same backend. Each such forwarder's return value is still translated
+#: text -- it is simply looked up one layer further down -- so it must keep
+#: its mark, and this seed set is what lets it. Deleting the mark to make the
+#: check agree is forbidden; widening the seed is the correction.
+#:
+#: The `Formatter` entries are the message-rendering methods `gui/util.py`
+#: actually reaches. They resolve by attribute name alone, so an unrelated
+#: method of the same name would over-reach and ask for a mark that was not
+#: needed -- a loud failure at the definition, which is the trade this whole
+#: rule already documents.
+_TRANSLATOR_SEEDS = frozenset({
+    "_tr", "GettextTranslator",
+    "day_and_clock", "snooze_line", "later_label",
+})
 
 
 def _reaches_tr(tree):
@@ -196,6 +205,18 @@ def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
     tree = ast.parse(
         "def f(key):\n"
         "    return words.connection_phrases(GettextTranslator(), key)\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_forwarder_delegating_to_a_supplied_formatter_reaches_tr():
+    """A `gui/util.py` forwarder that takes a `Formatter` and asks it for a
+    whole message reaches a translator through it -- the caller supplied the
+    translator instead of the forwarder constructing one, and the result is
+    translated text either way.
+    """
+    tree = ast.parse(
+        "def f(fmt, when):\n"
+        "    return fmt.day_and_clock(when)\n")
     assert _reaches_tr(tree) == {"f"}
 
 

@@ -418,7 +418,7 @@ class TrayIcon(QSystemTrayIcon):
         20 its docstring budgets, and a heading that long widens every row of
         the menu for as long as the snooze lasts.
         """
-        return snooze_line(self.client.snooze_until())
+        return snooze_line(self._fmt(), self.client.snooze_until())
 
     def _refresh_texts(self, stats: bool = True) -> None:
         # `stats=False` on the ticker path, and not an optimization to taste:

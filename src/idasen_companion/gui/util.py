@@ -21,8 +21,8 @@ from typing import Any, Callable, TypeVar, cast
 from PySide6.QtCore import QCoreApplication, QLocale, QT_TRANSLATE_NOOP
 
 from ..core.presentation import daemon_errors, dates, words
+from ..core.presentation.formatter import Formatter
 from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.presentation.specs import TimeStyle
 from ..core.units import HeightUnit
 from .locale_backend import QtLocaleFormatter
 
@@ -209,17 +209,21 @@ def fmt_day_heading(when: datetime) -> str:
     return dates.day_heading(QtLocaleFormatter(QLocale()), when)
 
 
-def fmt_clock(when: datetime) -> str:
-    """A wall-clock time in the user's locale, e.g. "14:32" or "2:32 PM".
+def fmt_clock(fmt: Formatter, when: datetime) -> str:
+    """A wall-clock time, e.g. "14:32" or "2:32 PM".
 
-    See ``core/presentation/dates.py``'s ``clock``.
+    Which clock comes from ``fmt`` — the formatter the caller supplies —
+    and not from this process's locale, because it is a setting the user
+    owns. A caller reads that formatter fresh from the shared context at
+    use time rather than caching it, which is what carries a change
+    through to the next redraw; ``gui/tray.py``'s ``_fmt`` writes that
+    reasoning down in full. See ``core/presentation/dates.py``'s ``clock``.
     """
-    return dates.clock(
-        QtLocaleFormatter(QLocale()), TimeStyle.HOUR_AND_MINUTE, when)
+    return fmt.clock(when)
 
 
 @returns_translated
-def fmt_day_and_clock(when: datetime) -> str:
+def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     """A day plus a wall-clock time, e.g. "Mon 03 14:32".
 
     Renders through one whole translated message so the separating space
@@ -228,12 +232,11 @@ def fmt_day_and_clock(when: datetime) -> str:
     fmt_clock is itself a translated value (both format through the locale
     backend and carry no catalog entry, the same as Formatter.height_value),
     so no mechanical check can ever flag this site; it converts on that
-    reasoning alone. See ``core/presentation/dates.py``'s ``day_and_clock``
-    for the shared implementation.
+    reasoning alone. The clock half follows ``fmt``, for the reason
+    :func:`fmt_clock` gives. See ``core/presentation/dates.py``'s
+    ``day_and_clock`` for the shared implementation.
     """
-    return dates.day_and_clock(
-        QtLocaleFormatter(QLocale()), GettextTranslator(),
-        TimeStyle.HOUR_AND_MINUTE, when)
+    return fmt.day_and_clock(when)
 
 
 @returns_translated
@@ -262,7 +265,7 @@ def daemon_error_message(name: str, detail: str = "") -> str:
 
 
 @returns_translated
-def snooze_line(until: float) -> str:
+def snooze_line(fmt: Formatter, until: float) -> str:
     """"Snoozed until 14:32", or "…until later" before the deadline arrives.
 
     ``until`` is a unix timestamp, or 0 when it is not known yet: the client
@@ -270,14 +273,13 @@ def snooze_line(until: float) -> str:
     first render has no time to show.
 
     The shared implementation takes the *finished* clock text, so this is
-    where the wall-clock formatting happens. Now that the clock formatter
-    has moved to the shared layer, only what fills that argument changed;
-    the message itself needed no second edit.
+    where the wall-clock formatting happens — through ``fmt``, so the
+    clock the user chose reaches this line like every other. It stays one
+    whole message with the time substituted in; nothing is joined here.
     """
-    translator = GettextTranslator()
-    when = (fmt_clock(datetime.fromtimestamp(until)) if until
-            else words.later_label(translator))
-    return words.snooze_line(translator, when)
+    when = (fmt.clock(datetime.fromtimestamp(until)) if until
+            else fmt.later_label())
+    return fmt.snooze_line(when)
 
 
 @returns_translated

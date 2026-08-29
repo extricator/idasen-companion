@@ -314,9 +314,12 @@ def test_number_matches_height_value_trim_case(
 def test_clock_matches_util_fmt_clock_morning_and_afternoon(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
+    style = TimeStyle.HOUR_AND_MINUTE
+    fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES, time_style=style))
     for when in (datetime(2026, 8, 17, 9, 5), datetime(2026, 8, 17, 14, 32)):
-        assert (formatter.time(when, TimeStyle.HOUR_AND_MINUTE)
-                == fmt_clock(when))
+        assert formatter.time(when, style) == fmt_clock(fmt, when)
 
 
 def test_date_matches_util_fmt_day_label_and_fmt_day_heading(

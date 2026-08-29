@@ -44,7 +44,7 @@ from idasen_companion.core.presentation.english import EnglishTranslator  # noqa
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
 from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
     PlainLocaleFormatter,
 )
@@ -123,7 +123,7 @@ class FakeWindow:
             fmt=Formatter(PresentationContext(
                 locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
                 unit=HeightUnit.CENTIMETRES,
-        time_style=TimeStyle.HOUR_AND_MINUTE_24)))
+                time_style=TimeStyle.HOUR_AND_MINUTE_24)))
 
 
 @pytest.fixture(scope="session")
@@ -257,7 +257,8 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(datetime(2026, 8, 3, 14, 32)))
+        "Snoozed until %s" % fmt_clock(
+            icon.window.ctx.fmt, datetime(2026, 8, 3, 14, 32)))
 
 
 def test_snoozed_tooltip_says_later_until_the_deadline_arrives(tray):
@@ -282,7 +283,8 @@ def test_deadline_arriving_redraws_the_tooltip(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 9, 5).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(datetime(2026, 8, 3, 9, 5)))
+        "Snoozed until %s" % fmt_clock(
+            icon.window.ctx.fmt, datetime(2026, 8, 3, 9, 5)))
 
 
 def test_menu_entry_keeps_the_bare_word_while_snoozed(tray):
