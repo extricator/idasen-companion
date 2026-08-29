@@ -330,7 +330,10 @@ command -v dbus-run-session >/dev/null 2>&1 || exit 12
 echo "--- daemon"
 # A simulated desk, always: there is no Bluetooth here, and a run that
 # reached a real one would be driving somebody's furniture from a test.
-dbus-run-session -- idasen-companiond \
+# setsid, and then a *group* kill: $! names dbus-run-session, not the daemon
+# it spawns, so killing it alone orphans the daemon and leaves it running.
+# See the same fix and the same reasoning in the bundled spec's %check.
+setsid dbus-run-session -- idasen-companiond \
     --mock-desk --config /tmp/idasen-companion-portability.toml \
     > /tmp/daemon.log 2>&1 &
 daemon=$!
@@ -340,10 +343,11 @@ sleep "$SETTLE_SECONDS"
 if ! kill -0 "$daemon" 2>/dev/null; then
     echo "--- the daemon exited during the first $SETTLE_SECONDS seconds"
     cat /tmp/daemon.log
+    kill -- -"$daemon" 2>/dev/null || true
     exit 40
 fi
 
-kill "$daemon" 2>/dev/null || true
+kill -- -"$daemon" 2>/dev/null || true
 wait "$daemon" 2>/dev/null || true
 cat /tmp/daemon.log
 

@@ -416,6 +416,75 @@ def test_the_check_runs_the_daemon_the_way_the_package_will():
         "package build")
 
 
+#: The two places that start the smoke daemon behind ``dbus-run-session``.
+#: Both had the same defect and both carry the same fix, so both are checked
+#: by one test rather than by one test each that could drift apart.
+SMOKE_DAEMON_STARTERS = (
+    ("packaging/idasen-companion-bundled.spec", "%check"),
+    ("scripts/verify-rpm-portability.sh", None),
+)
+
+#: A kill aimed at a process *group* — the minus before the id is the whole
+#: point, so the pattern insists on it. ``kill "$daemon"`` and
+#: ``kill -- -"$daemon"`` differ by two characters and by whether a machine
+#: is left with an orphaned daemon on it.
+GROUP_KILL = re.compile(r'kill\s+--\s+-"?\$\{?\w+')
+
+
+def shell_commands(text: str) -> list[str]:
+    """A shell script's commands, comments dropped and continuations joined.
+
+    The same shape as :func:`spec_commands`, and for the same reason: this
+    module's checks must never be satisfiable by a sentence that happens to
+    recite the thing being checked for.
+    """
+    uncommented = "\n".join(line for line in text.splitlines()
+                            if not line.lstrip().startswith("#"))
+    joined = re.sub(r"\\\n\s*", " ", uncommented)
+    return [line.strip() for line in joined.splitlines() if line.strip()]
+
+
+@pytest.mark.parametrize(
+    "relative_path,section", SMOKE_DAEMON_STARTERS,
+    ids=lambda value: value.split("/")[-1] if isinstance(value, str) else "")
+def test_the_smoke_daemon_is_started_and_killed_as_a_process_group(
+        relative_path, section):
+    """A daemon started behind ``dbus-run-session`` outlives a kill aimed at
+    ``$!``, because ``$!`` is the wrapper and the daemon is its child.
+
+    This is not hypothetical and it is not a style point. Both of these files
+    shipped with the naive form, so every package build orphaned exactly one
+    mock daemon; three were found alive on one workstation, the oldest three
+    days old, each holding memory and a name on the session bus. The fix is
+    ``setsid`` at the start — which makes the wrapper a process-group leader,
+    so its pid doubles as the group id — and a negative kill at the end, which
+    reaches the daemon and the bus with it.
+
+    Both halves are asserted, because either one alone is inert: ``setsid``
+    without the group kill still orphans, and a group kill without ``setsid``
+    aims at the *build's own* process group, which is worse than the bug.
+    """
+    text = read(ROOT / relative_path)
+    commands = (spec_commands(spec_section(text, section.lstrip("%")))
+                if section else shell_commands(text))
+
+    starts = [c for c in commands
+              if "dbus-run-session" in c and "daemon.main" in c
+              or "dbus-run-session" in c and "idasen-companiond" in c]
+    assert len(starts) == 1, (
+        f"{relative_path} starts the smoke daemon {len(starts)} times; it "
+        f"starts it once")
+    assert "setsid" in starts[0], (
+        f"{relative_path} starts the smoke daemon without setsid, so the "
+        f"wrapper is not a process-group leader and the kill below cannot "
+        f"reach the daemon it spawns — every run leaks one")
+
+    group_kills = [c for c in commands if GROUP_KILL.search(c)]
+    assert group_kills, (
+        f"{relative_path} never kills the smoke daemon's process group, so "
+        f"the daemon behind dbus-run-session survives the run")
+
+
 # The enterprise 9 line's glibc, and so the oldest one this package reaches.
 # Restated here to give the ceiling a second reader: the script says which
 # symbol versions to accept, this says which line that was chosen for, and
