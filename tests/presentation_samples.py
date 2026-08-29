@@ -20,6 +20,7 @@ the same reason — see that module's docstring.
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import datetime
 from typing import NamedTuple
 
@@ -52,25 +53,36 @@ HEIGHT_METERS = 1.105
 
 class Sample(NamedTuple):
     """One canonical invocation: a case name, a ``Formatter`` method name,
-    and the positional/keyword arguments to call it with.
+    the positional/keyword arguments to call it with, and the clock the
+    formatter should be on while it runs.
 
     ``case`` is a short, readable label distinct from ``method`` wherever a
     method needs more than one row (``connection_phrases``, ``clock``) — a
     failing assertion then names which branch or which moment broke, not
     just which method.
+
+    ``time_style`` is on the row rather than on the formatter because which
+    clock the app renders is now a user setting, and a table that recorded
+    only one of the two would pin an arbitrary half of the surface. Every
+    row that reaches no clock at all keeps the default and is unaffected by
+    it. :func:`with_time_style` is how a caller applies it.
     """
 
     case: str
     method: str
     args: tuple[object, ...]
     kwargs: dict[str, object]
+    time_style: TimeStyle = TimeStyle.HOUR_AND_MINUTE_24
 
 
 #: One row per public ``Formatter`` method, covering every method named in
 #: this plan's own interfaces list. ``connection_phrases`` carries three rows
 #: — one per branch its wire-value lookup can take — and ``clock`` carries
-#: two, at :data:`AFTERNOON` and :data:`MORNING`, so a 12-hour backend's two
-#: halves both get exercised by at least one row.
+#: four: :data:`AFTERNOON` and :data:`MORNING` on each of the two clocks, so
+#: the AM and the PM branch of a 12-hour rendering are both exercised and
+#: neither clock is recorded at the other's expense. ``day_and_clock``
+#: carries one row per clock for the same reason: it embeds a clock, so it
+#: could not stay on one while the clock rows moved to both.
 SAMPLES: tuple[Sample, ...] = (
     Sample("height_value", "height_value", (HEIGHT_METERS,), {}),
     Sample("height", "height", (HEIGHT_METERS,), {}),
@@ -114,10 +126,28 @@ SAMPLES: tuple[Sample, ...] = (
     Sample("duration_minutes", "duration_minutes", (600,), {}),
     Sample("day_short", "day_short", (AFTERNOON,), {}),
     Sample("day_heading", "day_heading", (AFTERNOON,), {}),
-    Sample("clock_afternoon", "clock", (AFTERNOON,), {}),
-    Sample("clock_morning", "clock", (MORNING,), {}),
-    Sample("day_and_clock", "day_and_clock", (AFTERNOON,), {}),
+    Sample("clock_afternoon_24", "clock", (AFTERNOON,), {},
+           TimeStyle.HOUR_AND_MINUTE_24),
+    Sample("clock_morning_24", "clock", (MORNING,), {},
+           TimeStyle.HOUR_AND_MINUTE_24),
+    Sample("clock_afternoon_12", "clock", (AFTERNOON,), {},
+           TimeStyle.HOUR_AND_MINUTE_12),
+    Sample("clock_morning_12", "clock", (MORNING,), {},
+           TimeStyle.HOUR_AND_MINUTE_12),
+    Sample("day_and_clock_24", "day_and_clock", (AFTERNOON,), {},
+           TimeStyle.HOUR_AND_MINUTE_24),
+    Sample("day_and_clock_12", "day_and_clock", (AFTERNOON,), {},
+           TimeStyle.HOUR_AND_MINUTE_12),
 )
+
+
+def with_time_style(formatter: Formatter, style: TimeStyle) -> Formatter:
+    """``formatter`` on ``style``'s clock, everything else unchanged.
+
+    A row states the clock it means; this is how a caller honours it without
+    every table having to build its own context from scratch.
+    """
+    return Formatter(dataclasses.replace(formatter.context, time_style=style))
 
 #: Every public ``Formatter`` member deliberately absent from :data:`SAMPLES`,
 #: with the reason it is not a formatter written down beside it — the three

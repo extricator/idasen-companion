@@ -102,11 +102,14 @@ def _qt_formatter() -> Formatter:
 # Half one: the four moment renderers, hand-typed from the spec.
 # ----------------------------------------------------------------------
 
-#: The narrow no-break space (U+202F) Qt's English short-time format places
-#: before "AM"/"PM" — written as the six-character Python escape sequence
-#: below, never pasted, because a plain space there looks identical on
-#: screen and fails the assertion.
-_NNBSP = "\u202f"
+#: The no-break space (U+00A0) Qt places *inside* Spanish's meridiem
+#: designator ("P.\u00a0M.") — written as the six-character Python escape
+#: sequence below, never pasted, because a plain space there looks identical
+#: on screen and fails the assertion. The separator before the designator is
+#: a plain ASCII space in both languages: the explicit format string this
+#: backend now asks for inserts one, where Qt's old locale-governed
+#: short-time format used a narrow no-break space.
+_NBSP = "\u00a0"
 
 #: The two moments and the one height this module's cases render, read from
 #: the shared sample table rather than re-declared here. They were literals
@@ -133,6 +136,10 @@ class ContractCase(NamedTuple):
     ``"locale"`` for the grouping case, which must reach
     ``formatter.context.locale`` directly because no ``Formatter`` facade
     method exposes a grouping toggle.
+
+    ``time_style`` is the clock the case's formatter is put on before it
+    renders, mirroring the shared sample table's own field. A case that
+    reaches no clock keeps the default and is unaffected.
     """
 
     case: str
@@ -140,6 +147,7 @@ class ContractCase(NamedTuple):
     args: tuple[object, ...]
     qt_free: str
     through: str = "formatter"
+    time_style: TimeStyle = TimeStyle.HOUR_AND_MINUTE_24
 
 
 class LanguageRendering(NamedTuple):
@@ -171,10 +179,17 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
     ContractCase("day_short", "day_short", (_AFTERNOON,), qt_free="2026-08-17"),
     ContractCase("day_heading", "day_heading", (_AFTERNOON,),
                  qt_free="2026-08-17"),
-    ContractCase("clock_afternoon", "clock", (_AFTERNOON,), qt_free="14:32"),
-    ContractCase("clock_morning", "clock", (_MORNING,), qt_free="09:05"),
-    ContractCase("day_and_clock", "day_and_clock", (_AFTERNOON,),
+    ContractCase("clock_afternoon_12", "clock", (_AFTERNOON,),
+                 qt_free="2:32 PM",
+                 time_style=TimeStyle.HOUR_AND_MINUTE_12),
+    ContractCase("clock_morning_12", "clock", (_MORNING,),
+                 qt_free="9:05 AM",
+                 time_style=TimeStyle.HOUR_AND_MINUTE_12),
+    ContractCase("day_and_clock_24", "day_and_clock", (_AFTERNOON,),
                  qt_free="2026-08-17 14:32"),
+    ContractCase("day_and_clock_12", "day_and_clock", (_AFTERNOON,),
+                 qt_free="2026-08-17 2:32 PM",
+                 time_style=TimeStyle.HOUR_AND_MINUTE_12),
     ContractCase("height_value", "height_value", (_HEIGHT_METERS,),
                  qt_free="110.5"),
     ContractCase("height", "height", (_HEIGHT_METERS,), qt_free="110.5 cm"),
@@ -190,18 +205,18 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
 #: and test_every_shipped_language_has_a_hand_typed_row_set (D-13) fails,
 #: naming the language, rather than warning, when one is missing.
 #:
-#: Three of the rows below reach a gettext pattern: ``height`` (the
-#: height-unit suffix), ``day_and_clock`` (the day-and-clock join) and
-#: ``preset_tick`` (the preset-tick separator). For those three the daemon
-#: column agreeing with the qt_free column is a fact being pinned — all
-#: three patterns are deliberately identical in Spanish today
+#: Four of the rows below reach a gettext pattern: ``height`` (the
+#: height-unit suffix), the two ``day_and_clock`` rows (the day-and-clock
+#: join) and ``preset_tick`` (the preset-tick separator). For those the
+#: daemon column agreeing with the qt_free column is a fact being pinned —
+#: all three patterns are deliberately identical in Spanish today
 #: (``po/es.po``), and the day a Spanish translation of one of them
 #: changes, that daemon column goes red while the journal column
 #: (``build_plain_formatter``, reached by no catalog) does not.
 #:
-#: The other six rows reach no translator at all — ``day_short``,
-#: ``day_heading`` and the two clocks render through the locale backend
-#: only, ``height_value`` calls its number method only, and
+#: The remaining rows reach no translator at all — ``day_short``,
+#: ``day_heading`` and the two 12-hour clocks render through the locale
+#: backend only, ``height_value`` calls its number method only, and
 #: ``number_grouping`` bypasses the ``Formatter`` facade entirely. Their
 #: daemon column is identical to the qt_free column by construction, no
 #: catalog change can ever turn it red, and they are carried for table
@@ -211,12 +226,14 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         LanguageRendering("day_short", window="Mon 17", daemon="2026-08-17"),
         LanguageRendering("day_heading", window="Mon 17 Aug 2026",
                            daemon="2026-08-17"),
-        LanguageRendering("clock_afternoon", window=f"2:32{_NNBSP}PM",
-                           daemon="14:32"),
-        LanguageRendering("clock_morning", window=f"9:05{_NNBSP}AM",
-                           daemon="09:05"),
-        LanguageRendering("day_and_clock", window=f"Mon 17 2:32{_NNBSP}PM",
+        LanguageRendering("clock_afternoon_12", window="2:32 PM",
+                           daemon="2:32 PM"),
+        LanguageRendering("clock_morning_12", window="9:05 AM",
+                           daemon="9:05 AM"),
+        LanguageRendering("day_and_clock_24", window="Mon 17 14:32",
                            daemon="2026-08-17 14:32"),
+        LanguageRendering("day_and_clock_12", window="Mon 17 2:32 PM",
+                           daemon="2026-08-17 2:32 PM"),
         LanguageRendering("height_value", window="110.5", daemon="110.5"),
         LanguageRendering("height", window="110.5 cm", daemon="110.5 cm"),
         LanguageRendering("preset_tick", window="Sit · 110.5",
@@ -228,10 +245,21 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         LanguageRendering("day_short", window="lun 17", daemon="2026-08-17"),
         LanguageRendering("day_heading", window="lun 17 ago 2026",
                            daemon="2026-08-17"),
-        LanguageRendering("clock_afternoon", window="14:32", daemon="14:32"),
-        LanguageRendering("clock_morning", window="9:05", daemon="09:05"),
-        LanguageRendering("day_and_clock", window="lun 17 14:32",
+        # The new sanctioned divergence, and a new row rather than an
+        # accident: at the 12-hour setting the window renders Spanish's own
+        # CLDR meridiem designator while the Qt-free side renders fixed
+        # English. The two agree on the *clock*, which is what the setting
+        # controls; they differ in glyphs, which docs/ARCHITECTURE.md
+        # already permits.
+        LanguageRendering("clock_afternoon_12",
+                           window=f"2:32 P.{_NBSP}M.", daemon="2:32 PM"),
+        LanguageRendering("clock_morning_12",
+                           window=f"9:05 A.{_NBSP}M.", daemon="9:05 AM"),
+        LanguageRendering("day_and_clock_24", window="lun 17 14:32",
                            daemon="2026-08-17 14:32"),
+        LanguageRendering("day_and_clock_12",
+                           window=f"lun 17 2:32 P.{_NBSP}M.",
+                           daemon="2026-08-17 2:32 PM"),
         # The window column carries a decimal comma here because Qt renders
         # through QLocale; the daemon column carries a full stop because
         # PlainLocaleFormatter reads no locale and the surrounding catalog
@@ -255,6 +283,8 @@ def _rendered_by_case(formatter: Formatter, case: ContractCase):
     method exposes a grouping toggle — the seam permits the divergence,
     but no product call reaches it.
     """
+    formatter = presentation_samples.with_time_style(
+        formatter, case.time_style)
     if case.through == "locale":
         return getattr(formatter.context.locale, case.helper)(*case.args)
     return getattr(formatter, case.helper)(*case.args)
@@ -403,6 +433,7 @@ ANCHORS: dict[str, object] = {
     "minutes_label": "5 minutes",
     "position_or_custom": "Standing",
     "countdown": "2:05",
+    "clock_afternoon_24": "14:32",
     "day_label": "Mon",
     "fmt_days": "Mon–Wed",
     "duration_verbose": "1 hour 5 minutes",
@@ -413,6 +444,7 @@ ANCHORS: dict[str, object] = {
 
 
 def _rendered(formatter: Formatter, row: presentation_samples.Sample):
+    formatter = presentation_samples.with_time_style(formatter, row.time_style)
     return getattr(formatter, row.method)(*row.args, **row.kwargs)
 
 
