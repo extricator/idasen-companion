@@ -63,7 +63,7 @@ from .register import (
     PRESET_TICK, PRE_MOVE_BODY, PRE_MOVE_SITTING, PRE_MOVE_STANDING, SECONDS,
     SECONDS_COMPACT, SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
-from .specs import IntegerSpec, NumberSpec
+from .specs import IntegerSpec, NumberSpec, TimeStyle
 
 
 @dataclass(frozen=True)
@@ -349,14 +349,21 @@ class Formatter:
         Also not to be confused with :meth:`day_label`, the unrelated
         schedule-day-key word ('mon' -> 'Lun').
         """
-        return dates.clock(self._context.locale, when)
+        # Scaffolding: the style becomes the context's own resolved answer
+        # in the next commit, which adds the field to carry it. A literal
+        # here rather than a default on that field, because a default would
+        # let a construction site skip the question entirely.
+        return dates.clock(
+            self._context.locale, TimeStyle.HOUR_AND_MINUTE, when)
 
     def day_and_clock(self, when: datetime) -> str:
         """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
         translated message — see :mod:`.dates` for why the separating
         space is a catalog entry rather than a Python literal."""
+        # Scaffolding, for the reason given in `clock` just above.
         return dates.day_and_clock(
-            self._context.locale, self._context.translator, when)
+            self._context.locale, self._context.translator,
+            TimeStyle.HOUR_AND_MINUTE, when)
 
     def duration_verbose(self, seconds: float) -> str:
         """A verbose duration for notification prose, e.g. "1 hour 5

@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
+
 from idasen_companion.core.presentation import dates, register
 from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
 from idasen_companion.core.presentation.specs import DateStyle, TimeStyle
@@ -46,12 +48,16 @@ def test_day_heading_asks_for_the_weekday_day_month_year_style():
     assert result == f"D({_WHEN!r}, {DateStyle.WEEKDAY_DAY_MONTH_YEAR!r})"
 
 
-def test_clock_asks_for_the_hour_and_minute_style():
+@pytest.mark.parametrize("style", list(TimeStyle))
+def test_clock_asks_for_the_style_it_was_given(style):
+    """The style is passed through untouched: `dates` names no member of
+    its own, because which clock the app shows is resolved once from the
+    user's setting and carried in by the presentation context."""
     locale = FakeLocale()
-    result = dates.clock(locale, _WHEN)
+    result = dates.clock(locale, style, _WHEN)
     assert [(call.value, call.request) for call in locale.calls] == [
-        (_WHEN, TimeStyle.HOUR_AND_MINUTE)]
-    assert result == f"T({_WHEN!r}, {TimeStyle.HOUR_AND_MINUTE!r})"
+        (_WHEN, style)]
+    assert result == f"T({_WHEN!r}, {style!r})"
 
 
 # ----- the same three, against the real Qt-free backend -------------------
@@ -68,12 +74,14 @@ def test_day_heading_renders_iso_on_the_plain_backend():
 
 
 def test_clock_renders_24_hour_on_the_plain_backend():
-    assert dates.clock(PlainLocaleFormatter(), _WHEN) == "14:32"
+    assert dates.clock(
+        PlainLocaleFormatter(), TimeStyle.HOUR_AND_MINUTE_24, _WHEN) == "14:32"
 
 
 def test_a_morning_hour_stays_zero_padded_on_the_plain_backend():
-    assert dates.clock(PlainLocaleFormatter(), datetime(2026, 8, 17, 9, 5)) \
-        == "09:05"
+    assert dates.clock(
+        PlainLocaleFormatter(), TimeStyle.HOUR_AND_MINUTE_24,
+        datetime(2026, 8, 17, 9, 5)) == "09:05"
 
 
 # ----- day_and_clock: composing the two rendered values --------------------
@@ -86,7 +94,8 @@ def test_day_and_clock_composes_through_the_one_translated_pattern():
     *what was substituted*, not a rendered value.
     """
     locale, translator = FakeLocale(), FakeTranslator()
-    result = dates.day_and_clock(locale, translator, _WHEN)
+    style = TimeStyle.HOUR_AND_MINUTE_24
+    result = dates.day_and_clock(locale, translator, style, _WHEN)
 
     assert [call.method for call in locale.calls] == ["date", "time"]
     assert len(translator.calls) == 1
@@ -94,7 +103,7 @@ def test_day_and_clock_composes_through_the_one_translated_pattern():
     assert call.source == register.DAY_AND_CLOCK
     assert call.values == {
         "day": dates.day_short(FakeLocale(), _WHEN),
-        "clock": dates.clock(FakeLocale(), _WHEN),
+        "clock": dates.clock(FakeLocale(), style, _WHEN),
     }
     # The result is exactly the pattern's own substitution -- not a second,
     # independently-built string -- which is what "never concatenates" means
@@ -102,12 +111,13 @@ def test_day_and_clock_composes_through_the_one_translated_pattern():
     assert result == translator.message(
         register.DAY_AND_CLOCK,
         day=dates.day_short(FakeLocale(), _WHEN),
-        clock=dates.clock(FakeLocale(), _WHEN))
+        clock=dates.clock(FakeLocale(), style, _WHEN))
 
 
 def test_day_and_clock_renders_the_finished_qt_free_string():
     locale = PlainLocaleFormatter()
     translator = FakeTranslator()
-    result = dates.day_and_clock(locale, translator, _WHEN)
+    result = dates.day_and_clock(
+        locale, translator, TimeStyle.HOUR_AND_MINUTE_24, _WHEN)
     assert result == translator.message(
         register.DAY_AND_CLOCK, day="2026-08-17", clock="14:32")

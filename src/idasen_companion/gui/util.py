@@ -22,6 +22,7 @@ from PySide6.QtCore import QCoreApplication, QLocale, QT_TRANSLATE_NOOP
 
 from ..core.presentation import daemon_errors, dates, words
 from ..core.presentation.gettext_translator import GettextTranslator
+from ..core.presentation.specs import TimeStyle
 from ..core.units import HeightUnit
 from .locale_backend import QtLocaleFormatter
 
@@ -213,7 +214,8 @@ def fmt_clock(when: datetime) -> str:
 
     See ``core/presentation/dates.py``'s ``clock``.
     """
-    return dates.clock(QtLocaleFormatter(QLocale()), when)
+    return dates.clock(
+        QtLocaleFormatter(QLocale()), TimeStyle.HOUR_AND_MINUTE, when)
 
 
 @returns_translated
@@ -230,7 +232,8 @@ def fmt_day_and_clock(when: datetime) -> str:
     for the shared implementation.
     """
     return dates.day_and_clock(
-        QtLocaleFormatter(QLocale()), GettextTranslator(), when)
+        QtLocaleFormatter(QLocale()), GettextTranslator(),
+        TimeStyle.HOUR_AND_MINUTE, when)
 
 
 @returns_translated

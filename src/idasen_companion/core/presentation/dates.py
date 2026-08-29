@@ -58,18 +58,27 @@ def day_heading(locale: LocaleFormatter, when: datetime) -> str:
     return locale.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
 
 
-def clock(locale: LocaleFormatter, when: datetime) -> str:
-    """A wall-clock time, e.g. "14:32" or, in a 12-hour locale, "2:32 PM".
-    Carries no catalog entry — it renders through the locale backend
-    only."""
-    return locale.time(when, TimeStyle.HOUR_AND_MINUTE)
+def clock(locale: LocaleFormatter, style: TimeStyle, when: datetime) -> str:
+    """A wall-clock time on the clock ``style`` names, e.g. "14:32" or
+    "2:32 PM". Carries no catalog entry — it renders through the locale
+    backend only.
+
+    ``style`` is an argument rather than a constant chosen here because
+    which clock the app shows is a user setting resolved once, in
+    ``core/clock_format.py``, and carried to every renderer by the
+    presentation context. A member named in this body would be a second
+    place that answers the same question.
+    """
+    return locale.time(when, style)
 
 
 def day_and_clock(locale: LocaleFormatter, translator: Translator,
-                  when: datetime) -> str:
+                  style: TimeStyle, when: datetime) -> str:
     """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
     translated message — see the module docstring for why this composes
     :func:`day_short` and :func:`clock` through a catalog pattern rather
-    than joining them in Python."""
+    than joining them in Python. ``style`` travels through to the clock
+    half for the reason :func:`clock` gives."""
     return translator.message(
-        DAY_AND_CLOCK, day=day_short(locale, when), clock=clock(locale, when))
+        DAY_AND_CLOCK, day=day_short(locale, when),
+        clock=clock(locale, style, when))
