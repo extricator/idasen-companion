@@ -167,7 +167,10 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       environment already produced; at **12-hour** the times read with AM/PM;
       at **24-hour** they read 14:32 whatever the environment says. Repeat
       the walk with the display language set to Spanish, where the window
-      renders Spanish's own designator (`2:32 P. M.`) at the 12-hour setting.
+      renders Spanish's own designator, in the case Spanish writes it —
+      `2:32 p. m.`, lower case, with a no-break space inside the designator
+      — at the 12-hour setting. English stays `2:32 PM`. A capitalised
+      `P. M.` there is the defect this sweep is watching for.
       The `journalctl` output is *not* part of this sweep: it stays 24-hour by
       design, whatever the setting says.
 - [ ] **[sweep]** Manual-only mode — turn off "Automate sit / stand", then:
