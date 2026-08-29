@@ -1,20 +1,27 @@
 """A :class:`LocaleFormatter` that renders every value the same way on every
 machine.
 
-Numbers print with a full stop, never a comma; :class:`.specs.TimeStyle`
-renders 24-hour. Neither the numeric nor the time locale category is read
-anywhere in this module — there is no ``import locale`` here, and there is
-no locale to inject, which is why :class:`PlainLocaleFormatter` takes no
-constructor argument.
+Numbers print with a full stop, never a comma; a :class:`.specs.TimeStyle`
+renders the clock it names, and its twelve-hour members render fixed
+English ``AM``/``PM``. Neither the numeric nor the time locale category is
+read anywhere in this module — there is no ``import locale`` here, and
+there is no locale to inject, which is why :class:`PlainLocaleFormatter`
+takes no constructor argument.
 
 **This is this project's deliberate product policy, not a claim about
 CLDR.** glibc defines the 12-hour clock format as the empty string for
-Spanish, so deriving a 12-hour flag from the process locale would hand a
-Spanish user a *worse* answer than a plain 24-hour clock — not a locally
-correct one this backend happened to skip. The full evidence for this
-decision (git, systemd, Deluge, borgbackup, llama.cpp) lives in
-``.planning/notes/vocabulary-and-presentation-decisions.md`` § 2; this
-module implements that decision rather than re-arguing it.
+Spanish, so deriving a twelve-or-twenty-four answer from the process
+locale would hand a Spanish user a *worse* answer than a plain 24-hour
+clock — not a locally correct one this backend happened to skip. The full
+evidence for this decision (git, systemd, Deluge, borgbackup, llama.cpp)
+lives in ``.planning/notes/vocabulary-and-presentation-decisions.md`` § 2;
+this module implements that decision rather than re-arguing it. What that
+decision leaves this backend is the *rendering*, not the choice: which
+clock to render is now a product answer resolved once in ``core/`` from
+``[ui] clock_format`` and handed in as the style. A twelve-hour style
+therefore renders here in fixed English, the same call the ISO dates below
+make — one language's tokens for everybody, rather than a locale database
+this module exists not to have.
 
 Both :class:`.specs.DateStyle` members render an ISO 8601 calendar date
 (``2026-08-17``) here, and deliberately converge on that one shape — a
@@ -70,6 +77,25 @@ class PlainLocaleFormatter:
     def time(self, value: datetime, style: TimeStyle) -> str:
         if style is TimeStyle.HOUR_AND_MINUTE:
             return f"{value.hour:02d}:{value.minute:02d}"
+        if style is TimeStyle.HOUR_AND_MINUTE_24:
+            return f"{value.hour:02d}:{value.minute:02d}"
+        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:
+            return (f"{value.hour:02d}:{value.minute:02d}"
+                    f":{value.second:02d}")
+        # A twelve-hour clock here is fixed English, exactly as the date
+        # styles above are fixed ISO: the meridiem token is written out
+        # inline rather than exposed through an accessor, because a getter
+        # for it is the locale-database field BACK-02 keeps out of this
+        # backend. Routing the token through the message catalog was the
+        # rejected alternative — it would put a translated fragment inside
+        # a rendered value, which is the seam this module exists to hold.
+        hour = value.hour % 12 or 12
+        meridiem = "AM" if value.hour < 12 else "PM"
+        if style is TimeStyle.HOUR_AND_MINUTE_12:
+            return f"{hour}:{value.minute:02d} {meridiem}"
+        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_12:
+            return (f"{hour}:{value.minute:02d}"
+                    f":{value.second:02d} {meridiem}")
         raise ValueError(f"unsupported time style: {style!r}")
 
     def date(self, value: datetime, style: DateStyle) -> str:

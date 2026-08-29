@@ -104,6 +104,54 @@ def test_time_renders_two_digit_24_hour(hour, minute, expected):
     assert FORMATTER.time(when, TimeStyle.HOUR_AND_MINUTE) == expected
 
 
+# The clock a style names is rendered, never chosen: the twelve-hour
+# members print fixed English AM/PM with no leading zero on the hour, the
+# same fixed-tokens call the ISO dates below make.
+@pytest.mark.parametrize("hour,minute,expected", [
+    (9, 5, "9:05 AM"),      # morning, no leading zero on the hour
+    (12, 0, "12:00 PM"),    # noon wraps to twelve, and is PM
+    (14, 32, "2:32 PM"),    # afternoon
+    (0, 0, "12:00 AM"),     # midnight wraps to twelve, and is AM
+])
+def test_time_renders_a_fixed_english_twelve_hour_clock(hour, minute, expected):
+    when = datetime(2026, 8, 21, hour, minute)
+    assert FORMATTER.time(when, TimeStyle.HOUR_AND_MINUTE_12) == expected
+
+
+@pytest.mark.parametrize("hour,minute,expected", [
+    (9, 5, "09:05"),
+    (12, 0, "12:00"),
+    (14, 32, "14:32"),
+    (0, 0, "00:00"),
+])
+def test_time_renders_the_named_twenty_four_hour_clock(hour, minute, expected):
+    when = datetime(2026, 8, 21, hour, minute)
+    assert FORMATTER.time(when, TimeStyle.HOUR_AND_MINUTE_24) == expected
+
+
+@pytest.mark.parametrize("style,expected", [
+    (TimeStyle.HOUR_MINUTE_AND_SECOND_24, "14:32:05"),
+    (TimeStyle.HOUR_MINUTE_AND_SECOND_12, "2:32:05 PM"),
+])
+def test_time_renders_the_seconds_bearing_styles(style, expected):
+    when = datetime(2026, 8, 21, 14, 32, 5)
+    assert FORMATTER.time(when, style) == expected
+
+
+@pytest.mark.parametrize("style,expected", [
+    (TimeStyle.HOUR_MINUTE_AND_SECOND_24, "09:05:07"),
+    (TimeStyle.HOUR_MINUTE_AND_SECOND_12, "9:05:07 AM"),
+])
+def test_time_zero_pads_the_seconds_field(style, expected):
+    when = datetime(2026, 8, 21, 9, 5, 7)
+    assert FORMATTER.time(when, style) == expected
+
+
+def test_time_an_unsupported_style_raises():
+    with pytest.raises(ValueError):
+        FORMATTER.time(datetime(2026, 8, 17, 14, 32), "not-a-style")
+
+
 def test_date_weekday_and_day_renders_iso_8601():
     when = datetime(2026, 8, 17, 14, 32)
     assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "2026-08-17"

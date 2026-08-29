@@ -154,6 +154,38 @@ SEAM_SWEEP: tuple[SweepCell, ...] = (
         "one language, not every language.",
     ),
     SweepCell(
+        "time", "HOUR_AND_MINUTE_24",
+        (presentation_samples.AFTERNOON, TimeStyle.HOUR_AND_MINUTE_24),
+        "14:32", False,
+        "Asked for the twenty-four-hour clock explicitly, both backends "
+        "render the same digits in every shipped language — the cell that "
+        "records what removing the backend's own choice bought.",
+    ),
+    SweepCell(
+        "time", "HOUR_AND_MINUTE_12",
+        (presentation_samples.AFTERNOON, TimeStyle.HOUR_AND_MINUTE_12),
+        "2:32 PM", True,
+        "English agrees with the Qt-free fixed-English rendering; Spanish "
+        "renders its own CLDR meridiem designator, which is a glyph "
+        "divergence rather than a disagreement about which clock to use.",
+    ),
+    SweepCell(
+        "time", "HOUR_MINUTE_AND_SECOND_24",
+        (presentation_samples.AFTERNOON,
+         TimeStyle.HOUR_MINUTE_AND_SECOND_24),
+        "14:32:00", False,
+        "The seconds-bearing twenty-four-hour clock agrees for the same "
+        "reason its minute-only sibling above does.",
+    ),
+    SweepCell(
+        "time", "HOUR_MINUTE_AND_SECOND_12",
+        (presentation_samples.AFTERNOON,
+         TimeStyle.HOUR_MINUTE_AND_SECOND_12),
+        "2:32:00 PM", True,
+        "Same designator divergence as the minute-only twelve-hour cell, "
+        "carried through the seconds field.",
+    ),
+    SweepCell(
         "date", "WEEKDAY_AND_DAY",
         (presentation_samples.AFTERNOON, DateStyle.WEEKDAY_AND_DAY),
         "2026-08-17", True,

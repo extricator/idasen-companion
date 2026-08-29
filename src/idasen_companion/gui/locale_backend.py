@@ -76,10 +76,27 @@ class QtLocaleFormatter:
         return rendered.rjust(spec.min_digits, "0")
 
     def time(self, value: datetime, style: TimeStyle) -> str:
+        """A wall-clock time on the clock the style names.
+
+        The explicit patterns below deliberately bypass Qt's short-time
+        format, which picks the twelve-or-twenty-four answer out of the
+        locale — the very choice this app now makes once, in ``core/``,
+        from ``[ui] clock_format``. Asking the locale again here would let
+        the window disagree with the setting.
+        """
         if style is TimeStyle.HOUR_AND_MINUTE:
             return self._locale.toString(
                 QTime(value.hour, value.minute),
                 QLocale.FormatType.ShortFormat)
+        moment = QTime(value.hour, value.minute, value.second)
+        if style is TimeStyle.HOUR_AND_MINUTE_24:
+            return self._locale.toString(moment, "HH:mm")
+        if style is TimeStyle.HOUR_AND_MINUTE_12:
+            return self._locale.toString(moment, "h:mm AP")
+        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:
+            return self._locale.toString(moment, "HH:mm:ss")
+        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_12:
+            return self._locale.toString(moment, "h:mm:ss AP")
         raise ValueError(f"unsupported time style: {style!r}")
 
     def date(self, value: datetime, style: DateStyle) -> str:

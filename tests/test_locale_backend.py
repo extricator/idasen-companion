@@ -126,6 +126,46 @@ def test_time_renders_the_short_form_for_the_locale(qapp, locale_code, locale):
     assert rendered == TIME_EXPECTED[locale_code]
 
 
+#: The no-break space (U+00A0) Qt places inside the Spanish meridiem
+#: designator ("P.\u00a0M."), written as the six-character Python escape
+#: below and never pasted: a plain space there looks identical on screen
+#: and fails the assertion.
+_NBSP = "\u00a0"
+
+# Hand-typed per locale from the explicit format the backend asks Qt for,
+# not captured from a run.
+TWENTY_FOUR_HOUR_EXPECTED = {"en_US": "14:32", "es_ES": "14:32"}
+TWELVE_HOUR_EXPECTED = {
+    "en_US": "2:32 PM", "es_ES": f"2:32 P.{_NBSP}M.",
+}
+SECONDS_24_EXPECTED = {"en_US": "14:32:05", "es_ES": "14:32:05"}
+SECONDS_12_EXPECTED = {
+    "en_US": "2:32:05 PM", "es_ES": f"2:32:05 P.{_NBSP}M.",
+}
+
+
+def test_time_renders_the_named_clock_rather_than_the_locale_s(
+        qapp, locale_code, locale):
+    """Both clocks are asked for explicitly, so the same moment renders the
+    same way in both locales for the 24-hour style — the divergence that
+    survives is the designator, not the choice of clock."""
+    formatter = QtLocaleFormatter(locale)
+    when = datetime(2026, 8, 17, 14, 32)
+    assert (formatter.time(when, TimeStyle.HOUR_AND_MINUTE_24)
+            == TWENTY_FOUR_HOUR_EXPECTED[locale_code])
+    assert (formatter.time(when, TimeStyle.HOUR_AND_MINUTE_12)
+            == TWELVE_HOUR_EXPECTED[locale_code])
+
+
+def test_time_renders_the_seconds_bearing_styles(qapp, locale_code, locale):
+    formatter = QtLocaleFormatter(locale)
+    when = datetime(2026, 8, 17, 14, 32, 5)
+    assert (formatter.time(when, TimeStyle.HOUR_MINUTE_AND_SECOND_24)
+            == SECONDS_24_EXPECTED[locale_code])
+    assert (formatter.time(when, TimeStyle.HOUR_MINUTE_AND_SECOND_12)
+            == SECONDS_12_EXPECTED[locale_code])
+
+
 DATE_EXPECTED = {
     "en_US": ("Mon 17", "Mon 17 Aug 2026"),
     "es_ES": ("lun 17", "lun 17 ago 2026"),

@@ -26,17 +26,25 @@ in the abstract:
   nobody asked.
 - ``IntegerSpec(min_digits=2)`` is ``fmt_hm``'s zero-padded minutes
   (``"1h 05m"``, never ``"1h 5m"``).
-- ``TimeStyle.HOUR_AND_MINUTE`` is ``fmt_clock`` — a wall-clock time such
-  as "14:32" or, in a 12-hour locale, "2:32 PM".
+- ``TimeStyle.HOUR_AND_MINUTE_24`` and ``TimeStyle.HOUR_AND_MINUTE_12`` are
+  ``fmt_clock`` — a wall-clock time, "14:32" against "2:32 PM".
+- ``TimeStyle.HOUR_MINUTE_AND_SECOND_24`` and
+  ``TimeStyle.HOUR_MINUTE_AND_SECOND_12`` are the Activity Log's row stamp,
+  "14:32:05" against "2:32:05 PM" — the one surface that reads a wall-clock
+  time to the second.
 - ``DateStyle.WEEKDAY_AND_DAY`` is ``fmt_day_label`` — a short day marker
   such as "Mon 03".
 - ``DateStyle.WEEKDAY_DAY_MONTH_YEAR`` is ``fmt_day_heading`` — a full
   calendar heading such as "Mon 17 Aug 2026".
 
 The styles are named for what the product is asking for, not for a Qt
-format code or a strftime directive — a backend is free to render
-``TimeStyle.HOUR_AND_MINUTE`` as ``"14:32"`` or ``"2:32 PM"``, and neither
-name leaks that choice back to the caller.
+format code or a strftime directive: a member says "hour and minute, on a
+twelve-hour clock", never which pattern letters produce it. What the
+product asks for now includes which of the two clocks it means. That is a
+deliberate narrowing — a backend used to be free to answer "the clock"
+from its own environment, and the two front ends disagreed as a result.
+The choice is made once in ``core/`` and handed down; a backend renders
+the style it is given and decides only *how*.
 """
 
 from __future__ import annotations
@@ -74,9 +82,23 @@ class IntegerSpec:
 
 
 class TimeStyle(StrEnum):
-    """A wall-clock time style. See the module docstring for the anchor call."""
+    """A wall-clock time style. See the module docstring for the anchor calls.
 
+    Two shapes — with and without seconds — each on two clocks. The
+    twelve/twenty-four choice is a product decision resolved once from
+    ``[ui] clock_format``; the with/without-seconds choice belongs to the
+    surface doing the rendering.
+    """
+
+    # Superseded by the four members below, which name the clock they mean.
+    # Removed once every caller has been flipped; see the module docstring
+    # for why a backend no longer chooses.
     HOUR_AND_MINUTE = "hour_and_minute"
+
+    HOUR_AND_MINUTE_12 = "hour_and_minute_12"
+    HOUR_AND_MINUTE_24 = "hour_and_minute_24"
+    HOUR_MINUTE_AND_SECOND_12 = "hour_minute_and_second_12"
+    HOUR_MINUTE_AND_SECOND_24 = "hour_minute_and_second_24"
 
 
 class DateStyle(StrEnum):
