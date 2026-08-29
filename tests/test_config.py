@@ -1,6 +1,8 @@
 import pytest
 
+from idasen_companion.core.clock_format import ClockSetting
 from idasen_companion.core.config import (
+    VALID_CLOCK_FORMATS,
     AppConfig,
     ConfigError,
     load_config,
@@ -266,6 +268,42 @@ def test_ui_window_prefs_round_trip(tmp_path):
     assert reloaded.ui.close_action == "quit"
     assert reloaded.ui.minimize_to_tray is True
     assert reloaded.ui.start_minimized is False
+
+
+def test_valid_clock_formats_reads_the_three_values_in_order():
+    # The drift guard the derivation exists for: every ClockSetting member
+    # must appear, in the order the validation message needs.
+    assert VALID_CLOCK_FORMATS == ("system", "12", "24")
+    for member in ClockSetting:
+        assert member.value in VALID_CLOCK_FORMATS
+
+
+def test_clock_format_defaults_to_system(tmp_path):
+    cfg = load_config(tmp_path / "nope.toml")
+    assert cfg.ui.clock_format == "system"
+
+
+@pytest.mark.parametrize("value", ["system", "12", "24"])
+def test_clock_format_round_trips_every_accepted_value(tmp_path, value):
+    path = write(tmp_path, "# my desk setup\n[ui]\n"
+                           f'clock_format = "{value}"\n')
+    cfg = load_config(path)
+    assert cfg.ui.clock_format == value
+    save_config(cfg, path)
+    assert load_config(path).ui.clock_format == value
+    # The user's own comment survives the write, as it must for every key
+    # that goes through the tomlkit path.
+    assert "# my desk setup" in path.read_text()
+
+
+def test_an_unknown_clock_format_is_rejected_naming_all_three(tmp_path):
+    path = write(tmp_path, '[ui]\nclock_format = "half-past"\n')
+    with pytest.raises(ConfigError) as raised:
+        load_config(path)
+    message = str(raised.value)
+    assert "clock_format" in message
+    for accepted in ("system", "12", "24"):
+        assert accepted in message
 
 
 def test_run_at_login_default(tmp_path):

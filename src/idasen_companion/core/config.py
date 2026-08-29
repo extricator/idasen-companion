@@ -13,6 +13,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .clock_format import ClockSetting
 from .durations import format_duration_compact, parse_duration
 from .units import UnitSetting
 
@@ -60,6 +61,12 @@ VALID_CLOSE_ACTIONS = ("tray", "quit")
 # same three strings this held before ("system", "cm", "in") and reach the
 # validation message _require_choice below builds.
 VALID_UNITS = tuple(member.value for member in UnitSetting)
+
+# See UiConfig.clock_format. "system" reads the POSIX time locale and, failing
+# that, the territory of the language in play (see core/clock_format.py);
+# "12" and "24" pin the clock outright. Derived from ClockSetting rather than
+# restated, for the same reason the units tuple above is.
+VALID_CLOCK_FORMATS = tuple(member.value for member in ClockSetting)
 
 # Physical limits of the Idåsen desk (from the Linak controller).
 MIN_HEIGHT = 0.62
@@ -146,6 +153,18 @@ class UiConfig:
     # it. Coercion to UnitSetting happens at the point of use instead — the
     # boundary core/units.py's resolve_height_unit sits behind.
     units: str = "system"
+    # See VALID_CLOCK_FORMATS. Which clock every wall-clock time the app shows
+    # is read on. "system" is a first guess from the environment rather than
+    # an answer, so the two explicit values exist to override it for good.
+    # Applied on Apply, not at startup: no string is baked at construction for
+    # it, and the surfaces that render a time redraw from the rebuilt
+    # formatter.
+    #
+    # Stays str, not ClockSetting, for the reason the units field above gives:
+    # this attribute name is the TOML key, and the tomlkit write path must
+    # never be handed a StrEnum instance. Coercion happens at the point of
+    # use, behind core/clock_format.py's resolver.
+    clock_format: str = "system"
     # Window/tray behaviour. All of these only bite when a system tray exists;
     # with no tray the window always shows and closing it exits (see gui/main).
     # What each tray-icon gesture does (see VALID_TRAY_ACTIONS). Left-click
@@ -252,6 +271,8 @@ def _validate(config: AppConfig) -> None:
     _require_choice("ui", "tray_repeat_move",
                     config.ui.tray_repeat_move, VALID_TRAY_REPEAT)
     _require_choice("ui", "units", config.ui.units, VALID_UNITS)
+    _require_choice("ui", "clock_format",
+                    config.ui.clock_format, VALID_CLOCK_FORMATS)
     _require_choice("ui", "close_action",
                     config.ui.close_action, VALID_CLOSE_ACTIONS)
     for day in config.schedule.days:
@@ -424,9 +445,9 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
     # midpoint).
     drop("advanced", "sitting_height_threshold")
 
-    for toml_key in ("language", "units", "tray_left_click", "tray_middle_click",
-                "tray_repeat_move", "close_action", "minimize_to_tray",
-                "start_minimized", "run_at_login"):
+    for toml_key in ("language", "units", "clock_format", "tray_left_click",
+                "tray_middle_click", "tray_repeat_move", "close_action",
+                "minimize_to_tray", "start_minimized", "run_at_login"):
         put("ui", toml_key, getattr(config.ui, toml_key))
     # The removed double-click action (SNI trays never delivered it).
     drop("ui", "tray_double_click")
