@@ -54,6 +54,24 @@ schedule:
 - **Daemon down** — the red banner and "Start daemon" button in the window.
 - **KDE session paths** — tray icon and tooltip, the freedesktop ScreenSaver
   idle provider, lock and idle detection, suspend/resume, notifications.
+- **Clock-format environments, window against daemon** — measured 2026-08-29,
+  before the `[ui] clock_format` setting was designed, because the design
+  hangs on whether the two processes see the same locale environment. The
+  session carries `LANG=en_US.UTF-8`, `LC_TIME=C`, and neither `LC_ALL` nor
+  `LANGUAGE` is set. The systemd user manager — the authoritative statement of
+  what a freshly started `idasen-companiond.service` inherits — holds exactly
+  the same two: `LANG=en_US.UTF-8` and `LC_TIME=C`. (No daemon was running at
+  the time, so `/proc/<pid>/environ` had nothing to add; the manager's own
+  block is the half that answers the question.) The two therefore agree. Under
+  the precedence the setting's `system` value implements, `LC_TIME` is
+  consulted before any language, `C` names no territory, and the answer is
+  24-hour for both — which is what the window already showed, so a user who
+  sets nothing sees no change. Note that **no shipped daemon code path renders
+  a wall-clock time today**: the notifications speak in relative durations
+  ("in about 5 minutes"), and the tray's snoozed-until line is rendered
+  GUI-side from a raw timestamp the daemon exports. There is no notification
+  clock to compare against the window's, and a later reader should not go
+  looking for one.
 - **Install and upgrade** — `systemctl --user enable --now` starting clean,
   the desktop entry appearing, and `dnf reinstall` restarting the user
   service. Never chain `systemctl --user restart` onto the install: the RPM's
