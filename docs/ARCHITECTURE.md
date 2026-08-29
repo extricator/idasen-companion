@@ -300,27 +300,45 @@ any of the seam's four `LocaleFormatter` operations may render an atomic
 value differently between backends — the same latitude the paragraph
 above grants, applied to a value's own representation rather than to
 whether it appears at all — and none may differ in product formatting
-policy. Swept and recorded cell by cell across the seam's closed
-surface, six of the seam's eight surface cells diverge; the two that do
-not, `NumberSpec.trim_trailing_zeroes` and `IntegerSpec.min_digits`, are
-mechanism rather than policy: the trim is lowered to a reduced decimal
-count each backend hands to its own conversion, and the padding is applied
-by Python to the string each backend has already rendered. Neither cell
-diverges at these sample values because neither leaves anything
-locale-specific to differ about — a trimmed `110` has no fraction and, at
-three digits, no group separator, and `05` is two ASCII digits. The worked
-example is the
-four date/time helpers: `fmt_clock`, `fmt_day_label`, `fmt_day_heading`
-and `fmt_day_and_clock` (`core/presentation/dates.py`'s `clock`,
-`day_short`, `day_heading`, `day_and_clock`, reached through `Formatter`).
-Qt renders through `QLocale` — `lun 17 ago 2026`, `14:32` in `es`;
-`Mon 17 Aug 2026`, `2:32 PM` (with a narrow no-break space) in `en`. The
-Qt-free backend renders both `DateStyle` members as one ISO 8601 date,
-`2026-08-17`, in both shipped languages, and `14:32` for the time style,
-unchanged. Numbers diverge on the same permission: a height renders
-`110,5` through Qt in `es` and `110.5` through the Qt-free backend, which
-reaches every height the app shows — `height_value`, `height` and
-`preset_tick`.
+policy. Swept and recorded cell by cell across the seam's closed surface,
+most cells diverge; four do not — `NumberSpec.trim_trailing_zeroes`,
+`IntegerSpec.min_digits` and both 24-hour `TimeStyle` members. The first
+two are mechanism rather than policy: the trim is lowered to a reduced
+decimal count each backend hands to its own conversion, and the padding is
+applied by Python to the string each backend has already rendered. Neither
+leaves anything locale-specific to differ about — a trimmed `110` has no
+fraction and, at three digits, no group separator, and `05` is two ASCII
+digits. The two clock members are the newer case, and a deliberate one:
+asked for the 24-hour clock explicitly, both backends render the same
+digits in every shipped language, which is exactly what removing the
+backend's own choice bought.
+
+The worked example is the four date/time helpers: `fmt_clock`,
+`fmt_day_label`, `fmt_day_heading` and `fmt_day_and_clock`
+(`core/presentation/dates.py`'s `clock`, `day_short`, `day_heading`,
+`day_and_clock`, reached through `Formatter`), plus the Activity Log's
+seconds-bearing row stamp. Qt renders dates through `QLocale` —
+`lun 17 ago 2026` in `es`, `Mon 17 Aug 2026` in `en`. The Qt-free backend
+renders both `DateStyle` members as one ISO 8601 date, `2026-08-17`, in
+both shipped languages. Numbers diverge on the same permission: a height
+renders `110,5` through Qt in `es` and `110.5` through the Qt-free
+backend, which reaches every height the app shows — `height_value`,
+`height` and `preset_tick`.
+
+**The clock's divergence, since it changed shape.** Which clock a time is
+shown on is no longer a divergence at all: it is a product decision the
+app makes once, in `core/clock_format.py`, from `[ui] clock_format`, and
+hands to whichever backend is rendering. What remains is a divergence of
+*glyphs*, on the 12-hour styles only. At 12 hours the window renders
+`2:32 PM` in `en` and Spanish's own CLDR designator, `2:32 P. M.` (with a
+no-break space inside it), in `es`; the Qt-free backend renders `2:32 PM`
+in both, because its 12-hour clock is fixed English for the same reason
+its dates are fixed ISO. So under Spanish at that setting the window and a
+daemon-rendered line agree on the hour cycle — which is what the setting
+controls — and differ in the designator's glyphs, which this category
+already permits. Routing the meridiem token through the message catalog
+was the rejected alternative: it would put a translated fragment inside a
+rendered value, which is the seam this backend exists to hold.
 
 **`grouping` is named, and answered.** `NumberSpec.grouping` and
 `IntegerSpec.grouping` are a divergence the seam permits that no shipped
@@ -334,9 +352,11 @@ deciding which threshold applies, which fields compose a sentence, or
 whether a value shows at all is not.
 
 **Why.** glibc defines the 12-hour clock format as the empty string for
-`es_ES`, so deriving a 12-hour flag from the process locale would hand a
-Spanish reader a *worse* answer than a plain 24-hour `14:32` — not a
-locally correct one this backend happened to skip. The divergence between
+`es_ES`, so deriving a twelve-or-twenty-four answer from the process
+locale would hand a Spanish reader a *worse* answer than a plain 24-hour
+`14:32` — not a locally correct one this backend happened to skip. That is
+why the answer is a user setting resolved once rather than a guess each
+backend makes for itself. The divergence between
 the two backends does not disappear; it is now `lun 17 ago 2026` versus
 `2026-08-17`, where it used to be against a private table of fixed English
 weekday and month names. What changed is that the Qt-free side no longer

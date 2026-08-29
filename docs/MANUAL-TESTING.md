@@ -158,6 +158,18 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       — the desk must not shift. The unit is display-only: `[presets]` in
       `config.toml` stays in metres, and the journal keeps logging metres.
       Rail tick labels must not overlap or clip at either unit.
+- [ ] **[sweep]** Clock format — walk the three values of Settings ▸ Clock
+      format and confirm every wall-clock time follows without a restart:
+      the tray tooltip's snoozed-until line (snooze from the tray first, so
+      there is a deadline to read), the Statistics page's Recent transitions
+      list, and the Activity Log's row stamps, which keep their seconds on
+      either clock. At **System default** nothing changes from whatever the
+      environment already produced; at **12-hour** the times read with AM/PM;
+      at **24-hour** they read 14:32 whatever the environment says. Repeat
+      the walk with the display language set to Spanish, where the window
+      renders Spanish's own designator (`2:32 P. M.`) at the 12-hour setting.
+      The `journalctl` output is *not* part of this sweep: it stays 24-hour by
+      design, whatever the setting says.
 - [ ] **[sweep]** Manual-only mode — turn off "Automate sit / stand", then:
       Overview reads "Automation off" with no countdown and offers "Turn on
       automation" in place of Pause / Skip / Snooze, while the tray keeps

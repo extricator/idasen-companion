@@ -106,6 +106,16 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
+- [ ] **The date shape has no user override, now that the clock does** —
+      `[ui] clock_format` lets a user pin 12- or 24-hour, and the app resolves
+      it once in `core/clock_format.py` and hands a `TimeStyle` to both
+      backends. `DateStyle` has no equivalent: the window still renders
+      whatever `QLocale` says and the Qt-free backend still renders ISO,
+      with nothing the user can say about either. Nobody has asked for it,
+      and it was left out of the clock work deliberately rather than
+      overlooked — widening into it without deciding out loud is what that
+      restraint was protecting. Recorded so the asymmetry is a decision on
+      the record rather than something the next reader discovers.
 - [ ] **Non-Latin digit sets aren't handled by any locale backend's `integer()`
       implementation** — the routing half of this item is now fully solved:
       both `Formatter.duration_hm`'s zero-padded minutes (`"1h 05m"`) and
