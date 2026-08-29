@@ -44,6 +44,18 @@ class SettingsPage(SettingsFormPage):
             self.tr("Height units"), self.units_combo,
             self.tr("How heights are shown. The default follows your "
                     "region — the desk itself is unaffected")))
+        # Applies on Apply, on the Height units precedent directly above:
+        # nothing here bakes a string at construction, so the surfaces that
+        # render a time simply redraw from the rebuilt formatter. The
+        # example inside each option says what you get before you apply it.
+        self.clock_format_combo = self._themed_combo()
+        self.clock_format_combo.addItem(self.tr("System default"), "system")
+        self.clock_format_combo.addItem(self.tr("12-hour (2:32 PM)"), "12")
+        self.clock_format_combo.addItem(self.tr("24-hour (14:32)"), "24")
+        general.body.addWidget(self._settings_row(
+            self.tr("Clock format"), self.clock_format_combo,
+            self.tr("How times of day are shown. The default follows your "
+                    "region")))
         # Autostart is systemd state, not config, so it is the one control on
         # this page that the footer does not govern — it acts on click. The
         # help line says so, because a staged-looking checkbox that Reset
@@ -283,6 +295,7 @@ class SettingsPage(SettingsFormPage):
     def _load(self, cfg: AppConfig) -> None:
         self._select_data(self.language_combo, cfg.ui.language)
         self._select_data(self.units_combo, cfg.ui.units)
+        self._select_data(self.clock_format_combo, cfg.ui.clock_format)
         for key, combo in self._tray_combos.items():
             self._select_data(combo, getattr(cfg.ui, key))
         self.repeat_move.setCurrentIndex(
@@ -318,6 +331,7 @@ class SettingsPage(SettingsFormPage):
     def _apply(self, cfg: AppConfig) -> None:
         cfg.ui.language = self.language_combo.currentData()
         cfg.ui.units = self.units_combo.currentData()
+        cfg.ui.clock_format = self.clock_format_combo.currentData()
         for key, combo in self._tray_combos.items():
             setattr(cfg.ui, key, combo.currentData())
         cfg.ui.tray_repeat_move = ("off", "stop", "reverse")[

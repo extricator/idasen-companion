@@ -1046,6 +1046,22 @@ Prueba a ejecutar esto en una terminal:
         <translation>Cómo se muestran las alturas. El valor predeterminado sigue tu región — el escritorio no se ve afectado</translation>
     </message>
     <message>
+        <source>12-hour (2:32 PM)</source>
+        <translation>12 horas (2:32 p. m.)</translation>
+    </message>
+    <message>
+        <source>24-hour (14:32)</source>
+        <translation>24 horas (14:32)</translation>
+    </message>
+    <message>
+        <source>Clock format</source>
+        <translation>Formato de hora</translation>
+    </message>
+    <message>
+        <source>How times of day are shown. The default follows your region</source>
+        <translation>Cómo se muestran las horas. El valor predeterminado sigue tu región</translation>
+    </message>
+    <message>
         <source>Nothing</source>
         <translation>Nada</translation>
     </message>
