@@ -114,20 +114,23 @@ def test_integer_zero_pads_with_python_formatting(qapp, locale):
 
 
 #: The no-break space (U+00A0) Qt places inside the Spanish meridiem
-#: designator ("P.\u00a0M."), written as the six-character Python escape
+#: designator ("p.\u00a0m."), written as the six-character Python escape
 #: below and never pasted: a plain space there looks identical on screen
 #: and fails the assertion.
 _NBSP = "\u00a0"
 
 # Hand-typed per locale from the explicit format the backend asks Qt for,
-# not captured from a run.
+# not captured from a run. Each language's designator is in the case that
+# language writes it in \u2014 English upper, Spanish lower \u2014 because the
+# backend picks its meridiem token from the locale's own pmText rather
+# than fixing one case for every language.
 TWENTY_FOUR_HOUR_EXPECTED = {"en_US": "14:32", "es_ES": "14:32"}
 TWELVE_HOUR_EXPECTED = {
-    "en_US": "2:32 PM", "es_ES": f"2:32 P.{_NBSP}M.",
+    "en_US": "2:32 PM", "es_ES": f"2:32 p.{_NBSP}m.",
 }
 SECONDS_24_EXPECTED = {"en_US": "14:32:05", "es_ES": "14:32:05"}
 SECONDS_12_EXPECTED = {
-    "en_US": "2:32:05 PM", "es_ES": f"2:32:05 P.{_NBSP}M.",
+    "en_US": "2:32:05 PM", "es_ES": f"2:32:05 p.{_NBSP}m.",
 }
 
 

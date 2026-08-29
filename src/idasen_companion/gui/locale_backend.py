@@ -85,28 +85,45 @@ class QtLocaleFormatter:
         Asking the locale again here would let the window disagree with the
         setting.
 
-        The twelve-hour patterns use Qt's **upper-case** meridiem token,
-        not the lower-case one, and that is a decision rather than a
-        default: the Qt-free backend renders its own twelve-hour clock as
-        fixed upper-case English, so the upper-case token is what keeps the
-        English window rendering in the case it has always had — only the
-        separator byte before the designator changed. The consequence is
-        that Spanish renders its own CLDR designator in that same
-        upper-case form, which is a rendering divergence
-        ``docs/ARCHITECTURE.md`` already sanctions and not a policy one.
-        Switching tokens to make Spanish read more naturally would change
-        the English rendering's case, which nothing asked for.
+        The twelve-hour patterns take their meridiem token from
+        :meth:`_meridiem_token`, so each language reads its designator the
+        way it writes it.
         """
         moment = QTime(value.hour, value.minute, value.second)
+        meridiem = self._meridiem_token()
         if style is TimeStyle.HOUR_AND_MINUTE_24:
             return self._locale.toString(moment, "HH:mm")
         if style is TimeStyle.HOUR_AND_MINUTE_12:
-            return self._locale.toString(moment, "h:mm AP")
+            return self._locale.toString(moment, f"h:mm {meridiem}")
         if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:
             return self._locale.toString(moment, "HH:mm:ss")
         if style is TimeStyle.HOUR_MINUTE_AND_SECOND_12:
-            return self._locale.toString(moment, "h:mm:ss AP")
+            return self._locale.toString(moment, f"h:mm:ss {meridiem}")
         raise ValueError(f"unsupported time style: {style!r}")
+
+    def _meridiem_token(self) -> str:
+        """Qt's meridiem token, in the case this locale writes it in.
+
+        Qt offers two: ``AP`` substitutes ``QLocale.pmText()`` verbatim,
+        ``ap`` substitutes a lower-cased copy of it. Neither is right for
+        every language, because the case belongs to the language rather
+        than to the app — English writes ``PM``, Spanish's CLDR designator
+        is ``p. m.`` and shouts when upper-cased.
+
+        So the locale's own designator chooses the token: already
+        lower-case means ``ap`` (which then leaves it alone), anything else
+        means ``AP``. Both branches end up rendering exactly what
+        ``pmText()`` holds, and the separator Qt inserts before the
+        designator is untouched either way — the alternative, pasting
+        ``pmText()`` on by hand, would have hardcoded that separator into
+        this file.
+
+        This stays inside the Qt backend on purpose. The seam's rule
+        (``BACK-02``) is that a backend decides *how* an atomic value is
+        rendered and never decides product policy; meridiem casing is the
+        former, and no ``am_text()`` accessor crosses the protocol.
+        """
+        return "ap" if self._locale.pmText().islower() else "AP"
 
     def date(self, value: datetime, style: DateStyle) -> str:
         moment = QDate(value.year, value.month, value.day)

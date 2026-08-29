@@ -103,7 +103,7 @@ def _qt_formatter() -> Formatter:
 # ----------------------------------------------------------------------
 
 #: The no-break space (U+00A0) Qt places *inside* Spanish's meridiem
-#: designator ("P.\u00a0M.") — written as the six-character Python escape
+#: designator ("p.\u00a0m.") — written as the six-character Python escape
 #: sequence below, never pasted, because a plain space there looks identical
 #: on screen and fails the assertion. The separator before the designator is
 #: a plain ASCII space in both languages: the explicit format string this
@@ -258,16 +258,16 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         # controls; they differ in glyphs, which docs/ARCHITECTURE.md
         # already permits.
         LanguageRendering("clock_afternoon_12",
-                           window=f"2:32 P.{_NBSP}M.", daemon="2:32 PM"),
+                           window=f"2:32 p.{_NBSP}m.", daemon="2:32 PM"),
         LanguageRendering("clock_morning_12",
-                           window=f"9:05 A.{_NBSP}M.", daemon="9:05 AM"),
+                           window=f"9:05 a.{_NBSP}m.", daemon="9:05 AM"),
         LanguageRendering("clock_with_seconds_12",
-                           window=f"2:32:05 P.{_NBSP}M.",
+                           window=f"2:32:05 p.{_NBSP}m.",
                            daemon="2:32:05 PM"),
         LanguageRendering("day_and_clock_24", window="lun 17 14:32",
                            daemon="2026-08-17 14:32"),
         LanguageRendering("day_and_clock_12",
-                           window=f"lun 17 2:32 P.{_NBSP}M.",
+                           window=f"lun 17 2:32 p.{_NBSP}m.",
                            daemon="2026-08-17 2:32 PM"),
         # The window column carries a decimal comma here because Qt renders
         # through QLocale; the daemon column carries a full stop because
