@@ -88,7 +88,7 @@ _US_CUSTOMARY_TERRITORIES = frozenset({"US", "LR"})
 _SYSTEM_ENVIRON_PRECEDENCE = ("LC_ALL", "LC_MEASUREMENT", "LANG", "LANGUAGE")
 
 
-def _territory(locale_value: str) -> str | None:
+def territory_of(locale_value: str) -> str | None:
     """The two-letter territory out of a POSIX-shaped locale string.
 
     Handles ``language[_territory][.codeset][@modifier]`` — ``"en_US.UTF-8"``,
@@ -116,12 +116,12 @@ def resolve_height_unit(setting: UnitSetting, *, language: str,
     if setting is not UnitSetting.SYSTEM:
         return HeightUnit(setting.value)
 
-    territory = _territory(language)
+    territory = territory_of(language)
     if territory is None:
         for key in _SYSTEM_ENVIRON_PRECEDENCE:
             value = environ.get(key)
             if value:
-                territory = _territory(value)
+                territory = territory_of(value)
                 if territory is not None:
                     break
 
