@@ -10,6 +10,8 @@ skip, snooze, turn on), this page configures *every* cycle.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from PySide6.QtCore import Qt, QTime
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QSpinBox,
@@ -241,14 +243,31 @@ class AutomationPage(SettingsFormPage):
     def _update_sched_summary(self, *_args) -> None:
         if self.sched_enabled.isChecked():
             days = [d for d, c in self.day_checks.items() if c.isChecked()]
-            start = self.start_time.time().toString("HH:mm")
-            end = self.end_time.time().toString("HH:mm")
+            # Through the configured formatter, not QTime's own "HH:mm": this
+            # sentence is a wall-clock time the window shows, so it follows
+            # [ui] clock_format like every other one. The two QTimeEdits above
+            # keep their own 24-hour display — they are editors for a value
+            # stored as HH:MM, and an editor showing a different shape from
+            # the field it writes is a different kind of wrong.
+            start = self._clock(self.start_time.time())
+            end = self._clock(self.end_time.time())
             self._sched_summary.setText(self.tr(
                 "Automation runs %s, %s–%s. Outside these hours the desk "
                 "stays put.") % (fmt_days(days), start, end))
         else:
             self._sched_summary.setText(self.tr(
                 "Schedule off — automation runs whenever you're active."))
+
+    def _clock(self, when: QTime) -> str:
+        """A schedule boundary on the clock the user chose.
+
+        The date is arbitrary and unused — only the hour and minute reach
+        the rendering — but ``Formatter.clock`` takes a moment rather than a
+        time, so one is supplied rather than adding a second entry point to
+        the shared layer for this one caller.
+        """
+        moment = datetime(2000, 1, 1, when.hour(), when.minute())
+        return self.ctx.fmt.clock(moment)
 
     def _interval_label(self, seconds: int, zero_label: str = "") -> str:
         """Item text for one offered interval.

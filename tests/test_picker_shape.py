@@ -40,7 +40,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from types import SimpleNamespace  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QObject, QTime, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
@@ -313,3 +313,51 @@ def test_the_activity_log_still_renders_a_duration_through_the_compact_shape():
         "presence.now_idle", {"idle_time": 65 * 60}, "fallback text",
         fmt=fmt)
     assert rendered == "Now idle (1h 05m idle time)"
+
+
+# ---- the schedule summary follows the clock, the editors do not ----------
+
+def _summary_on(page, style: TimeStyle) -> str:
+    """The schedule sentence rendered on one clock.
+
+    The page's formatter is swapped rather than the config rewritten: this
+    asserts what the *summary* does with a clock style, and routing through
+    a config reload would drag the whole settings round-trip into a test
+    about one sentence.
+    """
+    page.ctx.fmt = Formatter(PresentationContext(
+        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES, time_style=style))
+    page.sched_enabled.setChecked(True)
+    page.start_time.setTime(QTime(9, 0))
+    page.end_time.setTime(QTime(17, 0))
+    page._update_sched_summary()
+    return page._sched_summary.text()
+
+
+def test_the_schedule_summary_follows_the_clock_format(automation_page):
+    """The sentence is a wall-clock time the window shows, so it moves with
+    the setting like every other one.
+
+    It shipped on a hard-coded ``HH:mm``, which left one line reading 09:00
+    while the Statistics page beside it read 9:00 AM — the exact split this
+    phase exists to close, on the one surface nobody thought to name.
+    """
+    on_24 = _summary_on(automation_page, TimeStyle.HOUR_AND_MINUTE_24)
+    assert "09:00" in on_24 and "17:00" in on_24
+
+    on_12 = _summary_on(automation_page, TimeStyle.HOUR_AND_MINUTE_12)
+    assert "9:00 AM" in on_12 and "5:00 PM" in on_12, on_12
+
+
+def test_the_schedule_editors_keep_their_own_display(automation_page):
+    """The two ``QTimeEdit``s are deliberately *not* swept along.
+
+    They edit a value stored as ``HH:MM``, and an editor showing a shape
+    different from the field it writes is its own kind of wrong. Pinned so a
+    later sweep of "everything that shows a time" does not quietly take them
+    too.
+    """
+    _summary_on(automation_page, TimeStyle.HOUR_AND_MINUTE_12)
+    assert automation_page.start_time.time().toString("HH:mm") == "09:00"
+    assert automation_page.end_time.time().toString("HH:mm") == "17:00"
