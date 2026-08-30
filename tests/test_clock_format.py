@@ -135,6 +135,43 @@ def test_the_territory_set_holds_the_two_the_policy_is_written_against():
     assert "GB" not in TWELVE_HOUR_TERRITORIES
 
 
+#: Territories that render 14:32 in their own digits — Persian, Arabic,
+#: Burmese, Devanagari — and were filed as 12-hour by a derivation that
+#: looked for ASCII "14", found none, and drew the wrong conclusion. They
+#: shipped wrong. Named individually rather than counted, so a regression
+#: says which country it broke.
+NON_LATIN_DIGIT_TWENTY_FOUR_HOUR = ("AF", "IR", "KM", "MM", "NP")
+
+#: Territories whose own locales disagree, kept because their *main* language
+#: is 12-hour: es_CL and es_GT are, arn_CL and quc_GT are not. A derivation
+#: demanding unanimity, or taking a majority, drops both — and drops the
+#: United States too, where only two of five installed locales are 12-hour.
+SPLIT_BUT_TWELVE_HOUR = ("CL", "GT", "US")
+
+
+@pytest.mark.parametrize("code", NON_LATIN_DIGIT_TWENTY_FOUR_HOUR)
+def test_a_territory_writing_its_clock_in_other_digits_is_not_called_12_hour(
+        code):
+    """A 24-hour clock is 24-hour in any script.
+
+    This is a regression, not a hypothetical: all five shipped inside the
+    set. The defect is invisible by inspection — the codes look as plausible
+    as their neighbours — which is why they are named here rather than left
+    to a reviewer to notice.
+    """
+    assert code not in TWELVE_HOUR_TERRITORIES, (
+        f"{code} renders 14:32 in its own digit set and is a 24-hour "
+        f"territory; listing it here makes its users read 2:32 PM instead")
+
+
+@pytest.mark.parametrize("code", SPLIT_BUT_TWELVE_HOUR)
+def test_a_split_territory_follows_its_main_language(code):
+    """Kept by the likely-locale rule, dropped by unanimity or majority."""
+    assert code in TWELVE_HOUR_TERRITORIES, (
+        f"{code}'s main language renders a 12-hour clock; dropping it means "
+        f"a derivation stopped following the territory's likely locale")
+
+
 def test_every_recorded_territory_is_an_upper_case_two_letter_code():
     """The parser hands back an upper-cased two-letter code, so a lower-case
     or three-letter entry here would be dead data that never matches."""

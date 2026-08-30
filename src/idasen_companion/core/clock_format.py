@@ -88,16 +88,51 @@ class ClockSetting(StrEnum):
 
 #: Territories whose predominant CLDR locale renders a 12-hour clock. See the
 #: module docstring for how this was derived and when.
+#:
+#: **Four rules govern the derivation, and every one of them is here because
+#: breaking it put wrong data in this set.**
+#: ``tests/test_locale_backend.py`` re-derives the set against the installed
+#: CLDR and asserts equality, so none of the four can be lost silently.
+#:
+#: 1. **Digits are read whatever script writes them.** Afghanistan, Iran,
+#:    Comoros, Myanmar and Nepal all render ``14:32`` — as ``۱۴:۳۲``, ``١٤:٣٢``,
+#:    ``၁၄:၃၂`` and ``१४:३२``. The first derivation matched ASCII ``14`` only,
+#:    found none, and filed all five as 12-hour. They shipped wrong.
+#: 2. **Only territories CLDR actually has a locale for.** ``QLocale`` answers
+#:    for any territory you ask about, falling back to a default — so a
+#:    derivation that walks the whole enum marks Antarctica, Bouvet Island and
+#:    the European Union as 12-hour. That is not merely noise: it inverts this
+#:    module's own documented fallback, which is 24-hour when nothing names a
+#:    territory.
+#: 3. **A territory's likely locale decides, so its main language wins.** Some
+#:    territories disagree internally — ``es_CL`` is 12-hour and ``arn_CL`` is
+#:    24-hour, ``en_GB`` is 24-hour and ``gd_GB`` is 12-hour. Neither unanimity
+#:    nor a majority works (only two of five installed ``*_US`` locales are
+#:    12-hour, so both rules would drop the United States). CLDR's own
+#:    likely-subtags resolution names the language a territory actually speaks,
+#:    which is the question being asked.
+#: 4. **The likely locale is only believed when it is for the territory that
+#:    was asked about.** For American Samoa, Palau, Samoa, Vanuatu, Tokelau and
+#:    Tuvalu, Qt resolves no likely locale and silently returns one for a
+#:    different territory — whose rendering then follows whatever
+#:    ``QLocale.setDefault`` happens to hold, making the derivation depend on
+#:    process-global mutable state and answer differently depending on what ran
+#:    before it. Comparing the returned territory against the requested one
+#:    catches that; those six fall back to their own locales, which are
+#:    unanimous. The re-derivation asserts that unanimity rather than assuming
+#:    it, so a future CLDR that splits one of them fails loudly instead of
+#:    being guessed at.
 TWELVE_HOUR_TERRITORIES = frozenset({
-    "AE", "AF", "AG", "AL", "AR", "AU", "BB", "BD", "BH", "BM", "BN", "BO",
-    "BS", "BT", "CA", "CL", "CO", "CR", "CU", "CY", "DJ", "DM", "DO", "DZ",
-    "EC", "EG", "EH", "ER", "ET", "FJ", "FM", "GD", "GH", "GM", "GR", "GT",
-    "GU", "GY", "HK", "HN", "IN", "IQ", "IR", "JM", "JO", "KH", "KI", "KM",
-    "KN", "KP", "KR", "KW", "KY", "LB", "LC", "LR", "LS", "LY", "MH", "MM",
-    "MO", "MP", "MR", "MW", "MX", "MY", "NA", "NI", "NP", "NZ", "OM", "PA",
-    "PE", "PG", "PH", "PK", "PR", "PS", "QA", "SA", "SB", "SD", "SG", "SL",
-    "SO", "SS", "SV", "SY", "SZ", "TC", "TD", "TN", "TO", "TT", "TW", "UM",
-    "US", "UY", "VC", "VE", "VG", "VI", "YE", "ZM",
+    "AE", "AG", "AL", "AR", "AS", "AU", "BB", "BD", "BH", "BM", "BN",
+    "BO", "BS", "BT", "CA", "CL", "CO", "CR", "CU", "CY", "DJ", "DM",
+    "DO", "DZ", "EC", "EG", "EH", "ER", "ET", "FJ", "FM", "GD", "GH",
+    "GM", "GR", "GT", "GU", "GY", "HK", "HN", "IN", "IQ", "JM", "JO",
+    "KH", "KI", "KN", "KP", "KR", "KW", "KY", "LB", "LC", "LR", "LS",
+    "LY", "MH", "MO", "MP", "MR", "MW", "MX", "MY", "NA", "NI", "NZ",
+    "OM", "PA", "PE", "PG", "PH", "PK", "PR", "PS", "PW", "QA", "SA",
+    "SB", "SD", "SG", "SL", "SO", "SS", "SV", "SY", "SZ", "TC", "TD",
+    "TN", "TO", "TT", "TW", "UM", "US", "UY", "VC", "VE", "VG", "VI",
+    "VU", "WS", "YE", "ZM",
 })
 
 #: The POSIX variables that name the *time* locale, in precedence order. The
