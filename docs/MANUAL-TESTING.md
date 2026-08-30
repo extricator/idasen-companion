@@ -160,10 +160,15 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       Rail tick labels must not overlap or clip at either unit.
 - [ ] **[sweep]** Clock format — walk the three values of Settings ▸ Clock
       format and confirm every wall-clock time follows without a restart:
-      the tray tooltip's snoozed-until line (snooze from the tray first, so
-      there is a deadline to read), the Statistics page's Recent transitions
-      list, and the Activity Log's row stamps, which keep their seconds on
-      either clock. At **System default** nothing changes from whatever the
+      the Statistics page's Recent transitions list, and the Activity Log's
+      row stamps, which keep their seconds on either clock. **The tray
+      tooltip carries a clock in exactly one state — snoozed.** Every other
+      line in it is a duration ("Sitting for 40m", "Standing up in 17m"), so
+      snooze from the tray before looking or there is nothing there to read;
+      and for a moment after snoozing it says "…until later" rather than a
+      time, because the deadline is fetched asynchronously. A walker told to
+      check "the tooltip's snoozed-until line" without that reported it
+      missing, which it was not. At **System default** nothing changes from whatever the
       environment already produced; at **12-hour** the times read with AM/PM;
       at **24-hour** they read 14:32 whatever the environment says. Repeat
       the walk with the display language set to Spanish, where the window
