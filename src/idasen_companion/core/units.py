@@ -92,12 +92,21 @@ def territory_of(locale_value: str) -> str | None:
     """The two-letter territory out of a POSIX-shaped locale string.
 
     Handles ``language[_territory][.codeset][@modifier]`` — ``"en_US.UTF-8"``,
-    ``"es_ES"``, ``"C"`` — stopping at the first ``.`` or ``@`` before
+    ``"es_ES"``, ``"C"`` — and the colon-separated priority list GNU gettext
+    puts in ``LANGUAGE`` (``"es_ES:es"``), of which only the first entry is
+    read. Stops at the first ``:``, then the first ``.`` or ``@``, before
     looking for the ``_territory`` segment. Returns ``None`` when the string
     names no two-letter territory at all, which callers treat as "try the
     next source" rather than as an error.
     """
-    core = locale_value.split(".", 1)[0].split("@", 1)[0]
+    # The colon split comes first and is not cosmetic. LANGUAGE is a GNU
+    # gettext *priority list* — a real session carries "es_ES:es" — and both
+    # resolvers consult it for a territory. Without this, "es_ES:es" partitions
+    # to "ES:es", which is five characters and so names no territory at all:
+    # the LANGUAGE step of both policies was silently inert for the only form
+    # the variable is normally written in.
+    core = locale_value.split(":", 1)[0]
+    core = core.split(".", 1)[0].split("@", 1)[0]
     _, _, territory = core.partition("_")
     if len(territory) == 2 and territory.isalpha():
         return territory.upper()

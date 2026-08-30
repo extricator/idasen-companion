@@ -14,6 +14,7 @@ from idasen_companion.core.units import (
     height_decimals,
     height_step,
     resolve_height_unit,
+    territory_of,
     to_display_height,
 )
 
@@ -112,3 +113,27 @@ def test_inches_carry_a_second_decimal():
 def test_height_step_differs_by_unit():
     assert height_step(HeightUnit.INCHES) == 0.25
     assert height_step(HeightUnit.CENTIMETRES) == 0.5
+
+
+# ---- LANGUAGE's colon list ------------------------------------------------
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("es_ES:es", "ES"),
+    ("en_US:en", "US"),
+    ("pt_BR:pt_PT:pt", "BR"),
+    # A first entry naming no territory still answers None rather than
+    # searching the rest of the list: the list is a *priority* order, so a
+    # later entry is a fallback the user ranked lower, not a better answer.
+    ("es:es_ES", None),
+    ("C", None),
+    ("", None),
+])
+def test_territory_of_reads_the_first_entry_of_a_gettext_priority_list(
+        value, expected):
+    """``LANGUAGE`` is a colon list, and both resolvers consult it.
+
+    Without the colon split ``"es_ES:es"`` partitions to ``"ES:es"`` — five
+    characters, so no territory — and the LANGUAGE step of the clock and
+    height policies was inert for the only form the variable normally takes.
+    """
+    assert territory_of(value) == expected
