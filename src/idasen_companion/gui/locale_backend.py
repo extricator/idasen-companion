@@ -90,15 +90,16 @@ class QtLocaleFormatter:
         way it writes it.
         """
         moment = QTime(value.hour, value.minute, value.second)
-        meridiem = self._meridiem_token()
         if style is TimeStyle.HOUR_AND_MINUTE_24:
             return self._locale.toString(moment, "HH:mm")
         if style is TimeStyle.HOUR_AND_MINUTE_12:
-            return self._locale.toString(moment, f"h:mm {meridiem}")
+            return self._locale.toString(
+                moment, f"h:mm {self._meridiem_token()}")
         if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:
             return self._locale.toString(moment, "HH:mm:ss")
         if style is TimeStyle.HOUR_MINUTE_AND_SECOND_12:
-            return self._locale.toString(moment, f"h:mm:ss {meridiem}")
+            return self._locale.toString(
+                moment, f"h:mm:ss {self._meridiem_token()}")
         raise ValueError(f"unsupported time style: {style!r}")
 
     def _meridiem_token(self) -> str:
