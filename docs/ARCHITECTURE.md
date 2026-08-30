@@ -330,8 +330,8 @@ shown on is no longer a divergence at all: it is a product decision the
 app makes once, in `core/clock_format.py`, from `[ui] clock_format`, and
 hands to whichever backend is rendering. What remains is a divergence of
 *glyphs*, on the 12-hour styles only. At 12 hours the window renders
-`2:32 PM` in `en` and Spanish's own CLDR designator, `2:32 P. M.` (with a
-no-break space inside it), in `es`; the Qt-free backend renders `2:32 PM`
+`2:32 PM` in `en` and Spanish's own CLDR designator, `2:32 p. m.` (lower
+case, with a no-break space inside it), in `es`; the Qt-free backend renders `2:32 PM`
 in both, because its 12-hour clock is fixed English for the same reason
 its dates are fixed ISO. So under Spanish at that setting the window and a
 daemon-rendered line agree on the hour cycle — which is what the setting
