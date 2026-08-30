@@ -484,6 +484,39 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **`_TRANSLATOR_SEEDS` hand-lists `Formatter` method names, so the
+      concatenation check can quietly narrow** — the seed set in
+      `tests/test_translation_markers.py` began as two structurally complete
+      names (`_tr`, `GettextTranslator`), which caught *any* value reaching a
+      translator. It now also names `day_and_clock`, `snooze_line` and
+      `later_label` by hand. A new message-rendering `Formatter` method
+      reached from `gui/util.py` would not be seeded, the mark it should have
+      demanded would never be asked for, and the suite would stay green.
+
+      **Two approaches were tried and both were wrong — do not repeat them.**
+      Deriving the expected set with the module's own `_reaches_tr` is
+      *circular*: that helper is seeded by `_TRANSLATOR_SEEDS`, so removing a
+      seed removes it from both sides and the check can never fail (verified
+      by mutation). Deriving it by intersecting "methods in `formatter.py`
+      that mention a translator" with "attribute names called in
+      `gui/util.py`" *over-reaches*: names are matched bare, so `util`'s own
+      `preset_label` collides with a same-named `Formatter` method and eleven
+      false positives are reported. A correct guard has to resolve the
+      receiver, not just the attribute name. Fragility only — nothing is
+      mis-translated today.
+- [ ] **`gui/util.py`'s `fmt_clock` is a forwarder with no production
+      callers** — it earned its place before Phase 19, when it built a
+      `QtLocaleFormatter(QLocale())` its callers could not. It is now
+      `return fmt.clock(when)`. Five test modules still import it, so
+      deleting it is a test-only change of moderate churn; `fmt_day_and_clock`
+      beside it is still a real whole-message renderer and stays.
+- [ ] **The tray tooltip's refresh on Apply is incidental, and its test fakes
+      the trigger** — `tests/test_tray_tooltip.py` forces the redraw with
+      `snoozeUntilChanged`, while the tray's own `ctx.configChanged`
+      subscription only rebuilds the presets submenu. So a clock-format change
+      reaches the tooltip via the daemon echoing `StatusChanged`, not via
+      Apply. Narrow in practice — the tooltip carries a clock only while
+      snoozed — but the test claims to pin a mechanism it does not exercise.
 - [ ] **CI generates no POSIX locale for any shipped language, so a
       locale-sensitive gate only ever runs on a developer machine** — two
       different things are called a language here and CI has only one of them.
