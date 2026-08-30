@@ -128,7 +128,7 @@ class StatisticsPage(Page):
             stand = data.get("standing", 0.0)
             total_sit += sit
             total_stand += stand
-            rows.append((fmt_day_label(datetime(window_day.year, window_day.month, window_day.day)),
+            rows.append((fmt_day_label(self.ctx.fmt, datetime(window_day.year, window_day.month, window_day.day)),
                          sit, stand, window_day == end_date))
         self.daily_chart.set_rows(rows)
         overall = total_sit + total_stand

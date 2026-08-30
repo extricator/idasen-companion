@@ -161,7 +161,10 @@ _COUNTDOWN_CASES = (
 
 
 def _countdown_cases() -> dict[str, str]:
-    return {name: util.fmt_countdown(seconds)
+    # The clock style is irrelevant to a countdown; the window pairing is
+    # what matters, so this reuses it rather than building a fourth one.
+    fmt = _clock_formatter(TimeStyle.HOUR_AND_MINUTE_24)
+    return {name: util.fmt_countdown(fmt, seconds)
             for name, seconds in _COUNTDOWN_CASES}
 
 
@@ -217,8 +220,10 @@ def _day_cases() -> dict[str, str]:
     for clock, style in _CLOCKS.items():
         cases[f"and_clock_{clock}"] = util.fmt_day_and_clock(
             _clock_formatter(style), _DAY_WHEN)
-    cases["bare_label"] = util.fmt_day_label(_DAY_WHEN)
-    cases["heading"] = util.fmt_day_heading(_DAY_WHEN)
+    cases["bare_label"] = util.fmt_day_label(
+        _clock_formatter(TimeStyle.HOUR_AND_MINUTE_24), _DAY_WHEN)
+    cases["heading"] = util.fmt_day_heading(
+        _clock_formatter(TimeStyle.HOUR_AND_MINUTE_24), _DAY_WHEN)
     return cases
 
 

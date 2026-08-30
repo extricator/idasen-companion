@@ -557,7 +557,7 @@ class OverviewPage(Page):
         self.countdown_in_lbl.setVisible(not due)
         self.countdown_of_lbl.setVisible(not due)
         self.countdown_time_word.setText(
-            due_now_label() if due else fmt_countdown(remaining))
+            due_now_label() if due else fmt_countdown(self.ctx.fmt, remaining))
         total = self.countdown_bar.maximum()
         elapsed = max(0, min(total, int(total - remaining)))
         self.countdown_bar.setValue(elapsed)

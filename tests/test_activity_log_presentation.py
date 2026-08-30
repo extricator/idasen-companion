@@ -137,10 +137,10 @@ def test_a_separator_precedes_each_day_group_including_the_oldest(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 5, f"expected 2 separators + 3 rows, got {lines}"
-    assert util.fmt_day_heading(day1_first) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day1_first) in lines[0]
     assert lines[1].endswith("first day, first line")
     assert lines[2].endswith("first day, second line")
-    assert util.fmt_day_heading(day2) in lines[3]
+    assert util.fmt_day_heading(page.ctx.fmt, day2) in lines[3]
     assert lines[4].endswith("second day, first line")
 
 
@@ -153,7 +153,7 @@ def test_a_backlog_within_one_day_draws_exactly_one_separator(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 4, f"expected 1 separator + 3 rows, got {lines}"
-    assert util.fmt_day_heading(day) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day) in lines[0]
 
 
 def test_a_live_entry_on_a_new_day_gets_its_own_separator(page):
@@ -166,9 +166,9 @@ def test_a_live_entry_on_a_new_day_gets_its_own_separator(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 4, f"expected sep, row, sep, row, got {lines}"
-    assert util.fmt_day_heading(day1) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day1) in lines[0]
     assert lines[1].endswith("first day")
-    assert util.fmt_day_heading(day2) in lines[2]
+    assert util.fmt_day_heading(page.ctx.fmt, day2) in lines[2]
     assert lines[3].endswith("second day")
 
 
@@ -197,7 +197,7 @@ def test_a_full_backlog_still_hits_the_cap_and_starts_with_a_separator(page):
     document = page.log_view.document()
     assert document.blockCount() == cap
     first_block_text = document.firstBlock().text()
-    assert util.fmt_day_heading(day) in first_block_text
+    assert util.fmt_day_heading(page.ctx.fmt, day) in first_block_text
     assert "line" not in first_block_text, (
         "the first block should be the day separator, not a row")
 
@@ -353,7 +353,7 @@ def test_the_day_separator_is_ruled_out_to_the_view_width(page, qapp):
     page._redraw()
 
     wide = _separator_line(page)
-    assert util.fmt_day_heading(day) in wide
+    assert util.fmt_day_heading(page.ctx.fmt, day) in wide
     # It reaches the measured width, give or take the odd cell that centring
     # leaves when the remainder doesn't divide evenly between the two rules.
     assert len(wide) >= page._separator_width - 2
@@ -372,7 +372,7 @@ def test_a_narrower_view_gets_a_shorter_rule(page, qapp):
     narrow = len(_separator_line(page))
 
     assert narrow < wide, f"rule did not shrink with the view ({narrow} vs {wide})"
-    assert util.fmt_day_heading(day) in _separator_line(page)
+    assert util.fmt_day_heading(page.ctx.fmt, day) in _separator_line(page)
 
 
 def test_the_separator_never_outgrows_the_view_at_any_width(page, qapp):

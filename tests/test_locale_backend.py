@@ -37,6 +37,9 @@ from idasen_companion.core.clock_format import (  # noqa: E402
     TWELVE_HOUR_TERRITORIES,
 )
 from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+    GettextTranslator,
+)
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -259,6 +262,15 @@ def test_lookup_with_the_shipped_spanish_catalog_returns_a_translation(
 # way for the values it can serve.
 
 
+def _util_formatter(locale: QLocale) -> Formatter:
+    """The window pairing on one locale, for the gui/util.py helpers that
+    now take a Formatter rather than reading the ambient QLocale."""
+    return Formatter(PresentationContext(
+        locale=QtLocaleFormatter(locale), translator=GettextTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
+
+
 @pytest.fixture
 def util_locale(locale_code):
     """Set the default QLocale for gui/util.py's QLocale()-reading helpers,
@@ -319,11 +331,12 @@ def test_clock_matches_util_fmt_clock_morning_and_afternoon(
 def test_date_matches_util_fmt_day_label_and_fmt_day_heading(
         qapp, locale_code, locale, util_locale):
     formatter = QtLocaleFormatter(locale)
+    fmt = _util_formatter(locale)
     when = datetime(2026, 8, 17)
     assert (formatter.date(when, DateStyle.WEEKDAY_AND_DAY)
-            == fmt_day_label(when))
+            == fmt_day_label(fmt, when))
     assert (formatter.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
-            == fmt_day_heading(when))
+            == fmt_day_heading(fmt, when))
 
 
 def test_integer_matches_the_zero_padded_minutes_in_duration_hm(

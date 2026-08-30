@@ -427,7 +427,7 @@ class ActivityLogPage(Page):
         ``margin-top`` rather than a blank line above it; a blank line would
         spend a block from the document's own cap for nothing.
         """
-        heading = util.fmt_day_heading(
+        heading = util.fmt_day_heading(self.ctx.fmt, 
             datetime(separator_day.year, separator_day.month, separator_day.day))
         # The two spaces flanking the heading are part of what has to fit.
         fill = max(0, (self._separator_width - len(heading) - 2) // 2)

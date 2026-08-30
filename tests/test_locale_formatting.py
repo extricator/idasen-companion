@@ -24,6 +24,9 @@ from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox  # noqa: E402
 
 from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+    GettextTranslator,
+)
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -92,10 +95,23 @@ def test_trim_drops_a_trailing_zero_decimal(locale):
     assert formatter.number(60.5, spec) == "60.5"
 
 
+def _ambient_formatter() -> Formatter:
+    """The window pairing on whatever QLocale the `locale` fixture set.
+
+    fmt_day_heading takes a Formatter now rather than reading the process
+    default itself, so these tests build one over the ambient locale — the
+    thing the fixture is actually varying.
+    """
+    return Formatter(PresentationContext(
+        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
+
+
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_day_heading_renders_english_weekday_and_month_names(locale):
     when = datetime(2026, 8, 17)
-    heading = fmt_day_heading(when)
+    heading = fmt_day_heading(_ambient_formatter(), when)
     assert QLocale().dayName(when.isoweekday(),
                              QLocale.FormatType.ShortFormat) in heading
     assert QLocale().monthName(when.month,
@@ -108,7 +124,7 @@ def test_day_heading_renders_spanish_weekday_and_month_names(locale):
     """Assert on the locale's own supplied names, not an exact string --
     QLocale governs the words, this only checks they made it in."""
     when = datetime(2026, 8, 17)
-    heading = fmt_day_heading(when)
+    heading = fmt_day_heading(_ambient_formatter(), when)
     assert QLocale().dayName(when.isoweekday(),
                              QLocale.FormatType.ShortFormat) in heading
     assert QLocale().monthName(when.month,

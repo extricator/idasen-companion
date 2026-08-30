@@ -135,6 +135,14 @@ def _lambda_definitions(tree):
 #: method of the same name would over-reach and ask for a mark that was not
 #: needed -- a loud failure at the definition, which is the trade this whole
 #: rule already documents.
+#: Attribute names that *are* a translator when read, rather than names that
+#: return one when called. A helper taking `fmt` and passing
+#: `fmt.context.translator` down constructs nothing, so the call-name walk
+#: sees no seed and would call the helper's mark spurious -- which is exactly
+#: what happened when gui/util.py's fmt_countdown stopped building its own
+#: backend. Structural rather than a second hand-list.
+_TRANSLATOR_ATTRIBUTES = frozenset({"translator"})
+
 _TRANSLATOR_SEEDS = frozenset({
     "_tr", "GettextTranslator",
     "day_and_clock", "snooze_line", "later_label",
@@ -158,18 +166,28 @@ def _reaches_tr(tree):
 
     def _called_names(node):
         names = set()
-        for call in ast.walk(node):
-            if not isinstance(call, ast.Call):
-                continue
-            if isinstance(call.func, ast.Name):
-                names.add(call.func.id)
-            elif isinstance(call.func, ast.Attribute):
-                names.add(call.func.attr)
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call):
+                if isinstance(child.func, ast.Name):
+                    names.add(child.func.id)
+                elif isinstance(child.func, ast.Attribute):
+                    names.add(child.func.attr)
+            # A translator handed *in* rather than constructed. Reading
+            # `fmt.context.translator` and passing it on is the same reach as
+            # calling GettextTranslator(), and it is a call to nothing, so the
+            # call-name walk above cannot see it. This is structural -- any
+            # attribute named `translator`, from any object -- so a helper
+            # that switches to the injected form stays caught without anyone
+            # remembering to add its name to the seed set.
+            elif (isinstance(child, ast.Attribute)
+                    and child.attr in _TRANSLATOR_ATTRIBUTES):
+                names.add(child.attr)
         return names
 
     calls = {name: _called_names(node) for name, node in definitions.items()}
+    seeds = _TRANSLATOR_SEEDS | _TRANSLATOR_ATTRIBUTES
     reached = {name for name, called in calls.items()
-               if called & _TRANSLATOR_SEEDS}
+               if called & seeds}
     changed = True
     while changed:
         changed = False
@@ -183,6 +201,32 @@ def _reaches_tr(tree):
 # ---- Unit tests for the reachability rule itself ------------------------
 # Synthetic snippets, so the rule is provable independently of what
 # gui/util.py happens to contain today.
+
+def test_an_injected_translator_reaches_tr():
+    """A helper handed a translator reaches one as surely as a helper that
+    builds one.
+
+    This is the shape gui/util.py's fmt_countdown moved to when it stopped
+    constructing its own backend: it calls no translator factory, so a
+    call-name-only walk saw nothing and called its mark spurious. Nothing
+    was mis-translated -- but the concatenation check had quietly stopped
+    following its result.
+    """
+    tree = ast.parse(
+        "def f(fmt, x):\n"
+        "    return words.thing(fmt.context.translator, x)\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_locale_only_helper_does_not_reach_tr():
+    """The other half of the rule: reading `.locale` off the same object is
+    not reaching a translator, and marking such a helper would make the
+    concatenation check flag legitimate composition."""
+    tree = ast.parse(
+        "def f(fmt, x):\n"
+        "    return dates.day_short(fmt.context.locale, x)\n")
+    assert _reaches_tr(tree) == set()
+
 
 def test_a_direct_tr_call_reaches_tr():
     tree = ast.parse("def f():\n    return _tr('x')\n")

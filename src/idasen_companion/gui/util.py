@@ -123,15 +123,19 @@ def suffix_seconds() -> str:
 
 
 @returns_translated
-def fmt_countdown(seconds: float) -> str:
+def fmt_countdown(fmt: Formatter, seconds: float) -> str:
     """125 -> '2:05'.
 
     Both numbers now go through the locale backend and the separator
     through a catalog entry, so this returns translated text and carries
     the mark. Nothing about the rendered English changes.
+
+    Takes ``fmt`` rather than building a backend, like every other helper
+    here — see the module note on why an inline ``QtLocaleFormatter`` is
+    the wrong shape even where it renders identically today.
     """
     return words.countdown(
-        GettextTranslator(), QtLocaleFormatter(QLocale()), seconds)
+        fmt.context.translator, fmt.context.locale, seconds)
 
 
 @returns_translated
@@ -188,17 +192,17 @@ def preset_label(name: str) -> str:
     return words.preset_label(GettextTranslator(), name)
 
 
-def fmt_day_label(when: datetime) -> str:
+def fmt_day_label(fmt: Formatter, when: datetime) -> str:
     """A day as "Mon 03", in the user's locale.
 
     See ``core/presentation/dates.py``'s ``day_short`` for why this asks
     the locale backend for a style rather than a ``strftime``-shaped
     pattern.
     """
-    return dates.day_short(QtLocaleFormatter(QLocale()), when)
+    return dates.day_short(fmt.context.locale, when)
 
 
-def fmt_day_heading(when: datetime) -> str:
+def fmt_day_heading(fmt: Formatter, when: datetime) -> str:
     """A full calendar date as a day-separator heading, e.g. "Mon 17 Aug 2026".
 
     See ``core/presentation/dates.py``'s ``day_heading`` for why the field
@@ -206,7 +210,7 @@ def fmt_day_heading(when: datetime) -> str:
     ``tr()``/``QT_TRANSLATE_NOOP``, so this introduces no translatable
     string and neither catalog gains an entry.
     """
-    return dates.day_heading(QtLocaleFormatter(QLocale()), when)
+    return dates.day_heading(fmt.context.locale, when)
 
 
 def fmt_clock(fmt: Formatter, when: datetime) -> str:
