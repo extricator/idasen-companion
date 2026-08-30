@@ -32,11 +32,20 @@ import os
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QLocale, QObject, Signal  # noqa: E402
 from PySide6.QtGui import QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.presentation.formatter import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+    GettextTranslator,
+)
+from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
+from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui import service_ctl  # noqa: E402
@@ -343,3 +352,48 @@ def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
 
     assert len(paragraphs) == 3
     assert ctx.fmt.height(0.75) in paragraphs[0]
+
+
+def test_the_out_of_schedule_note_follows_the_clock_format(overview_page):
+    """The schedule boundaries in the status note are wall-clock times.
+
+    They are *stored* as ``"HH:MM"``, which is why they were substituted into
+    the message straight from config and stayed 24-hour while the Automation
+    page's summary — the same two boundaries, one screen away — followed the
+    setting. One window, two clocks.
+
+    The whole table above runs at the default ``clock_format`` only, and the
+    stored form already looks 24-hour, so every existing assertion passed on
+    the broken render. The 12-hour direction is the one that shows it, and it
+    is the direction nothing tested.
+    """
+    page = overview_page
+
+    def note_at(style):
+        page.ctx.fmt = Formatter(PresentationContext(
+            locale=QtLocaleFormatter(QLocale("en_US")),
+            translator=GettextTranslator(),
+            unit=HeightUnit.CENTIMETRES, time_style=style))
+        page.client.statusChanged.emit("out-of-schedule")
+        return page.status_reason.text()
+
+    on_24 = note_at(TimeStyle.HOUR_AND_MINUTE_24)
+    assert on_24 == "Mon–Fri 09:00–17:00", on_24
+
+    on_12 = note_at(TimeStyle.HOUR_AND_MINUTE_12)
+    assert "9:00" in on_12 and "5:00" in on_12, on_12
+    assert "09:00" not in on_12 and "17:00" not in on_12, (
+        f"the schedule note kept its stored 24-hour form at the 12-hour "
+        f"setting: {on_12!r}")
+
+
+def test_a_malformed_schedule_boundary_renders_rather_than_raising(
+        overview_page):
+    """A bad stored value must not blank or crash the status line.
+
+    ``core/config.py`` validates the real thing on load, so this is the
+    belt-and-braces path: the helper returns the stored text unchanged rather
+    than letting a ValueError escape into a paint.
+    """
+    assert overview_page._schedule_clock("not-a-time") == "not-a-time"
+    assert overview_page._schedule_clock("") == ""

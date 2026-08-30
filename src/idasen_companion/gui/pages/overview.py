@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
@@ -437,6 +438,22 @@ class OverviewPage(Page):
         self._status = status
         self._render_status()
 
+    def _schedule_clock(self, stored: str) -> str:
+        """A stored ``"HH:MM"`` schedule boundary on the user's chosen clock.
+
+        The config keeps these as ``"HH:MM"`` because that is a stable stored
+        form; what the user reads is a wall-clock time and follows
+        ``[ui] clock_format``. An unparseable value renders as it is stored
+        rather than raising — a malformed config should not blank the status
+        line, and ``core/config.py`` validates the real thing on load.
+        """
+        try:
+            hour, _, minute = stored.partition(":")
+            moment = datetime(2000, 1, 1, int(hour), int(minute))
+        except ValueError:
+            return stored
+        return self.ctx.fmt.clock(moment)
+
     def _render_status(self) -> None:
         tokens = theme()
         status = self._status
@@ -471,10 +488,14 @@ class OverviewPage(Page):
                 # a language may reorder all three and choose its own
                 # separator between the times, the same way it already does
                 # inside fmt_days' own day range.
+                # Through the formatter, not the raw config strings: these are
+                # stored "HH:MM" and are wall-clock times the window shows, so
+                # they follow [ui] clock_format like every other one. The
+                # Automation page renders the same two boundaries the same way.
                 reason = self.tr("%(days)s %(start)s–%(end)s") % {
                     "days": fmt_days(config.schedule.days),
-                    "start": config.schedule.start,
-                    "end": config.schedule.end}
+                    "start": self._schedule_clock(config.schedule.start),
+                    "end": self._schedule_clock(config.schedule.end)}
             else:
                 reason = ""
         elif status == "disabled":
