@@ -427,33 +427,43 @@ QT_QPA_PLATFORM=offscreen %{buildroot}%{bundled_interpreter} -I -B \
 smoke=$(pwd)/check-daemon
 rm -rf "$smoke"
 mkdir -p "$smoke/data" "$smoke/config"
-# setsid, and then a *group* kill, because the thing started here is
-# dbus-run-session and the thing under test is the daemon it spawns. $! names
-# the wrapper only, so killing it leaves the daemon orphaned and running —
-# every build leaking one, silently, for as long as the machine is up. Three
-# were found alive on a developer's workstation, the oldest three days old.
-# setsid makes the wrapper a session and process-group leader (it does not
-# fork here: a background job in a non-interactive shell is not already a
-# group leader), so its PID is also the group id, and the negative kill below
-# reaches the daemon and the bus with it.
+# A *group* kill, because the thing started here is dbus-run-session and the
+# thing under test is the daemon it spawns. Killing the wrapper alone leaves
+# the daemon orphaned and running — every build leaking one, silently, for as
+# long as the machine is up. Three were found alive on a developer's
+# workstation, the oldest three days old.
+#
+# The group announces its own id rather than being inferred from $!. setsid
+# execs in place *unless* the caller is already a process-group leader, in
+# which case it forks — so under job control $! would name a parent that
+# exits immediately, and the check below would report a healthy daemon as
+# dead while the group kill hit nothing. Writing $$ from inside the new
+# session, then exec-ing, is true in either shell: $$ is the session leader,
+# exec keeps that pid, and no assumption about the caller's shell is made.
+command -v setsid >/dev/null || {
+    echo "error: setsid is missing, so the smoke daemon cannot be confined" >&2
+    echo "to a killable process group; it would be orphaned by this build" >&2
+    exit 39
+}
 QT_QPA_PLATFORM=offscreen \
 XDG_DATA_HOME="$smoke/data" XDG_CONFIG_HOME="$smoke/config" \
-    setsid dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B \
+    setsid sh -c 'echo $$ > "$1/pgid"; shift; exec "$@"' _ "$smoke" \
+        dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B \
         -m idasen_companion.daemon.main --mock-desk \
         --config "$smoke/daemon.toml" > "$smoke/daemon.log" 2>&1 &
-daemon=$!
 # Long enough to reach the first automation tick and the first status
 # broadcast, which is where a tree that imports but cannot run falls over.
 sleep 10
-if ! kill -0 "$daemon" 2>/dev/null; then
+daemon=$(cat "$smoke/pgid" 2>/dev/null || true)
+if [ -z "$daemon" ] || ! kill -0 "$daemon" 2>/dev/null; then
     cat "$smoke/daemon.log" >&2
     echo "error: the daemon did not survive its first seconds, so this build" >&2
     echo "is about to package a tree that does not run" >&2
-    kill -- -"$daemon" 2>/dev/null || true
+    [ -n "$daemon" ] && kill -- -"$daemon" 2>/dev/null || true
     exit 40
 fi
 kill -- -"$daemon" 2>/dev/null || true
-wait "$daemon" 2>/dev/null || true
+wait 2>/dev/null || true
 cat "$smoke/daemon.log"
 # Secondary, and deliberately not the gate: what decides the outcome above is
 # the process still being there. This says which path it took to get there —
