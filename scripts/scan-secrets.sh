@@ -196,6 +196,22 @@ encoded = base64.b64encode(digest).decode()
 print(encoded.translate(str.maketrans("+/", "Xy"))[:40])
 ' "$CANARY_SEED")
 
+# Every git call against the canary goes through this, and none may call git
+# directly. The pre-commit hook that invokes this script runs with the
+# repository's location exported into its environment, and changing directory
+# does not clear that -- so an unguarded init here builds its repository in
+# the caller's, not in the temp directory. From a linked worktree that export
+# is an absolute path, so the init lands on a real git directory with no work
+# tree attached, concludes the repository is bare, and records that in the
+# config file every worktree shares. The caller's whole checkout then refuses
+# to run: "fatal: this operation must be run in a work tree". Observed; the
+# recovery is to set the flag back to false.
+canary_git() {
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
+        -u GIT_OBJECT_DIRECTORY -u GIT_NAMESPACE -u GIT_PREFIX \
+        git -C "$CANARY_DIR" "$@"
+}
+
 # The fixture itself differs by mode, matching how that mode actually walks
 # its input:
 #   history  -- a planted file, committed, so there is history to walk.
@@ -206,7 +222,7 @@ print(encoded.translate(str.maketrans("+/", "Xy"))[:40])
 #               invokes git, so there is nothing to init, stage or commit.
 case "$MODE" in
     history|staged)
-        git -C "$CANARY_DIR" init -q
+        canary_git init -q
         ;;
 esac
 
@@ -217,15 +233,15 @@ esac
 
 case "$MODE" in
     history)
-        git -C "$CANARY_DIR" add -A
+        canary_git add -A
         # An inline identity, so this works on a machine that has never
         # configured one.
-        git -C "$CANARY_DIR" \
+        canary_git \
             -c user.email=canary@example.invalid -c user.name=canary \
             commit -qm "canary"
         ;;
     staged)
-        git -C "$CANARY_DIR" add -A
+        canary_git add -A
         ;;
 esac
 
