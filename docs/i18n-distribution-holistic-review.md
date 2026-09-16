@@ -528,19 +528,31 @@ stdlib. Preserve translator comments and verify conversion counts/placeholders.
 
 **Requirement:** a useful Qt-free installation, not merely an importable daemon.
 
+**Accepted 2026-09-16:** extend the existing GitHub Release pipeline with two
+standalone artifact flavors, not install-time subpackages. The full bundled RPM
+contains daemon + CLI + GUI + Qt; the full `.deb` contains daemon + CLI + GUI
+and depends on the distribution's Qt bindings. A headless bundled RPM and
+headless `.deb` each contain daemon + CLI and require no Qt. The Flatpak remains
+the full GUI artifact and may expose the CLI inside its sandbox where practical.
+The project adds no PyPI or other public distribution channel. Full and
+headless native variants own overlapping files, declare a package conflict and
+cannot be installed together. Keep separate executables:
+`idasen-companion` (GUI), `idasen-companion-cli` (CLI) and
+`idasen-companiond` (daemon). Shared packaging inputs generate both variants so
+dependency pins, catalogs, service metadata and versions cannot drift.
+
 | Candidate | Trade-off |
 |---|---|
 | Daemon-only base | Smallest, but a human has only `busctl`; does not prove the presentation layer |
 | Move existing action flags only | Cheap and Qt-free, but still write-only (`refactor:TODO.md:52-65`) |
-| **Daemon + first-class CLI base; GUI optional** | Delivers status/actions/logs and exercises shared i18n; ~220–300 CLI lines |
+| **Standalone full and headless flavors** | Both include daemon + first-class CLI; only full includes GUI/Qt; duplicates artifacts but avoids install-time package graphs |
 | Keep monolithic native packages | No packaging work; fails stated goal |
 
-**Recommended default:** base distribution contains daemon, shared core, catalogs
-and `idasen-companion-cli`; GUI is optional. Fedora split spec produces base and
-`-gui`; Debian produces base and GUI binary packages; PyPI uses base plus `gui`
-extra; the bundled RPM spec produces a headless package and a GUI subpackage;
-Flatpak remains a GUI product and may include the CLI opportunistically. Do not
-force every artifact into the same shape.
+**Decision:** publish independent full and headless RPM/`.deb` downloads through
+GitHub Releases. Do not create core/GUI subpackages, compatibility metapackages
+or a new release ecosystem. The headless smoke test proves PySide6/Qt is absent;
+the full smoke test exercises both GUI and CLI. Flatpak stays intentionally
+full-only.
 
 ### Decision D — clock/unit migration and config compatibility
 
@@ -572,7 +584,7 @@ Approximate steady-state production surface:
 | `core/logmsg.py` | existing stable ids/raw params; render through English or selected translations without GUI twin | current −100 |
 | `gui/i18n.py` | bind app gettext; install Qtbase translator; set QLocale/layout direction for widgets | 90 |
 | `cli.py` | `status`, `sit`, `stand`, `toggle`, `stop`, `preset`, `log` over `dbus-fast` | 250 |
-| packaging changes | Fedora/Debian/bundled split, Flatpak/Babel pin, licenses | ~140 metadata lines |
+| packaging changes | full/headless RPM and `.deb` flavors, Flatpak/Babel pin, licenses | ~140 metadata lines |
 
 Expected presentation/i18n production code is roughly 750–900 lines plus the
 CLI, rather than the branch's 2,309 new source lines. This is not a line-count
@@ -585,7 +597,7 @@ Each commit builds and tests independently.
 
 1. **Fix compatibility defects on `refactor`:** accept both snooze parameter
    spellings; restore journal output compatibility; fix the two Spanish plurals.
-2. **Add Babel as shared locale data:** metadata/pins/licenses for PyPI, Fedora,
+2. **Add Babel as shared locale data:** project metadata plus pins/licenses for
    bundled RPM, Debian and Flatpak; add Arabic/Spanish/English formatter tests.
 3. **Introduce `LocaleProfile` and repoint `Formatter`:** keep current public
    behavior except documented fixes; remove `PlainLocaleFormatter`, frozen clock
@@ -601,8 +613,9 @@ Each commit builds and tests independently.
 7. **Add first-class Qt-free CLI and import smoke.** Move existing action parsing
    from `gui/main.py`; add read commands from existing D-Bus properties described
    in `refactor:TODO.md:52-64`.
-8. **Split Fedora, Debian and bundled packages; update Flatpak intentionally.**
-   Run their existing independent CI workflows
+8. **Build standalone full/headless RPM and `.deb` flavors; update Flatpak
+   intentionally.** Do not add a release channel or install-time subpackage
+   graph. Run the existing independent CI workflows
    (`refactor:.github/workflows/ci.yml:22-41`).
 9. **RTL pass:** logical layout fixes, Arabic smoke, translated percent/number
    assertions.
@@ -650,8 +663,8 @@ catalog parses and package queries were run.
 
 1. **Distribution architecture and application architecture are currently out of
    sync.** Metadata already makes PySide optional (`refactor:pyproject.toml:28-29`),
-   but no released native package exposes that split. Package the boundary the
-   code claims to have.
+   but no released native artifact is headless. Publish standalone full and
+   headless flavors from shared packaging inputs.
 2. **The real scale risk is translator workflow, not runtime dispatch.** Requiring
    two source catalogs, two tools and per-language hand goldens compounds with
    every language. A single contextual gettext catalog matters more than saving
