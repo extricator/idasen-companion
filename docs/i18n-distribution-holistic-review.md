@@ -84,7 +84,10 @@ as independently enumerated in the withdrawn review
 
 Rebuild the presentation series around one gettext message catalog and one
 shared CLDR implementation, while salvaging the branch's policy separation,
-domain vocabulary, plurals, whole-message rules and Qt-free gate.
+domain vocabulary, plurals, whole-message rules and Qt-free gate. Here
+**REBUILD describes the architecture, not the Git ancestry**: cut the
+implementation branch from the reviewed `refactor` head rather than replaying
+its accepted and unrelated work from `main`.
 
 ## 3. Findings before decisions
 
@@ -194,7 +197,7 @@ Abstractions consumed only by their own tests or migration scaffolding:
 `QtTranslator`; `NumberSpec.grouping`; `IntegerSpec.grouping`; the runtime member
 allowlists; and the facade methods named above. Deleting the first four changes
 no shipped output. Deleting the unused facade methods changes no current output,
-but some would otherwise serve the proposed CLI; add them with that consumer,
+but some would otherwise serve the accepted CLI; add them with that consumer,
 not in anticipation.
 
 ## 5. New test surface
@@ -259,8 +262,8 @@ Line counts are the cited normative span, not the surrounding explanation.
 | # | Rule | Lines | Decision | Reason |
 |---:|---|---:|---|---|
 | 1 | Backend renders atomic values, not product policy | 5 | KEEP | Sound separation (`refactor:docs/ARCHITECTURE.md:287-292`). |
-| 2 | No locale-database fields on the seam | 3 | KEEP | Prevents hand-built formatting (`refactor:docs/ARCHITECTURE.md:292-294`). |
-| 3 | Ask for operations, never read fields | 3 | KEEP | Fits a shared CLDR service (`refactor:docs/ARCHITECTURE.md:294-296`). |
+| 2 | No locale-database fields on the seam | 3 | KEEP/GENERALIZE | Consumers ask Babel-backed operations for output rather than rebuilding formatting from exposed CLDR data (`refactor:docs/ARCHITECTURE.md:292-294`). |
+| 3 | Ask for operations, never read fields | 3 | KEEP/GENERALIZE | Keep the rule at the `LocaleProfile` boundary; the interchangeable-backend seam itself is removed (`refactor:docs/ARCHITECTURE.md:294-296`). |
 | 4 | Any atomic operation may diverge by backend | 6 | DROP | Correctness should not depend on which executable renders (`refactor:docs/ARCHITECTURE.md:298-303`). |
 | 5 | Qt-free dates are always ISO | 3 | DROP | Not localized (`refactor:docs/ARCHITECTURE.md:321-323`). |
 | 6 | Qt-free 12-hour meridiem is fixed English | 7 | DROP | Not localized (`refactor:docs/ARCHITECTURE.md:328-338`). |
@@ -278,7 +281,7 @@ Line counts are the cited normative span, not the surrounding explanation.
 | 18 | Status note adds one fact absent from head | 3 | KEEP | Useful copy guidance (`refactor:docs/TRANSLATING.md:63-65`). |
 | 19 | Repetition/reassurance/explanation becomes empty | 4 | KEEP | Deliberate UX rule (`refactor:docs/TRANSLATING.md:66-69`). |
 | 20 | At most one non-range dash | 3 | KEEP | Review guidance, not a gate (`refactor:docs/TRANSLATING.md:70-72,101-106`). |
-| 21 | Fit status notes at 760 px in shipped languages | 5 | KEEP/GENERALIZE | Test all shipped languages, including RTL (`refactor:docs/TRANSLATING.md:73-77`). |
+| 21 | Fit status notes at 760 px in shipped languages | 5 | KEEP/GENERALIZE | Test every shipped language plus a forced RTL structural locale (`refactor:docs/TRANSLATING.md:73-77`). |
 | 22 | Resolve source-key collisions case by case | 4 | KEEP | Judgment remains, though contexts prevent most collisions (`refactor:docs/TRANSLATING.md:126-132`). |
 | 23 | Collision decision must be its own commit | 2 | DROP | Commit topology is not an i18n invariant (`refactor:docs/TRANSLATING.md:133-134`). |
 | 24 | Shared collision needs a registry entry | 5 | DROP | `msgctxt` replaces the registry (`refactor:docs/TRANSLATING.md:135-139`). |
@@ -335,12 +338,13 @@ the shared gettext catalog makes that one implementation.
 
 ### P1 for the stated trajectory — RTL and non-Latin rendering are not release-ready
 
-Input: add Arabic and select it. Qt flips the application direction, but custom
+Input: force an Arabic locale. Qt flips the application direction, but custom
 painting remains physically left/right and two percentages remain ASCII
 (`refactor:gui/widgets.py:389-410,895-937,1009-1040`); integer formatting is
 explicitly ASCII (`refactor:gui/locale_backend.py:62-78`), already recorded as
 unfinished (`refactor:TODO.md:119-131`). This is not a defect Spanish users see;
-it is a blocking acceptance gap before the first RTL/non-Latin catalog.
+Decision E treats it as structural remediation now, before any RTL catalog is
+added; linguistic and manual visual acceptance still wait for that catalog.
 
 ### P2 — downgrade after Apply prevents the old daemon from starting
 
@@ -447,7 +451,7 @@ design: `CLAUDE.md` is gitignored (`refactor:.gitignore:26-29`) while fourteen
 tracked files cite it, including shipped source. Move load-bearing rules into
 tracked `CONTRIBUTING.md`/docs and stop citing a file a clone does not receive.
 
-## 9. Open design decisions and surveyed candidates
+## 9. Resolved design decisions and surveyed candidates
 
 ### Decision A — shared locale data for both processes
 
@@ -500,6 +504,12 @@ Qt or ICU in the headless package. Verify default/non-Latin numbering behavior
 with Arabic tests rather than assuming every script is substituted automatically.
 
 ### Decision B — app message catalog
+
+**Requirement:** app-owned GUI, daemon, Activity Log and CLI messages need one
+translation workflow that supports semantic disambiguation and real plurals
+without making the Qt-free processes import Qt. The existing GUI already binds
+gettext, proving that process boundaries do not require two app catalogs
+(`refactor:gui/i18n.py:100-126`, `refactor:gui/context.py:84-87`).
 
 **Accepted 2026-09-16:** every app-owned message moves to one contextual
 gettext catalog per language, keyed by English source text plus a literal
@@ -556,6 +566,20 @@ full-only.
 
 ### Decision D — clock/unit migration and config compatibility
 
+**Requirement:** language, measurement units and hour cycle must remain
+independently selectable, with deterministic system fallbacks, while a config
+written by a newer build remains usable and round-trippable by the product.
+The branch already separates the settings but rejects every unknown key
+(`refactor:core/units.py:116-138`, `refactor:core/clock_format.py:158-191`,
+`refactor:core/config.py:219-222,391-415`).
+
+| Candidate | Trade-off |
+|---|---|
+| Selected language controls text, units and hour cycle | One locale input, but changing UI language silently changes physical and time preferences |
+| System locale controls all conventions | Matches the desktop, but selected-language dates and number symbols can remain in another language |
+| Independent language/units/clock preferences with strict unknown-key rejection | Preserves user intent, but an additive config key can stop another version's daemon |
+| **Independent preferences plus preserve-and-warn unknown keys** | Keeps each setting's meaning and forward-compatible round trips; requires warning plumbing and lossless edits through the existing `tomlkit` dependency (`refactor:pyproject.toml:20-26`) |
+
 **Accepted 2026-09-16:** keep language, measurement units and hour cycle as
 independent preferences, resolved once and formatted through Babel. `[ui]
 language` controls translated text, number symbols, date language/month names
@@ -577,10 +601,23 @@ to add for this unreleased rebuild.
 
 ### Decision E — RTL acceptance
 
-**Accepted.** Make the remediation structurally RTL-ready now, without adding an
-Arabic/Hebrew catalog or claiming linguistic support for either language. Set
-the application's layout direction explicitly from the selected locale rather
-than relying on installation of a Qt translation to do so
+**Requirement:** an open-ended language architecture must not bake physical LTR
+assumptions into the GUI, but structural readiness must not be represented as a
+translated language. The reviewed branch contains known physical CSS and custom
+painting despite Qt's automatic direction handling
+(`refactor:gui/main_window.py:239-243`,
+`refactor:gui/widgets.py:389-411,881-938,995-1059`).
+
+| Candidate | Trade-off |
+|---|---|
+| Defer RTL work until the first RTL catalog | No current remediation cost, but knowingly hands the first translator broken geometry |
+| **Remove known RTL-hostile geometry now** | Bounded GUI/test work and honest structural readiness; native-speaker acceptance still happens with a real catalog |
+| Add and claim an Arabic or Hebrew translation now | Exercises the complete path, but requires translation ownership and linguistic review that are not currently available |
+
+**Accepted 2026-09-16:** make the remediation structurally RTL-ready now,
+without adding an Arabic/Hebrew catalog or claiming linguistic support for
+either language. Set the application's layout direction explicitly from the
+selected locale rather than relying on installation of a Qt translation to do so
 (`refactor:gui/i18n.py:75-112`). Keep Qt's automatic mirroring for ordinary
 layouts; replace the known physical assumptions at the application boundary:
 the sidebar divider (`refactor:gui/main_window.py:239-243`), the Move direction
@@ -622,7 +659,14 @@ the general backend protocol/spec matrix and GUI forwarders.
 
 ### Migration commits
 
-Each commit builds and tests independently.
+Create the implementation branch from the reviewed `refactor` head, not from
+`main`. `REBUILD` describes replacement of the presentation architecture; it
+does not mean discarding the branch's accepted policy separation, raw D-Bus
+parameters, whole-message conversions, plural work or unrelated improvements
+(`refactor:core/units.py:116-138`, `refactor:daemon/service.py:252-266`,
+`refactor:CHANGELOG.md:21-37`). The documentation-only
+`presentation-rebuild-plan` branch remains the review and decision record. Each
+implementation commit builds and tests independently.
 
 1. **Fix compatibility defects on `refactor`:** accept both snooze parameter
    spellings; restore journal output compatibility; fix the two Spanish plurals.
@@ -631,26 +675,30 @@ Each commit builds and tests independently.
 3. **Introduce `LocaleProfile` and repoint `Formatter`:** keep current public
    behavior except documented fixes; remove `PlainLocaleFormatter`, frozen clock
    table and Qt app-value backend.
-4. **Add contextual gettext APIs and convert `.ts` app messages to `.po`:**
+4. **Make configuration forward-compatible:** preserve unknown sections and
+   keys through `tomlkit`, warn visibly without aborting either executable, keep
+   recognized values strict, and document the independent language, unit and
+   clock fallback rules.
+5. **Add contextual gettext APIs and convert `.ts` app messages to `.po`:**
    automated scope-aware rewrite, placeholder/count audit, no `sed`. Keep old
    `.qm` active for one intermediate commit if needed.
-5. **Switch GUI app strings to gettext; retain Qtbase only:** delete app `.ts`,
+6. **Switch GUI app strings to gettext; retain Qtbase only:** delete app `.ts`,
    `.qm`, `QtTranslator`, collision/overlap/divergence machinery and stale docs.
-6. **Collapse Activity Log catalog twin:** render the shared `Message` definition
+7. **Collapse Activity Log catalog twin:** render the shared `Message` definition
    with the reader's translator; preserve unknown-id English fallback and raw
    JSON wire (`refactor:daemon/service.py:252-266`).
-7. **Add first-class Qt-free CLI and import smoke.** Move existing action parsing
+8. **Add first-class Qt-free CLI and import smoke.** Move existing action parsing
    from `gui/main.py`; add read commands from existing D-Bus properties described
    in `refactor:TODO.md:52-64`.
-8. **Build standalone full/headless RPM and `.deb` flavors; update Flatpak
+9. **Build standalone full/headless RPM and `.deb` flavors; update Flatpak
    intentionally.** Do not add a release channel or install-time subpackage
    graph. Run the existing independent CI workflows
    (`refactor:.github/workflows/ci.yml:22-41`).
-9. **RTL-ready structural pass:** set direction from locale, fix known physical
+10. **RTL-ready structural pass:** set direction from locale, fix known physical
    layout and custom-paint assumptions, and add Arabic-locale offscreen and
    number/percent assertions. Defer a catalog and linguistic acceptance to the
    first actual RTL translation.
-10. **Delete migration goldens/meta-tests and publish tracked contributor rules.**
+11. **Delete migration goldens/meta-tests and publish tracked contributor rules.**
 
 ### Deliberately given up
 
@@ -714,5 +762,6 @@ catalog parses and package queries were run.
 
 The owner was right to reject the earlier RPM-only, two-language framing. The
 evidence does not support keeping the branch as-is, but it also does not support
-throwing away its core ideas. The appropriate action is a robust rebuild aimed
-at the actual open-source language and multi-package trajectory.
+throwing away its core ideas or ancestry. The appropriate action is a robust
+architectural rebuild on a branch from `refactor`, aimed at the actual
+open-source language and multi-package trajectory.
