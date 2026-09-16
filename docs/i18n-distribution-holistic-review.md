@@ -455,6 +455,15 @@ tracked `CONTRIBUTING.md`/docs and stop citing a file a clone does not receive.
 categories must work from the same locale data in GUI, daemon and CLI; the
 daemon/CLI must remain Qt-free.
 
+**Accepted 2026-09-16:** Babel becomes the single application-value formatter
+and a base runtime dependency for every installation. GUI, daemon and CLI use
+it for application-rendered numbers, percentages, dates, times and units.
+`QLocale` remains only for native Qt widget behavior, locale selection/layout
+direction and Qtbase translations; it is not a second formatter for application
+labels. Acceptance includes explicit Arabic/non-Latin-numbering tests and parity
+tests between Babel-rendered labels and adjacent Qt-native controls. Package
+footprint is accepted in exchange for one correct locale engine.
+
 Scores: 5 best. Fedora availability was checked with `dnf list --available` and
 `dnf repoquery`; Debian with its package index. Babel is
 [`python3-babel` on Fedora](https://packages.fedoraproject.org/pkgs/babel/python3-babel/)
@@ -479,11 +488,12 @@ is a one-file metadata change.
 | PyGObject/GLib | packaged / packaged | compiled binding | yes | pulls GNOME stack into non-GNOME paths | process-locale oriented; second native ecosystem | 10/25 |
 | Generated CLDR subset | project-owned | yes | yes | smallest selectable subset | project owns generation, updates and edge cases | 13/25 |
 
-**Recommended default: Babel.** It earns the dependency by deleting the
+**Decision: Babel.** It earns the dependency by deleting the
 hand-frozen territory table, both custom locale backends, the divergence matrix,
 ASCII/English fallback policy and future per-language formatting tables. Its
 official APIs cover number, percent, date/time, unit formatting and plural rules
-([Babel API](https://babel.pocoo.org/en/latest/api/)). The cost is real: add the
+([Babel API](https://babel.pocoo.org/en/latest/api/)). The accepted cost is real:
+add the
 wheel/pin/license to the bundled RPM, add it to Flatpak's generated wheel list,
 and add distro requirements. That is still far smaller and more portable than
 Qt or ICU in the headless package. Verify default/non-Latin numbering behavior
