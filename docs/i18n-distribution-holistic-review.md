@@ -501,6 +501,17 @@ with Arabic tests rather than assuming every script is substituted automatically
 
 ### Decision B — app message catalog
 
+**Accepted 2026-09-16:** every app-owned message moves to one contextual
+gettext catalog per language, keyed by English source text plus a literal
+semantic context; opaque message ids are not used. The catalog covers GUI,
+daemon notifications, Activity Log, CLI and shared vocabulary. Qt
+`QTranslator` remains in the GUI only to load Qt's own prebuilt `qtbase`
+catalog for standard widget/dialog text; the project no longer owns `.ts` or
+`.qm` files. Migration must preserve translator comments, placeholders,
+plurals and context, and must pass source-message counts, placeholder parity,
+Spanish-output and extraction-freshness checks before the old Qt app catalog is
+removed.
+
 | Candidate | Strength | Cost |
 |---|---|---|
 | Keep Qt `.ts` + gettext `.po` | Native Qt tooling and existing translations | Permanent drift, collision machinery, two translator workflows, class-context traps |
@@ -508,7 +519,7 @@ with Arabic tests rather than assuming every script is substituted automatically
 | Fluent | Excellent selectors and translator-facing syntax | New runtime/toolchain plus migration; locale value formatting still needs Babel/ICU |
 | Stable opaque IDs + custom store | Rename-safe | Project owns tools and fallback semantics; weak ecosystem |
 
-**Recommended default:** one gettext app catalog with semantic contexts. Keep a
+**Decision:** one gettext app catalog with semantic contexts. Keep a
 `QTranslator` only for Qtbase (`refactor:gui/i18n.py:100-105`). Python 3.11's
 stdlib gettext provides context and plural APIs; the runtime dependency remains
 stdlib. Preserve translator comments and verify conversion counts/placeholders.
