@@ -350,8 +350,8 @@ keys (`main:core/config.py:190-210`), and the daemon exits 1 on `ConfigError`
 (`main:daemon/main.py:1823-1829`). Correction to the prior review: the old GUI
 does **not** brick; it catches the error and launches defaults
 (`main:gui/main.py:162-177`). Automation remains unavailable until the file is
-edited. Decide and document a config forward-compatibility policy; warning and
-ignoring unknown keys is the practical default.
+edited. Decision D resolves this: unknown keys warn, are preserved and do not
+abort startup; recognized keys remain strictly validated.
 
 ### P2 — journal duration compatibility changed without migration value
 
@@ -556,12 +556,24 @@ full-only.
 
 ### Decision D — clock/unit migration and config compatibility
 
-Keep language, units and clock independent. Use explicit preferences first;
-derive `system` from measurement/time locale through Babel; retain the explicit
-12/24 override. For config, prefer ignoring unknown keys with a warning while
-preserving them through `tomlkit`; strict rejection makes every added key a
-downgrade outage (`refactor:core/config.py:219-222,391-415`). Add release notes
-for changed defaults.
+**Accepted 2026-09-16:** keep language, measurement units and hour cycle as
+independent preferences, resolved once and formatted through Babel. `[ui]
+language` controls translated text, number symbols, date language/month names
+and localized meridiem text. Explicit `[ui] units` and `[ui] clock_format`
+values answer for themselves; `units = "system"` follows the system measurement
+locale and `clock_format = "system"` follows the system time locale, never the
+selected app language. Thus selecting Spanish on a US system changes language
+and symbols without silently changing inches or the 12-hour preference.
+
+Unknown config sections and keys produce a visible warning, survive `tomlkit`
+rewrites and do not stop the daemon or GUI. Recognized keys retain strict type
+and value validation. A renamed key requires an explicit migration and must not
+silently fall into the unknown-key path. Do not add a schema-version mechanism
+until a concrete migration needs one. This replaces the strict rejection that
+makes every added key a downgrade outage
+(`refactor:core/config.py:219-222,391-415`). Document the resolved semantics in
+the user configuration reference; there is no installed-user migration program
+to add for this unreleased rebuild.
 
 ### Decision E — RTL acceptance
 
