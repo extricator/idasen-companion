@@ -577,11 +577,28 @@ to add for this unreleased rebuild.
 
 ### Decision E — RTL acceptance
 
-Default: RTL is a release criterion for the first RTL catalog, not a requirement
-to block current Spanish releases. Add one Arabic pseudo/real-locale offscreen
-smoke covering application direction, sidebar, status row, rails/charts, icon
-placement and number/percent rendering. Replace physical CSS/painter coordinates
-with logical direction or explicit mirrored painting where necessary.
+**Accepted.** Make the remediation structurally RTL-ready now, without adding an
+Arabic/Hebrew catalog or claiming linguistic support for either language. Set
+the application's layout direction explicitly from the selected locale rather
+than relying on installation of a Qt translation to do so
+(`refactor:gui/i18n.py:75-112`). Keep Qt's automatic mirroring for ordinary
+layouts; replace the known physical assumptions at the application boundary:
+the sidebar divider (`refactor:gui/main_window.py:239-243`), the Move direction
+icon and caption alignment (`refactor:gui/pages/overview.py:126-145,257-265`),
+the journal chip's unconditional RTL override
+(`refactor:gui/pages/activity_log.py:154-166`), preset padding
+(`refactor:gui/pages/presets.py:134-143`), joined-segment borders and radii
+(`refactor:gui/widgets.py:389-411`), and the custom-painted height rail and
+daily bars (`refactor:gui/widgets.py:881-938,995-1059`). Preserve the existing
+direction-aware button icon/text layout, which already maps logical rectangles
+through `QStyle.visualRect` (`refactor:gui/widgets.py:569-608`).
+
+Add focused offscreen LTR/RTL tests for application direction and those known
+asymmetric controls, plus Babel number/percent cases for representative Arabic
+locales. Record the observed numbering system rather than assuming native
+digits. The acceptance boundary is removal of known RTL-hostile geometry and
+protection against its return; native-speaker review and a manual visual pass
+remain release criteria for the first actual RTL catalog.
 
 ## 10. Target design
 
@@ -629,8 +646,10 @@ Each commit builds and tests independently.
    intentionally.** Do not add a release channel or install-time subpackage
    graph. Run the existing independent CI workflows
    (`refactor:.github/workflows/ci.yml:22-41`).
-9. **RTL pass:** logical layout fixes, Arabic smoke, translated percent/number
-   assertions.
+9. **RTL-ready structural pass:** set direction from locale, fix known physical
+   layout and custom-paint assumptions, and add Arabic-locale offscreen and
+   number/percent assertions. Defer a catalog and linguistic acceptance to the
+   first actual RTL translation.
 10. **Delete migration goldens/meta-tests and publish tracked contributor rules.**
 
 ### Deliberately given up
