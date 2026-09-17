@@ -72,7 +72,7 @@ the handoff commit.
 
 | Phase | State | Implementation commit | Handoff commit | Required proof |
 |---:|---|---|---|---|
-| 1. Babel formatting | Pending | — | — | Babel locale matrix, formatter/GUI parity, full tests |
+| 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
 | 2. Contextual gettext | Pending | — | — | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Pending | — | — | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Pending | — | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
@@ -236,7 +236,7 @@ the official Babel docs and selected version used to settle any API details.
 
 ### Phase 1 execution record
 
-- State: In progress
+- State: Complete
 - Starting commit: `85255cc`
 - Babel version and official docs: Babel 2.18.0. Context7 searches for both
   `Babel` and `python-babel` returned only the unrelated Quart-Babel project,
@@ -246,7 +246,7 @@ the official Babel docs and selected version used to settle any API details.
   [unit](https://babel.pocoo.org/en/latest/api/units.html) references; the
   selected release and wheel were verified on
   [PyPI](https://pypi.org/project/Babel/2.18.0/).
-- Implementation commit: —
+- Implementation commit: `6dd6d30`
 - Commands/results: preflight `.venv/bin/python -m pytest -q` — 2,038 passed;
   preflight naming — exit 0; preflight mypy — no issues in 66 files; preflight
   pylint — 10.00/10. Post-change targeted formatter/packaging suite — 288
@@ -256,17 +256,26 @@ the official Babel docs and selected version used to settle any API details.
   completed with 322 finished Qt entries and refreshed gettext artifacts;
   `scripts/build-dist.sh` built and audited a 229-member, 773,118-byte sdist
   plus the wheel, including both compiled catalogs and `locale_profile.py`.
+  After the implementation commit, translation regeneration again found and
+  finished all 322 Qt entries, refreshed gettext, and left
+  `git diff --exit-code` clean.
 - Deviations from plan: Context7 had no official Python Babel entry, so the
   official project documentation was consulted directly. The transitional
   `PlainLocaleFormatter` and `QtLocaleFormatter` names remain as delegating
   adapters, as permitted; both now use `LocaleProfile` and no longer produce
   independent value-formatting answers.
-- Known risks carried forward: the final post-commit catalog freshness check
-  remains to be run; complete native artifact/container builds remain Phase 5
-  gates.
-- Handoff to Phase 2: Confirm that every app value path uses `LocaleProfile`,
-  list the transitional adapter imports still present, and identify the exact
-  catalog/source counts Phase 2 must preserve.
+- Known risks carried forward: complete native artifact/container builds
+  remain Phase 5 gates. Babel 2.18.0's `ar_EG` data supplies Arabic separators,
+  units, date text and day periods but retains Latin digit glyphs; tests pin
+  that observed behavior rather than claiming native digits.
+- Handoff to Phase 2: GUI `AppContext` and daemon construction instantiate
+  `LocaleProfile` directly. The stable-English journal formatter is the only
+  production importer of transitional `PlainLocaleFormatter`; no production
+  caller imports `QtLocaleFormatter`, although both adapters remain exercised
+  by compatibility tests until Phase 7. The migration baseline is 322 finished
+  Qt TS/QM source messages and 79 translated gettext POT/PO/MO source messages,
+  including three plural entries and three already-contextual entries. Phase 2
+  must preserve their user-visible coverage while consolidating them.
 
 ## 6. Phase 2 — contextual gettext migration
 
