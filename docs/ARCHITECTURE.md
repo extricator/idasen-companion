@@ -191,6 +191,14 @@ user's config file is theirs — hand-edited comments and layout included — an
 a writer that silently eats them on the next save is a bug, not a
 simplification.
 
+`load_config()` returns `AppConfig` with immutable, typed `ConfigWarning`
+metadata for unknown sections and keys. Warning metadata is not part of config
+equality and is never serialized. The daemon writes each newly observed
+warning to journald and the structured Activity Log; the GUI shows the same
+Qt-free warning text at startup and when a settings page reloads. Recognized
+keys still take the strict type/value validation path. Explicitly removed or
+renamed keys go through migrations instead of being mislabeled as unknown.
+
 Each page under `gui/pages/` is an independent `Page` (see `pages/base.py`) that
 owns its widgets, subscribes to the client signals it needs, and reloads lazily
 via an `on_shown()` hook. `main.py` enforces single-instance (a second launch
@@ -328,6 +336,12 @@ process tests prove the daemon/shared path imports no PySide6 or shiboken.
 `~/.config/idasen-companion/config.toml`, overridable with the
 `IDASEN_COMPANION_CONFIG` env var (used by tests and dev). Read with stdlib
 `tomllib`; **written with `tomlkit` so user comments and formatting survive**.
+Unknown top-level sections and keys inside known sections are accepted with a
+`ConfigWarning`; because `save_config()` edits the existing `tomlkit` document
+in place, their values, tables, comments and ordering survive a known-setting
+edit. Invalid values of recognized keys still raise `ConfigError`. There is no
+schema-version field: the format remains additive until a concrete one-way
+migration makes a version boundary necessary.
 
 Durations are stored as compact strings (`"45m"`, `"1h30m"`) and held in memory
 as integer **seconds**. The daemon polls the file mtime and **hot-reloads** — no

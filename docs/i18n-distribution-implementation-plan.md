@@ -464,13 +464,33 @@ uvx pylint==4.0.6 src/idasen_companion
 
 ### Phase 3 execution record
 
-- State: Pending
-- Starting commit: —
-- Warning API chosen: —
-- Implementation commit: —
-- Commands/results: —
-- Deviations from plan: —
-- Known risks carried forward: —
+- State: In progress
+- Starting commit: `f0f31ff`
+- Warning API chosen: immutable `ConfigWarning(source, section, key)` values
+  travel on `AppConfig.warnings`, whose dataclass field is excluded from
+  equality and serialization. `str(warning)` is the Qt-free stable-English
+  diagnostic form for journald and future CLI stderr;
+  `format_config_warning()` renders the same structured result through the
+  selected gettext catalog for user interfaces. Known-section unknown keys,
+  nested future tables, unknown top-level sections and unknown top-level keys
+  all use this result. Explicit removed/renamed-key migrations remain separate
+  and silent.
+- Implementation commit: this commit
+- Commands/results: preflight full pytest — 2,000 passed; preflight naming —
+  exit 0; preflight mypy — no issues in 67 files; preflight pylint — 10.00/10.
+  Post-change phase-targeted suite — 110 passed; expanded config/warning,
+  GUI, daemon, catalog and extraction suite — 323 passed; full pytest — 2,011
+  passed; naming — exit 0; mypy — no issues in 67 files; pylint — 10.00/10;
+  `msgfmt --check` and `git diff --check` — exit 0. Translation regeneration
+  extracted, merged and compiled the warning messages successfully.
+- Deviations from plan: none. The existing in-place `tomlkit` save path already
+  owned lossless syntax preservation, so no parallel parsed-document field was
+  added to `AppConfig`; tests prove unknown values, nested tables, comments and
+  ordering survive load → known edit → save → reload.
+- Known risks carried forward: Phase 4 must print `AppConfig.warnings` on CLI
+  stderr after binding the selected language and must keep the core config API
+  Qt-free. Native artifact inspection remains Phase 5 work. The inactive Qt
+  migration artifacts and compatibility adapter remain Phase 7 removal work.
 - Handoff to Phase 4: Document how CLI code obtains the selected language,
   resolved display preferences and warnings without importing GUI modules.
 

@@ -178,6 +178,27 @@ CONFIG_RELOAD_FAILED = _m(Message(
     text=P_('activity-log.entry', "Config reload failed, keeping old config: %(error)s"),
     params={"error": Param.TEXT}))
 
+CONFIG_UNKNOWN_SECTION = _m(Message(
+    id="config.unknown_section", level="warning",
+    text=P_('activity-log.entry',
+            "Configuration warning: %(path)s contains unknown section "
+            "[%(section)s]; preserving it."),
+    params={"path": Param.TEXT, "section": Param.TEXT}))
+
+CONFIG_UNKNOWN_OPTION = _m(Message(
+    id="config.unknown_option", level="warning",
+    text=P_('activity-log.entry',
+            "Configuration warning: %(path)s contains unknown option "
+            "[%(section)s] %(key)s; preserving it."),
+    params={"path": Param.TEXT, "section": Param.TEXT, "key": Param.TEXT}))
+
+CONFIG_UNKNOWN_TOP_LEVEL_KEY = _m(Message(
+    id="config.unknown_top_level_key", level="warning",
+    text=P_('activity-log.entry',
+            "Configuration warning: %(path)s contains unknown top-level key "
+            "%(key)s; preserving it."),
+    params={"path": Param.TEXT, "key": Param.TEXT}))
+
 CONFIG_DESK_MAC_CHANGED = _m(Message(
     id="config.desk_mac_changed", level="info",
     text=P_('activity-log.entry', "Desk MAC changed; reconnecting to new desk.")))

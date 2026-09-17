@@ -76,6 +76,25 @@ def test_a_freshly_loaded_page_is_clean(page):
     assert not page._reset_btn.isEnabled()
 
 
+def test_unknown_config_data_is_visible_when_settings_load(
+        ctx, monkeypatch):
+    path = context_mod.DEFAULT_CONFIG_PATH
+    with path.open("a") as stream:
+        stream.write('\n[ui.future_palette]\naccent = "violet"\n')
+    shown = []
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        staticmethod(lambda *args: shown.append(args)))
+
+    page = SettingsPage(ctx)
+    page.load()
+
+    assert len(shown) == 1
+    assert "future_palette" in shown[0][2]
+    assert "preserved" in shown[0][2]
+
+
 def test_editing_a_field_enables_apply_and_reset(page):
     _edit(page)
     assert page.is_dirty()

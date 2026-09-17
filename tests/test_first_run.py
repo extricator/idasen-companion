@@ -10,6 +10,7 @@ finding Settings -> Desk connection unaided.
 
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -20,7 +21,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core.config import AppConfig  # noqa: E402
+from idasen_companion.core.config import AppConfig, ConfigWarning  # noqa: E402
 
 
 @pytest.fixture
@@ -95,22 +96,41 @@ def test_no_wizard_once_a_desk_is_configured(monkeypatch, qapp, available):
 def test_a_broken_config_still_launches_the_app(monkeypatch, qapp):
     """This read happens before the window exists, so a ConfigError meant the
     desktop launcher did nothing at all — no dialog, no window, a traceback on
-    a stderr nobody is reading. Reachable without hand-editing: downgrade the
-    package and a config carrying a newer [ui] key trips the unknown-option
-    check."""
+    a stderr nobody is reading. Recognized malformed values still take this
+    path; unknown newer keys now load with a visible warning."""
     import idasen_companion.gui.main as gui_main
     from idasen_companion.core.config import ConfigError
 
     def boom(_path):
-        raise ConfigError("unknown option [ui] from_the_future")
+        raise ConfigError("[ui] clock_format must be one of system, 12, 24")
 
     opened = run_main(monkeypatch, qapp, mac="AA:BB:CC:DD:EE:FF",
                       daemon_available=True, load_config=boom)
     # It launched — the assertion that matters is that main() returned at all
     # rather than raising. And it did *not* offer the wizard: falling back to
     # defaults leaves no MAC, which would otherwise look like a first run and
-    # offer to overwrite a config whose only fault may be one unknown key.
+    # offer to overwrite the malformed config.
     assert opened == []
+
+
+def test_unknown_config_data_is_visible_at_gui_startup(monkeypatch, qapp):
+    import idasen_companion.gui.main as gui_main
+
+    cfg = AppConfig()
+    cfg.desk.mac = "AA:BB:CC:DD:EE:FF"
+    cfg.warnings = (ConfigWarning(
+        Path("/tmp/future.toml"), "ui", "future_theme"),)
+    shown = []
+    monkeypatch.setattr(
+        gui_main.QMessageBox, "warning",
+        staticmethod(lambda *args: shown.append(args)))
+
+    run_main(monkeypatch, qapp, mac=cfg.desk.mac, daemon_available=True,
+             load_config=lambda _path: cfg)
+
+    assert len(shown) == 1
+    assert "future_theme" in shown[0][2]
+    assert "preserved" in shown[0][2]
 
 
 # ----- the CLI surface -----

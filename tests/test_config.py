@@ -5,6 +5,7 @@ from idasen_companion.core.config import (
     VALID_CLOCK_FORMATS,
     AppConfig,
     ConfigError,
+    ConfigWarning,
     load_config,
     save_config,
 )
@@ -82,7 +83,6 @@ def test_missing_sit_stand_presets_fall_back(tmp_path):
     "text",
     [
         "[automation]\nsit_duration = 'banana'\n",
-        "[automation]\nbogus_option = 1\n",
         "[automation]\ncheck_interval = '0s'\n",
         "[schedule]\ndays = ['funday']\n",
         "[schedule]\nstart = '25:00'\n",
@@ -104,11 +104,74 @@ def test_missing_sit_stand_presets_fall_back(tmp_path):
         # bool is an int in Python, so this was silently accepted as 1.0 m.
         "[presets]\nsit = true\n",
         "[presets]\nsit = {a = 1}\n",  # table where a height belongs
-        "[bogus_section]\nx = 1\n",
         "not toml at all [",
     ],
 )
 def test_invalid_configs_raise(tmp_path, text):
+    with pytest.raises(ConfigError):
+        load_config(write(tmp_path, text))
+
+
+def test_unknown_known_section_key_warns_instead_of_failing(tmp_path):
+    path = write(tmp_path, '[ui]\nlanguage = "es"\nfuture_theme = "violet"\n')
+    cfg = load_config(path)
+
+    assert cfg.ui.language == "es"
+    assert cfg.warnings == (ConfigWarning(path, "ui", "future_theme"),)
+    assert str(cfg.warnings[0]) == (
+        f"{path}: unknown option [ui] future_theme; preserving it")
+
+
+def test_unknown_sections_and_top_level_keys_have_typed_warnings(tmp_path):
+    path = write(tmp_path, 'future_mode = true\n\n[cloud]\nendpoint = "desk.example"\n')
+    cfg = load_config(path)
+
+    assert cfg.warnings == (
+        ConfigWarning(path, None, "future_mode"),
+        ConfigWarning(path, "cloud"),
+    )
+
+
+def test_nested_unknown_table_survives_known_edit_and_reload(tmp_path):
+    original = (
+        '# keep this future table here\n'
+        '[ui]\n'
+        'language = "system"\n\n'
+        '[ui.future_palette]\n'
+        'accent = "violet" # and this comment\n\n'
+        '[cloud]\n'
+        'endpoint = "desk.example"\n'
+    )
+    path = write(tmp_path, original)
+    cfg = load_config(path)
+    assert cfg.warnings == (
+        ConfigWarning(path, "ui", "future_palette"),
+        ConfigWarning(path, "cloud"),
+    )
+
+    cfg.ui.language = "es"
+    save_config(cfg, path)
+    rewritten = path.read_text()
+    assert '# keep this future table here' in rewritten
+    assert '[ui.future_palette]' in rewritten
+    assert 'accent = "violet" # and this comment' in rewritten
+    assert rewritten.index('[ui.future_palette]') < rewritten.index('[cloud]')
+    reloaded = load_config(path)
+    assert reloaded.ui.language == "es"
+    assert reloaded.warnings == cfg.warnings
+
+
+def test_warning_metadata_does_not_affect_config_equality(tmp_path):
+    path = write(tmp_path, '[ui]\nfuture_theme = "violet"\n')
+    assert load_config(path) == AppConfig()
+
+
+@pytest.mark.parametrize("text", [
+    '[ui]\nclock_format = "half-past"\nfuture_theme = "violet"\n',
+    '[schedule]\ndays = ["mon", "someday"]\nfuture_rule = true\n',
+    '[presets]\nsit = "tall"\nfuture = 1.0\n',
+])
+def test_unknown_siblings_never_soften_invalid_recognized_values(tmp_path, text):
     with pytest.raises(ConfigError):
         load_config(write(tmp_path, text))
 

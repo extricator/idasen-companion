@@ -258,6 +258,31 @@ class Daemon:
         except OSError:
             self._config_mtime = None
 
+    def _report_config_warnings(self, config: AppConfig,
+                                previous: AppConfig | None = None) -> None:
+        """Publish each newly observed forward-compatibility warning once.
+
+        ``RingLog.emit`` writes the English rendering to journald and retains
+        the structured message for the Activity Log's reader-side translation,
+        satisfying both audiences with one record. Comparing with the previous
+        successful load prevents an unchanged future key from flooding either
+        channel on every GUI-requested reload.
+        """
+        already_reported = set(previous.warnings if previous is not None else ())
+        for warning in config.warnings:
+            if warning in already_reported:
+                continue
+            values = {"path": str(warning.source), "key": warning.key or "",
+                      "section": warning.section or ""}
+            if warning.section is None:
+                message = logmsg.CONFIG_UNKNOWN_TOP_LEVEL_KEY
+            elif warning.key is None:
+                message = logmsg.CONFIG_UNKNOWN_SECTION
+            else:
+                message = logmsg.CONFIG_UNKNOWN_OPTION
+            self.activity_log.emit(message, **{
+                name: values[name] for name in message.params})
+
     def _spawn(self, coro, what: str) -> asyncio.Task:
         """Run ``coro`` in the background, keeping it alive and audible.
 
@@ -662,6 +687,7 @@ class Daemon:
         self.fmt = self._build_formatter(self.config)
         self.activity_log.emit(logmsg.DAEMON_STARTING, version=__version__,
                        config=str(self.config_path))
+        self._report_config_warnings(self.config)
         if self._unconfigured():
             self.activity_log.emit(logmsg.SETUP_NO_DESK)
 
@@ -1297,6 +1323,7 @@ class Daemon:
                 new_config.automation.sit_variation,
                 new_config.automation.stand_variation))
         self.config = new_config
+        self._report_config_warnings(new_config, previous_config)
         set_language(new_config.ui.language)  # notifications follow the setting
         self.fmt = self._build_formatter(new_config)
         self.machine.update_config(new_config,

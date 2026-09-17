@@ -1,9 +1,9 @@
 """Configuration model, loading, validation, and saving.
 
 The config lives at ``~/.config/idasen-companion/config.toml``. Reading
-uses stdlib ``tomllib``; writing uses ``tomlkit`` so user comments and
-formatting survive round-trips. Durations are stored in the file as
-compact strings ("45m") and held in memory as integer seconds.
+uses stdlib ``tomllib``; writing uses ``tomlkit`` so user comments, unknown
+options, and formatting survive round-trips. Durations are stored in the file
+as compact strings ("45m") and held in memory as integer seconds.
 """
 
 from __future__ import annotations
@@ -75,6 +75,56 @@ MAX_HEIGHT = 1.27
 
 class ConfigError(Exception):
     """Raised when the configuration file is invalid."""
+
+
+@dataclass(frozen=True)
+class ConfigWarning:
+    """Forward-compatible config data this version does not understand.
+
+    The structured fields let every front end choose its own presentation.
+    ``str(warning)`` is the Qt-free, stable-English form used by the daemon's
+    journal and, from Phase 4, the CLI's stderr.
+    """
+
+    source: Path
+    section: str | None
+    key: str | None = None
+
+    def __str__(self) -> str:
+        if self.section is None:
+            return f"{self.source}: unknown top-level key {self.key!r}; preserving it"
+        if self.key is None:
+            return f"{self.source}: unknown section [{self.section}]; preserving it"
+        return f"{self.source}: unknown option [{self.section}] {self.key}; preserving it"
+
+
+def format_config_warning(warning: ConfigWarning) -> str:
+    """Render ``warning`` through the selected app gettext catalog.
+
+    Kept in this Qt-free module so GUI and the Phase 4 CLI cannot acquire
+    different wording for the same loader result. ``str(warning)`` remains the
+    stable-English diagnostic form for journals.
+    """
+    from .i18n import pgettext
+
+    values = {
+        "path": str(warning.source),
+        "section": warning.section or "",
+        "key": warning.key or "",
+    }
+    if warning.section is None:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown top-level key %(key)s; preserving it")
+    elif warning.key is None:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown section [%(section)s]; preserving it")
+    else:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown option [%(section)s] %(key)s; preserving it")
+    return template % values
 
 
 @dataclass
@@ -200,6 +250,11 @@ class AppConfig:
     advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
     ui: UiConfig = field(default_factory=UiConfig)
     presets: dict[str, float] = field(default_factory=lambda: dict(FALLBACK_PRESETS))
+    # Loader diagnostics, not configuration. Excluding them from equality
+    # keeps a warning-only reload from looking like a preference change; the
+    # saver writes only the fields above, so they never enter TOML either.
+    warnings: tuple[ConfigWarning, ...] = field(
+        default=(), compare=False, repr=False)
 
 
 _DURATION_FIELDS = {
@@ -216,10 +271,12 @@ _DURATION_FIELDS = {
 }
 
 
-def _apply_section(target, section_name: str, data: dict) -> None:
+def _apply_section(target, section_name: str, data: dict, *, source: Path,
+                   warnings: list[ConfigWarning]) -> None:
     for toml_key, value in data.items():
         if not hasattr(target, toml_key):
-            raise ConfigError(f"unknown option [{section_name}] {toml_key}")
+            warnings.append(ConfigWarning(source, section_name, toml_key))
+            continue
         if (section_name, toml_key) in _DURATION_FIELDS:
             if isinstance(value, str):
                 try:
@@ -318,6 +375,7 @@ def load_config(path: Path | None = None) -> AppConfig:
     yields pure defaults; a malformed file raises ConfigError."""
     path = path or DEFAULT_CONFIG_PATH
     config = AppConfig()
+    warnings: list[ConfigWarning] = []
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
@@ -360,7 +418,8 @@ def load_config(path: Path | None = None) -> AppConfig:
             # from a config written by an older version rather than failing the
             # unknown-option check.
             section_data.pop("tray_double_click", None)
-        _apply_section(getattr(config, section_name), section_name, section_data)
+        _apply_section(getattr(config, section_name), section_name, section_data,
+                       source=path, warnings=warnings)
 
     presets = data.pop("presets", None)
     if presets is not None:
@@ -381,10 +440,16 @@ def load_config(path: Path | None = None) -> AppConfig:
     # section — drop it silently rather than failing the unknown-section check.
     data.pop("hotkeys", None)
 
-    if data:
-        raise ConfigError(f"unknown config section(s): {', '.join(sorted(data))}")
+    for name, value in data.items():
+        warnings.append(ConfigWarning(
+            path, name if isinstance(value, dict) else None,
+            None if isinstance(value, dict) else name))
 
     _validate(config)
+    # A tuple makes the loader result immutable at the boundary and preserves
+    # source order. dict.fromkeys prevents one parser node from producing the
+    # same warning twice if migration handling grows more complex later.
+    config.warnings = tuple(dict.fromkeys(warnings))
     return config
 
 

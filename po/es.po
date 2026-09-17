@@ -17,6 +17,24 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown top-level key %(key)s; preserving it"
+msgstr "%(path)s: clave de nivel superior desconocida %(key)s; se conservará"
+
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown section [%(section)s]; preserving it"
+msgstr "%(path)s: sección desconocida [%(section)s]; se conservará"
+
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown option [%(section)s] %(key)s; preserving it"
+msgstr "%(path)s: opción desconocida [%(section)s] %(key)s; se conservará"
+
 #: src/idasen_companion/core/logmsg.py
 #, python-format
 msgctxt "activity-log.entry"
@@ -89,6 +107,36 @@ msgstr "Configuración recargada."
 msgctxt "activity-log.entry"
 msgid "Config reload failed, keeping old config: %(error)s"
 msgstr "Error al recargar la configuración, se mantiene la anterior: %(error)s"
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown section [%(section)s]; "
+"preserving it."
+msgstr ""
+"Advertencia de configuración: %(path)s contiene la sección desconocida "
+"[%(section)s]; se conservará."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown option [%(section)s] "
+"%(key)s; preserving it."
+msgstr ""
+"Advertencia de configuración: %(path)s contiene la opción desconocida "
+"[%(section)s] %(key)s; se conservará."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown top-level key %(key)s; "
+"preserving it."
+msgstr ""
+"Advertencia de configuración: %(path)s contiene la clave de nivel superior "
+"desconocida %(key)s; se conservará."
 
 #: src/idasen_companion/core/logmsg.py
 msgctxt "activity-log.entry"
@@ -990,6 +1038,24 @@ msgstr "de pie"
 msgctxt "activity-log.parameter"
 msgid "N/A"
 msgstr "N/D"
+
+#: src/idasen_companion/gui/main.py
+#: src/idasen_companion/gui/pages/settings_form.py
+msgctxt "config-warning"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/main.py
+#: src/idasen_companion/gui/pages/settings_form.py
+#, python-format
+msgctxt "config-warning"
+msgid ""
+"Some configuration settings are not recognized by this version. They will be "
+"preserved:\n"
+"%s"
+msgstr ""
+"Esta versión no reconoce algunos ajustes de configuración. Se conservarán:\n"
+"%s"
 
 #: src/idasen_companion/gui/main_window.py
 msgctxt "window-shell"

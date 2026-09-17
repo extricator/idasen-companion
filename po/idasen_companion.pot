@@ -18,6 +18,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown top-level key %(key)s; preserving it"
+msgstr ""
+
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown section [%(section)s]; preserving it"
+msgstr ""
+
+#: src/idasen_companion/core/config.py
+#, python-format
+msgctxt "config-warning.detail"
+msgid "%(path)s: unknown option [%(section)s] %(key)s; preserving it"
+msgstr ""
+
 #: src/idasen_companion/core/logmsg.py
 #, python-format
 msgctxt "activity-log.entry"
@@ -80,6 +98,30 @@ msgstr ""
 #, python-format
 msgctxt "activity-log.entry"
 msgid "Config reload failed, keeping old config: %(error)s"
+msgstr ""
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown section [%(section)s]; "
+"preserving it."
+msgstr ""
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown option [%(section)s] "
+"%(key)s; preserving it."
+msgstr ""
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Configuration warning: %(path)s contains unknown top-level key %(key)s; "
+"preserving it."
 msgstr ""
 
 #: src/idasen_companion/core/logmsg.py
@@ -899,6 +941,22 @@ msgstr ""
 #: src/idasen_companion/gui/log_catalog.py
 msgctxt "activity-log.parameter"
 msgid "N/A"
+msgstr ""
+
+#: src/idasen_companion/gui/main.py
+#: src/idasen_companion/gui/pages/settings_form.py
+msgctxt "config-warning"
+msgid "Idasen Companion"
+msgstr ""
+
+#: src/idasen_companion/gui/main.py
+#: src/idasen_companion/gui/pages/settings_form.py
+#, python-format
+msgctxt "config-warning"
+msgid ""
+"Some configuration settings are not recognized by this version. They will be "
+"preserved:\n"
+"%s"
 msgstr ""
 
 #: src/idasen_companion/gui/main_window.py

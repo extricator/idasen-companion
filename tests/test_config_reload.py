@@ -77,6 +77,24 @@ def test_a_real_change_does_write_an_activity_line(daemon):
     assert "config.reloaded" in _emitted_ids(daemon)
 
 
+def test_an_unknown_option_loads_and_is_reported_once(daemon):
+    daemon.config_path.write_text(CONFIG.replace(
+        "[automation]", "[automation]\nfuture_strategy = 'gentle'"))
+
+    daemon.reload_config()
+    assert "config.unknown_option" in _emitted_ids(daemon)
+    warning_calls = [call for call in daemon.activity_log.emit.call_args_list
+                     if call.args[0].id == "config.unknown_option"]
+    assert len(warning_calls) == 1
+    assert warning_calls[0].kwargs["section"] == "automation"
+    assert warning_calls[0].kwargs["key"] == "future_strategy"
+
+    daemon.reload_config()
+    warning_calls = [call for call in daemon.activity_log.emit.call_args_list
+                     if call.args[0].id == "config.unknown_option"]
+    assert len(warning_calls) == 1, "unchanged warning flooded a repeated reload"
+
+
 def test_a_no_op_reload_does_not_re_roll_the_cycle_target(daemon):
     daemon.reload_config()
     assert daemon.machine.update_config.call_args.kwargs["reroll_target"] is False

@@ -171,6 +171,20 @@ The configuration file is `~/.config/idasen-companion/config.toml`. Every
 duration accepts a value like `45m`, `1h30m` or `90s`. The Settings tab
 offers the same options, each with an explanation.
 
+Language, measurement units and hour cycle are independent. `[ui] language`
+selects translated text, number symbols and date/time language. Explicit
+`units = "cm"` / `"in"` and `clock_format = "12"` / `"24"` values always win;
+`"system"` follows the operating system's measurement and time locales, not
+the selected app language.
+
+A config written by a newer Idasen Companion may contain sections or options
+this version does not know. They produce a visible warning but do not prevent
+the GUI or daemon from starting, and they remain in the file through later
+Settings edits. A recognized option with a wrong type or invalid value is
+still an error. There is intentionally no config schema-version key: additive
+options stay downgrade-compatible, and an actual one-way migration will add
+versioning only when it is needed.
+
 The daemon writes its log to journald:
 
 ```
