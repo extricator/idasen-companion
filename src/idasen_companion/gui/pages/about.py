@@ -133,10 +133,10 @@ class AboutPage(Page):
         font.setPointSizeF(font.pointSizeF() * 0.88)
         intro.setFont(font)
         shortcuts.body.addWidget(intro)
-        commands = QLabel("idasen-companion --toggle\n"
-                          "idasen-companion --sit\n"
-                          "idasen-companion --stand\n"
-                          "idasen-companion --preset NAME")
+        commands = QLabel("idasen-companion-cli toggle\n"
+                          "idasen-companion-cli sit\n"
+                          "idasen-companion-cli stand\n"
+                          "idasen-companion-cli preset NAME")
         commands.setTextFormat(Qt.TextFormat.PlainText)
         commands.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         commands.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))

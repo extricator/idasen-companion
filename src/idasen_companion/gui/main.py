@@ -136,12 +136,15 @@ def _parse_argv(argv: list[str]) -> None:
                              "to the tray")
     group = parser.add_argument_group("one-shot commands (sent to the daemon)")
     group.add_argument("--toggle", action="store_true",
-                       help="sit <-> stand (the opposite of where it is)")
-    group.add_argument("--sit", action="store_true", help="move to the sit preset")
-    group.add_argument("--stand", action="store_true", help="move to the stand preset")
-    group.add_argument("--stop", action="store_true", help="stop the desk where it is")
+                       help="deprecated; use idasen-companion-cli toggle")
+    group.add_argument("--sit", action="store_true",
+                       help="deprecated; use idasen-companion-cli sit")
+    group.add_argument("--stand", action="store_true",
+                       help="deprecated; use idasen-companion-cli stand")
+    group.add_argument("--stop", action="store_true",
+                       help="deprecated; use idasen-companion-cli stop")
     group.add_argument("--preset", metavar="NAME",
-                       help="move to a named preset (e.g. sit, stand, focus)")
+                       help="deprecated; use idasen-companion-cli preset NAME")
     parser.parse_args(argv[1:])
 
 

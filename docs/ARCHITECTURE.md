@@ -113,10 +113,17 @@ D-Bus service; the control loop calls `machine.tick()` every `check_interval`.
 `ringlog.py` is the in-memory activity log the GUI reads; `stats.py` is the
 SQLite store.
 
+`cli.py` is the Qt-free terminal reader and controller. It connects with
+`dbus-fast`, reads the same scalar properties and JSON tables as the GUI, and
+constructs the shared Babel/gettext `Formatter` directly from `AppConfig`.
+Structured Activity Log rendering lives in `core/activity_log.py` so both the
+GUI and CLI translate known message ids in the reader's language while keeping
+the daemon's English wire text as the mixed-version fallback.
+
 ### The D-Bus surface is public, including the parts the GUI doesn't use
 
 `service.py` is an API, not an internal seam: the interfaces are on the
-session bus under a well-known name, and `idasen-companion --toggle` is not
+session bus under a well-known name, and `idasen-companion-cli toggle` is not
 the only thing entitled to call them. A few members therefore exist with no
 in-tree reader, deliberately:
 

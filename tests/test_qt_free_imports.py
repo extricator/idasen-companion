@@ -183,6 +183,17 @@ def test_the_daemon_entry_point_never_imports_qt(monkeypatch):
     _assert_qt_free(result, "daemon/main.py")
 
 
+def test_the_cli_entry_point_never_imports_qt(monkeypatch):
+    """The standalone CLI must remain usable in the headless artifact."""
+    assert importlib.util.find_spec("idasen_companion.cli") is not None
+    monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
+    program = _CHILD_PROGRAM.format(
+        modules=["idasen_companion.cli"],
+        present=_PRESENT, absent=_ABSENT)
+    result = _run_isolated(program)
+    _assert_qt_free(result, "cli.py")
+
+
 def test_every_shared_formatter_is_callable_with_no_qt_loaded(monkeypatch):
     """PRES-01 asks for more than the two legs above prove. Those cover
     *importability* -- that ``core/presentation/`` and the daemon's entry

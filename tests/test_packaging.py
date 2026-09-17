@@ -49,6 +49,19 @@ def read(p: Path) -> str:
     return p.read_text()
 
 
+def test_project_exposes_daemon_gui_and_qt_free_cli_entry_points():
+    scripts = tomllib.loads(read(ROOT / "pyproject.toml"))["project"]["scripts"]
+    assert scripts == {
+        "idasen-companiond": "idasen_companion.daemon.main:main",
+        "idasen-companion": "idasen_companion.gui.main:main",
+        "idasen-companion-cli": "idasen_companion.cli:main",
+    }
+
+    bundled = read(BUNDLED)
+    assert "%{_bindir}/idasen-companion-cli" in bundled
+    assert "s/@ENTRY@/idasen_companion.cli/" in bundled
+
+
 def test_every_existing_artifact_path_carries_babel():
     """Babel is a base runtime dependency, not a GUI-only convenience."""
     pyproject = tomllib.loads(read(ROOT / "pyproject.toml"))

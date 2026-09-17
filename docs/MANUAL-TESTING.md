@@ -46,9 +46,11 @@ schedule:
 - **Live height while moving**, and Stop halting mid-travel.
 - **Transient BlueZ flake** — retries appear in the journal and commands still
   succeed. The July 2026 outage exercised the failure path hard.
-- **Tray gestures and the CLI** — middle-click toggle, `--toggle` / `--sit` /
-  `--stand` / `--stop` / `--preset`, including the unknown-preset and
-  missing-name exits.
+- **Tray gestures and the CLI** — middle-click toggle plus
+  `idasen-companion-cli status`, `toggle`, `sit`, `stand`, `stop`, `preset`
+  and `log`, including the unknown-preset, missing-name and daemon-down exits.
+  The deprecated `idasen-companion --toggle`-style compatibility flags still
+  route to the same daemon during the migration window.
 - **Single instance**, both halves: a second GUI activates the existing
   window; a second daemon exits rather than running a rival loop.
 - **Daemon down** — the red banner and "Start daemon" button in the window.
@@ -102,7 +104,7 @@ design has never met a GNOME session.
       lock and idle flip the status within one check interval.
 - [ ] **[GNOME]** Pre-move notification appears, and its Snooze / Skip
       buttons snooze and skip.
-- [ ] **[GNOME]** `idasen-companion --toggle` bound to a key in the DE's
+- [ ] **[GNOME]** `idasen-companion-cli toggle` bound to a key in the DE's
       keyboard settings works, on X11 and Wayland.
 - [ ] Whichever of KDE X11 / KDE Wayland is *not* the daily driver: idle
       provider, lock, and the global shortcut still behave.

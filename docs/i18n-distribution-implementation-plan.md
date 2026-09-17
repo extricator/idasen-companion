@@ -75,7 +75,7 @@ the handoff commit.
 | 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
 | 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
-| 4. CLI | Pending | — | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
+| 4. CLI | In progress | pending | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
@@ -575,13 +575,33 @@ their absence before this phase is not a preflight failure.
 
 ### Phase 4 execution record
 
-- State: Pending
-- Starting commit: —
-- Final command/exit-code contract: —
-- Implementation commit: —
-- Commands/results, including session-bus smoke: —
-- Deviations from plan: —
-- Known risks carried forward: —
+- State: In progress
+- Starting commit: `8bf2543`
+- Final command/exit-code contract: `idasen-companion-cli` requires one of
+  `status`, `sit`, `stand`, `toggle`, `stop`, `preset NAME` or
+  `log [--limit N]`. Success is 0, argparse usage is 2, and configuration,
+  session-bus, daemon, D-Bus reply and malformed-payload failures are 1.
+  Command output is stdout; localized config warnings and actionable errors
+  are stderr; expected failures include no traceback.
+- Implementation commit: pending
+- Commands/results, including session-bus smoke: preflight full pytest — 2,011
+  passed; preflight naming — exit 0; preflight mypy — no issues in 67 source
+  files; preflight pylint — 10.00/10. Post-change targeted Phase 4 suite — 141
+  passed; isolated `dbus-run-session` smoke — 1 passed, covering status, sit,
+  stop, log, service shutdown and missing owner; full pytest — 2,028 passed,
+  1 isolated-bus test skipped by design outside `dbus-run-session`; naming —
+  exit 0; mypy — no issues in 69 source files; pylint — 10.00/10. Translation
+  extraction/merge/compile completed deterministically with contextual English
+  and Spanish CLI entries.
+- Deviations from plan: reader-side structured Activity Log rendering moved
+  from the Qt-free-in-practice `gui/log_catalog.py` implementation into
+  `core/activity_log.py`; the GUI now delegates to it, so the CLI does not
+  import a `gui` module or duplicate the catalog. A hidden `--config` path is
+  available for isolated testing and development, matching the daemon's test
+  setup without expanding the documented command surface.
+- Known risks carried forward: Phase 5 must generate and inspect both native
+  variants; this phase adds the CLI launcher to the existing full bundled RPM
+  but does not yet define headless file/dependency lists or release assets.
 - Handoff to Phase 5: List the exact Python modules, scripts, data files,
   service metadata and catalogs required by a headless installation, and prove
   that list contains no GUI/Qt path.

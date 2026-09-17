@@ -21,7 +21,7 @@
   "about.QLabel#6.text": "Built on idasen · bleak · PySide6 / Qt",
   "about.QLabel#7.text": "GLOBAL SHORTCUTS",
   "about.QLabel#8.text": "Bind these commands to keys in your desktop's own keyboard settings — reliable on X11 and Wayland, on every desktop:",
-  "about.QLabel#9.text": "idasen-companion --toggle\nidasen-companion --sit\nidasen-companion --stand\nidasen-companion --preset NAME",
+  "about.QLabel#9.text": "idasen-companion-cli toggle\nidasen-companion-cli sit\nidasen-companion-cli stand\nidasen-companion-cli preset NAME",
   "about.QPushButton#0.text": "Project page",
   "about.QPushButton#1.text": "Report an issue",
   "about.QPushButton#2.text": "Copy",

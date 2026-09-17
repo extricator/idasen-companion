@@ -338,6 +338,11 @@ install -Dm755 packaging/idasen-companion-launcher.sh \
 sed -i -e 's/@ENTRY@/idasen_companion.gui.main/' \
        -e 's|@PYTHON@|%{bundled_interpreter}|' \
     %{buildroot}%{_bindir}/idasen-companion
+install -Dm755 packaging/idasen-companion-launcher.sh \
+    %{buildroot}%{_bindir}/idasen-companion-cli
+sed -i -e 's/@ENTRY@/idasen_companion.cli/' \
+       -e 's|@PYTHON@|%{bundled_interpreter}|' \
+    %{buildroot}%{_bindir}/idasen-companion-cli
 
 # Bundling obliges us to ship the bundled code's license texts too. Most
 # wheels carry theirs under one of two conventional names, so copy each out
@@ -533,6 +538,7 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt
 %doc README.md
 %{_bindir}/idasen-companion
+%{_bindir}/idasen-companion-cli
 %{_bindir}/idasen-companiond
 %{appdir}/
 %{_userunitdir}/idasen-companion.service

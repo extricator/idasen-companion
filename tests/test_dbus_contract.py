@@ -23,6 +23,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from idasen_companion import DBUS_NAME
+from idasen_companion import cli
 from idasen_companion.daemon import service as service_mod
 
 CLIENT = (Path(__file__).resolve().parent.parent / "src" / "idasen_companion"
@@ -195,3 +196,25 @@ def test_every_exported_member_introspects(const, cls):
             assert arg.signature, f"{cls.__name__}.{m.name}: empty signature"
     for p in node.properties:
         assert p.signature, f"{cls.__name__}.{p.name}: empty signature"
+
+
+def test_every_cli_member_exists_on_the_daemon():
+    expected = {
+        service_mod.Desk1: {
+            "properties": {"Connected", "Height", "Position", "Moving"},
+            "methods": {"Sit", "Stand", "Toggle", "Stop", "MoveToPreset"},
+        },
+        service_mod.Automation1: {
+            "properties": {"Status", "ActiveTime", "TimeRemaining", "SnoozeUntil"},
+            "methods": set(),
+        },
+        service_mod.Stats1: {"properties": set(), "methods": {"GetDaily"}},
+        service_mod.Log1: {"properties": set(), "methods": {"GetRecent"}},
+    }
+    assert {
+        cli.IFACE_DESK, cli.IFACE_AUTO, cli.IFACE_STATS, cli.IFACE_LOG,
+    } == {cls(MagicMock()).name for cls in expected}
+    for cls, wanted in expected.items():
+        methods, properties, _signals = members_of(cls)
+        assert wanted["methods"] <= methods
+        assert wanted["properties"] <= properties

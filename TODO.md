@@ -50,7 +50,10 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a full automation cycle against the desk from inside the sandbox.
 
 ## Features / enhancements (deferred)
-- [ ] **A `status` command, so the desk can be read from a terminal** — the
+- [x] **A `status` command, so the desk can be read from a terminal** — delivered
+      by `idasen-companion-cli status`, with Desk / Automation / Today sections,
+      localized values and explicit exit/stdout/stderr behavior. The original
+      design record follows: the
       command line can only *write* today: `--toggle`, `--sit`, `--stand`,
       `--stop` and `--preset` (`gui/main.py:39`) each fire one method and exit,
       and every readable fact — height, sit/stand word, connection, cycle
@@ -146,7 +149,10 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
-- [ ] **Decide whether the command line becomes a first-class front end** — it
+- [x] **Decide whether the command line becomes a first-class front end** — yes:
+      `idasen-companion-cli` now owns status, log and all one-shot moves without
+      importing Qt; full/headless artifact publication remains packaging work.
+      The original analysis follows: it
       is not one now: five flags living inside the GUI, declared at
       `gui/main.py:135` and short-circuiting at `gui/main.py:150` before any
       `QApplication` exists. That was right for what they are, and stops being

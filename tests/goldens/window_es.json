@@ -21,7 +21,7 @@
   "about.QLabel#6.text": "Construido sobre idasen · bleak · PySide6 / Qt",
   "about.QLabel#7.text": "ATAJOS GLOBALES",
   "about.QLabel#8.text": "Asigna estos comandos a teclas en la configuración de teclado de tu escritorio; funciona en X11 y Wayland, en cualquier escritorio:",
-  "about.QLabel#9.text": "idasen-companion --toggle\nidasen-companion --sit\nidasen-companion --stand\nidasen-companion --preset NAME",
+  "about.QLabel#9.text": "idasen-companion-cli toggle\nidasen-companion-cli sit\nidasen-companion-cli stand\nidasen-companion-cli preset NAME",
   "about.QPushButton#0.text": "Página del proyecto",
   "about.QPushButton#1.text": "Informar de un problema",
   "about.QPushButton#2.text": "Copiar",

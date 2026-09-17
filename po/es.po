@@ -17,6 +17,150 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "%(position)s (moving)"
+msgstr "%(position)s (en movimiento)"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Connected"
+msgstr "Conectado"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Disconnected"
+msgstr "Desconectado"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "On demand"
+msgstr "Bajo demanda"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Unavailable"
+msgstr "No disponible"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "Standing up in %(duration)s"
+msgstr "De pie en %(duration)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "Sitting down in %(duration)s"
+msgstr "Sentándose en %(duration)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "%(duration)s left"
+msgstr "Quedan %(duration)s"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Desk"
+msgstr "Escritorio"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Height: %(height)s"
+msgstr "  Altura: %(height)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Position: %(position)s"
+msgstr "  Posición: %(position)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Connection: %(connection)s"
+msgstr "  Conexión: %(connection)s"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Automation"
+msgstr "Automatización"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Status: %(status)s"
+msgstr "  Estado: %(status)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Elapsed: %(duration)s"
+msgstr "  Transcurrido: %(duration)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Next: %(next)s"
+msgstr "  Próximo: %(next)s"
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Today"
+msgstr "Hoy"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Sitting: %(duration)s"
+msgstr "  Sentado: %(duration)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Standing: %(duration)s"
+msgstr "  De pie: %(duration)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.log"
+msgid "%(when)s  %(message)s"
+msgstr "%(when)s  %(message)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.error"
+msgid "Invalid configuration: %(detail)s"
+msgstr "Configuración no válida: %(detail)s"
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.error"
+msgid ""
+"Could not contact the Idasen Companion daemon: %(detail)s\n"
+"Start it with: systemctl --user start idasen-companion.service"
+msgstr ""
+"No se pudo contactar con el servicio de Idasen Companion: %(detail)s\n"
+"Inícielo con: systemctl --user start idasen-companion.service"
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "sitting"
+msgstr "sentado"
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "standing"
+msgstr "de pie"
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "N/A"
+msgstr "N/D"
+
 #: src/idasen_companion/core/config.py
 #, python-format
 msgctxt "config-warning.detail"
@@ -1023,21 +1167,6 @@ msgctxt "background-permission"
 msgid "Start the desk automation automatically at login"
 msgstr ""
 "Iniciar la automatización del escritorio automáticamente al iniciar sesión"
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "sitting"
-msgstr "sentado"
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "standing"
-msgstr "de pie"
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "N/A"
-msgstr "N/D"
 
 #: src/idasen_companion/gui/main.py
 #: src/idasen_companion/gui/pages/settings_form.py
@@ -2496,3 +2625,7 @@ msgstr "%(day)s: sentado %(sit)s, de pie %(stand)s"
 msgctxt "statistics.chart"
 msgid "%(day)s: no data"
 msgstr "%(day)s: sin datos"
+
+#~ msgctxt "cli.status"
+#~ msgid "Paused"
+#~ msgstr "En pausa"

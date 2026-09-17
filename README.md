@@ -149,18 +149,29 @@ The main window shows the desk height, the progress of the cycle and the
 controls. The tray icon offers the same actions. **Settings → Window & tray**
 decides what a left click and a middle click do.
 
-The app also works as a remote control. Each command below sends a single
-instruction to the daemon and then exits:
+The Qt-free command-line front end reads status and recent activity as well as
+sending remote-control instructions to the daemon:
 
 ```
-idasen-companion --toggle       # move to the other position
-idasen-companion --sit
-idasen-companion --stand
-idasen-companion --preset NAME
-idasen-companion --stop
+idasen-companion-cli status
+idasen-companion-cli toggle       # move to the other position
+idasen-companion-cli sit
+idasen-companion-cli stand
+idasen-companion-cli preset NAME
+idasen-companion-cli stop
+idasen-companion-cli log --limit 20
 ```
 
-Bind these commands to keys in your desktop's own keyboard settings.
+`status` prints Desk, Automation and Today sections using the configured
+language, units and hour cycle. `log` renders recognized activity messages in
+the reader's language and falls back to the daemon's English text for entries
+from a newer build. Configuration warnings and actionable errors go to stderr;
+successful output goes to stdout. A successful command exits 0, a D-Bus or
+configuration failure exits 1, and invalid command syntax exits 2.
+
+Bind the move commands to keys in your desktop's own keyboard settings. The
+older `idasen-companion --toggle`-style GUI flags remain compatible for this
+release but are deprecated in favor of the standalone executable.
 
 Note: a screen locker takes an exclusive input grab, so no desktop shortcut
 fires while the session is locked. The automation itself carries on.

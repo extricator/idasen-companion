@@ -18,6 +18,148 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "%(position)s (moving)"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Connected"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Disconnected"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "On demand"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Unavailable"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "Standing up in %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "Sitting down in %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "%(duration)s left"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Desk"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Height: %(height)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Position: %(position)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Connection: %(connection)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Automation"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Status: %(status)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Elapsed: %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Next: %(next)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+msgctxt "cli.status"
+msgid "Today"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Sitting: %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.status"
+msgid "  Standing: %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.log"
+msgid "%(when)s  %(message)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.error"
+msgid "Invalid configuration: %(detail)s"
+msgstr ""
+
+#: src/idasen_companion/cli.py
+#, python-format
+msgctxt "cli.error"
+msgid ""
+"Could not contact the Idasen Companion daemon: %(detail)s\n"
+"Start it with: systemctl --user start idasen-companion.service"
+msgstr ""
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "sitting"
+msgstr ""
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "standing"
+msgstr ""
+
+#: src/idasen_companion/core/activity_log.py
+msgctxt "activity-log.parameter"
+msgid "N/A"
+msgstr ""
+
 #: src/idasen_companion/core/config.py
 #, python-format
 msgctxt "config-warning.detail"
@@ -926,21 +1068,6 @@ msgstr ""
 #: src/idasen_companion/gui/background_portal.py
 msgctxt "background-permission"
 msgid "Start the desk automation automatically at login"
-msgstr ""
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "sitting"
-msgstr ""
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "standing"
-msgstr ""
-
-#: src/idasen_companion/gui/log_catalog.py
-msgctxt "activity-log.parameter"
-msgid "N/A"
 msgstr ""
 
 #: src/idasen_companion/gui/main.py
