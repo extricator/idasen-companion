@@ -74,7 +74,7 @@ the handoff commit.
 |---:|---|---|---|---|
 | 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
 | 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
-| 3. Config compatibility | Pending | — | — | unknown-key round trips, visible warnings, strict known-key tests, full tests |
+| 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Pending | — | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
@@ -464,7 +464,7 @@ uvx pylint==4.0.6 src/idasen_companion
 
 ### Phase 3 execution record
 
-- State: In progress
+- State: Complete
 - Starting commit: `f0f31ff`
 - Warning API chosen: immutable `ConfigWarning(source, section, key)` values
   travel on `AppConfig.warnings`, whose dataclass field is excluded from
@@ -475,7 +475,7 @@ uvx pylint==4.0.6 src/idasen_companion
   nested future tables, unknown top-level sections and unknown top-level keys
   all use this result. Explicit removed/renamed-key migrations remain separate
   and silent.
-- Implementation commit: this commit
+- Implementation commit: `f9860da`
 - Commands/results: preflight full pytest — 2,000 passed; preflight naming —
   exit 0; preflight mypy — no issues in 67 files; preflight pylint — 10.00/10.
   Post-change phase-targeted suite — 110 passed; expanded config/warning,
@@ -491,8 +491,19 @@ uvx pylint==4.0.6 src/idasen_companion
   stderr after binding the selected language and must keep the core config API
   Qt-free. Native artifact inspection remains Phase 5 work. The inactive Qt
   migration artifacts and compatibility adapter remain Phase 7 removal work.
-- Handoff to Phase 4: Document how CLI code obtains the selected language,
-  resolved display preferences and warnings without importing GUI modules.
+- Handoff to Phase 4: Phase 3 ends at this handoff commit with a clean tracked
+  worktree; translation regeneration after `f9860da` was byte-for-byte clean.
+  CLI code must call `load_config()` and use the returned `AppConfig` directly,
+  then call `set_language(config.ui.language)` before rendering messages or
+  `format_config_warning()` results. Print every `config.warnings` result on
+  stderr before command output. Build its Qt-free `Formatter` exactly like
+  `Daemon._build_formatter`: `LocaleProfile(resolve_app_locale(...))`,
+  `UnitSetting`/`resolve_height_unit`, `ClockSetting`/`resolve_clock_style`,
+  and `GettextTranslator`. Do not import `gui.context`, `gui.i18n` or any
+  PySide6-backed module. The next preflight baseline is 2,011 tests, 67 mypy
+  source files, naming exit 0 and pylint 10.00/10. Phase 4 retains all frozen
+  Qt migration artifacts for Phase 7 and does not change packaging variants,
+  which remain Phase 5 scope.
 
 ## 8. Phase 4 — first-class Qt-free CLI
 
