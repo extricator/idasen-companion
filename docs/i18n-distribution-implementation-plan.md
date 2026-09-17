@@ -75,7 +75,7 @@ the handoff commit.
 | 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
 | 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
-| 4. CLI | In progress | pending | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
+| 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
@@ -575,7 +575,7 @@ their absence before this phase is not a preflight failure.
 
 ### Phase 4 execution record
 
-- State: In progress
+- State: Complete
 - Starting commit: `8bf2543`
 - Final command/exit-code contract: `idasen-companion-cli` requires one of
   `status`, `sit`, `stand`, `toggle`, `stop`, `preset NAME` or
@@ -583,7 +583,7 @@ their absence before this phase is not a preflight failure.
   session-bus, daemon, D-Bus reply and malformed-payload failures are 1.
   Command output is stdout; localized config warnings and actionable errors
   are stderr; expected failures include no traceback.
-- Implementation commit: pending
+- Implementation commit: `5920fb4`
 - Commands/results, including session-bus smoke: preflight full pytest — 2,011
   passed; preflight naming — exit 0; preflight mypy — no issues in 67 source
   files; preflight pylint — 10.00/10. Post-change targeted Phase 4 suite — 141
@@ -602,9 +602,22 @@ their absence before this phase is not a preflight failure.
 - Known risks carried forward: Phase 5 must generate and inspect both native
   variants; this phase adds the CLI launcher to the existing full bundled RPM
   but does not yet define headless file/dependency lists or release assets.
-- Handoff to Phase 5: List the exact Python modules, scripts, data files,
-  service metadata and catalogs required by a headless installation, and prove
-  that list contains no GUI/Qt path.
+- Handoff to Phase 5: the headless installation boundary is
+  `src/idasen_companion/__init__.py`, `cli.py`, the complete `core/` and
+  `daemon/` packages, and `locale/*/LC_MESSAGES/idasen_companion.mo`; generated
+  `idasen-companion-cli` and `idasen-companiond` console scripts; the bundled
+  RPM's `packaging/idasen-companion-launcher.sh`; and
+  `data/idasen-companion.service`. The Flatpak-only
+  `data/io.github.extricator.IdasenCompanion.service` may remain in the full
+  Flatpak input but is not native headless metadata. The headless lists must
+  exclude `src/idasen_companion/gui/`, PySide6, shiboken6, Qt libraries,
+  `data/io.github.extricator.IdasenCompanion.desktop`, both `data/icons/`
+  files and `data/io.github.extricator.IdasenCompanion.metainfo.xml`. A fresh
+  isolated import of both `idasen_companion.cli` and
+  `idasen_companion.daemon.main` at `5920fb4` reported no `gui`, `PySide6` or
+  `shiboken6` module loaded. Post-implementation translation regeneration was
+  clean (`git diff --exit-code` exit 0), so this handoff begins Phase 5 from a
+  deterministic catalog tree.
 
 ## 9. Phase 5 — standalone full and headless artifact variants
 
