@@ -73,7 +73,7 @@ the handoff commit.
 | Phase | State | Implementation commit | Handoff commit | Required proof |
 |---:|---|---|---|---|
 | 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
-| 2. Contextual gettext | In progress | pending | — | extraction freshness, catalog audit, mixed-version log tests, full tests |
+| 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Pending | — | — | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Pending | — | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
@@ -360,8 +360,7 @@ require `git diff --exit-code` before writing the handoff commit.
 
 ### Phase 2 execution record
 
-- State: In progress (implementation verified; awaiting implementation and
-  handoff commits)
+- State: Complete
 - Starting commit: `0f7e5bb`
 - Pre-migration TS/POT/PO message counts: 322 finished Qt TS messages and 79
   translated gettext source messages, including three plural entries, as
@@ -373,7 +372,7 @@ require `git diff --exit-code` before writing the handoff commit.
   split into named `position/status` and `status/countdown` messages. The two
   defective `(s)` Activity Log messages became real singular/plural pairs
   without changing entry count.
-- Implementation commit: pending
+- Implementation commit: `912f1eb`
 - Commands/results: preflight full pytest — 2,002 passed; preflight naming —
   exit 0; preflight mypy — no issues in 67 files; preflight pylint — 10.00/10.
   Post-change targeted Phase 2 suite — 210 passed; full pytest — 2,000 passed;
@@ -396,9 +395,19 @@ require `git diff --exit-code` before writing the handoff commit.
   compatibility adapter remain removal work for Phase 7. Native artifact
   inspection remains Phase 5. Phase 3 must surface forward-compatibility
   warnings through GUI, daemon/Activity Log and the future CLI-facing API.
-- Handoff to Phase 3: Confirm that runtime app-message lookup is gettext-only,
-  identify the frozen migration artifacts retained for Phase 7, and list every
-  process that must display config warnings.
+- Handoff to Phase 3: runtime app-message lookup is gettext-only. Direct GUI
+  calls use literal `pgettext`; deferred/shared keys use `P_`/`NP_` and
+  `GettextTranslator`; Activity Log reader rendering uses the canonical
+  `core/logmsg.py` `Message`; `gui/i18n.py` installs only Qtbase. The
+  transitional `QtTranslator` name remains solely as a gettext-delegating
+  compatibility adapter. Frozen migration artifacts retained for Phase 7 are
+  `translations/idasen_companion_es.ts`,
+  `src/idasen_companion/gui/translations/idasen_companion_es.qm`, their
+  package-data rules, `scripts/migrate-contextual-gettext.py` and the frozen
+  baseline audits. Phase 3 starts at this handoff commit with a clean tracked
+  worktree. It must surface one deduplicated unknown-config warning through
+  daemon journald plus Activity Log and GUI startup/settings feedback, and
+  expose the same Qt-free warning result for Phase 4 to print on CLI stderr.
 
 ## 7. Phase 3 — config compatibility
 
