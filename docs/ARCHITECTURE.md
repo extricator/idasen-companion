@@ -282,131 +282,47 @@ Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
 Compiled catalogs are committed, and ship via `MANIFEST.in` +
 `[tool.setuptools.package-data]`.
 
-## The presentation invariant: rendering vs. policy
+## One locale value engine, independent display preferences
 
-**The rule.** A surface backend may decide **how an atomic value is
-rendered** — a number's decimal point, a time's hour format, where a
-message's text comes from — and may **not** independently decide **product
-formatting policy**: which threshold applies, which fields compose a
-sentence, whether a value shows at all. Concretely, a backend's protocol
-exposes operations (`number`, `integer`, `time`, `date`, `message`,
-`plural`) and never a locale-database field — no `decimal_separator()`, no
-`month_names()`, no `am_text()`, no `first_day_of_week()`. A capability the
-shared layer needs is an operation a caller asks the backend for, never a
-field a caller reads and formats itself.
+Every app-owned number, integer, percentage, date, time and unit is rendered by
+`core/locale_profile.py` through Babel 2.18. GUI, daemon and future CLI code
+therefore receive the same CLDR answer for the same explicit app locale.
+`QLocale` remains in the GUI only for native widget input/display behavior,
+layout direction, locale selection and Qtbase translations; it does not render
+application labels.
 
-**The sanctioned divergence.** The permission is a category, not a list:
-any of the seam's four `LocaleFormatter` operations may render an atomic
-value differently between backends — the same latitude the paragraph
-above grants, applied to a value's own representation rather than to
-whether it appears at all — and none may differ in product formatting
-policy. Swept and recorded cell by cell across the seam's closed surface,
-most cells diverge; four do not — `NumberSpec.trim_trailing_zeroes`,
-`IntegerSpec.min_digits` and both 24-hour `TimeStyle` members. The first
-two are mechanism rather than policy: the trim is lowered to a reduced
-decimal count each backend hands to its own conversion, and the padding is
-applied by Python to the string each backend has already rendered. Neither
-leaves anything locale-specific to differ about — a trimmed `110` has no
-fraction and, at three digits, no group separator, and `05` is two ASCII
-digits. The two clock members are the newer case, and a deliberate one:
-asked for the 24-hour clock explicitly, both backends render the same
-digits in every shipped language, which is exactly what removing the
-backend's own choice bought.
+`LocaleProfile` is immutable and Qt-free. Consumers ask it for operations
+(`number`, `integer`, `percent`, `date`, `time`, `unit` and plural
+category) with explicit precision/grouping/style arguments. They do not read
+CLDR fields and assemble localized output themselves. The existing
+`Formatter` facade owns product policy such as height conversion, duration
+thresholds and whole-message composition, and delegates each atomic value to
+the profile.
 
-The worked example is the four date/time helpers: `fmt_clock`,
-`fmt_day_label`, `fmt_day_heading` and `fmt_day_and_clock`
-(`core/presentation/dates.py`'s `clock`, `day_short`, `day_heading`,
-`day_and_clock`, reached through `Formatter`), plus the Activity Log's
-seconds-bearing row stamp. Qt renders dates through `QLocale` —
-`lun 17 ago 2026` in `es`, `Mon 17 Aug 2026` in `en`. The Qt-free backend
-renders both `DateStyle` members as one ISO 8601 date, `2026-08-17`, in
-both shipped languages. Numbers diverge on the same permission: a height
-renders `110,5` through Qt in `es` and `110.5` through the Qt-free
-backend, which reaches every height the app shows — `height_value`,
-`height` and `preset_tick`.
+Three settings are intentionally independent:
 
-**The clock's divergence, since it changed shape.** Which clock a time is
-shown on is no longer a divergence at all: it is a product decision the
-app makes once, in `core/clock_format.py`, from `[ui] clock_format`, and
-hands to whichever backend is rendering. What remains is a divergence of
-*glyphs*, on the 12-hour styles only. At 12 hours the window renders
-`2:32 PM` in `en` and Spanish's own CLDR designator, `2:32 p. m.` (lower
-case, with a no-break space inside it), in `es`; the Qt-free backend renders `2:32 PM`
-in both, because its 12-hour clock is fixed English for the same reason
-its dates are fixed ISO. So under Spanish at that setting the window and a
-daemon-rendered line agree on the hour cycle — which is what the setting
-controls — and differ in the designator's glyphs, which this category
-already permits. Routing the meridiem token through the message catalog
-was the rejected alternative: it would put a translated fragment inside a
-rendered value, which is the seam this backend exists to hold.
+- `[ui] language` selects the gettext/Qt app catalogs and the Babel profile,
+  so it controls words, number symbols, date names and localized meridiem text.
+- `[ui] units` answers directly for `cm`/`in`; `system` follows
+  `LC_ALL`, `LC_MEASUREMENT`, then `LANG`. US and Liberia default to
+  inches; every other territory, including the UK, defaults to centimetres.
+- `[ui] clock_format` answers directly for 12/24 hours; `system` follows
+  `LC_ALL`, `LC_TIME`, then `LANG`, and asks Babel's short-time pattern.
+  A missing, POSIX/C or unsupported time locale falls back to 24 hours.
 
-**`grouping` is named, and answered.** `NumberSpec.grouping` and
-`IntegerSpec.grouping` are a divergence the seam permits that no shipped
-caller reaches: both default to `False`, and only tests pass `True`. Were
-one to, Qt would render `12.345,5` in `es` against the Qt-free backend's
-`12,345.5` — five integer digits, not four, because Qt's Spanish CLDR data
-inserts no group separator below five, so a four-digit example would show
-only the decimal point differing. A backend answering a *style* or a
-*spec* differently, as all of the above do, is inside the permission; one
-deciding which threshold applies, which fields compose a sentence, or
-whether a value shows at all is not.
+Changing the app language never changes the resolved measurement system or
+hour cycle. Both GUI and daemon resolve those preferences once from the same
+explicit environment inputs and carry the result in `PresentationContext`.
 
-**Why.** glibc defines the 12-hour clock format as the empty string for
-`es_ES`, so deriving a twelve-or-twenty-four answer from the process
-locale would hand a Spanish reader a *worse* answer than a plain 24-hour
-`14:32` — not a locally correct one this backend happened to skip. That is
-why the answer is a user setting resolved once rather than a guess each
-backend makes for itself. The divergence between
-the two backends does not disappear; it is now `lun 17 ago 2026` versus
-`2026-08-17`, where it used to be against a private table of fixed English
-weekday and month names. What changed is that the Qt-free side no longer
-disagrees with the window *in English words*.
+Babel 2.18's observed `ar_EG` behavior is pinned in tests: it emits Arabic
+decimal/group separators and localized date, meridiem and unit text, while the
+digit glyphs remain Latin. The tests record that actual behavior rather than
+claiming that every Arabic locale automatically substitutes native digits.
 
-**This is this project's own policy, not a claim about CLDR.** A
-wall-clock time and a calendar date are the two places where the locale
-genuinely owns the product decision on one surface — Qt's `QLocale` has a
-real answer — and cannot supply one at all on the other, since a Qt-free
-process has none. That is also why these four moved last: designing the
-whole abstraction around its one exception is how the exception stops
-looking like one.
-
-**Every formatter PRES-01 names, and where it ended up.** Sixteen of them —
-the height, duration, countdown, status/position/preset/trigger word,
-day-list and snooze/due/position-or-custom renderers, plus the four
-date/time helpers above — moved to `core/presentation/`, each with a thin
-`gui/util.py` forwarder of unchanged signature. Three did not move, and are
-recorded here rather than left for the next reader to find by searching:
-
-| Formatter | Disposition |
-|---|---|
-| `connection_state` | Its *words* moved to `words.connection_phrases`; what stays in `gui/util.py` is pairing them with a theme colour, and a theme is a Qt concept the `gui`/`daemon` → `core` → nothing rule keeps out of `core/`. A caller wanting only the wording asks a `Formatter` for `connection_phrases` instead. |
-| `daemon_error_message` | Moved to `core/presentation/daemon_errors.py`, deliberately with **no** `Formatter` method — its sentences must come from the *reader's* catalog, not the daemon's own. |
-| `suffix_height` / `suffix_minutes` / `suffix_seconds` | Stay in `gui/util.py`, solely because `QAbstractSpinBox.setSuffix` takes a bare string and inserts no separating space of its own — which is also why each keeps a deliberate leading space. Not named by PRES-01, but recorded here as the standing GUI-only exception it is. |
-
-**Where this is held mechanically, not just by review.**
-`tests/test_qt_free_imports.py` proves the Qt-free path never loads
-`PySide6`; `tests/test_golden_presentation_contract.py` pins Qt/Qt-free
-agreement for the shared formatters and the four date/time helpers'
-deliberate disagreement, hand-typed as an expectation rather than captured
-from a run; `tests/test_presentation_divergence_surface.py` sweeps the
-seam's whole surface — every `LocaleFormatter` operation crossed with every
-spec field and style member — with a recorded verdict per cell, so an
-operation or a field added later with no verdict fails the build rather
-than quietly widening the claim above.
-
-The Qt-free backend's own independence has two axes, and they are held in
-two different places. The **app language** — Qt's default `QLocale` and the
-gettext catalog — is varied per shipped language by the golden contract
-module, which renders every shared formatter through the journal pairing in
-each and requires the results to agree. The **POSIX locale** is the axis a
-reintroduced `import locale` or C-library date conversion would follow, and
-nothing in the app language loop touches it: the proof there is
-`tests/test_plain_locale.py`'s structural gate, which parses every module of
-`core/presentation/` and runs everywhere the suite runs, including a
-buildroot carrying no non-English langpack. Beside it, the golden module
-renders the same formatters under a Spanish or German numeric and time
-locale where the machine has one generated, and skips saying so where it
-does not — corroboration, not the proof.
+Compatibility names `PlainLocaleFormatter` and `QtLocaleFormatter` remain
+temporarily so later phases can migrate callers independently, but both
+delegate to `LocaleProfile`; they are not separate value engines. Fresh
+process tests prove the daemon/shared path imports no PySide6 or shiboken.
 
 ## Config
 

@@ -71,18 +71,17 @@ def test_an_explicit_unit_ignores_the_locale(setting, language):
             setting.value)
 
 
-@pytest.mark.parametrize("language, expected", [
+@pytest.mark.parametrize("system_locale, expected", [
     ("en_US", core_units.HeightUnit.INCHES),
-    # core.units calls the UK metric, deliberately disagreeing with Qt's own
-    # measurementSystem() -- see core/units.py's module docstring.
+    ("en_LR", core_units.HeightUnit.INCHES),
     ("en_GB", core_units.HeightUnit.CENTIMETRES),
     ("es_ES", core_units.HeightUnit.CENTIMETRES),
-    ("de_DE", core_units.HeightUnit.CENTIMETRES),
 ])
-def test_system_follows_the_locale_with_the_uk_on_the_metric_side(
-        language, expected):
+def test_system_follows_measurement_locale_not_selected_language(
+        system_locale, expected):
     assert core_units.resolve_height_unit(
-        core_units.UnitSetting.SYSTEM, language=language, environ={}) == expected
+        core_units.UnitSetting.SYSTEM, language="es_ES",
+        environ={"LC_MEASUREMENT": system_locale}) == expected
 
 
 # ---- the conversion itself ------------------------------------------------

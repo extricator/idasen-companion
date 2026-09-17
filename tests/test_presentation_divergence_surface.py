@@ -148,6 +148,12 @@ SEAM_SWEEP: tuple[SweepCell, ...] = (
         "point is involved at all.",
     ),
     SweepCell(
+        "percent", "default", (0.375,),
+        "38%", True,
+        "Babel places the percent sign according to the explicit locale; "
+        "Spanish inserts a no-break space while English does not.",
+    ),
+    SweepCell(
         "time", "HOUR_AND_MINUTE_24",
         (presentation_samples.AFTERNOON, TimeStyle.HOUR_AND_MINUTE_24),
         "14:32", False,
@@ -182,16 +188,16 @@ SEAM_SWEEP: tuple[SweepCell, ...] = (
     SweepCell(
         "date", "WEEKDAY_AND_DAY",
         (presentation_samples.AFTERNOON, DateStyle.WEEKDAY_AND_DAY),
-        "2026-08-17", True,
-        "Qt renders a localized weekday abbreviation; the Qt-free "
-        "backend renders one ISO 8601 date in every language.",
+        "Mon 17", True,
+        "The shared engine renders the explicit English profile here; an "
+        "explicit Spanish profile renders its localized weekday.",
     ),
     SweepCell(
         "date", "WEEKDAY_DAY_MONTH_YEAR",
         (presentation_samples.AFTERNOON, DateStyle.WEEKDAY_DAY_MONTH_YEAR),
-        "2026-08-17", True,
-        "Qt renders a localized weekday and month name; the Qt-free "
-        "backend renders the same ISO 8601 date as the short form above.",
+        "Mon 17 Aug 2026", True,
+        "The shared engine localizes weekday and month names from the "
+        "profile supplied by each process.",
     ),
 )
 
@@ -229,6 +235,7 @@ def _knobs_by_operation() -> dict[str, set[str]]:
     return {
         "number": {field.name for field in dataclasses.fields(NumberSpec)},
         "integer": {field.name for field in dataclasses.fields(IntegerSpec)},
+        "percent": {"default"},
         "time": {member.name for member in TimeStyle},
         "date": {member.name for member in DateStyle},
     }

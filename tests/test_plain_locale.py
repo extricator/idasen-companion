@@ -138,30 +138,28 @@ def test_time_an_unsupported_style_raises():
         FORMATTER.time(datetime(2026, 8, 17, 14, 32), "not-a-style")
 
 
-def test_date_weekday_and_day_renders_iso_8601():
+def test_date_weekday_and_day_uses_babel_english():
     when = datetime(2026, 8, 17, 14, 32)
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "2026-08-17"
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "Mon 17"
 
 
-def test_date_weekday_day_month_year_renders_iso_8601():
+def test_date_weekday_day_month_year_uses_babel_english():
     when = datetime(2026, 8, 17, 14, 32)
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "2026-08-17"
+    assert (FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
+            == "Mon 17 Aug 2026")
 
 
 def test_date_zero_pads_a_single_digit_month_and_day():
     when = datetime(2026, 1, 3)
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "2026-01-03"
-    assert FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR) == "2026-01-03"
+    assert FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY) == "Sat 03"
+    assert (FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
+            == "Sat 03 Jan 2026")
 
 
-def test_date_the_two_styles_converge_on_the_same_rendering():
-    # D-08: both DateStyle members render an ISO 8601 date here, so this
-    # backend answers a short-marker request and a full-heading request
-    # identically -- an equality assertion records that relationship rather
-    # than a value either side could be seeded from a bug.
+def test_date_styles_express_distinct_product_requests():
     when = datetime(2026, 8, 17, 14, 32)
     assert (FORMATTER.date(when, DateStyle.WEEKDAY_AND_DAY)
-            == FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR))
+            != FORMATTER.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR))
 
 
 def test_date_an_unsupported_style_still_raises():

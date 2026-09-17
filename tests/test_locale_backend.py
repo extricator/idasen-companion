@@ -26,16 +26,12 @@ import os  # noqa: E402
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-import unicodedata  # noqa: E402
 from datetime import datetime  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QLocale, QTime  # noqa: E402
+from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core.clock_format import (  # noqa: E402
-    TWELVE_HOUR_TERRITORIES,
-)
 from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
     GettextTranslator,
@@ -120,11 +116,8 @@ def test_integer_zero_pads_with_python_formatting(qapp, locale):
             value, IntegerSpec(min_digits=min_digits)) == expected
 
 
-#: The no-break space (U+00A0) Qt places inside the Spanish meridiem
-#: designator ("p.\u00a0m."), written as the six-character Python escape
-#: below and never pasted: a plain space there looks identical on screen
-#: and fails the assertion.
-_NBSP = "\u00a0"
+# Babel 2.18/CLDR uses a narrow no-break space inside Spanish meridiem text.
+_NNBSP = "\u202f"
 
 # Hand-typed per locale from the explicit format the backend asks Qt for,
 # not captured from a run. Each language's designator is in the case that
@@ -133,11 +126,11 @@ _NBSP = "\u00a0"
 # than fixing one case for every language.
 TWENTY_FOUR_HOUR_EXPECTED = {"en_US": "14:32", "es_ES": "14:32"}
 TWELVE_HOUR_EXPECTED = {
-    "en_US": "2:32 PM", "es_ES": f"2:32 p.{_NBSP}m.",
+    "en_US": "2:32 PM", "es_ES": f"2:32 p.{_NNBSP}m.",
 }
 SECONDS_24_EXPECTED = {"en_US": "14:32:05", "es_ES": "14:32:05"}
 SECONDS_12_EXPECTED = {
-    "en_US": "2:32:05 PM", "es_ES": f"2:32:05 p.{_NBSP}m.",
+    "en_US": "2:32:05 PM", "es_ES": f"2:32:05 p.{_NNBSP}m.",
 }
 
 
@@ -350,132 +343,3 @@ def test_integer_matches_the_zero_padded_minutes_in_duration_hm(
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.duration_hm(3900).endswith("05m")
     assert formatter.integer(5, IntegerSpec(min_digits=2)) == "05"
-
-
-# ---- the 12-hour territory set, re-derived from CLDR ----------------------
-
-#: The moment the derivation reads. 14:32 tells the two clocks apart in one
-#: glance: a 24-hour locale writes its own "14", a 12-hour one writes "2".
-_DERIVATION_MOMENT = QTime(14, 32)
-
-
-def _ascii_digits(rendered: str) -> str:
-    """The digits of a rendering, whatever script wrote them.
-
-    ``"۱۴:۳۲"`` is 14:32 in Persian digits and ``"१४:३२"`` is 14:32 in
-    Devanagari. Reading only ASCII here is precisely the mistake that put
-    five 24-hour territories into the shipped set.
-    """
-    out = []
-    for character in rendered:
-        if character.isdigit():
-            try:
-                out.append(str(unicodedata.digit(character)))
-            except (TypeError, ValueError):     # a digit with no numeric value
-                pass
-    return "".join(out)
-
-
-def _renders_twelve_hour(locale: QLocale) -> bool:
-    """Whether this locale writes the derivation moment on a 12-hour clock."""
-    rendered = locale.toString(_DERIVATION_MOMENT,
-                                QLocale.FormatType.ShortFormat)
-    return not _ascii_digits(rendered).startswith("14")
-
-
-def _locales_by_territory() -> dict[str, list[QLocale]]:
-    """Every locale CLDR carries, grouped by its two-letter territory.
-
-    Only territories CLDR actually has a locale for (rule 2), which also drops
-    CLDR's region groupings — ``001`` world, ``419`` Latin America — since
-    neither is ever a machine's territory.
-    """
-    grouped: dict[str, list[QLocale]] = {}
-    for locale in QLocale.matchingLocales(QLocale.Language.AnyLanguage,
-                                           QLocale.Script.AnyScript,
-                                           QLocale.Country.AnyCountry):
-        code = QLocale.territoryToCode(locale.territory())
-        if len(code) == 2 and code.isalpha():
-            grouped.setdefault(code, []).append(locale)
-    return grouped
-
-
-def test_the_twelve_hour_territory_set_still_matches_cldr(qapp):
-    """The shipped set, re-derived from the Qt CLDR data actually installed.
-
-    The set is hand-frozen in source on purpose — the resolver is pure and
-    asks Qt nothing — so nothing else would notice it drifting from the data
-    it claims to summarise, whether through a hand edit or a Qt upgrade that
-    moves a country. Both directions are reported, because they fail
-    differently: an extra entry shows somebody 2:32 PM who expects 14:32, and
-    a missing one does the reverse.
-
-    All four derivation rules are executed here rather than described in a
-    comment, so losing one fails a test instead of quietly producing a
-    plausible wrong set.
-    """
-    derived = set()
-    unresolved_and_split = []
-    for code, locales in _locales_by_territory().items():
-        likely = QLocale(QLocale.Language.AnyLanguage,
-                          QLocale.codeToTerritory(code))
-        # Rule 4: believe the likely locale only when Qt actually resolved one
-        # *for this territory*. Otherwise it hands back a locale for a
-        # different one, whose rendering follows QLocale.setDefault — which
-        # would make this test's answer depend on what ran before it.
-        if QLocale.territoryToCode(likely.territory()) == code:
-            if _renders_twelve_hour(likely):
-                derived.add(code)
-            continue
-        verdicts = {_renders_twelve_hour(loc) for loc in locales}
-        if len(verdicts) != 1:
-            unresolved_and_split.append(code)
-            continue
-        if verdicts.pop():
-            derived.add(code)
-
-    assert not unresolved_and_split, (
-        f"CLDR names no predominant locale for {unresolved_and_split} and "
-        f"their own locales disagree, so nothing decides their clock. Pick a "
-        f"rule deliberately rather than letting the derivation guess.")
-
-    shipped = set(TWELVE_HOUR_TERRITORIES)
-    assert derived == shipped, (
-        f"listed as 12-hour but CLDR renders 24-hour: "
-        f"{sorted(shipped - derived) or 'none'}; "
-        f"CLDR renders 12-hour but not listed: "
-        f"{sorted(derived - shipped) or 'none'}")
-
-
-def test_the_derivation_does_not_depend_on_the_process_default_locale(qapp):
-    """Rule 4's real point, asserted rather than trusted.
-
-    Six territories resolve to no likely locale, and Qt then answers for a
-    different one — whose clock follows ``QLocale.setDefault``. Without the
-    territory guard this set changes depending on which test ran first, which
-    is how a frozen constant acquires a plausible wrong value.
-    """
-    def derive():
-        found = set()
-        for code, locales in _locales_by_territory().items():
-            likely = QLocale(QLocale.Language.AnyLanguage,
-                              QLocale.codeToTerritory(code))
-            if QLocale.territoryToCode(likely.territory()) == code:
-                if _renders_twelve_hour(likely):
-                    found.add(code)
-            elif all(_renders_twelve_hour(loc) for loc in locales):
-                found.add(code)
-        return found
-
-    previous = QLocale()
-    try:
-        QLocale.setDefault(QLocale("en_US"))
-        under_english = derive()
-        QLocale.setDefault(QLocale("es_ES"))
-        under_spanish = derive()
-    finally:
-        QLocale.setDefault(previous)
-    assert under_english == under_spanish, (
-        "the derivation reads QLocale.setDefault, so its answer depends on "
-        "what ran before it: "
-        f"{sorted(under_english ^ under_spanish)}")

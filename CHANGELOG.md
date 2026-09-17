@@ -4,6 +4,16 @@ Notable changes to Idasen Companion, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- App-owned numbers, percentages, dates, times and units now use one
+  Babel-backed locale engine in the GUI and daemon. Language, measurement
+  units and 12/24-hour preference remain independent: choosing another app
+  language changes its words and symbols without silently changing inches or
+  the hour cycle selected by the system measurement/time locales.
+
 ## [1.1.1] - 2026-08-20
 
 ### Fixed

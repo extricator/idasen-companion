@@ -36,9 +36,9 @@ def test_an_explicit_unit_ignores_language_and_environment(setting, language):
     assert unit.value == setting.value
 
 
-def test_system_with_language_en_us_resolves_to_inches():
+def test_system_ignores_selected_en_us_language():
     assert resolve_height_unit(
-        UnitSetting.SYSTEM, language="en_US", environ={}) == HeightUnit.INCHES
+        UnitSetting.SYSTEM, language="en_US", environ={}) == HeightUnit.CENTIMETRES
 
 
 def test_system_with_language_es_es_resolves_to_centimetres():
@@ -56,7 +56,6 @@ def test_system_with_language_en_gb_resolves_to_centimetres():
     ({"LC_ALL": "en_US.UTF-8"}, HeightUnit.INCHES),
     ({"LC_MEASUREMENT": "en_US"}, HeightUnit.INCHES),
     ({"LANG": "en_US"}, HeightUnit.INCHES),
-    ({"LANGUAGE": "en_US"}, HeightUnit.INCHES),
     ({"LC_ALL": "es_ES", "LANG": "en_US"}, HeightUnit.CENTIMETRES),
     ({"LC_MEASUREMENT": "es_ES", "LANG": "en_US"}, HeightUnit.CENTIMETRES),
     ({"LANG": "es_ES", "LANGUAGE": "en_US"}, HeightUnit.CENTIMETRES),
@@ -72,6 +71,12 @@ def test_an_unparseable_language_falls_through_to_the_environment(language):
     assert resolve_height_unit(
         UnitSetting.SYSTEM, language=language,
         environ={"LANG": "en_US"}) == HeightUnit.INCHES
+
+
+def test_gettext_language_priority_does_not_control_measurement():
+    assert resolve_height_unit(
+        UnitSetting.SYSTEM, language="system",
+        environ={"LANGUAGE": "en_US:en"}) == HeightUnit.CENTIMETRES
 
 
 def test_an_absent_or_unparseable_environment_resolves_to_centimetres():

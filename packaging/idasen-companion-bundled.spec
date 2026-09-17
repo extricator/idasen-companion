@@ -163,6 +163,7 @@ Provides:       bundled(python3dist(idasen)) = 0.13.1
 Provides:       bundled(python3dist(dbus-fast)) = 5.0.22
 Provides:       bundled(python3dist(pyyaml)) = 6.0.3
 Provides:       bundled(python3dist(tomlkit)) = 0.15.1
+Provides:       bundled(python3dist(babel)) = 2.18.0
 Provides:       bundled(python3dist(voluptuous)) = 0.16.0
 Provides:       bundled(python3dist(typing-extensions)) = 4.16.0
 
@@ -524,7 +525,8 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 # Named one by one rather than globbed: a wheel that stops shipping its
 # license text fails the build here instead of quietly dropping it.
 %license LICENSE LICENSE.LGPL-3.0.txt LICENSE.bleak LICENSE.dbus_fast
-%license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.voluptuous
+%license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.babel
+%license LICENSE.voluptuous
 %license LICENSE.typing_extensions LICENSE.cpython
 %license LICENSE.Apache-2.0.txt LICENSE.OpenSSL.txt LICENSE.X11.txt
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt

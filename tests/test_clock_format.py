@@ -1,180 +1,51 @@
-"""Pure, Qt-free tests for :mod:`idasen_companion.core.clock_format`.
-
-The policy the resolver implements is pinned here, on pure inputs, so CI
-guards it forever with no locale installed anywhere and nothing skipped. The
-*mechanism* behind the territory set is deliberately revisable — the module
-docstring records how it was derived and when — but the answers below are the
-contract, and changing one of them is a decision somebody has to make out
-loud rather than a diff that slips past.
-
-No PySide6 import anywhere in this module or in what it imports, the same
-absence :mod:`tests.test_units` promises for the height resolver.
-"""
+"""Babel-backed resolution of the independent hour-cycle preference."""
 
 import pytest
 
-from idasen_companion.core.clock_format import (
-    TWELVE_HOUR_TERRITORIES,
-    ClockSetting,
-    resolve_clock_style,
-)
+from idasen_companion.core.clock_format import ClockSetting, resolve_clock_style
 from idasen_companion.core.presentation.specs import TimeStyle
 
 _TWELVE = TimeStyle.HOUR_AND_MINUTE_12
 _TWENTY_FOUR = TimeStyle.HOUR_AND_MINUTE_24
 
 
-# ---- an explicit setting answers for itself -------------------------------
-
-
 @pytest.mark.parametrize(("setting", "expected"), [
     (ClockSetting.TWELVE, _TWELVE),
     (ClockSetting.TWENTY_FOUR, _TWENTY_FOUR),
 ])
-@pytest.mark.parametrize("language", ["system", "en_US", "es_ES", "en_GB"])
-@pytest.mark.parametrize("environ", [
-    {},
-    {"LC_TIME": "C"},
-    {"LC_ALL": "en_US.UTF-8"},
-    {"LANG": "es_ES.UTF-8", "LANGUAGE": "en_US"},
+@pytest.mark.parametrize("language", ["system", "en_US", "es_ES"])
+def test_explicit_setting_ignores_language_and_environment(
+        setting, expected, language):
+    assert resolve_clock_style(
+        setting, language=language,
+        environ={"LC_TIME": "es_ES", "LANG": "en_US"}) is expected
+
+
+@pytest.mark.parametrize(("environ", "expected"), [
+    ({"LC_TIME": "en_US.UTF-8"}, _TWELVE),
+    ({"LC_TIME": "es_ES.UTF-8"}, _TWENTY_FOUR),
+    ({"LANG": "en_US.UTF-8"}, _TWELVE),
+    ({"LANG": "en_GB.UTF-8"}, _TWENTY_FOUR),
+    ({"LC_ALL": "en_US", "LC_TIME": "es_ES"}, _TWELVE),
+    ({"LC_TIME": "C", "LANG": "en_US"}, _TWENTY_FOUR),
+    ({}, _TWENTY_FOUR),
 ])
-def test_an_explicit_setting_ignores_language_and_environment(
-        setting, expected, language, environ):
+def test_system_uses_babel_for_the_system_time_locale(environ, expected):
     assert resolve_clock_style(
-        setting, language=language, environ=environ) is expected
+        ClockSetting.SYSTEM, language="system", environ=environ) is expected
 
 
-# ---- what "system" reads --------------------------------------------------
-
-
-def test_nothing_names_a_territory_so_the_answer_is_twenty_four_hour():
+@pytest.mark.parametrize("language", ["en_US", "es_ES", "ar_EG"])
+def test_selected_language_never_changes_system_hour_cycle(language):
     assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="system", environ={}) is _TWENTY_FOUR
+        ClockSetting.SYSTEM, language=language,
+        environ={"LC_TIME": "en_US"}) is _TWELVE
+    assert resolve_clock_style(
+        ClockSetting.SYSTEM, language=language,
+        environ={"LC_TIME": "es_ES"}) is _TWENTY_FOUR
 
 
-def test_the_time_locale_wins_over_the_language_environment():
-    """The development machine, measured 2026-08-29: LANG names a US locale
-    and LC_TIME is set to one that names no territory. LC_TIME is a
-    statement about how time should look, so it decides, and it decides
-    24-hour — which is what that machine's window already showed."""
+def test_language_priority_list_is_not_a_time_locale_input():
     assert resolve_clock_style(
         ClockSetting.SYSTEM, language="system",
-        environ={"LC_TIME": "C", "LANG": "en_US.UTF-8"}) is _TWENTY_FOUR
-
-
-def test_a_us_language_environment_with_no_time_locale_is_twelve_hour():
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="system",
-        environ={"LANG": "en_US.UTF-8"}) is _TWELVE
-
-
-def test_lc_all_beats_lc_time():
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="system",
-        environ={"LC_ALL": "en_US", "LC_TIME": "es_ES"}) is _TWELVE
-
-
-def test_the_apps_own_language_answers_when_it_names_a_territory():
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="en_US", environ={}) is _TWELVE
-
-
-def test_a_language_naming_no_territory_falls_through_to_the_environment():
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="es",
-        environ={"LANG": "en_US"}) is _TWELVE
-
-
-def test_the_app_language_beats_the_language_environment():
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="en_GB",
-        environ={"LANG": "en_US"}) is _TWENTY_FOUR
-
-
-@pytest.mark.parametrize("language", ["en_GB", "es_ES", "de_DE", "fr_FR"])
-def test_a_twenty_four_hour_territory_resolves_to_twenty_four_hour(language):
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language=language, environ={}) is _TWENTY_FOUR
-
-
-@pytest.mark.parametrize("value", ["C", "POSIX", "", "en", "not a locale"])
-def test_a_time_locale_naming_no_territory_answers_twenty_four_hour(value):
-    """An empty value is the one that keeps searching: POSIX treats an unset
-    and an empty variable the same, so it is not the statement a set one is.
-    """
-    expected = _TWELVE if value == "" else _TWENTY_FOUR
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="system",
-        environ={"LC_TIME": value, "LANG": "en_US"}) is expected
-
-
-@pytest.mark.parametrize("value", ["C", "en", "not a locale"])
-def test_a_language_variable_naming_no_territory_is_passed_over(value):
-    """Unlike the time locale, LANG and LANGUAGE select a language rather
-    than a time format, so one that names no territory is skipped rather
-    than treated as an answer."""
-    assert resolve_clock_style(
-        ClockSetting.SYSTEM, language="system",
-        environ={"LANG": value, "LANGUAGE": "en_US"}) is _TWELVE
-
-
-# ---- the two types stay two types -----------------------------------------
-
-
-def test_every_setting_maps_to_a_style_a_backend_can_render():
-    """No ``ClockSetting`` member resolves to something outside the style
-    enum, and none of them can hand a backend the setting itself."""
-    for setting in ClockSetting:
-        style = resolve_clock_style(setting, language="system", environ={})
-        assert isinstance(style, TimeStyle)
-        assert style in (_TWELVE, _TWENTY_FOUR)
-
-
-def test_the_territory_set_holds_the_two_the_policy_is_written_against():
-    assert "US" in TWELVE_HOUR_TERRITORIES
-    assert "GB" not in TWELVE_HOUR_TERRITORIES
-
-
-#: Territories that render 14:32 in their own digits — Persian, Arabic,
-#: Burmese, Devanagari — and were filed as 12-hour by a derivation that
-#: looked for ASCII "14", found none, and drew the wrong conclusion. They
-#: shipped wrong. Named individually rather than counted, so a regression
-#: says which country it broke.
-NON_LATIN_DIGIT_TWENTY_FOUR_HOUR = ("AF", "IR", "KM", "MM", "NP")
-
-#: Territories whose own locales disagree, kept because their *main* language
-#: is 12-hour: es_CL and es_GT are, arn_CL and quc_GT are not. A derivation
-#: demanding unanimity, or taking a majority, drops both — and drops the
-#: United States too, where only two of five installed locales are 12-hour.
-SPLIT_BUT_TWELVE_HOUR = ("CL", "GT", "US")
-
-
-@pytest.mark.parametrize("code", NON_LATIN_DIGIT_TWENTY_FOUR_HOUR)
-def test_a_territory_writing_its_clock_in_other_digits_is_not_called_12_hour(
-        code):
-    """A 24-hour clock is 24-hour in any script.
-
-    This is a regression, not a hypothetical: all five shipped inside the
-    set. The defect is invisible by inspection — the codes look as plausible
-    as their neighbours — which is why they are named here rather than left
-    to a reviewer to notice.
-    """
-    assert code not in TWELVE_HOUR_TERRITORIES, (
-        f"{code} renders 14:32 in its own digit set and is a 24-hour "
-        f"territory; listing it here makes its users read 2:32 PM instead")
-
-
-@pytest.mark.parametrize("code", SPLIT_BUT_TWELVE_HOUR)
-def test_a_split_territory_follows_its_main_language(code):
-    """Kept by the likely-locale rule, dropped by unanimity or majority."""
-    assert code in TWELVE_HOUR_TERRITORIES, (
-        f"{code}'s main language renders a 12-hour clock; dropping it means "
-        f"a derivation stopped following the territory's likely locale")
-
-
-def test_every_recorded_territory_is_an_upper_case_two_letter_code():
-    """The parser hands back an upper-cased two-letter code, so a lower-case
-    or three-letter entry here would be dead data that never matches."""
-    odd = sorted(code for code in TWELVE_HOUR_TERRITORIES
-                 if len(code) != 2 or not code.isalpha() or not code.isupper())
-    assert not odd, f"territory code(s) the parser can never produce: {odd}"
+        environ={"LANGUAGE": "en_US:en"}) is _TWENTY_FOUR

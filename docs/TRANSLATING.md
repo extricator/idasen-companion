@@ -288,13 +288,18 @@ LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
   phrasing for the same duration vocabulary).
 - **Numbers and units:** render a height with `ctx.fmt.height()`, not an
   f-string — it returns a whole translated message with the number rendered
-  by the context's own locale backend, so `110.5` becomes `110,5` under `es`
+  by the shared Babel `LocaleProfile`, so `110.5` becomes `110,5` under `es`
   and the unit word comes from the gettext catalog. Get a spin box's unit
   suffix from `gui/util.py`'s `suffix_height()`/`suffix_minutes()`/
   `suffix_seconds()` rather than a literal `setSuffix(" cm")`, which is
   invisible to `lupdate` and to every non-English user. Those three suffix
   helpers live in the `util` catalog context, so a new call site adds no new
   translation entry.
+- **Other quantities:** app-owned integers, percentages, dates, times and
+  units also go through the current `LocaleProfile`; `QLocale` is reserved for
+  native Qt widget behavior and Qtbase translations. State fraction digits,
+  grouping and 12/24-hour intent at the operation call rather than formatting
+  a localized value with an f-string.
 - **A translatable unit is a whole message with its substitutions named, not
   a translated fragment joined to something else** with `+`, `+=`, an
   f-string, or `.join()` — a translator can't reorder pieces the code has

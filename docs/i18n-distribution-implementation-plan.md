@@ -236,13 +236,34 @@ the official Babel docs and selected version used to settle any API details.
 
 ### Phase 1 execution record
 
-- State: Pending
-- Starting commit: —
-- Babel version and official docs: —
+- State: In progress
+- Starting commit: `85255cc`
+- Babel version and official docs: Babel 2.18.0. Context7 searches for both
+  `Babel` and `python-babel` returned only the unrelated Quart-Babel project,
+  as anticipated above, so API behavior was checked against Babel's official
+  [number](https://babel.pocoo.org/en/latest/api/numbers.html),
+  [date/time](https://babel.pocoo.org/en/latest/api/dates.html) and
+  [unit](https://babel.pocoo.org/en/latest/api/units.html) references; the
+  selected release and wheel were verified on
+  [PyPI](https://pypi.org/project/Babel/2.18.0/).
 - Implementation commit: —
-- Commands/results: —
-- Deviations from plan: —
-- Known risks carried forward: —
+- Commands/results: preflight `.venv/bin/python -m pytest -q` — 2,038 passed;
+  preflight naming — exit 0; preflight mypy — no issues in 66 files; preflight
+  pylint — 10.00/10. Post-change targeted formatter/packaging suite — 288
+  passed; full pytest — 2,002 passed; naming — exit 0; mypy — no issues in 67
+  files; pylint — 10.00/10. `packaging/flatpak/gen-python-deps.py` regenerated
+  the six-wheel offline lock including Babel 2.18.0; translation regeneration
+  completed with 322 finished Qt entries and refreshed gettext artifacts;
+  `scripts/build-dist.sh` built and audited a 229-member, 773,118-byte sdist
+  plus the wheel, including both compiled catalogs and `locale_profile.py`.
+- Deviations from plan: Context7 had no official Python Babel entry, so the
+  official project documentation was consulted directly. The transitional
+  `PlainLocaleFormatter` and `QtLocaleFormatter` names remain as delegating
+  adapters, as permitted; both now use `LocaleProfile` and no longer produce
+  independent value-formatting answers.
+- Known risks carried forward: the final post-commit catalog freshness check
+  remains to be run; complete native artifact/container builds remain Phase 5
+  gates.
 - Handoff to Phase 2: Confirm that every app value path uses `LocaleProfile`,
   list the transitional adapter imports still present, and identify the exact
   catalog/source counts Phase 2 must preserve.

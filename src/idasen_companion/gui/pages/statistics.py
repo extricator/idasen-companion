@@ -133,10 +133,10 @@ class StatisticsPage(Page):
         self.daily_chart.set_rows(rows)
         overall = total_sit + total_stand
         if overall:
-            pct = f"{total_stand / overall * 100:.0f}"
+            pct = self.ctx.fmt.context.locale.percent(total_stand / overall)
             footer = self.tr(
                 "Standing share = standing time / tracked time per day. "
-                "14-day average: %(pct)s%%.") % {"pct": pct}
+                "14-day average: %(pct)s.") % {"pct": pct}
         else:
             footer = self.tr(
                 "Standing share = standing time / tracked time per day.")

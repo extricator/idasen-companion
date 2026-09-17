@@ -26,12 +26,12 @@ from ..core.config import (
     DEFAULT_CONFIG_PATH, AppConfig, load_config, save_config,
 )
 from ..core.clock_format import ClockSetting, resolve_clock_style
+from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import UnitSetting, resolve_height_unit
 from .dbus_client import DaemonClient
-from .i18n import apply_language, resolve_locale
-from .locale_backend import QtLocaleFormatter
+from .i18n import apply_language
 
 
 class AppContext(QObject):
@@ -74,7 +74,7 @@ class AppContext(QObject):
         environment — which is what makes them agree without any D-Bus
         plumbing to carry the answer across.
         """
-        locale = resolve_locale(config.ui.language)
+        locale = LocaleProfile(resolve_app_locale(config.ui.language, os.environ))
         unit = resolve_height_unit(
             UnitSetting(config.ui.units), language=config.ui.language,
             environ=os.environ)
@@ -82,7 +82,7 @@ class AppContext(QObject):
             ClockSetting(config.ui.clock_format), language=config.ui.language,
             environ=os.environ)
         context = PresentationContext(
-            locale=QtLocaleFormatter(locale),
+            locale=locale,
             translator=GettextTranslator(), unit=unit, time_style=time_style)
         return Formatter(context)
 

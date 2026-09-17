@@ -1,11 +1,10 @@
-"""The shared presentation layer: one formatter, injected capability backends.
+"""The shared presentation layer: one formatter with injected capabilities.
 
 This package is deliberately Qt-free and IO-free, like every other module
-under :mod:`idasen_companion.core`. A surface backend — the window's
-``QLocale``-backed one, or the plain Qt-free one a headless process uses —
-may decide *how* an atomic value is rendered (which digits, which
-separator) and *how* a message is looked up (which catalog, which
-fallback). It may not independently decide *product formatting policy*:
+under :mod:`idasen_companion.core`. The shared Babel-backed locale profile
+decides *how* atomic values are rendered, while each surface still supplies
+its current message catalog. Neither capability may independently decide
+*product formatting policy*:
 which places show two decimals versus one, which duration splits at a
 minute, which words a status renders as. That policy lives once, in the
 formatters this package holds, not once per backend.

@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import NamedTuple
 
 from idasen_companion.core.machine import DeskState
+from idasen_companion.core.locale_profile import LocaleProfile
 from idasen_companion.core.presentation.english import EnglishTranslator
 from idasen_companion.core.presentation.formatter import (
     Formatter, PresentationContext,
@@ -197,7 +198,7 @@ def build_plain_formatter() -> Formatter:
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
-def build_daemon_formatter() -> Formatter:
+def build_daemon_formatter(language: str = "en") -> Formatter:
     """The Qt-free ``Formatter`` the daemon actually builds: the fixed-policy
     locale backend paired with ``GettextTranslator`` — the pairing
     ``daemon/main.py``'s ``_build_formatter`` constructs for real. The unit
@@ -210,6 +211,6 @@ def build_daemon_formatter() -> Formatter:
     is where that discipline is kept.
     """
     return Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=GettextTranslator(),
+        locale=LocaleProfile(language), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))

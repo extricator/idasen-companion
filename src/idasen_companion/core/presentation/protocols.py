@@ -1,14 +1,13 @@
-"""The two capability protocols a presentation backend implements.
+"""The two presentation capabilities supplied to shared formatters.
 
 Two protocols, not one welded renderer (BACK-01): a :class:`LocaleFormatter`
 renders atomic values, and a :class:`Translator` looks up a message. They
 are declared separately because value formatting and message translation
-vary independently — the Qt-free backend renders numbers and times on its
-own fixed policy while sourcing English text straight from a register, and
-a future backend could translate through a different catalog while still
-reaching for the same locale rendering. Welding both into one renderer
-would force every backend to answer both questions together even where a
-caller only has an opinion about one.
+vary independently. :class:`~idasen_companion.core.locale_profile.LocaleProfile`
+is the application's one Babel-backed value engine; compatibility adapters
+delegate to it while message lookup remains catalog-specific. Welding both
+capabilities into one renderer would force every caller to answer both
+questions together even where it only has an opinion about one.
 
 Neither protocol exposes a locale-database field — there is no accessor
 here for the decimal separator, the set of month names, the AM/PM text or
@@ -46,6 +45,10 @@ class LocaleFormatter(Protocol):
         ...
 
     def integer(self, value: int, spec: IntegerSpec) -> str:
+        ...
+
+    def percent(self, value: float, *, decimals: int = 0,
+                grouping: bool = False) -> str:
         ...
 
     def time(self, value: datetime, style: TimeStyle) -> str:

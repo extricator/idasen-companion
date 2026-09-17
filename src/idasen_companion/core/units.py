@@ -27,17 +27,14 @@ rather than reading a module global, so neither backend is ever asked a
 product question (PRES-07) — a formatter states a value and a unit, and the
 answer is the same regardless of who is asking.
 
-``resolve_height_unit``'s ``"system"`` policy, stated as policy rather than
-as a claim about CLDR: an explicit setting answers for itself. Otherwise the
-territory comes from ``language`` when it names one, or failing that from the
-first of ``LC_ALL``, ``LC_MEASUREMENT``, ``LANG``, ``LANGUAGE`` present in
-``environ`` that carries one. A territory of ``US`` or ``LR`` resolves to
-inches; everything else — including ``GB``, deliberately, because a UK desk
-is advertised, reviewed and sold in centimetres — resolves to centimetres.
-An absent or unparseable answer resolves to centimetres. This disagreed
-deliberately with the Qt-based resolver the GUI used to carry, which asked
-the desktop's own locale measurement system and called the UK imperial;
-that resolver is gone and this one now answers for both front ends.
+``resolve_height_unit``'s ``"system"`` policy is independent from app
+language. An explicit setting answers for itself. Otherwise the territory
+comes from the first set value of ``LC_ALL``, ``LC_MEASUREMENT`` and ``LANG``.
+A territory of ``US`` or ``LR`` resolves to inches; everything else —
+including ``GB``, deliberately, because a UK desk is advertised, reviewed and
+sold in centimetres — resolves to centimetres. An absent or unparseable answer
+resolves to centimetres. The retained ``language`` parameter is transitional
+API compatibility and is deliberately ignored.
 CLDR's own measurement-system field is coarser than this and is heading for
 deprecation; this is this project's own settled product default, which the
 Settings page can always override for good. The reasoning is settled and is
@@ -85,7 +82,7 @@ _US_CUSTOMARY_TERRITORIES = frozenset({"US", "LR"})
 
 #: Precedence order for the POSIX locale environment variables consulted
 #: when neither an explicit setting nor ``language`` names a territory.
-_SYSTEM_ENVIRON_PRECEDENCE = ("LC_ALL", "LC_MEASUREMENT", "LANG", "LANGUAGE")
+_SYSTEM_ENVIRON_PRECEDENCE = ("LC_ALL", "LC_MEASUREMENT", "LANG")
 
 
 def territory_of(locale_value: str) -> str | None:
@@ -125,14 +122,16 @@ def resolve_height_unit(setting: UnitSetting, *, language: str,
     if setting is not UnitSetting.SYSTEM:
         return HeightUnit(setting.value)
 
-    territory = territory_of(language)
-    if territory is None:
-        for key in _SYSTEM_ENVIRON_PRECEDENCE:
-            value = environ.get(key)
-            if value:
-                territory = territory_of(value)
-                if territory is not None:
-                    break
+    # Retained in the signature while callers migrate, but deliberately not
+    # used: selected language, system measurement locale and explicit unit
+    # preference are independent product inputs.
+    del language
+    territory = None
+    for key in _SYSTEM_ENVIRON_PRECEDENCE:
+        value = environ.get(key)
+        if value:
+            territory = territory_of(value)
+            break
 
     return HeightUnit.INCHES if territory in _US_CUSTOMARY_TERRITORIES \
         else HeightUnit.CENTIMETRES

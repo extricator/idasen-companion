@@ -1035,7 +1035,8 @@ class DailyBarsChart(QWidget):
             total = sit_seconds + stand
             painter.setFont(small)
             painter.setPen(tokens.secondary if total else tokens.muted)
-            share = f"{stand / total * 100:.0f}%" if total else "—"
+            share = (self.ctx.fmt.context.locale.percent(stand / total)
+                     if total else "—")
             share_w = painter.fontMetrics().horizontalAdvance(share)
             painter.drawText(QPointF(self.width() - share_w - 2, baseline), share)
         painter.end()

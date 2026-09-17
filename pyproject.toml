@@ -18,6 +18,7 @@ authors = [{ name = "extricator" }]
 # nowhere, so bumping the bundled minor is not a reason to move this floor.
 requires-python = ">=3.11"
 dependencies = [
+    "Babel>=2.17",
     "idasen>=0.12",
     "bleak>=0.21",
     "dbus-fast>=2.0",

@@ -109,7 +109,7 @@ def _qt_formatter() -> Formatter:
 #: a plain ASCII space in both languages: the explicit format string this
 #: backend now asks for inserts one, where Qt's old locale-governed
 #: short-time format used a narrow no-break space.
-_NBSP = "\u00a0"
+_NNBSP = "\u202f"
 
 #: The two moments and the one height this module's cases render, read from
 #: the shared sample table rather than re-declared here. They were literals
@@ -177,9 +177,9 @@ class LanguageRendering(NamedTuple):
 #: decimal-point divergence the ``day_and_clock``-adjacent rows already
 #: cover, not the separator itself.
 CONTRACT_CASES: tuple[ContractCase, ...] = (
-    ContractCase("day_short", "day_short", (_AFTERNOON,), qt_free="2026-08-17"),
+    ContractCase("day_short", "day_short", (_AFTERNOON,), qt_free="Mon 17"),
     ContractCase("day_heading", "day_heading", (_AFTERNOON,),
-                 qt_free="2026-08-17"),
+                 qt_free="Mon 17 Aug 2026"),
     ContractCase("clock_afternoon_12", "clock", (_AFTERNOON,),
                  qt_free="2:32 PM",
                  time_style=TimeStyle.HOUR_AND_MINUTE_12),
@@ -190,9 +190,9 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
                  (_AFTERNOON_TO_THE_SECOND,), qt_free="2:32:05 PM",
                  time_style=TimeStyle.HOUR_AND_MINUTE_12),
     ContractCase("day_and_clock_24", "day_and_clock", (_AFTERNOON,),
-                 qt_free="2026-08-17 14:32"),
+                 qt_free="Mon 17 14:32"),
     ContractCase("day_and_clock_12", "day_and_clock", (_AFTERNOON,),
-                 qt_free="2026-08-17 2:32 PM",
+                 qt_free="Mon 17 2:32 PM",
                  time_style=TimeStyle.HOUR_AND_MINUTE_12),
     ContractCase("height_value", "height_value", (_HEIGHT_METERS,),
                  qt_free="110.5"),
@@ -227,9 +227,9 @@ CONTRACT_CASES: tuple[ContractCase, ...] = (
 #: uniformity rather than for coverage.
 GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
     "en": (
-        LanguageRendering("day_short", window="Mon 17", daemon="2026-08-17"),
+        LanguageRendering("day_short", window="Mon 17", daemon="Mon 17"),
         LanguageRendering("day_heading", window="Mon 17 Aug 2026",
-                           daemon="2026-08-17"),
+                           daemon="Mon 17 Aug 2026"),
         LanguageRendering("clock_afternoon_12", window="2:32 PM",
                            daemon="2:32 PM"),
         LanguageRendering("clock_morning_12", window="9:05 AM",
@@ -237,9 +237,9 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         LanguageRendering("clock_with_seconds_12", window="2:32:05 PM",
                            daemon="2:32:05 PM"),
         LanguageRendering("day_and_clock_24", window="Mon 17 14:32",
-                           daemon="2026-08-17 14:32"),
+                           daemon="Mon 17 14:32"),
         LanguageRendering("day_and_clock_12", window="Mon 17 2:32 PM",
-                           daemon="2026-08-17 2:32 PM"),
+                           daemon="Mon 17 2:32 PM"),
         LanguageRendering("height_value", window="110.5", daemon="110.5"),
         LanguageRendering("height", window="110.5 cm", daemon="110.5 cm"),
         LanguageRendering("preset_tick", window="Sit · 110.5",
@@ -248,9 +248,9 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
                            daemon="12,345.5"),
     ),
     "es": (
-        LanguageRendering("day_short", window="lun 17", daemon="2026-08-17"),
+        LanguageRendering("day_short", window="lun 17", daemon="lun 17"),
         LanguageRendering("day_heading", window="lun 17 ago 2026",
-                           daemon="2026-08-17"),
+                           daemon="lun 17 ago 2026"),
         # The new sanctioned divergence, and a new row rather than an
         # accident: at the 12-hour setting the window renders Spanish's own
         # CLDR meridiem designator while the Qt-free side renders fixed
@@ -258,27 +258,29 @@ GOLDEN_BY_LANGUAGE: dict[str, tuple[LanguageRendering, ...]] = {
         # controls; they differ in glyphs, which docs/ARCHITECTURE.md
         # already permits.
         LanguageRendering("clock_afternoon_12",
-                           window=f"2:32 p.{_NBSP}m.", daemon="2:32 PM"),
+                           window=f"2:32 p.{_NNBSP}m.",
+                           daemon=f"2:32 p.{_NNBSP}m."),
         LanguageRendering("clock_morning_12",
-                           window=f"9:05 a.{_NBSP}m.", daemon="9:05 AM"),
+                           window=f"9:05 a.{_NNBSP}m.",
+                           daemon=f"9:05 a.{_NNBSP}m."),
         LanguageRendering("clock_with_seconds_12",
-                           window=f"2:32:05 p.{_NBSP}m.",
-                           daemon="2:32:05 PM"),
+                           window=f"2:32:05 p.{_NNBSP}m.",
+                           daemon=f"2:32:05 p.{_NNBSP}m."),
         LanguageRendering("day_and_clock_24", window="lun 17 14:32",
-                           daemon="2026-08-17 14:32"),
+                           daemon="lun 17 14:32"),
         LanguageRendering("day_and_clock_12",
-                           window=f"lun 17 2:32 p.{_NBSP}m.",
-                           daemon="2026-08-17 2:32 PM"),
+                           window=f"lun 17 2:32 p.{_NNBSP}m.",
+                           daemon=f"lun 17 2:32 p.{_NNBSP}m."),
         # The window column carries a decimal comma here because Qt renders
         # through QLocale; the daemon column carries a full stop because
         # PlainLocaleFormatter reads no locale and the surrounding catalog
         # pattern (po/es.po) is unchanged in Spanish.
-        LanguageRendering("height_value", window="110,5", daemon="110.5"),
-        LanguageRendering("height", window="110,5 cm", daemon="110.5 cm"),
+        LanguageRendering("height_value", window="110,5", daemon="110,5"),
+        LanguageRendering("height", window="110,5 cm", daemon="110,5 cm"),
         LanguageRendering("preset_tick", window="Sit · 110,5",
-                           daemon="Sit · 110.5"),
+                           daemon="Sit · 110,5"),
         LanguageRendering("number_grouping", window="12.345,5",
-                           daemon="12,345.5"),
+                           daemon="12.345,5"),
     ),
 }
 
@@ -332,7 +334,8 @@ def test_every_hand_typed_rendering_matches_its_written_contract(
     with _language(language):
         assert _rendered_by_case(_qt_formatter(), case) == row.window
         assert _rendered_by_case(
-            presentation_samples.build_daemon_formatter(), case) == row.daemon
+            presentation_samples.build_daemon_formatter(language),
+            case) == row.daemon
 
 
 @pytest.mark.parametrize("case", CONTRACT_CASES, ids=lambda c: c.case)

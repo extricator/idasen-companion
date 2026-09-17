@@ -47,7 +47,7 @@ from idasen_companion.core.presentation.protocols import LocaleFormatter, Transl
 #: (a new operation, added at its point of use) but must never grow by
 #: accident.
 _ALLOWLISTS = {
-    LocaleFormatter: frozenset({"number", "integer", "time", "date"}),
+    LocaleFormatter: frozenset({"number", "integer", "percent", "time", "date"}),
     Translator: frozenset({"message", "plural"}),
 }
 

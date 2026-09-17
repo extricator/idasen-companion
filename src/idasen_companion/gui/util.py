@@ -18,13 +18,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Callable, TypeVar, cast
 
-from PySide6.QtCore import QCoreApplication, QLocale, QT_TRANSLATE_NOOP
+from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
 
 from ..core.presentation import daemon_errors, dates, words
 from ..core.presentation.formatter import Formatter
 from ..core.presentation.gettext_translator import GettextTranslator
 from ..core.units import HeightUnit
-from .locale_backend import QtLocaleFormatter
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
@@ -130,9 +129,8 @@ def fmt_countdown(fmt: Formatter, seconds: float) -> str:
     through a catalog entry, so this returns translated text and carries
     the mark. Nothing about the rendered English changes.
 
-    Takes ``fmt`` rather than building a backend, like every other helper
-    here — see the module note on why an inline ``QtLocaleFormatter`` is
-    the wrong shape even where it renders identically today.
+    Takes ``fmt`` rather than building a locale profile, like every other
+    helper here; the caller owns locale selection and dependency injection.
     """
     return words.countdown(
         fmt.context.translator, fmt.context.locale, seconds)

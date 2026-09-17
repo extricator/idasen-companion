@@ -31,6 +31,7 @@ from ..core.config import (
     load_config, save_config,
 )
 from ..core.i18n import set_language
+from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
     MoveFailed,
@@ -43,7 +44,6 @@ from ..core.clock_format import ClockSetting, resolve_clock_style
 from ..core.presentation.english import format_duration_human
 from ..core.presentation.formatter import Formatter, PresentationContext
 from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.presentation.plain_locale import PlainLocaleFormatter
 from ..core.units import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
@@ -217,7 +217,8 @@ class Daemon:
             ClockSetting(config.ui.clock_format), language=config.ui.language,
             environ=os.environ)
         context = PresentationContext(
-            locale=PlainLocaleFormatter(), translator=GettextTranslator(),
+            locale=LocaleProfile(resolve_app_locale(
+                config.ui.language, os.environ)), translator=GettextTranslator(),
             unit=unit, time_style=time_style)
         return Formatter(context)
 

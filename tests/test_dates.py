@@ -65,12 +65,13 @@ def test_clock_asks_for_the_style_it_was_given(style):
 # on one ISO 8601 shape, and the clock stays 24-hour.
 
 
-def test_day_short_renders_iso_on_the_plain_backend():
-    assert dates.day_short(PlainLocaleFormatter(), _WHEN) == "2026-08-17"
+def test_day_short_renders_babel_english_on_the_compatibility_backend():
+    assert dates.day_short(PlainLocaleFormatter(), _WHEN) == "Mon 17"
 
 
-def test_day_heading_renders_iso_on_the_plain_backend():
-    assert dates.day_heading(PlainLocaleFormatter(), _WHEN) == "2026-08-17"
+def test_day_heading_renders_babel_english_on_the_compatibility_backend():
+    assert (dates.day_heading(PlainLocaleFormatter(), _WHEN)
+            == "Mon 17 Aug 2026")
 
 
 def test_clock_renders_24_hour_on_the_plain_backend():
@@ -120,4 +121,4 @@ def test_day_and_clock_renders_the_finished_qt_free_string():
     result = dates.day_and_clock(
         locale, translator, TimeStyle.HOUR_AND_MINUTE_24, _WHEN)
     assert result == translator.message(
-        register.DAY_AND_CLOCK, day="2026-08-17", clock="14:32")
+        register.DAY_AND_CLOCK, day="Mon 17", clock="14:32")

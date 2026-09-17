@@ -75,6 +75,12 @@ class FakeLocale:
         self.calls.append(LocaleCall("integer", value, spec))
         return f"I({value!r}, {spec!r})"
 
+    def percent(self, value: float, *, decimals: int = 0,
+                grouping: bool = False) -> str:
+        request = {"decimals": decimals, "grouping": grouping}
+        self.calls.append(LocaleCall("percent", value, request))
+        return f"P({value!r}, {request!r})"
+
     def time(self, value: datetime, style: TimeStyle) -> str:
         self.calls.append(LocaleCall("time", value, style))
         return f"T({value!r}, {style!r})"

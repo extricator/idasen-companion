@@ -1208,8 +1208,8 @@ La dirección no se guardó — elige un dispositivo e inténtalo de nuevo.</tra
         <translation>Actualizar</translation>
     </message>
     <message>
-        <source>Standing share = standing time / tracked time per day. 14-day average: %(pct)s%%.</source>
-        <translation>Proporción de pie = tiempo de pie / tiempo registrado por día. Promedio de 14 días: %(pct)s%%.</translation>
+        <source>Standing share = standing time / tracked time per day. 14-day average: %(pct)s.</source>
+        <translation>Proporción de pie = tiempo de pie / tiempo registrado por día. Promedio de 14 días: %(pct)s.</translation>
     </message>
     <message>
         <source>Standing share = standing time / tracked time per day.</source>

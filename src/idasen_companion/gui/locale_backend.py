@@ -1,138 +1,28 @@
-"""The Qt half of the presentation seam.
+"""Transitional Qt adapters for the presentation seam.
 
-Wraps ``QLocale``'s own value-to-string conversions and Qt's own translate
-call, nothing else. A surface backend may decide how an atomic value is
-rendered; it may not decide product formatting policy -- that boundary, and
-everything on the policy side of it, belongs to ``core/units.py`` (plan
-12-03), not here.
+``QtLocaleFormatter`` converts a ``QLocale`` name into the application's
+shared Babel-backed ``LocaleProfile``; it does not use Qt to render values.
+``QtTranslator`` retains Qt catalog lookup until the catalog consolidation
+phase. Product formatting policy remains in the shared core layer.
 
 Lives under ``gui/``, never under ``core/``: it imports Qt, and the
 dependency rule this project follows is one-directional -- ``gui``/
 ``daemon`` -> ``core`` -> nothing. ``core/presentation/protocols.py``
-declares the two capability protocols this module implements structurally
-(``LocaleFormatter``, ``Translator``); nothing here inherits from either --
-Python's structural typing (``runtime_checkable``) is the whole contract.
+declares the capability protocols these adapters satisfy structurally.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
+from PySide6.QtCore import QCoreApplication, QLocale
 
-from PySide6.QtCore import QCoreApplication, QDate, QLocale, QTime
-
-from ..core.presentation.specs import (
-    DateStyle, IntegerSpec, NumberSpec, TimeStyle,
-)
+from ..core.locale_profile import LocaleProfile
 
 
-class QtLocaleFormatter:
-    """Renders atomic values through an injected ``QLocale``.
-
-    The locale is taken at construction and copied into an instance
-    attribute, never read from the process default inside a method -- a
-    formatter built for one locale must not silently start answering for
-    another because something elsewhere called ``QLocale.setDefault``.
-    """
+class QtLocaleFormatter(LocaleProfile):
+    """Transitional adapter from a ``QLocale`` to the shared Babel profile."""
 
     def __init__(self, locale: QLocale) -> None:
-        self._locale = QLocale(locale)
-
-    def number(self, value: float, spec: NumberSpec) -> str:
-        """A floating-point number at ``spec``'s decimal count.
-
-        The whole-value trim is expressed as a *decimal count* handed to
-        Qt's own conversion, never as character-stripping on the already
-        formatted string -- a hand-rolled trim would risk the locale's own
-        zero digit and decimal point for a non-Latin digit set, which Qt's
-        conversion already gets right. Grouping is suppressed unless
-        ``spec`` asks for it, on a locale copy so the instance's own locale
-        is never mutated.
-        """
-        value = float(value)
-        decimals = spec.decimals
-        if spec.trim_trailing_zeroes and value == int(value):
-            decimals = 0
-        locale = QLocale(self._locale)
-        if not spec.grouping:
-            locale.setNumberOptions(
-                locale.numberOptions()
-                | QLocale.NumberOption.OmitGroupSeparator)
-        return locale.toString(value, "f", decimals)
-
-    def integer(self, value: int, spec: IntegerSpec) -> str:
-        """A whole number, zero-padded to ``spec.min_digits``.
-
-        The padding goes through Python's own formatting rather than Qt:
-        ``QLocale`` offers no padded-integer overload, and this is what
-        reproduces the zero-padded minutes
-        (``core/presentation/formatter.py``'s ``duration_hm``, e.g.
-        "1h 05m") exactly. It is a mechanism choice, not a policy one.
-        Grouping, where ``spec`` asks for it, still goes through the
-        locale.
-        """
-        value = int(value)
-        rendered = (QLocale(self._locale).toString(value)
-                    if spec.grouping else f"{value:d}")
-        return rendered.rjust(spec.min_digits, "0")
-
-    def time(self, value: datetime, style: TimeStyle) -> str:
-        """A wall-clock time on the clock the style names.
-
-        The explicit patterns below deliberately bypass Qt's own
-        locale-governed short time format, which picks the
-        twelve-or-twenty-four answer out of the locale — the very choice
-        this app now makes once, in ``core/``, from ``[ui] clock_format``.
-        Asking the locale again here would let the window disagree with the
-        setting.
-
-        The twelve-hour patterns take their meridiem token from
-        :meth:`_meridiem_token`, so each language reads its designator the
-        way it writes it.
-        """
-        moment = QTime(value.hour, value.minute, value.second)
-        if style is TimeStyle.HOUR_AND_MINUTE_24:
-            return self._locale.toString(moment, "HH:mm")
-        if style is TimeStyle.HOUR_AND_MINUTE_12:
-            return self._locale.toString(
-                moment, f"h:mm {self._meridiem_token()}")
-        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_24:
-            return self._locale.toString(moment, "HH:mm:ss")
-        if style is TimeStyle.HOUR_MINUTE_AND_SECOND_12:
-            return self._locale.toString(
-                moment, f"h:mm:ss {self._meridiem_token()}")
-        raise ValueError(f"unsupported time style: {style!r}")
-
-    def _meridiem_token(self) -> str:
-        """Qt's meridiem token, in the case this locale writes it in.
-
-        Qt offers two: ``AP`` substitutes ``QLocale.pmText()`` verbatim,
-        ``ap`` substitutes a lower-cased copy of it. Neither is right for
-        every language, because the case belongs to the language rather
-        than to the app — English writes ``PM``, Spanish's CLDR designator
-        is ``p. m.`` and shouts when upper-cased.
-
-        So the locale's own designator chooses the token: already
-        lower-case means ``ap`` (which then leaves it alone), anything else
-        means ``AP``. Both branches end up rendering exactly what
-        ``pmText()`` holds, and the separator Qt inserts before the
-        designator is untouched either way — the alternative, pasting
-        ``pmText()`` on by hand, would have hardcoded that separator into
-        this file.
-
-        This stays inside the Qt backend on purpose. The seam's rule
-        (``BACK-02``) is that a backend decides *how* an atomic value is
-        rendered and never decides product policy; meridiem casing is the
-        former, and no ``am_text()`` accessor crosses the protocol.
-        """
-        return "ap" if self._locale.pmText().islower() else "AP"
-
-    def date(self, value: datetime, style: DateStyle) -> str:
-        moment = QDate(value.year, value.month, value.day)
-        if style is DateStyle.WEEKDAY_AND_DAY:
-            return self._locale.toString(moment, "ddd dd")
-        if style is DateStyle.WEEKDAY_DAY_MONTH_YEAR:
-            return self._locale.toString(moment, "ddd dd MMM yyyy")
-        raise ValueError(f"unsupported date style: {style!r}")
+        super().__init__(locale.name().replace("-", "_"))
 
 
 class QtTranslator:

@@ -88,12 +88,10 @@ def install_translators(app, language: str = SYSTEM) -> list[QTranslator]:
     """
     locale = resolve_locale(language)
     # The config's language can differ from the desktop locale, so the
-    # translators alone aren't enough to make numbers agree with the words
-    # around them. Setting the default QLocale before anything else is built
-    # is also what lets util.py — which has no access to config — read the
-    # effective locale for QLocale()-based formatting, and what gives every
-    # QDoubleSpinBox/QSpinBox/QTimeEdit its decimal separator for free (Qt
-    # resolves a widget's locale from QLocale::default() at construction).
+    # translators alone aren't enough to make native controls agree with the
+    # words around them. App-owned labels use Babel's LocaleProfile; setting
+    # QLocale here gives QDoubleSpinBox/QSpinBox/QTimeEdit the same locale for
+    # their native editing behavior and supplies Qt's layout direction.
     QLocale.setDefault(locale)
     installed: list[QTranslator] = []
 

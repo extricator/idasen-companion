@@ -26,6 +26,7 @@ DEBIAN_RULES = ROOT / "debian" / "rules"
 DEBIAN_CHANGELOG = ROOT / "debian" / "changelog"
 FLATPAK_MANIFEST = (ROOT / "packaging" / "flatpak"
                     / "io.github.extricator.IdasenCompanion.yaml")
+FLATPAK_DEPS = ROOT / "packaging" / "flatpak" / "python3-deps.json"
 METAINFO = ROOT / "data" / "io.github.extricator.IdasenCompanion.metainfo.xml"
 CHANGELOG = ROOT / "CHANGELOG.md"
 README = ROOT / "README.md"
@@ -46,6 +47,28 @@ STATS = SRC / "daemon" / "stats.py"
 
 def read(p: Path) -> str:
     return p.read_text()
+
+
+def test_every_existing_artifact_path_carries_babel():
+    """Babel is a base runtime dependency, not a GUI-only convenience."""
+    pyproject = tomllib.loads(read(ROOT / "pyproject.toml"))
+    assert any(requirement.startswith("Babel>=")
+               for requirement in pyproject["project"]["dependencies"])
+
+    split = read(SPLIT)
+    assert "BuildRequires:  python3-babel" in split
+    assert "Requires:       python3-babel" in split
+
+    debian = read(DEBIAN_CONTROL)
+    assert debian.count("python3-babel") == 2
+
+    assert '"Babel==2.18.0"' in read(RUNTIME_FETCHER)
+    assert "bundled(python3dist(babel)) = 2.18.0" in read(BUNDLED)
+    assert "LICENSE.babel" in read(BUNDLED)
+
+    flatpak = read(FLATPAK_DEPS)
+    assert "babel==2.18.0" in flatpak
+    assert "babel-2.18.0-py3-none-any.whl" in flatpak
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda p: p.name)
