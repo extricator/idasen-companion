@@ -73,7 +73,7 @@ the handoff commit.
 | Phase | State | Implementation commit | Handoff commit | Required proof |
 |---:|---|---|---|---|
 | 1. Babel formatting | Complete | `6dd6d30` | this commit | Babel locale matrix, formatter/GUI parity, full tests |
-| 2. Contextual gettext | Pending | — | — | extraction freshness, catalog audit, mixed-version log tests, full tests |
+| 2. Contextual gettext | In progress | pending | — | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Pending | — | — | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Pending | — | — | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
@@ -360,14 +360,42 @@ require `git diff --exit-code` before writing the handoff commit.
 
 ### Phase 2 execution record
 
-- State: Pending
-- Starting commit: —
-- Pre-migration TS/POT/PO message counts: —
-- Post-migration contextual/plural counts: —
-- Implementation commit: —
-- Commands/results: —
-- Deviations from plan: —
-- Known risks carried forward: —
+- State: In progress (implementation verified; awaiting implementation and
+  handoff commits)
+- Starting commit: `0f7e5bb`
+- Pre-migration TS/POT/PO message counts: 322 finished Qt TS messages and 79
+  translated gettext source messages, including three plural entries, as
+  recorded by the Phase 1 handoff.
+- Post-migration contextual/plural counts: 402 non-header POT/PO entries, all
+  with `msgctxt`, including five plural entries and no empty Spanish
+  translations. The apparent net `+1` over 322 + 79 is intentional: the one
+  positional `%s · %s` tray key previously covered two distinct roles and was
+  split into named `position/status` and `status/countdown` messages. The two
+  defective `(s)` Activity Log messages became real singular/plural pairs
+  without changing entry count.
+- Implementation commit: pending
+- Commands/results: preflight full pytest — 2,002 passed; preflight naming —
+  exit 0; preflight mypy — no issues in 67 files; preflight pylint — 10.00/10.
+  Post-change targeted Phase 2 suite — 210 passed; full pytest — 2,000 passed;
+  naming — exit 0; mypy — no issues in 67 files; pylint — 10.00/10.
+  `scripts/build-translations.sh` extracted, merged and compiled all 402
+  contextual entries and was byte-for-byte deterministic on a second run.
+  The AST rewrite audit reported zero pending GUI/shared/log rewrites; replay
+  from the frozen 322-entry TS plus the pre-migration PO migrated all 402
+  translations, and bidirectional `msgcmp` passed. `msgfmt --check`,
+  `git diff --check`, placeholder parity, mixed-version snooze payloads,
+  Spanish 1/2-device plurals and unknown-id English fallback all passed.
+- Deviations from plan: the frozen `.ts`/`.qm` remain committed and inactive
+  as required. The transitional `QtTranslator` compatibility class also
+  remains until Phase 7, but delegates app lookup to contextual gettext; the
+  GUI installs only Qtbase. The legacy collision test was repointed to audit
+  the frozen 322-message baseline, universal semantic contexts and placeholder
+  parity because cross-catalog collision registration no longer describes the
+  runtime architecture.
+- Known risks carried forward: the inactive Qt migration artifacts and
+  compatibility adapter remain removal work for Phase 7. Native artifact
+  inspection remains Phase 5. Phase 3 must surface forward-compatibility
+  warnings through GUI, daemon/Activity Log and the future CLI-facing API.
 - Handoff to Phase 3: Confirm that runtime app-message lookup is gettext-only,
   identify the frozen migration artifacts retained for Phase 7, and list every
   process that must display config warnings.

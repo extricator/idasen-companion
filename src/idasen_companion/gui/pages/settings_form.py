@@ -51,17 +51,16 @@ there is no "Settings saved." message.
 
 from __future__ import annotations
 
-from typing import cast
-
 from copy import deepcopy
 
-from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
 from PySide6.QtWidgets import (
     QComboBox, QDialogButtonBox, QHBoxLayout, QLabel, QMessageBox, QSpinBox,
     QVBoxLayout, QWidget,
 )
 
 from ...core.config import AppConfig
+from ...core.i18n import pgettext
+from ...core.presentation.register import MessageKey, P_
 from ..theme import css, theme
 from .. import restyle, util
 from ..widgets import icon, page_scroll, separator
@@ -77,19 +76,9 @@ _CHANGE_SIGNALS = ("currentChanged", "currentIndexChanged", "valueChanged",
                    "timeChanged", "toggled", "textChanged")
 
 
-def _tr(text: object) -> str:
-    """Translate one of this base class's own strings.
-
-    Deliberately not ``self.tr()``. PySide6 resolves ``tr()``'s context from
-    the **runtime** class — ``type(self).__name__``, so "SettingsPage" or
-    "AutomationPage" — while ``lupdate`` extracts it from the class the literal
-    is written in, "SettingsFormPage". A ``self.tr("Save")`` here would be
-    catalogued under one context and looked up under another, and would simply
-    never translate. Naming the context explicitly makes the two agree.
-    Literals are marked with ``QT_TRANSLATE_NOOP`` at the call sites, since a
-    bare ``_tr("...")`` wrapper is invisible to ``lupdate``.
-    """
-    return QCoreApplication.translate("SettingsFormPage", cast(str, text))
+def _tr(text: MessageKey) -> str:
+    """Translate one deferred settings-form key through the current catalog."""
+    return pgettext(text.context, text)
 
 
 class SettingsFormPage(Page):
@@ -291,7 +280,7 @@ class SettingsFormPage(Page):
         spin.setRange(minimum, maximum)
         # util.suffix_minutes() names its own translation context as a
         # literal, so it works from a @staticmethod on this base class —
-        # neither self.tr() nor the base-class tr() trap (see the module
+        # neither an immediate lookup nor the base-class context trap
         # docstring's _tr) applies to it.
         spin.setSuffix(util.suffix_minutes())
         return spin
@@ -366,10 +355,8 @@ class SettingsFormPage(Page):
         err = self.ctx.reload_config()
         if err is not None:  # ConfigError — show but keep the UI usable
             QMessageBox.warning(
-                self, _tr(QT_TRANSLATE_NOOP("SettingsFormPage",
-                                            "Idasen Companion")),
-                _tr(QT_TRANSLATE_NOOP("SettingsFormPage",
-                                      "Could not read config:\n%s")) % err)
+                self, _tr(P_("settings-form", "Idasen Companion")),
+                _tr(P_("settings-form", "Could not read config:\n%s")) % err)
             return
         config = self.ctx.cfg
         if config is None:
@@ -402,7 +389,7 @@ class SettingsFormPage(Page):
             self.load()
             if self.ctx.cfg is None:
                 return
-        title = _tr(QT_TRANSLATE_NOOP("SettingsFormPage", "Idasen Companion"))
+        title = _tr(P_("settings-form", "Idasen Companion"))
         invalid = self._validate()
         if invalid is not None:
             QMessageBox.warning(self, title, invalid)
@@ -411,8 +398,7 @@ class SettingsFormPage(Page):
         if err is not None:
             QMessageBox.warning(
                 self, title,
-                _tr(QT_TRANSLATE_NOOP("SettingsFormPage",
-                                      "Could not save config:\n%s")) % err)
+                _tr(P_("settings-form", "Could not save config:\n%s")) % err)
             # Deliberately *not* rebased. write_config mutates config before it
             # tries to save, so after a failure the in-memory config already
             # holds the values that never reached the disk — measuring dirt

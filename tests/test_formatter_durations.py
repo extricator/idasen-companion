@@ -114,15 +114,12 @@ def test_duration_boundary_table(seconds, duration_expected, duration_hm_expecte
     assert fmt.duration_hm(seconds) == duration_hm_expected
 
 
-@pytest.mark.parametrize("seconds,duration_expected,_duration_hm_expected",
-                          _BOUNDARY_TABLE)
-def test_format_duration_human_matches_duration(
-        seconds, duration_expected, _duration_hm_expected):
-    # format_duration_human is Formatter.duration through the same
-    # PlainLocaleFormatter/EnglishTranslator pair this file's own
-    # _formatter() builds -- the journal and this test's Formatter must
-    # never answer differently for the same input.
-    assert format_duration_human(seconds) == duration_expected
+@pytest.mark.parametrize("seconds,expected", [
+    (0, "0 seconds"), (45.6, "46 seconds"),
+    (90, "1.5 minutes"), (3900, "65.0 minutes"),
+])
+def test_format_duration_human_keeps_stable_journal_precision(seconds, expected):
+    assert format_duration_human(seconds) == expected
 
 
 def test_format_duration_human_none_is_not_available():
@@ -146,10 +143,8 @@ def test_duration_clamps_a_negative_sub_minute_delay_to_zero():
     assert _formatter().duration(-5) == "0s"
 
 
-def test_format_duration_human_clamps_a_negative_delay_to_zero():
-    # The journal's renderer reads through Formatter.duration, so the clamp
-    # above is what keeps a negative out of a greppable log line.
-    assert format_duration_human(-5) == "0s"
+def test_format_duration_human_keeps_the_released_negative_shape():
+    assert format_duration_human(-5) == "-5 seconds"
 
 
 def test_duration_floors_rather_than_rounds_a_sub_minute_value():

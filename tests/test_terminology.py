@@ -66,8 +66,13 @@ def _find_violation(source, translation, lang, exceptions=EXCEPTIONS):
         return None
     if source in exceptions:
         return None
-    lower_source = source.lower()
-    lower_translation = translation.lower()
+    # Named placeholder identifiers are code, not English prose. They remain
+    # byte-identical in the translation and must not trigger terminology rules.
+    lower_source = re.sub(r"%\([^)]+\)[#0 +\-]?(?:\d+)?(?:\.\d+)?[a-zA-Z]",
+                          "", source).lower()
+    lower_translation = re.sub(
+        r"%\([^)]+\)[#0 +\-]?(?:\d+)?(?:\.\d+)?[a-zA-Z]", "",
+        translation).lower()
     for term, stems in TERMS.items():
         stem = stems.get(lang)
         if stem is None or term not in lower_source:

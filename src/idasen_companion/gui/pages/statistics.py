@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 from datetime import date, datetime, timedelta
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -41,7 +43,7 @@ class StatisticsPage(Page):
 
         daily = Card()
         head = QHBoxLayout()
-        head.addWidget(section_label(self.tr("Daily totals — last 14 days")))
+        head.addWidget(section_label(pgettext('statistics', "Daily totals — last 14 days")))
         head.addStretch()
         sit_color, stand_color = DailyBarsChart.series_colors()
         legend_dots: list[StatusDot] = []
@@ -83,9 +85,9 @@ class StatisticsPage(Page):
 
         trans = Card()
         head = QHBoxLayout()
-        head.addWidget(section_label(self.tr("Recent transitions")))
+        head.addWidget(section_label(pgettext('statistics', "Recent transitions")))
         head.addStretch()
-        refresh_btn = QPushButton(self.tr("Refresh"))
+        refresh_btn = QPushButton(pgettext('statistics', "Refresh"))
         refresh_btn.clicked.connect(self._refresh)
         head.addWidget(refresh_btn)
         trans.body.addLayout(head)
@@ -134,12 +136,10 @@ class StatisticsPage(Page):
         overall = total_sit + total_stand
         if overall:
             pct = self.ctx.fmt.context.locale.percent(total_stand / overall)
-            footer = self.tr(
-                "Standing share = standing time / tracked time per day. "
+            footer = pgettext('statistics', "Standing share = standing time / tracked time per day. "
                 "14-day average: %(pct)s.") % {"pct": pct}
         else:
-            footer = self.tr(
-                "Standing share = standing time / tracked time per day.")
+            footer = pgettext('statistics', "Standing share = standing time / tracked time per day.")
         self.stats_footer.setText(footer)
 
         clear_layout(self._trans_rows)
@@ -176,15 +176,15 @@ class StatisticsPage(Page):
         # are position_label's return value, a marked gui/util.py helper, not
         # a direct translation call -- the reason the concatenation check has
         # to know about marked helpers, not just tr() itself.
-        #: The arrow and its surrounding spaces are part of the message so a
-        #: right-to-left language can reverse the direction it reads.
-        change = QLabel(self.tr("%(from)s → %(to)s") % {
-            "from": position_label(from_state), "to": position_label(to_state)})
+        # Translators: The arrow may be reversed for right-to-left languages.
+        change_text = pgettext('statistics', "%(from)s → %(to)s") % {
+            "from": position_label(from_state), "to": position_label(to_state)}
+        change = QLabel(change_text)
         change.setStyleSheet("border: none;")
         hbox.addWidget(when)
         hbox.addWidget(change)
         if interrupted:
-            interrupted_chip = pill(self.tr("interrupted"),
+            interrupted_chip = pill(pgettext('statistics', "interrupted"),
                                     theme().warning_text, theme().warning)
 
             def _restyle_interrupted_chip(

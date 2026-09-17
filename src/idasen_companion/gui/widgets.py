@@ -5,6 +5,8 @@ platform palette."""
 
 from __future__ import annotations
 
+from ..core.i18n import pgettext
+
 from collections.abc import Sequence
 
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
@@ -977,10 +979,10 @@ class DailyBarsChart(QWidget):
     def _tooltip_for(self, index: int) -> str:
         label, sit, stand, _ = self._rows[index]
         if sit or stand:
-            return self.tr("%(day)s: sitting %(sit)s, standing %(stand)s") % {
+            return pgettext('statistics.chart', "%(day)s: sitting %(sit)s, standing %(stand)s") % {
                 "day": label, "sit": self.ctx.fmt.duration_hm(sit),
                 "stand": self.ctx.fmt.duration_hm(stand)}
-        return self.tr("%(day)s: no data") % {"day": label}
+        return pgettext('statistics.chart', "%(day)s: no data") % {"day": label}
 
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name
         index = int(event.position().y() // self.ROW_H)

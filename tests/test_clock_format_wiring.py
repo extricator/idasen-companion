@@ -112,33 +112,9 @@ def test_both_processes_reach_the_same_answer(
 
 
 @pytest.mark.parametrize("clock_format", ["system", "12", "24"])
-def test_the_journal_stays_on_the_twenty_four_hour_clock(clock_format):
-    """The journal's formatter is built from a literal, so the setting cannot
-    move it whatever it says — `docs/LOGGING.md`'s stable, greppable English
-    is what that protects."""
-    # The setting is not even an input here: the parametrization exists to
-    # say out loud that all three values leave this answer alone.
-    assert _journal_style() is _TWENTY_FOUR, clock_format
-
-
-def _journal_style() -> TimeStyle:
-    """The style the journal's own throwaway context carries.
-
-    Read out of the module rather than reconstructed here, so this follows
-    the real construction site instead of a copy of it.
-    """
-    tree = ast.parse(inspect.getsource(english))
-    styles = {
-        node.attr
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "TimeStyle"
-    }
-    assert len(styles) == 1, (
-        f"the journal's construction names {len(styles)} clock styles, "
-        f"so there is no single answer to pin: {sorted(styles)}")
-    return TimeStyle[styles.pop()]
+def test_the_journal_keeps_its_stable_duration_shape(clock_format):
+    """No display clock setting can alter released English journal values."""
+    assert english.format_duration_human(90) == "1.5 minutes", clock_format
 
 
 def test_no_config_value_can_reach_the_journals_formatter():

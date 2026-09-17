@@ -10,9 +10,9 @@ without AppIndicator there is no tray.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QT_TRANSLATE_NOOP
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMainWindow,
@@ -31,6 +31,8 @@ from .theme import (NAV_ICON_SIZE, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css,
                     theme)
 from .util import connection_state, daemon_error_message
 from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
+from ..core.i18n import pgettext
+from ..core.presentation.register import P_
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -52,26 +54,25 @@ def _app() -> QApplication:
     return app
 
 
-# Sidebar entries: (label, theme icon candidates). Labels are marked for
-# extraction with QT_TRANSLATE_NOOP under the "MainWindow" context (a plain
-# self.tr(label) on the variable below would be invisible to lupdate) and
-# translated at build time in _build_sidebar via self.tr(label).
+# Sidebar entries: (label, theme icon candidates). Deferred ``P_`` keys retain
+# a literal semantic context for extraction, then translate when the sidebar
+# is built rather than freezing the import-time language.
 NAV_ITEMS = [
-    (QT_TRANSLATE_NOOP("MainWindow", "Overview"), ("go-home", "user-home")),
+    (P_("window-shell", "Overview"), ("go-home", "user-home")),
     # Second, right after Overview: Overview acts on the current cycle, this
     # configures every cycle. The repeat glyph reads as the sit/stand loop.
-    (QT_TRANSLATE_NOOP("MainWindow", "Automation"),
+    (P_("window-shell", "Automation"),
      ("media-playlist-repeat", "chronometer", "view-refresh")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Presets"),
+    (P_("window-shell", "Presets"),
      ("bookmarks", "user-bookmarks", "bookmark-new")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Statistics"),
+    (P_("window-shell", "Statistics"),
      ("view-statistics", "office-chart-bar",
       "utilities-system-monitor-symbolic")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Activity Log"),
+    (P_("window-shell", "Activity Log"),
      ("view-list-text", "format-list-unordered", "text-x-generic")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Settings"),
+    (P_("window-shell", "Settings"),
      ("configure", "preferences-system")),
-    (QT_TRANSLATE_NOOP("MainWindow", "About"),
+    (P_("window-shell", "About"),
      ("help-about", "help-about-symbolic", "dialog-information")),
 ]
 
@@ -84,7 +85,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.client = client
         self.ctx = AppContext(client, tray_available)
-        self.setWindowTitle(self.tr("Idasen Companion"))
+        self.setWindowTitle(pgettext('window-shell', "Idasen Companion"))
         self.setMinimumSize(760, 600)
         self.resize(860, 660)
 
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow):
         self._daemon_banner.hide()
         banner_row = QHBoxLayout()
         banner_row.addWidget(self._daemon_banner, 1)
-        self._start_daemon_btn = QPushButton(self.tr("Start daemon"))
+        self._start_daemon_btn = QPushButton(pgettext('window-shell', "Start daemon"))
         self._start_daemon_btn.clicked.connect(self._start_daemon)
         self._start_daemon_btn.hide()
         # Whether that button is currently offering to enable the unit at login
@@ -134,8 +135,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(banner_row)
         layout.addWidget(stack)
         if not tray_available:
-            hint = QLabel(self.tr(
-                "No system tray detected (on GNOME, install the AppIndicator "
+            hint = QLabel(pgettext('window-shell', "No system tray detected (on GNOME, install the AppIndicator "
                 "extension). Closing this window keeps the app running in the "
                 "background; automation runs in the daemon either way."))
             hint.setWordWrap(True)
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         here from the error *name* so it can be translated — the daemon's own
         body crosses the wire in English and is in neither catalog.
         """
-        QMessageBox.warning(self, self.tr("Idasen Companion"),
+        QMessageBox.warning(self, pgettext('window-shell', "Idasen Companion"),
                             daemon_error_message(name, detail))
 
     def _restyle_daemon_banner(self) -> None:
@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
         nav_list.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
         nav_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for label, _icon_names in NAV_ITEMS:
-            nav_list.addItem(QListWidgetItem(self.tr(cast("str", label))))
+            nav_list.addItem(QListWidgetItem(pgettext(label.context, label)))
         self._nav = nav_list
         nav_list.setCurrentRow(0)
         # One slot rather than three connections: switching pages can now be
@@ -340,14 +340,13 @@ class MainWindow(QMainWindow):
                 not background_portal.is_flatpak()
                 and service_ctl.autostart_state().offer_enable)
             if self._autostart_offer:
-                self._daemon_banner.setText(self.tr(
-                    "The Idasen Companion daemon is not running, and is not "
+                self._daemon_banner.setText(pgettext('window-shell', "The Idasen Companion daemon is not running, and is not "
                     "set to start when you log in."))
-                self._start_daemon_btn.setText(self.tr("Start at login"))
+                self._start_daemon_btn.setText(pgettext('window-shell', "Start at login"))
             else:
                 self._daemon_banner.setText(
-                    self.tr("The Idasen Companion daemon is not running."))
-                self._start_daemon_btn.setText(self.tr("Start daemon"))
+                    pgettext('window-shell', "The Idasen Companion daemon is not running."))
+                self._start_daemon_btn.setText(pgettext('window-shell', "Start daemon"))
             self._daemon_banner.show()
             self._start_daemon_btn.show()
         self._update_conn_footer()
@@ -373,10 +372,10 @@ class MainWindow(QMainWindow):
             # startDetached() used to swallow this, leaving the banner up with
             # no hint as to why nothing happened.
             QMessageBox.warning(
-                self, self.tr("Idasen Companion"),
-                self.tr("The background service could not be started:\n%s\n\n"
-                        "Try running this in a terminal:\n  %s")
-                % (err, command))
+                self, pgettext('window-shell', "Idasen Companion"),
+                pgettext('window-shell', "The background service could not be started:\n%(error)s\n\n"
+                        "Try running this in a terminal:\n  %(command)s")
+                % {"error": err, "command": command})
 
     # ================= window behavior =================
 
@@ -425,8 +424,8 @@ class MainWindow(QMainWindow):
         if not self.isVisible():
             self.present()
         answer = QMessageBox.warning(
-            self, self.tr("Idasen Companion"),
-            self.tr("This page has changes you haven't applied yet."),
+            self, pgettext('window-shell', "Idasen Companion"),
+            pgettext('window-shell', "This page has changes you haven't applied yet."),
             QMessageBox.StandardButton.Apply
             | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel,

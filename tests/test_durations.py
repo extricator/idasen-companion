@@ -54,15 +54,12 @@ def test_compact_round_trip():
         assert parse_duration(format_duration_compact(seconds)) == seconds
 
 
-def test_format_human_matches_the_activity_log_shape():
-    # D-01: the journal used to disagree with the Activity Log for the same
-    # Param.DURATION value ("45.0 minutes" / "30 seconds" here, "45m" there).
-    # It now renders the same compact shape.
+def test_format_human_preserves_the_released_journal_shape():
     assert format_duration_human(None) == "N/A"
-    assert format_duration_human(30) == "30s"
-    assert format_duration_human(2700) == "45m"
-    assert format_duration_human(3900) == "1h 05m"  # the hours split the
-    # journal's old style never had
+    assert format_duration_human(30) == "30 seconds"
+    assert format_duration_human(45.6) == "46 seconds"
+    assert format_duration_human(90) == "1.5 minutes"
+    assert format_duration_human(3900) == "65.0 minutes"
 
 
 # ---- decompose_hms ---------------------------------------------------------

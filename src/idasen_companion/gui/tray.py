@@ -7,6 +7,8 @@ window. gui.main decides whether to construct this at all.
 
 from __future__ import annotations
 
+from ..core.i18n import pgettext
+
 import time
 from datetime import date
 from functools import partial
@@ -88,24 +90,24 @@ class TrayIcon(QSystemTrayIcon):
         self._ticker.start(TICK_MS)
 
         menu = QMenu()
-        self._status_action = menu.addAction(self.tr("Starting…"))
+        self._status_action = menu.addAction(pgettext('tray', "Starting…"))
         self._status_action.setEnabled(False)
         menu.addSeparator()
 
-        menu.addAction(self.tr("Toggle sit / stand"),
+        menu.addAction(pgettext('tray', "Toggle sit / stand"),
                        lambda: self._move(client.toggle))
         menu.addAction(preset_label("sit"), lambda: self._move(client.sit))
         menu.addAction(preset_label("stand"), lambda: self._move(client.stand))
-        self._presets_menu = menu.addMenu(self.tr("Presets"))
-        menu.addAction(self.tr("Stop movement"), client.stop)
+        self._presets_menu = menu.addMenu(pgettext('tray', "Presets"))
+        menu.addAction(pgettext('tray', "Stop movement"), client.stop)
         menu.addSeparator()
 
-        self._pause_action = QAction(self.tr("Pause automation"), menu)
+        self._pause_action = QAction(pgettext('tray', "Pause automation"), menu)
         self._pause_action.triggered.connect(self._toggle_pause)
         menu.addAction(self._pause_action)
         self._skip_action = menu.addAction(
-            self.tr("Skip next transition"), client.skip_next)
-        snooze_menu = menu.addMenu(self.tr("Snooze"))
+            pgettext('tray', "Skip next transition"), client.skip_next)
+        snooze_menu = menu.addMenu(pgettext('tray', "Snooze"))
         for minutes in SNOOZE_CHOICES:
             # partial, not a lambda with a default argument: both freeze the
             # loop variable, but only this one states that it is what it is
@@ -127,8 +129,8 @@ class TrayIcon(QSystemTrayIcon):
         self._cycle_actions = (self._pause_action, self._skip_action,
                                snooze_menu.menuAction())
         self._cycle_separator = menu.addSeparator()
-        menu.addAction(self.tr("Open window"), self._show_window)
-        menu.addAction(self.tr("Quit"), self._quit)
+        menu.addAction(pgettext('tray', "Open window"), self._show_window)
+        menu.addAction(pgettext('tray', "Quit"), self._quit)
         self.setContextMenu(menu)
 
         self.activated.connect(self._on_activated)
@@ -198,7 +200,7 @@ class TrayIcon(QSystemTrayIcon):
     def _on_available(self, available: bool) -> None:
         if not available:
             self._end_connecting()
-            text = self.tr("Daemon not running")
+            text = pgettext('tray', "Daemon not running")
             self._status_action.setText(text)
             self._set_tooltip(text)
 
@@ -219,8 +221,8 @@ class TrayIcon(QSystemTrayIcon):
         if status == "move-failed":
             self._end_connecting()
         self._pause_action.setText(
-            self.tr("Resume automation") if status in _RESUMABLE_VALUES
-            else self.tr("Pause automation"))
+            pgettext('tray', "Resume automation") if status in _RESUMABLE_VALUES
+            else pgettext('tray', "Pause automation"))
         for action in self._cycle_actions:
             action.setVisible(status != "disabled")
         self._cycle_separator.setVisible(status != "disabled")
@@ -311,7 +313,7 @@ class TrayIcon(QSystemTrayIcon):
         so widening it would compound an over-promise instead of fixing one.
         """
         return (due_now_label() if int(remaining) <= 0
-                else self.tr("%s left") % self._time_left(remaining))
+                else pgettext('tray', "%s left") % self._time_left(remaining))
 
     def _position_word(self) -> str:
         # Empty position = held off sit/stand; mirror the Overview title's
@@ -337,15 +339,16 @@ class TrayIcon(QSystemTrayIcon):
         when one isn't.
         """
         if self._connecting:
-            return self.tr("Connecting…")
+            return pgettext('tray', "Connecting…")
         # Only "active" gets the countdown. A failed move has a countdown too,
         # but the failure is the thing worth the line.
         tail = ""
         remaining = self._shown_remaining()
         if self._status == "active" and remaining is not None:
             tail = self._countdown_clause(remaining)
-        return self.tr("%s · %s") % (self._position_word(),
-                                     tail or status_label(self._status))
+        return pgettext('tray', "%(position)s · %(status)s") % {
+            "position": self._position_word(),
+            "status": tail or status_label(self._status)}
 
     def _tooltip_lines(self) -> list[str]:
         """The status as tooltip detail lines.
@@ -356,7 +359,7 @@ class TrayIcon(QSystemTrayIcon):
         on its own rather than a compound headline.
         """
         if self._connecting:
-            return [self.tr("Connecting…")]
+            return [pgettext('tray', "Connecting…")]
 
         position = self._position_word()
         # Before the first progress push there is no duration to report, and
@@ -371,7 +374,9 @@ class TrayIcon(QSystemTrayIcon):
         # while reading like a running clock. Showing nothing is the honest
         # version — the position word alone is still true.
         elapsed = None if self._cycle_stopped() else self._shown_elapsed()
-        held = (self.tr("%s for %s") % (position, self._fmt().duration(int(elapsed)))
+        held = (pgettext('tray', "%(position)s for %(duration)s") % {
+                    "position": position,
+                    "duration": self._fmt().duration(int(elapsed))}
                 if elapsed is not None else position)
 
         # "Automation active" is dropped when a countdown is showing: a visible
@@ -391,17 +396,18 @@ class TrayIcon(QSystemTrayIcon):
             elif self._position == "sitting":
                 # Deliberately the daemon's pre-move notification wording, so
                 # the notification and the tooltip name one event one way.
-                change = (self.tr("Standing up in %s")
+                change = (pgettext('tray', "Standing up in %s")
                           % self._time_left(remaining))
             elif self._position == "standing":
-                change = (self.tr("Sitting down in %s")
+                change = (pgettext('tray', "Sitting down in %s")
                           % self._time_left(remaining))
             else:
                 # Off sit/stand: we know when, not what to call it.
-                change = self.tr("%s left") % self._time_left(remaining)
+                change = pgettext('tray', "%s left") % self._time_left(remaining)
         elif remaining is not None and self._status == "move-failed":
-            change = self.tr("%s · %s") % (
-                change, self._countdown_clause(remaining))
+            change = pgettext('tray', "%(status)s · %(countdown)s") % {
+                "status": change,
+                "countdown": self._countdown_clause(remaining)}
         return [held, change]
 
     def _snooze_line(self) -> str:
@@ -468,9 +474,9 @@ class TrayIcon(QSystemTrayIcon):
             totals[state] = seconds
         if totals["sitting"] or totals["standing"]:
             fmt = self._fmt()
-            return (self.tr("Today: %s sitting / %s standing")
-                    % (fmt.duration_hm(totals["sitting"]),
-                       fmt.duration_hm(totals["standing"])))
+            return (pgettext('tray', "Today: %(sitting)s sitting / %(standing)s standing")
+                    % {"sitting": fmt.duration_hm(totals["sitting"]),
+                       "standing": fmt.duration_hm(totals["standing"])})
         return ""
 
     def _rebuild_presets(self, presets: dict) -> None:
@@ -479,8 +485,9 @@ class TrayIcon(QSystemTrayIcon):
         fmt = self._fmt()
         for name in sorted(presets):
             self._presets_menu.addAction(
-                self.tr("%s (%s)") % (preset_label(name),
-                                      fmt.height(presets[name])),
+                pgettext('tray', "%(name)s (%(height)s)") % {
+                    "name": preset_label(name),
+                    "height": fmt.height(presets[name])},
                 partial(self._move, self.client.move_to_preset, name))
         self._presets_menu.setEnabled(bool(presets))
 

@@ -1,13 +1,13 @@
-"""Runtime translation machinery for Qt-free callers.
+"""The process-wide application message catalog.
 
-Qt-free code can't use Qt's ``tr()`` like the GUI does, so it looks up
-messages here instead: the stdlib ``gettext`` catalog compiled from
+GUI, daemon and CLI code all look up app-owned messages here: the stdlib
+``gettext`` catalog compiled from
 ``po/<lang>.po`` into ``locale/<lang>/LC_MESSAGES/idasen_companion.mo`` (see
 ``scripts/build-translations.sh``). Today the only caller is the daemon,
 translating its desktop **notifications** (pre-move warnings and their
 action buttons).
 
-Everything else the daemon emits stays English *at the source*, which is not
+Journald output stays English *at the source*, which is not
 the same as untranslated. journald is kept stable and greppable because that
 is what a bug report needs. Activity lines cross the wire as a catalogued id
 plus raw parameters (``Log1.Entry``), and the GUI re-renders them in the
@@ -27,9 +27,9 @@ are stable module functions that delegate to the current catalog, so importers
 re-importing.
 
 Every Qt-free caller reaches this catalog indirectly, through
-``core/presentation/gettext_translator.py``'s ``GettextTranslator`` — see that
-module's docstring for the one deliberate exemption that lets a Translator
-backend delegate to this process-wide state at all.
+``pgettext`` and ``npgettext`` provide semantic disambiguation without opaque
+message ids.  All four lookup functions remain stable delegates, so a later
+``set_language`` call is visible even to modules that imported them earlier.
 """
 
 from __future__ import annotations
@@ -56,8 +56,25 @@ def _(message: str) -> str:
     return _current.gettext(message)
 
 
+def pgettext(context: str, message: str) -> str:
+    return _current.pgettext(context, message)
+
+
 def ngettext(singular: str, plural: str, count: int) -> str:
     return _current.ngettext(singular, plural, count)
+
+
+def npgettext(context: str, singular: str, plural: str, count: int) -> str:
+    return _current.npgettext(context, singular, plural, count)
+
+
+def available_languages() -> list[str]:
+    """Sorted language codes backed by an editable or compiled catalog."""
+    po_dir = LOCALE_DIR.parents[2] / "po"
+    languages = {path.stem for path in po_dir.glob("*.po")}
+    languages.update(path.parent.parent.name
+                     for path in LOCALE_DIR.glob("*/LC_MESSAGES/*.mo"))
+    return sorted(languages)
 
 
 # Default to the environment locale until a caller applies the config value.

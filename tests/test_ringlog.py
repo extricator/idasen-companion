@@ -69,7 +69,7 @@ def test_entry_serializes_for_the_wire():
     assert ring.entries()[0].as_dict() == {
         "ts": 7.0, "level": "info", "channel": "activity",
         "msg_id": "automation.snoozed", "params": {"duration": 300},
-        "text": "Snoozed for 5m."}
+        "text": "Snoozed for 5.0 minutes."}
 
 
 def test_unserializable_params_never_escape_the_ring():

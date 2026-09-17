@@ -54,8 +54,8 @@ version = { attr = "idasen_companion.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-# Compiled catalogs shipped inside the package: Qt .qm for the GUI, gettext
-# .mo for the daemon notifications. Regenerate with scripts/build-translations.sh.
+# The gettext .mo is the live app catalog. The .qm is frozen, inactive
+# migration evidence retained through Phase 6 and removed in Phase 7.
 idasen_companion = [
     "gui/translations/*.qm",
     "locale/*/LC_MESSAGES/*.mo",

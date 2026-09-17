@@ -14,6 +14,7 @@ from idasen_companion.core.presentation.gettext_translator import (
     GettextTranslator,
 )
 from idasen_companion.core.presentation.protocols import Translator
+from idasen_companion.core.presentation import register
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +43,7 @@ def test_message_substitutes_named_values():
 def test_message_returns_spanish_for_a_bound_catalog():
     i18n.set_language("es")
     translator = GettextTranslator()
-    assert translator.message("%d minute") == "%d minuto"
+    assert translator.message(register.MINUTES[0]) == "%d minuto"
 
 
 def test_plural_selects_the_singular_form_under_the_untranslated_catalog():

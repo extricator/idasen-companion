@@ -17,6 +17,8 @@ daemon was down.
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 import html
 from datetime import date, datetime
 
@@ -120,21 +122,20 @@ class ActivityLogPage(Page):
 
         filter_row = QHBoxLayout()
         filter_row.setSpacing(8)
-        filter_row.addWidget(QLabel(self.tr("Show")))
-        self.channel = SegmentedControl([self.tr("Activity"), self.tr("All")])
+        filter_row.addWidget(QLabel(pgettext('activity-log.controls', "Show")))
+        self.channel = SegmentedControl([pgettext('activity-log.controls', "Activity"), pgettext('activity-log.controls', "All")])
         self.channel.setCurrentIndex(0)
-        self.channel.setToolTip(self.tr(
-            "Activity explains what the desk did. All adds the diagnostic "
+        self.channel.setToolTip(pgettext('activity-log.controls', "Activity explains what the desk did. All adds the diagnostic "
             "detail you'd attach to a bug report."))
         self.channel.currentChanged.connect(lambda _: self._redraw())
         filter_row.addWidget(self.channel)
         self.log_level = SegmentedControl(
-            [self.tr("Debug"), self.tr("Info"), self.tr("Warn"),
-             self.tr("Error")])
+            [pgettext('activity-log.controls', "Debug"), pgettext('activity-log.controls', "Info"), pgettext('activity-log.controls', "Warn"),
+             pgettext('activity-log.controls', "Error")])
         self.log_level.setCurrentIndex(1)
         self.log_level.currentChanged.connect(lambda _: self._redraw())
         filter_row.addWidget(self.log_level)
-        filter_row.addWidget(QLabel(self.tr("and above")))
+        filter_row.addWidget(QLabel(pgettext('activity-log.controls', "and above")))
         filter_row.addStretch()
         layout.addLayout(filter_row)
 
@@ -143,7 +144,7 @@ class ActivityLogPage(Page):
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setFrameShape(QTextEdit.Shape.NoFrame)
-        self.log_view.setPlaceholderText(self.tr("Nothing at this level yet."))
+        self.log_view.setPlaceholderText(pgettext('activity-log.controls', "Nothing at this level yet."))
         mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         mono.setPointSizeF(mono.pointSizeF() * 0.9)
         self.log_view.setFont(mono)
@@ -153,7 +154,7 @@ class ActivityLogPage(Page):
 
         footer = QHBoxLayout()
         footer.setSpacing(8)
-        full_log = QLabel(self.tr("Full log:"))
+        full_log = QLabel(pgettext('activity-log.controls', "Full log:"))
 
         def _restyle_full_log(target: QLabel = full_log) -> None:
             target.setStyleSheet(f"color: {css(theme().muted)};")
@@ -164,7 +165,7 @@ class ActivityLogPage(Page):
         self._journal_chip.setIconSize(QSize(16, 16))
         self._journal_chip.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # icon at right
         self._journal_chip.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._journal_chip.setToolTip(self.tr("Copy command"))
+        self._journal_chip.setToolTip(pgettext('activity-log.controls', "Copy command"))
         restyle.register(self._journal_chip, self._restyle_journal_chip)
         self._journal_chip.clicked.connect(self._copy_journal_cmd)
         footer.addWidget(full_log)
@@ -186,7 +187,7 @@ class ActivityLogPage(Page):
             # Icon theme lacks a checkmark (e.g. Adwaita). The mark is part
             # of this one message, not glued onto a translated word, so a
             # translator can move it, replace it, or drop it.
-            self._journal_chip.setText(self.tr("✓ copied"))
+            self._journal_chip.setText(pgettext('activity-log.controls', "✓ copied"))
         else:
             self._chip_copied = True
             self._apply_journal_chip_icon()

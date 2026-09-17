@@ -211,9 +211,9 @@ def test_named_substitution_fills_every_slot(qapp):
 
 
 def test_plural_substitutes_n_with_no_translator_installed(qapp):
-    translator = QtTranslator("util")
-    rendered = translator.plural("%n item(s)", "%n item(s)", 5)
-    assert rendered == "5 item(s)"
+    translator = QtTranslator("shared.presentation")
+    rendered = translator.plural("%d minute", "%d minutes", 5)
+    assert rendered == "%d minutes"
 
 
 @pytest.fixture
@@ -222,13 +222,14 @@ def installed_spanish_catalog(qapp):
     same installer the app uses at startup -- and explicitly removed and
     deleted afterwards, since a `QTranslator` stays installed on `qapp` (a
     session-scoped object shared with every other test module) otherwise."""
-    installed = i18n.install_translators(qapp, "es")
+    installed = i18n.apply_language(qapp, "es")
     try:
         yield
     finally:
         for translator in installed:
             qapp.removeTranslator(translator)
             shiboken6.delete(translator)
+        i18n.set_language(i18n.SYSTEM)
         QLocale.setDefault(QLocale("en_US"))
 
 
@@ -242,9 +243,9 @@ def test_lookup_with_the_shipped_spanish_catalog_returns_a_translation(
     a plain string), so this is the one `util` entry that will still be a
     Qt-catalog lookup once the migration finishes.
     """
-    translator = QtTranslator("util")
+    translator = QtTranslator("shared-widget")
     rendered = translator.message(" in")
-    assert rendered != " in"
+    assert rendered == " pulg"
 
 
 # ---- Comparison: the backend reproduces today's gui/util.py output -------

@@ -1,11 +1,8 @@
-"""``apply_language`` binds both catalogs from one config value.
+"""``apply_language`` binds app gettext, QLocale and Qtbase together.
 
-Proves the silent-failure shape closed by ``gui/i18n.py``'s
-``apply_language``: before it, a call site could bind Qt's catalog
-(``install_translators``) without also binding the shared gettext catalog
-``core/i18n.py`` owns, and a ``[ui] language`` different from the process
-locale would render half the window in each language. One call here has to
-move both.
+Proves a config language binds the app catalog and native Qt locale from one
+call. Qt's translator is only the prebuilt Qtbase catalog; app messages never
+depend on it.
 
 Skipped where PySide6 is missing, and forces the offscreen platform before
 any ``QtWidgets`` import -- see ``tests/test_settings_form.py`` for why both
@@ -19,6 +16,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 import os  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -52,7 +50,8 @@ def test_apply_language_binds_the_gettext_catalog(qapp):
     try:
         # A known po/es.po msgid -- proves core/i18n.py's catalog (which
         # QtTranslator never touches) is the one that moved.
-        assert core_i18n._("Try now") == "Intentar ahora"
+        assert (core_i18n.pgettext("shared.presentation", "Try now")
+                == "Intentar ahora")
     finally:
         for translator in installed:
             qapp.removeTranslator(translator)
@@ -82,3 +81,15 @@ def test_apply_language_defaults_to_system(qapp):
             qapp.removeTranslator(translator)
             shiboken6.delete(translator)
         QLocale.setDefault(QLocale("en_US"))
+
+
+def test_available_languages_follows_po_and_mo_catalogs(tmp_path, monkeypatch):
+    locale_dir = tmp_path / "repo/src/idasen_companion/locale"
+    mo = locale_dir / "es/LC_MESSAGES/idasen_companion.mo"
+    mo.parent.mkdir(parents=True)
+    mo.write_bytes(b"compiled")
+    po = tmp_path / "repo/po/fr.po"
+    po.parent.mkdir(parents=True)
+    po.write_text("", encoding="utf-8")
+    monkeypatch.setattr(core_i18n, "LOCALE_DIR", Path(locale_dir))
+    assert core_i18n.available_languages() == ["es", "fr"]

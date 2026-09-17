@@ -87,7 +87,7 @@ def test_reset_events_say_what_the_clock_is_now_counting_toward(event):
     d = _daemon()
     d._handle_event(event, "automation")
     lines = _lines(d)
-    assert any("Next change after 25m of active time." in line
+    assert any("Next change after 25.0 minutes of active time." in line
                for line in lines), lines
 
 
@@ -106,7 +106,7 @@ def test_resume_from_suspend_says_what_the_clock_is_counting_toward(monkeypatch)
                         member="PrepareForSleep", body=[False])
     d._on_system_message(message)
     lines = _lines(d)
-    assert any("Next change after 25m of active time." in line
+    assert any("Next change after 25.0 minutes of active time." in line
                for line in lines), lines
     # Reset before report, or the line states the pre-reset cycle.
     d.machine.reset_after_resume.assert_called_once()
@@ -148,7 +148,7 @@ def test_interrupted_transition_still_says_when_the_next_change_is_due():
         DeskState.SITTING, DeskState.STANDING, DeskState.SITTING,
         interrupted=True, recovery="undo", final_height=0.95,
         trigger="automation", next_target_duration=45 * 60), "automation")
-    assert "Next change after 45m of active time." in _lines(d)[0]
+    assert "Next change after 45.0 minutes of active time." in _lines(d)[0]
 
 
 def test_failed_move_names_the_retry_window_instead_of_next_cycle():
@@ -157,7 +157,7 @@ def test_failed_move_names_the_retry_window_instead_of_next_cycle():
                     "automation")
     line = _lines(d)[0]
     assert "will try again next cycle" not in line
-    assert "Next change after 45m of active time." in line
+    assert "Next change after 45.0 minutes of active time." in line
 
 
 def test_failed_move_falls_back_when_no_cycle_was_scheduled():

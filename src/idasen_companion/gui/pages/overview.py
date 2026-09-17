@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 import time
 from datetime import datetime
 
@@ -98,7 +100,7 @@ class OverviewPage(Page):
 
         # ----- DESK card (primary) -----
         desk = Card()
-        desk.body.addWidget(section_label(self.tr("Desk")))
+        desk.body.addWidget(section_label(pgettext('overview', "Desk")))
 
         header = QHBoxLayout()
         header.setSpacing(10)
@@ -130,7 +132,7 @@ class OverviewPage(Page):
         self.height_spin = QDoubleSpinBox()
         self._shape_height_spin()
         self.height_spin.valueChanged.connect(self._on_spin_changed)
-        move_btn = primary_button(self.tr("Move"))
+        move_btn = primary_button(pgettext('overview', "Move"))
         move_btn.setIcon(icon("media-playback-start", "go-next", "arrow-right"))
         move_btn.clicked.connect(
             lambda: self.client.move_to_height(
@@ -159,7 +161,7 @@ class OverviewPage(Page):
             icon("go-up", "arrow-up", "go-top"), preset_label("stand"))
         stand_btn.clicked.connect(self.client.stand)
         self.stop_btn = QPushButton(
-            icon("media-playback-stop", "process-stop"), self.tr("Stop"))
+            icon("media-playback-stop", "process-stop"), pgettext('overview', "Stop"))
         self.stop_btn.clicked.connect(self.client.stop)
         self.stop_btn.setEnabled(False)
         # Buttons share the row in equal thirds; each keeps its icon+text
@@ -172,7 +174,7 @@ class OverviewPage(Page):
 
         # ----- AUTOMATION card (secondary) -----
         auto = Card()
-        auto.body.addWidget(section_label(self.tr("Automation")))
+        auto.body.addWidget(section_label(pgettext('overview', "Automation")))
 
         status_row = QHBoxLayout()
         status_row.setSpacing(6)
@@ -202,13 +204,13 @@ class OverviewPage(Page):
         # Header: "Next: <word>" left, "in <time> of active time" right. The
         # emphasised word/time are DemiBold sub-labels, not RichText <b>, so
         # the whole UI emphasises text the same way.
-        self.countdown_next_lbl = QLabel(self.tr("Next:"))
+        self.countdown_next_lbl = QLabel(pgettext('overview', "Next:"))
         self.countdown_next_lbl.setStyleSheet("border: none;")
         self.countdown_next_word = QLabel("")
         self.countdown_next_word.setFont(
             emphasize(self.countdown_next_word.font()))
         self.countdown_next_word.setStyleSheet("border: none;")
-        self.countdown_in_lbl = QLabel(self.tr("in"))
+        self.countdown_in_lbl = QLabel(pgettext('overview', "in"))
 
         def _restyle_countdown_in_lbl(
                 target: QLabel = self.countdown_in_lbl) -> None:
@@ -224,7 +226,7 @@ class OverviewPage(Page):
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
 
         restyle.register(self.countdown_time_word, _restyle_countdown_time_word)
-        self.countdown_of_lbl = QLabel(self.tr("of active time"))
+        self.countdown_of_lbl = QLabel(pgettext('overview', "of active time"))
 
         def _restyle_countdown_of_lbl(
                 target: QLabel = self.countdown_of_lbl) -> None:
@@ -278,15 +280,15 @@ class OverviewPage(Page):
         cycle_row = QHBoxLayout(self._cycle_controls)
         cycle_row.setContentsMargins(0, 0, 0, 0)
         self.pause_btn = QPushButton(
-            icon("media-playback-pause"), self.tr("Pause"))
+            icon("media-playback-pause"), pgettext('overview', "Pause"))
         self.pause_btn.clicked.connect(self._toggle_pause)
         skip_btn = QPushButton(
             icon("media-skip-forward", "media-seek-forward", "go-next-skip"),
-            self.tr("Skip next"))
+            pgettext('overview', "Skip next"))
         skip_btn.clicked.connect(self.client.skip_next)
         snooze_btn = QPushButton(
             icon("alarm", "chronometer", "clock", "appointment-soon"),
-            self.tr("Snooze %(duration)s") % {
+            pgettext('overview', "Snooze %(duration)s") % {
                 "duration": self.ctx.fmt.duration_minutes(
                     _SNOOZE_MINUTES * 60)})
         snooze_btn.clicked.connect(
@@ -296,7 +298,7 @@ class OverviewPage(Page):
         # "not right now". No confirmation, since the state announces itself
         # and the button to undo it appears in the same spot.
         disable_btn = QPushButton(
-            icon("process-stop", "media-playback-stop"), self.tr("Turn off"))
+            icon("process-stop", "media-playback-stop"), pgettext('overview', "Turn off"))
         disable_btn.clicked.connect(
             lambda: self.client.set_automation_enabled(False))
         for cycle_btn in (self.pause_btn, skip_btn, snooze_btn, disable_btn):
@@ -304,7 +306,7 @@ class OverviewPage(Page):
         auto.body.addWidget(self._cycle_controls)
 
         self.enable_btn = QPushButton(
-            icon("media-playback-start"), self.tr("Turn on automation"))
+            icon("media-playback-start"), pgettext('overview', "Turn on automation"))
         self.enable_btn.clicked.connect(
             lambda: self.client.set_automation_enabled(True))
         self.enable_btn.hide()
@@ -373,7 +375,7 @@ class OverviewPage(Page):
     def _on_available(self, available: bool) -> None:
         if available:
             self.idle_provider_label.setText(
-                self.tr("Idle detection: %s") % self.client.idle_provider())
+                pgettext('overview', "Idle detection: %s") % self.client.idle_provider())
         self._update_connection_chip()
 
     def _on_height(self, height: float) -> None:
@@ -424,7 +426,7 @@ class OverviewPage(Page):
 
     def _update_position_word(self) -> None:
         self.position_label.setText(
-            self.tr("Moving…") if self._moving
+            pgettext('overview', "Moving…") if self._moving
             # Empty position = held off sit/stand; the real height still shows
             # beside this, so name it "Custom" rather than a bare dash.
             else position_or_custom(self._position))
@@ -471,7 +473,7 @@ class OverviewPage(Page):
         elif status == "user-idle":
             idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
-            reason = self.tr("no input for %(idle)s") % {
+            reason = pgettext('overview', "no input for %(idle)s") % {
                 "idle": self.ctx.fmt.duration_minutes(idle_seconds)}
         elif status == "away":
             color, head = tokens.muted, status_head(status)
@@ -492,7 +494,7 @@ class OverviewPage(Page):
                 # stored "HH:MM" and are wall-clock times the window shows, so
                 # they follow [ui] clock_format like every other one. The
                 # Automation page renders the same two boundaries the same way.
-                reason = self.tr("%(days)s %(start)s–%(end)s") % {
+                reason = pgettext('overview', "%(days)s %(start)s–%(end)s") % {
                     "days": fmt_days(config.schedule.days),
                     "start": self._schedule_clock(config.schedule.start),
                     "end": self._schedule_clock(config.schedule.end)}
@@ -503,10 +505,10 @@ class OverviewPage(Page):
             reason = ""
         elif status == "held":
             color, head = tokens.warning, status_head(status)
-            reason = self.tr("desk isn't at a preset")
+            reason = pgettext('overview', "desk isn't at a preset")
         elif status == "move-failed":
             color, head = tokens.error, status_head(status)
-            reason = self.tr("couldn't reach the desk")
+            reason = pgettext('overview', "couldn't reach the desk")
         else:
             color, head, reason = tokens.muted, status_label(status), ""
         self.status_dot.set_color(color)
@@ -525,7 +527,7 @@ class OverviewPage(Page):
         self._cycle_controls.setVisible(not disabled)
         self.enable_btn.setVisible(disabled)
         paused = status in _RESUMABLE_VALUES
-        self.pause_btn.setText(self.tr("Resume") if paused else self.tr("Pause"))
+        self.pause_btn.setText(pgettext('overview', "Resume") if paused else pgettext('overview', "Pause"))
         self.pause_btn.setIcon(icon("media-playback-start") if paused
                                else icon("media-playback-pause"))
 
@@ -545,8 +547,8 @@ class OverviewPage(Page):
         remaining = self._remaining if remaining is None else remaining
         next_pos = {"sitting": preset_label("stand"),
                     "standing": preset_label("sit")}.get(self._position)
-        self.countdown_next_lbl.setText(self.tr("Next:") if next_pos else "")
-        self.countdown_next_word.setText(next_pos or self.tr("Next change"))
+        self.countdown_next_lbl.setText(pgettext('overview', "Next:") if next_pos else "")
+        self.countdown_next_word.setText(next_pos or pgettext('overview', "Next change"))
         # A cycle with nothing left on the clock is *due*, not stalled: the
         # move is waiting on the next tick (and on the recent-input gate), and
         # a countdown parked at "in 0:00 of active time" reads as frozen. Most
@@ -562,5 +564,5 @@ class OverviewPage(Page):
         elapsed = max(0, min(total, int(total - remaining)))
         self.countdown_bar.setValue(elapsed)
         self.progress_caption.setText(
-            self.tr("%s%% of this interval elapsed")
+            pgettext('overview', "%s%% of this interval elapsed")
             % (elapsed * 100 // total))

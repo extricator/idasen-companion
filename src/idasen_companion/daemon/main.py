@@ -186,8 +186,8 @@ class Daemon:
         differing only in which locale backend it pairs with. The daemon
         links no Qt, so this is the Qt-free pair.
 
-        **Why there are two catalogs, and what stays English on purpose.**
-        The notifications this formatter renders go through the ``gettext``
+        **One catalog, with a deliberate English journal backend.**
+        The notifications this formatter renders go through the app ``gettext``
         catalog, so a verbose delay translates — "2 minutes" / "30 seconds"
         in the user's language. The journal's own lines do not: they render
         through ``core/presentation/english.py`` and stay English and
@@ -1265,8 +1265,11 @@ class Daemon:
         self.machine.snooze(minutes, time.time())
         # Param.DURATION is a seconds kind, so each side renders it with its
         # own formatter rather than the sentence spelling out "minutes" itself.
+        # Keep the released ``minutes`` wire field for N-1 readers while the
+        # contextual-catalog reader consumes the raw duration in seconds.
         self.activity_log.emit(
-            logmsg.AUTOMATION_SNOOZED, duration=minutes * 60)
+            logmsg.AUTOMATION_SNOOZED, minutes=minutes,
+            duration=minutes * 60)
         self._emit_automation_state()
 
     def reload_config(self) -> None:

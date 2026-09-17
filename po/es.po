@@ -1,19 +1,532 @@
 # Spanish translations for idasen-companion package.
-# This file is distributed under the same license as the idasen-companion package.
+# This file is distributed under the same license as the idasen-companion
+# package.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: idasen-companion\n"
+"Project-Id-Version:  idasen-companion\n"
 "Report-Msgid-Bugs-To: https://github.com/extricator/idasen-companion/issues\n"
 "POT-Creation-Date: 2000-01-01 00:00+0000\n"
+"PO-Revision-Date: 2026-09-16 00:00+0000\n"
+"Last-Translator: Idasen Companion translators\n"
+"Language-Team: Spanish\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid " Next change after %(next_target)s of active time."
+msgstr " Próximo cambio tras %(next_target)s de tiempo activo."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Idasen Companion daemon %(version)s starting (config: %(config)s)"
+msgstr ""
+"Iniciando el servicio Idasen Companion %(version)s (configuración: "
+"%(config)s)"
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Daemon stopping."
+msgstr "Deteniendo el servicio."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"First run: imported settings from idasen CLI config (mac=%(mac)s, "
+"%(presets)s preset)"
+msgid_plural ""
+"First run: imported settings from idasen CLI config (mac=%(mac)s, "
+"%(presets)s presets)"
+msgstr[0] ""
+"Primera ejecución: se importó la configuración de idasen CLI (mac=%(mac)s, "
+"%(presets)s preajuste)"
+msgstr[1] ""
+"Primera ejecución: se importó la configuración de idasen CLI (mac=%(mac)s, "
+"%(presets)s preajustes)"
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"No desk configured yet. Launch Idasen Companion to run the setup wizard; "
+"automation is on hold until then."
+msgstr ""
+"Todavía no hay ningún escritorio configurado. Abre Idasen Companion para "
+"ejecutar el asistente de configuración; la automatización queda en espera "
+"hasta entonces."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Setup: testing desk %(mac)s..."
+msgstr "Configuración: probando el escritorio %(mac)s..."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Desk configured: %(mac)s (height %(height)s)."
+msgstr "Escritorio configurado: %(mac)s (altura %(height)s)."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Desk configured; starting automation."
+msgstr "Escritorio configurado; iniciando la automatización."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Configuration reloaded."
+msgstr "Configuración recargada."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Config reload failed, keeping old config: %(error)s"
+msgstr "Error al recargar la configuración, se mantiene la anterior: %(error)s"
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Desk MAC changed; reconnecting to new desk."
+msgstr "La MAC del escritorio ha cambiado; reconectando al nuevo escritorio."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"No idle-time provider is available on this desktop, so the app cannot tell "
+"whether you are at the keyboard. Automation will move the desk on schedule "
+"whether you are here or not; idle, lock and away detection are all "
+"inoperative."
+msgstr ""
+"No hay ningún proveedor de tiempo de inactividad disponible en este "
+"escritorio, así que la aplicación no puede saber si estás frente al teclado. "
+"La automatización moverá el escritorio según lo previsto estés o no; la "
+"detección de inactividad, bloqueo y ausencia no funciona."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Now idle (%(idle_time)s idle time)"
+msgstr "Ahora inactivo (%(idle_time)s de inactividad)"
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Activity detected after idle period; resetting timers."
+msgstr ""
+"Actividad detectada tras un periodo de inactividad; reiniciando los "
+"temporizadores."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Activity detected after a brief interruption; keeping this cycle's progress."
+msgstr ""
+"Actividad detectada tras una breve interrupción; se conserva el progreso de "
+"este ciclo."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Switched away to another session; automation paused and the desk released."
+msgstr ""
+"Has cambiado a otra sesión; automatización en pausa y escritorio liberado."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Back in your session; automation resumed with a fresh cycle; re-reading the "
+"desk."
+msgstr ""
+"De vuelta en tu sesión; automatización reanudada con un ciclo nuevo; "
+"releyendo el escritorio."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Back in your session; automation resumed where it left off; re-reading the "
+"desk."
+msgstr ""
+"De vuelta en tu sesión; automatización reanudada donde se quedó; releyendo "
+"el escritorio."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"This account has no graphical session, so there is no desk to automate and "
+"no way to tell whether anyone is at it: automation is on hold and the desk "
+"is left to whoever is logged in. It still responds to explicit commands from "
+"here."
+msgstr ""
+"Esta cuenta no tiene sesión gráfica, así que no hay escritorio que "
+"automatizar ni forma de saber si hay alguien en él: la automatización queda "
+"en espera y el escritorio se deja a quien haya iniciado sesión. Sigue "
+"respondiendo a órdenes explícitas desde aquí."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Graphical session detected; automation is live again with a fresh cycle. Re-"
+"reading the desk."
+msgstr ""
+"Sesión gráfica detectada; la automatización vuelve a estar activa con un "
+"ciclo nuevo. Releyendo el escritorio."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Graphical session detected; automation is live again where it left off. Re-"
+"reading the desk."
+msgstr ""
+"Sesión gráfica detectada; la automatización vuelve a estar activa donde se "
+"quedó. Releyendo el escritorio."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "System is suspending."
+msgstr "El sistema se está suspendiendo."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Resumed from suspend; resetting timers."
+msgstr "Reanudado tras la suspensión; reiniciando los temporizadores."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Detected potential time jump (%(elapsed)s elapsed); resetting state."
+msgstr ""
+"Posible salto temporal detectado (%(elapsed)s transcurridos); reiniciando el "
+"estado."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "The system clock moved backwards by %(elapsed)s; resetting state."
+msgstr "El reloj del sistema retrocedió %(elapsed)s; reiniciando el estado."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"The desk is not this session's to read right now; leaving it alone. Its "
+"position will be read once it is."
+msgstr ""
+"Ahora mismo el escritorio no es de esta sesión para leerlo; se deja en paz. "
+"Su posición se leerá cuando lo sea."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Initial desk read failed: %(error)s"
+msgstr "Error en la lectura inicial del escritorio: %(error)s"
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"Could not read the desk at startup; automation will adopt its real position "
+"at the first sync that succeeds."
+msgstr ""
+"No se pudo leer el escritorio al arrancar; la automatización adoptará su "
+"posición real en la primera sincronización que funcione."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Initial state: off-cycle (desk at %(height)s, not a sit/stand preset); "
+"automation paused until it returns to sit or stand."
+msgstr ""
+"Estado inicial: fuera de ciclo (escritorio a %(height)s, no es un preajuste "
+"de sentado/de pie); automatización en pausa hasta que vuelva a sentado o de "
+"pie."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Initial state: %(state)s (height: %(height)s); automation is off, so the "
+"desk will only move when you ask it to."
+msgstr ""
+"Estado inicial: %(state)s (altura: %(height)s); la automatización está "
+"desactivada, así que el escritorio solo se moverá cuando se lo pidas."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Initial state: %(state)s (height: %(height)s)."
+msgstr "Estado inicial: %(state)s (altura: %(height)s)."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid ""
+"The cycle clock starts from now: time spent in this position before the "
+"restart is not carried over."
+msgstr ""
+"El reloj del ciclo empieza desde ahora: el tiempo pasado en esta posición "
+"antes del reinicio no se conserva."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Skipped transition as requested; staying %(state)s."
+msgstr "Cambio omitido como se pidió; se sigue %(state)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Desk position changed from '%(previous)s' to '%(current)s' (%(height)s). "
+"Synchronizing."
+msgstr ""
+"La posición del escritorio ha cambiado de «%(previous)s» a «%(current)s» "
+"(%(height)s). Sincronizando."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Desk moved off sit/stand (%(height)s); automation paused until it returns to "
+"a preset."
+msgstr ""
+"El escritorio se ha movido fuera de sentado/de pie (%(height)s); "
+"automatización en pausa hasta que vuelva a un preajuste."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Desk back at %(current)s (%(height)s); automation resumed."
+msgstr ""
+"El escritorio vuelve a estar %(current)s (%(height)s); automatización "
+"reanudada."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Could not read desk height for state sync; keeping internal state."
+msgstr ""
+"No se pudo leer la altura del escritorio para sincronizar el estado; se "
+"mantiene el estado interno."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Move to %(intended)s failed: the desk did not respond and its height could "
+"not be read. Staying %(previous)s."
+msgstr ""
+"Error al mover el escritorio a «%(intended)s»: no respondió y no se pudo "
+"leer su altura. Se sigue %(previous)s."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid " Will try again next cycle."
+msgstr " Se reintentará en el próximo ciclo."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Move to %(intended)s failed: the desk did not respond and its height could "
+"not be read (%(reason)s). Staying %(previous)s."
+msgstr ""
+"Error al mover el escritorio a «%(intended)s»: no respondió y no se pudo "
+"leer su altura (%(reason)s). Se sigue %(previous)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"A change is due, but the desk stayed put: no input for %(idle_time)s and "
+"moves need input within %(threshold)s. It will move once you're back."
+msgstr ""
+"Toca un cambio, pero el escritorio no se movió: no hay actividad desde hace "
+"%(idle_time)s y los movimientos requieren actividad en %(threshold)s. Se "
+"moverá cuando vuelvas."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Transition %(previous)s -> %(result)s completed (height %(height)s)."
+msgstr ""
+"Cambio de «%(previous)s» a «%(result)s» completado (altura %(height)s)."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Movement to %(intended)s interrupted (height %(height)s); returned to start, "
+"now %(result)s."
+msgstr ""
+"Movimiento a «%(intended)s» interrumpido (altura %(height)s); se ha vuelto "
+"al inicio, ahora %(result)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Movement to %(intended)s interrupted; moved toward it again (height "
+"%(height)s), now %(result)s."
+msgstr ""
+"Movimiento a «%(intended)s» interrumpido; se ha vuelto a mover hacia esa "
+"posición (altura %(height)s), ahora %(result)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Movement to %(intended)s interrupted (height %(height)s); left at %(result)s."
+msgstr ""
+"Movimiento a «%(intended)s» interrumpido (altura %(height)s); se ha dejado "
+"en %(result)s."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Automation turned on."
+msgstr "Automatización activada."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Automation turned off; manual control only."
+msgstr "Automatización desactivada; solo control manual."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Automation paused."
+msgstr "Automatización en pausa."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Automation resumed."
+msgstr "Automatización reanudada."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Next transition will be skipped."
+msgstr "Se omitirá el próximo cambio."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Snoozed for %(duration)s."
+msgstr "Pospuesto durante %(duration)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Manual move to %(target)s."
+msgstr "Movimiento manual a %(target)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Manual move to %(target)s failed."
+msgstr "Error en el movimiento manual a %(target)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Manual move to %(target)s failed: %(reason)s."
+msgstr "Error en el movimiento manual a %(target)s: %(reason)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"Move to %(target)s interrupted at %(actual)s; returning to %(return_to)s."
+msgstr ""
+"Movimiento a %(target)s interrumpido en %(actual)s; volviendo a "
+"%(return_to)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Now %(current)s (%(height)s) after manual move."
+msgstr "Ahora %(current)s (%(height)s) tras el movimiento manual."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Movement stopped by user."
+msgstr "Movimiento detenido por el usuario."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Repeat gesture: reversing to the start position."
+msgstr "Gesto repetido: volviendo a la posición inicial."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Repeat gesture: stopping the move."
+msgstr "Gesto repetido: deteniendo el movimiento."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Scanning for nearby desks..."
+msgstr "Buscando escritorios cercanos..."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Bluetooth scan failed: %(error)s"
+msgstr "Error en la búsqueda por Bluetooth: %(error)s"
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Scan finished: %(count)s device found."
+msgid_plural "Scan finished: %(count)s devices found."
+msgstr[0] "Escaneo finalizado: %(count)s dispositivo encontrado."
+msgstr[1] "Escaneo finalizado: %(count)s dispositivos encontrados."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid ""
+"The desk is connected but unreachable from here, and another companion "
+"daemon is running (pid %(pids)s) — most likely another user's session still "
+"has the desk. Leaving its connection alone."
+msgstr ""
+"El escritorio está conectado pero no se puede acceder a él desde aquí, y hay "
+"otro servicio de la aplicación en ejecución (pid %(pids)s): lo más probable "
+"es que la sesión de otro usuario siga teniendo el escritorio. Se deja su "
+"conexión en paz."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Preset '%(name)s' saved at %(height)s."
+msgstr "Preajuste «%(name)s» guardado a %(height)s."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Preset '%(name)s' deleted."
+msgstr "Preajuste «%(name)s» eliminado."
+
+#: src/idasen_companion/core/logmsg.py
+#, python-format
+msgctxt "activity-log.entry"
+msgid "Preset '%(old)s' renamed to '%(new)s'."
+msgstr "Preajuste «%(old)s» renombrado a «%(new)s»."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Autostart enabled: the daemon will start at login."
+msgstr ""
+"Inicio automático activado: el servicio se iniciará al entrar en la sesión."
+
+#: src/idasen_companion/core/logmsg.py
+msgctxt "activity-log.entry"
+msgid "Autostart disabled: the daemon will not start at login."
+msgstr ""
+"Inicio automático desactivado: el servicio no se iniciará al entrar en la "
+"sesión."
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%d hour"
 msgid_plural "%d hours"
 msgstr[0] "%d hora"
@@ -21,6 +534,7 @@ msgstr[1] "%d horas"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d minuto"
@@ -28,6 +542,7 @@ msgstr[1] "%d minutos"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d segundo"
@@ -35,139 +550,171 @@ msgstr[1] "%d segundos"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(hours)s %(minutes)s"
 msgstr "%(hours)s y %(minutes)s"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(hours)sh %(minutes)sm"
 msgstr "%(hours)s h %(minutes)s min"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(minutes)sm"
 msgstr "%(minutes)s min"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(minutes)s min"
 msgstr "%(minutes)s min"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(seconds)ss"
 msgstr "%(seconds)s s"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(value)s cm"
 msgstr "%(value)s cm"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(value)s in"
 msgstr "%(value)s pulg"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Automation active"
 msgstr "Automatización activa"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Last move failed"
 msgstr "El último movimiento falló"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Not set up yet — no desk chosen"
 msgstr "Sin configurar — no has elegido escritorio"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Automation off"
 msgstr "Automatización desactivada"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Paused"
 msgstr "En pausa"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Snoozed"
 msgstr "Pospuesto"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Waiting — you seem to be away"
 msgstr "Esperando — parece que no estás"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Waiting — session locked"
 msgstr "Esperando — sesión bloqueada"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Waiting — switched to another session"
 msgstr "Esperando — cambiaste a otra sesión"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "On hold — no desktop session"
 msgstr "En espera — sin sesión de escritorio"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Outside scheduled hours"
 msgstr "Fuera del horario programado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Paused — desk moved off sit/stand"
 msgstr "En pausa — escritorio movido fuera de sentado/de pie"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Active"
 msgstr "Activa"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "You're away"
 msgstr "No estás"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "In another session"
 msgstr "En otra sesión"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Session locked"
 msgstr "Sesión bloqueada"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Outside schedule"
 msgstr "Fuera del horario"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Off-cycle"
 msgstr "Fuera de ciclo"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "Standing up in about %s"
 msgstr "De pie en aproximadamente %s"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "Sitting down in about %s"
 msgstr "Sentándose en aproximadamente %s"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "The desk will move once you're due."
 msgstr "El escritorio se moverá cuando corresponda."
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "Snooze %d min"
 msgstr "Posponer %d min"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Skip this one"
 msgstr "Omitir esta vez"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Automation paused"
 msgstr "Automatización en pausa"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid ""
 "The desk was moved to an unrecognized position. It will resume once the desk "
 "is back at sit or stand."
@@ -176,27 +723,33 @@ msgstr ""
 "vuelva a sentado o de pie."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "The desk didn't stand up"
 msgstr "El escritorio no subió"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "The desk didn't sit down"
 msgstr "El escritorio no bajó"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "It didn't respond (%s). The next change is a whole interval away."
 msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "It didn't respond. The next change is a whole interval away."
 msgstr "No respondió. El próximo cambio tardará un intervalo completo."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Try now"
 msgstr "Intentar ahora"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid ""
 "The desk did not respond. Check that it is powered and in range, then try "
 "again."
@@ -205,6 +758,7 @@ msgstr ""
 "vuelve a intentarlo."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid ""
 "Could not connect to the desk. Make sure it is powered, nearby, and in "
 "pairing mode."
@@ -213,22 +767,27 @@ msgstr ""
 "cerca y en modo de emparejamiento."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Could not read the desk's height."
 msgstr "No se pudo leer la altura del escritorio."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "That height is outside the desk's range."
 msgstr "Esa altura está fuera del rango del escritorio."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "That preset name or height is not valid."
 msgstr "Ese nombre o altura de preajuste no es válido."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "There is no preset by that name."
 msgstr "No hay ningún preajuste con ese nombre."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid ""
 "Could not save the configuration. Check that your home directory is writable "
 "and has free space."
@@ -237,144 +796,1637 @@ msgstr ""
 "permisos de escritura y espacio libre."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "The background service could not carry out that request."
 msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "later"
 msgstr "más tarde"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "Snoozed until %s"
 msgstr "Pospuesto hasta %s"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Due now"
 msgstr "Ya toca"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Custom"
 msgstr "Personalizada"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(minutes)s:%(seconds)s"
 msgstr "%(minutes)s:%(seconds)s"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Mon"
 msgstr "Lun"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Tue"
 msgstr "Mar"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Wed"
 msgstr "Mié"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Thu"
 msgstr "Jue"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Fri"
 msgstr "Vie"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Sat"
 msgstr "Sáb"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Sun"
 msgstr "Dom"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "no days"
 msgstr "ningún día"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(first)s–%(last)s"
 msgstr "%(first)s–%(last)s"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(first)s, %(second)s"
 msgstr "%(first)s, %(second)s"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(day)s %(clock)s"
 msgstr "%(day)s %(clock)s"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Sitting"
 msgstr "Sentado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Standing"
 msgstr "De pie"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Sit"
 msgstr "Sentarse"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Stand"
 msgstr "Levantarse"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "automation"
 msgstr "automatización"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "manual"
 msgstr "manual"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "external"
 msgstr "externo"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "setup"
 msgstr "configuración"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Desk: connected"
 msgstr "Escritorio: conectado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Connected"
 msgstr "Conectado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Desk: disconnected"
 msgstr "Escritorio: desconectado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Disconnected"
 msgstr "Desconectado"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Desk: on demand"
 msgstr "Escritorio: bajo demanda"
 
 #: src/idasen_companion/core/presentation/register.py
+msgctxt "shared.presentation"
 msgid "Not connected · on demand"
 msgstr "No conectado · bajo demanda"
 
 #: src/idasen_companion/core/presentation/register.py
 #, python-format
+msgctxt "shared.presentation"
 msgid "%(name)s · %(height)s"
 msgstr "%(name)s · %(height)s"
 
-#~ msgid "Toggle sit/stand"
-#~ msgstr "Alternar sentado/de pie"
+# What the portal autostarts. Always this project's own daemon executable name, a
+# constant — never assembled from config or user input, since a granted request
+# is a host autostart entry that runs at every login. Bounded so a portal that
+# never answers — dead session, no backend, a user who walks away from the
+# permission dialog — can't block the caller forever. Long enough that a slow
+# read of that one-time dialog doesn't masquerade as a denial. Exact text passed
+# to both QDBusConnection.connect() and disconnect() for the Response listener;
+# kept in one place so the two calls can't drift.
+#. Translators: What the desktop permission dialog says will start at login.
+#: src/idasen_companion/gui/background_portal.py
+msgctxt "background-permission"
+msgid "Start the desk automation automatically at login"
+msgstr ""
+"Iniciar la automatización del escritorio automáticamente al iniciar sesión"
 
-#~ msgid "Sit the desk"
-#~ msgstr "Bajar el escritorio (sentado)"
+#: src/idasen_companion/gui/log_catalog.py
+msgctxt "activity-log.parameter"
+msgid "sitting"
+msgstr "sentado"
 
-#~ msgid "Stand the desk"
-#~ msgstr "Subir el escritorio (de pie)"
+#: src/idasen_companion/gui/log_catalog.py
+msgctxt "activity-log.parameter"
+msgid "standing"
+msgstr "de pie"
+
+#: src/idasen_companion/gui/log_catalog.py
+msgctxt "activity-log.parameter"
+msgid "N/A"
+msgstr "N/D"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Overview"
+msgstr "Resumen"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Automation"
+msgstr "Automatización"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Presets"
+msgstr "Preajustes"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Statistics"
+msgstr "Estadísticas"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Activity Log"
+msgstr "Registro de actividad"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Settings"
+msgstr "Configuración"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "About"
+msgstr "Acerca de"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Start daemon"
+msgstr "Iniciar demonio"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid ""
+"No system tray detected (on GNOME, install the AppIndicator extension). "
+"Closing this window keeps the app running in the background; automation runs "
+"in the daemon either way."
+msgstr ""
+"No se detectó bandeja del sistema (en GNOME, instala la extensión "
+"AppIndicator). Cerrar esta ventana mantiene la app en segundo plano; la "
+"automatización se ejecuta en el demonio de todos modos."
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid ""
+"The Idasen Companion daemon is not running, and is not set to start when you "
+"log in."
+msgstr ""
+"El demonio de Idasen Companion no está en ejecución y no está configurado "
+"para iniciarse al iniciar sesión."
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "Start at login"
+msgstr "Iniciar al iniciar sesión"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "The Idasen Companion daemon is not running."
+msgstr "El demonio de Idasen Companion no está en ejecución."
+
+#: src/idasen_companion/gui/main_window.py
+#, python-format
+msgctxt "window-shell"
+msgid ""
+"The background service could not be started:\n"
+"%(error)s\n"
+"\n"
+"Try running this in a terminal:\n"
+"  %(command)s"
+msgstr ""
+"No se pudo iniciar el servicio en segundo plano:\n"
+"%(error)s\n"
+"\n"
+"Prueba a ejecutar esto en una terminal:\n"
+"  %(command)s"
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "window-shell"
+msgid "This page has changes you haven't applied yet."
+msgstr "Esta página tiene cambios que aún no has aplicado."
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Sit/stand desk automation"
+msgstr "Automatización de escritorio sentado/de pie"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Project page"
+msgstr "Página del proyecto"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Report an issue"
+msgstr "Informar de un problema"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "About"
+msgstr "Acerca de"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid ""
+"Keeps your Idasen desk alternating sit / stand on a schedule, with presets "
+"and activity tracking."
+msgstr ""
+"Mantiene tu escritorio Idasen alternando entre sentado y de pie según un "
+"horario, con preajustes y seguimiento de actividad."
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "GNU GPL v3 or later · © extricator"
+msgstr "GNU GPL v3 o posterior · © extricator"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Built on idasen · bleak · PySide6 / Qt"
+msgstr "Construido sobre idasen · bleak · PySide6 / Qt"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Global shortcuts"
+msgstr "Atajos globales"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid ""
+"Bind these commands to keys in your desktop's own keyboard settings — "
+"reliable on X11 and Wayland, on every desktop:"
+msgstr ""
+"Asigna estos comandos a teclas en la configuración de teclado de tu "
+"escritorio; funciona en X11 y Wayland, en cualquier escritorio:"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "System"
+msgstr "Sistema"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Copy"
+msgstr "Copiar"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Copy this system info for bug reports"
+msgstr "Copiar esta información del sistema para informes de errores"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "App version"
+msgstr "Versión de la app"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Daemon"
+msgstr "Demonio"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Desk"
+msgstr "Escritorio"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Idle detection"
+msgstr "Detección de inactividad"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Config"
+msgstr "Configuración"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Libraries"
+msgstr "Bibliotecas"
+
+#: src/idasen_companion/gui/pages/about.py
+#, python-format
+msgctxt "about"
+msgid "running · %s"
+msgstr "en ejecución · %s"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "not running"
+msgstr "no está en ejecución"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "persistent"
+msgstr "persistente"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "on demand"
+msgstr "bajo demanda"
+
+#: src/idasen_companion/gui/pages/about.py
+#, python-format
+msgctxt "about"
+msgid "%(mac)s · %(mode)s"
+msgstr "%(mac)s · %(mode)s"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "not configured"
+msgstr "no configurado"
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
+msgid "Copied"
+msgstr "Copiado"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Show"
+msgstr "Mostrar"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Activity"
+msgstr "Actividad"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "All"
+msgstr "Todo"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid ""
+"Activity explains what the desk did. All adds the diagnostic detail you'd "
+"attach to a bug report."
+msgstr ""
+"Actividad explica lo que hizo el escritorio. Todo añade el detalle de "
+"diagnóstico que adjuntarías a un informe de error."
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Debug"
+msgstr "Depuración"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Info"
+msgstr "Información"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Warn"
+msgstr "Aviso"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Error"
+msgstr "Error"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "and above"
+msgstr "y superior"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Nothing at this level yet."
+msgstr "Nada en este nivel todavía."
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Full log:"
+msgstr "Registro completo:"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "Copy command"
+msgstr "Copiar comando"
+
+#: src/idasen_companion/gui/pages/activity_log.py
+msgctxt "activity-log.controls"
+msgid "✓ copied"
+msgstr "✓ copiado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Sit / stand cycle"
+msgstr "Ciclo de sentado / de pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Automate sit / stand"
+msgstr "Automatizar sentado / de pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "plus up to"
+msgstr "más un máximo de"
+
+#: src/idasen_companion/gui/pages/automation.py
+#, python-format
+msgctxt "automation-settings"
+msgid "%s for"
+msgstr "%s durante"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Count as away after"
+msgstr "Considerar ausente tras"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "No keyboard or mouse input — the timer pauses"
+msgstr "Sin actividad de teclado o ratón — el temporizador se pausa"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Only move if input within"
+msgstr "Mover solo si hay actividad en"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Skips the change if you just stepped away"
+msgstr "Omite el cambio si acabas de ausentarte"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Undo"
+msgstr "Deshacer"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Leave it"
+msgstr "Dejarlo"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Try again"
+msgstr "Reintentar"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "If a move is stopped or blocked"
+msgstr "Si un movimiento se detiene o se bloquea"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Returns the desk to where it started"
+msgstr "Devuelve el escritorio a donde empezó"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Keeps the height it stopped at"
+msgstr "Mantiene la altura en la que se detuvo"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Moves toward the target once more"
+msgstr "Vuelve a moverlo hacia el destino una vez más"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Hold"
+msgstr "Pausar"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Keep cycling"
+msgstr "Seguir alternando"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "If left off sit / stand"
+msgstr "Si queda fuera de sentado / de pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Pauses until the desk is back at sit or stand"
+msgstr "Espera hasta que el escritorio vuelva a sentado o de pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Counts it as the nearer one and keeps going"
+msgstr "Lo cuenta como el más cercano y continúa"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Check position every"
+msgstr "Comprobar la posición cada"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid ""
+"Catches moves made with the panel or another app. Off still checks right "
+"before each scheduled move"
+msgstr ""
+"Detecta movimientos hechos con el panel u otra app. «Desactivado» aún "
+"comprueba justo antes de cada cambio programado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Update countdown every"
+msgstr "Actualizar cuenta atrás cada"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "How finely automation tracks time, uses no Bluetooth"
+msgstr "Con qué precisión la automatización mide el tiempo — no usa Bluetooth"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Notifications"
+msgstr "Notificaciones"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Warn before the desk moves"
+msgstr "Avisar antes de que el escritorio se mueva"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Warning lead time"
+msgstr "Antelación del aviso"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Tell me when something goes wrong"
+msgstr "Avisar cuando algo vaya mal"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Schedule"
+msgstr "Horario"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Use schedule"
+msgstr "Usar horario"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Active days"
+msgstr "Días activos"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "to"
+msgstr "a"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Active hours"
+msgstr "Horas activas"
+
+#: src/idasen_companion/gui/pages/automation.py
+#, python-format
+msgctxt "automation-settings"
+msgid ""
+"Automation runs %(days)s, %(start)s–%(end)s. Outside these hours the desk "
+"stays put."
+msgstr ""
+"La automatización se ejecuta %(days)s, %(start)s–%(end)s. Fuera de estas "
+"horas el escritorio se queda quieto."
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Schedule off — automation runs whenever you're active."
+msgstr ""
+"Horario desactivado — la automatización se ejecuta siempre que estés activo."
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Off"
+msgstr "Desactivado"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Desk"
+msgstr "Escritorio"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Move"
+msgstr "Mover"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Stop"
+msgstr "Detener"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Automation"
+msgstr "Automatización"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Next:"
+msgstr "Siguiente:"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "in"
+msgstr "en"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "of active time"
+msgstr "de tiempo activo"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Pause"
+msgstr "Pausar"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Skip next"
+msgstr "Omitir siguiente"
+
+#: src/idasen_companion/gui/pages/overview.py
+#, python-format
+msgctxt "overview"
+msgid "Snooze %(duration)s"
+msgstr "Posponer %(duration)s"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Turn off"
+msgstr "Desactivar"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Turn on automation"
+msgstr "Activar la automatización"
+
+#: src/idasen_companion/gui/pages/overview.py
+#, python-format
+msgctxt "overview"
+msgid "Idle detection: %s"
+msgstr "Detección de inactividad: %s"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Moving…"
+msgstr "Moviéndose…"
+
+#: src/idasen_companion/gui/pages/overview.py
+#, python-format
+msgctxt "overview"
+msgid "no input for %(idle)s"
+msgstr "sin actividad durante %(idle)s"
+
+#: src/idasen_companion/gui/pages/overview.py
+#, python-format
+msgctxt "overview"
+msgid "%(days)s %(start)s–%(end)s"
+msgstr "%(days)s %(start)s–%(end)s"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "desk isn't at a preset"
+msgstr "el escritorio no está en un preajuste"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "couldn't reach the desk"
+msgstr "no se pudo conectar con el escritorio"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Resume"
+msgstr "Reanudar"
+
+#: src/idasen_companion/gui/pages/overview.py
+msgctxt "overview"
+msgid "Next change"
+msgstr "Próximo cambio"
+
+#: src/idasen_companion/gui/pages/overview.py
+#, python-format
+msgctxt "overview"
+msgid "%s%% of this interval elapsed"
+msgstr "%s%% de este intervalo transcurrido"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "No presets yet — capture the desk's current height below."
+msgstr "Aún no hay preajustes — captura la altura actual del escritorio abajo."
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "+ New preset"
+msgstr "+ Nuevo preajuste"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "✎ Add manually…"
+msgstr "✎ Añadir manualmente…"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Range"
+msgstr "Rango"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Click to rename"
+msgstr "Haz clic para renombrar"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "The sit and stand presets keep their names"
+msgstr "Los preajustes sentado y de pie conservan sus nombres"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "current"
+msgstr "actual"
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "Drive desk to %s"
+msgstr "Mover el escritorio a %s"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Set to current desk height"
+msgstr "Establecer a la altura actual del escritorio"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Delete preset"
+msgstr "Eliminar preajuste"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "The sit and stand presets can't be deleted"
+msgstr "Los preajustes sentado y de pie no se pueden eliminar"
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "+ New preset at %s"
+msgstr "+ Nuevo preajuste en %s"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "The daemon is not running — rename discarded."
+msgstr "El demonio no está en ejecución — cambio de nombre descartado."
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "A preset named '%s' already exists."
+msgstr "Ya existe un preajuste llamado '%s'."
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid ""
+"Could not rename the preset:\n"
+"%s"
+msgstr ""
+"No se pudo renombrar el preajuste:\n"
+"%s"
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "Preset '%(name)s' set to %(height)s."
+msgstr "Preajuste '%(name)s' establecido en %(height)s."
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid ""
+"Could not read the desk height:\n"
+"%s"
+msgstr ""
+"No se pudo leer la altura del escritorio:\n"
+"%s"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Capture preset"
+msgstr "Capturar preajuste"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Preset name:"
+msgstr "Nombre del preajuste:"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "Add preset"
+msgstr "Añadir preajuste"
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "Height (%s):"
+msgstr "Altura (%s):"
+
+#: src/idasen_companion/gui/pages/presets.py
+msgctxt "presets"
+msgid "The sit and stand presets can't be deleted."
+msgstr "Los preajustes sentado y de pie no se pueden eliminar."
+
+#: src/idasen_companion/gui/pages/presets.py
+#, python-format
+msgctxt "presets"
+msgid "Delete the preset '%s'?"
+msgstr "¿Eliminar el preajuste '%s'?"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "General"
+msgstr "General"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "System default"
+msgstr "Predeterminado del sistema"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Language"
+msgstr "Idioma"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Applies after you restart the app"
+msgstr "Se aplica al reiniciar la aplicación"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Centimetres"
+msgstr "Centímetros"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Inches"
+msgstr "Pulgadas"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Height units"
+msgstr "Unidades de altura"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid ""
+"How heights are shown. The default follows your region — the desk itself is "
+"unaffected"
+msgstr ""
+"Cómo se muestran las alturas. El valor predeterminado sigue tu región — el "
+"escritorio no se ve afectado"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "12-hour (2:32 PM)"
+msgstr "12 horas (2:32 p. m.)"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "24-hour (14:32)"
+msgstr "24 horas (14:32)"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Clock format"
+msgstr "Formato de hora"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "How times of day are shown. The default follows your region"
+msgstr "Cómo se muestran las horas. El valor predeterminado sigue tu región"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Start automatically at login"
+msgstr "Iniciar automáticamente al iniciar sesión"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid ""
+"Runs the background service when you log in. Applies immediately, not on "
+"Apply"
+msgstr ""
+"Ejecuta el servicio en segundo plano al iniciar sesión. Se aplica de "
+"inmediato, no al pulsar Aplicar"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Window & tray"
+msgstr "Ventana y bandeja"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Open window"
+msgstr "Abrir ventana"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Toggle sit / stand"
+msgstr "Alternar sentado / de pie"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Do nothing"
+msgstr "No hacer nada"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Left click"
+msgstr "Clic izquierdo"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Middle click"
+msgstr "Clic central"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Nothing"
+msgstr "Nada"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Stop"
+msgstr "Detener"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Return"
+msgstr "Volver"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Repeat click"
+msgstr "Clic repetido"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "A repeat click during a move is ignored"
+msgstr "Se ignora el clic repetido durante un movimiento"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Stops the desk where it is"
+msgstr "Detiene el escritorio donde esté"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Sends the desk back to where the move began"
+msgstr "Devuelve el escritorio a donde empezó el movimiento"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Hide"
+msgstr "Ocultar"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Quit"
+msgstr "Salir"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Close button"
+msgstr "Botón de cerrar"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Closing the window hides it to the tray"
+msgstr "Cerrar la ventana la oculta en la bandeja"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Closing the window quits the app"
+msgstr "Cerrar la ventana sale de la aplicación"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Minimize to the tray"
+msgstr "Minimizar a la bandeja"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Hide to the tray on minimize, not only on close"
+msgstr "Ocultar en la bandeja al minimizar, no solo al cerrar"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Start hidden in the tray"
+msgstr "Iniciar oculto en la bandeja"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Launch to the tray without opening the window"
+msgstr "Iniciar en la bandeja sin abrir la ventana"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "No system tray detected, so these have no effect this session."
+msgstr ""
+"No se detectó bandeja del sistema, así que esto no tiene efecto en esta "
+"sesión."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Desk connection"
+msgstr "Conexión del escritorio"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Find my desk…"
+msgstr "Buscar mi escritorio…"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Bluetooth address"
+msgstr "Dirección Bluetooth"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "On demand"
+msgstr "Bajo demanda"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Persistent"
+msgstr "Persistente"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Connection mode"
+msgstr "Modo de conexión"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "On demand connects only while moving the desk"
+msgstr "Bajo demanda conecta solo mientras se mueve el escritorio"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Linger after moving"
+msgstr "Permanecer tras mover"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "systemd isn't managing this session, so this can't be changed here."
+msgstr ""
+"systemd no gestiona esta sesión, así que esto no se puede cambiar aquí."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "The background service isn't installed, so this can't be changed here."
+msgstr ""
+"El servicio en segundo plano no está instalado, así que esto no se puede "
+"cambiar aquí."
+
+#: src/idasen_companion/gui/pages/settings.py
+#, python-format
+msgctxt "settings"
+msgid ""
+"The service is masked. Allow it again with:\n"
+"  systemctl --user unmask %s"
+msgstr ""
+"El servicio está enmascarado. Permítelo de nuevo con:\n"
+"  systemctl --user unmask %s"
+
+#: src/idasen_companion/gui/pages/settings.py
+#, python-format
+msgctxt "settings"
+msgid ""
+"This copy of the service can't be enabled (systemd reports it as \"%s\")."
+msgstr ""
+"Esta copia del servicio no se puede activar (systemd la reporta como \"%s\")."
+
+#: src/idasen_companion/gui/pages/settings.py
+#, python-format
+msgctxt "settings"
+msgid "systemd reports the service as \"%s\"."
+msgstr "systemd reporta el servicio como \"%s\"."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Managed by your desktop's permission dialog, not by systemd."
+msgstr ""
+"Gestionado por el diálogo de permisos de tu escritorio, no por systemd."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/pages/settings.py
+#, python-format
+msgctxt "settings"
+msgid ""
+"Could not change whether the service starts at login:\n"
+"%s"
+msgstr ""
+"No se pudo cambiar si el servicio se inicia al iniciar sesión:\n"
+"%s"
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "The service will start automatically at login."
+msgstr "El servicio se iniciará automáticamente al iniciar sesión."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid "Autostart off. The service keeps running until you log out."
+msgstr ""
+"Inicio automático desactivado. El servicio sigue funcionando hasta que "
+"cierres la sesión."
+
+#: src/idasen_companion/gui/pages/settings.py
+msgctxt "settings"
+msgid ""
+"The Bluetooth address is incomplete. Finish it or clear it before applying."
+msgstr ""
+"La dirección Bluetooth está incompleta. Complétala o bórrala antes de "
+"aplicar."
+
+#: src/idasen_companion/gui/pages/settings_form.py
+msgctxt "settings-form"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/pages/settings_form.py
+#, python-format
+msgctxt "settings-form"
+msgid ""
+"Could not read config:\n"
+"%s"
+msgstr ""
+"No se pudo leer la configuración:\n"
+"%s"
+
+#: src/idasen_companion/gui/pages/settings_form.py
+#, python-format
+msgctxt "settings-form"
+msgid ""
+"Could not save config:\n"
+"%s"
+msgstr ""
+"No se pudo guardar la configuración:\n"
+"%s"
+
+#: src/idasen_companion/gui/pages/statistics.py
+msgctxt "statistics"
+msgid "Daily totals — last 14 days"
+msgstr "Totales diarios — últimos 14 días"
+
+#: src/idasen_companion/gui/pages/statistics.py
+msgctxt "statistics"
+msgid "Recent transitions"
+msgstr "Transiciones recientes"
+
+#: src/idasen_companion/gui/pages/statistics.py
+msgctxt "statistics"
+msgid "Refresh"
+msgstr "Actualizar"
+
+#: src/idasen_companion/gui/pages/statistics.py
+#, python-format
+msgctxt "statistics"
+msgid ""
+"Standing share = standing time / tracked time per day. 14-day average: "
+"%(pct)s."
+msgstr ""
+"Proporción de pie = tiempo de pie / tiempo registrado por día. Promedio de "
+"14 días: %(pct)s."
+
+#: src/idasen_companion/gui/pages/statistics.py
+msgctxt "statistics"
+msgid "Standing share = standing time / tracked time per day."
+msgstr "Proporción de pie = tiempo de pie / tiempo registrado por día."
+
+# The arrow and its surrounding spaces are part of the message so a right-to-left
+# language can reverse the direction it reads.
+#. Translators: The arrow may be reversed for right-to-left languages.
+#: src/idasen_companion/gui/pages/statistics.py
+#, python-format
+msgctxt "statistics"
+msgid "%(from)s → %(to)s"
+msgstr "%(from)s → %(to)s"
+
+#: src/idasen_companion/gui/pages/statistics.py
+msgctxt "statistics"
+msgid "interrupted"
+msgstr "interrumpido"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.welcome"
+msgid "Set up your desk"
+msgstr "Configura tu escritorio"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.welcome"
+msgid ""
+"This wizard connects Idasen Companion to your Idåsen desk.\n"
+"\n"
+"If you already paired the desk in your system's Bluetooth settings, it will "
+"simply appear on the next page.\n"
+"\n"
+"Otherwise, put the desk in pairing mode first: press and hold the button on "
+"the control box under the desktop (next to the paddle) until its light "
+"starts flashing."
+msgstr ""
+"Este asistente conecta Idasen Companion con tu escritorio Idåsen.\n"
+"\n"
+"Si ya emparejaste el escritorio en la configuración Bluetooth de tu sistema, "
+"simplemente aparecerá en la página siguiente.\n"
+"\n"
+"De lo contrario, pon primero el escritorio en modo de emparejamiento: mantén "
+"pulsado el botón de la caja de control bajo el tablero (junto a la palanca) "
+"hasta que su luz empiece a parpadear."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.welcome"
+msgid "Starting the background service…"
+msgstr "Iniciando el servicio en segundo plano…"
+
+#: src/idasen_companion/gui/setup_wizard.py
+#, python-format
+msgctxt "setup.welcome"
+msgid ""
+"The background service could not be started:\n"
+"%(error)s\n"
+"\n"
+"Try running this in a terminal, then continue:\n"
+"  %(command)s"
+msgstr ""
+"No se pudo iniciar el servicio en segundo plano:\n"
+"%(error)s\n"
+"\n"
+"Prueba a ejecutar esto en una terminal y luego continúa:\n"
+"  %(command)s"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.welcome"
+msgid "it did not respond in time"
+msgstr "no respondió a tiempo"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.scan"
+msgid "Select your desk"
+msgstr "Selecciona tu escritorio"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.scan"
+msgid "Scan for more devices"
+msgstr "Buscar más dispositivos"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.scan"
+msgid "Found without scanning — if this is your desk, just continue."
+msgstr ""
+"Encontrado sin buscar — si este es tu escritorio, simplemente continúa."
+
+#: src/idasen_companion/gui/setup_wizard.py
+#, python-format
+msgctxt "setup.scan"
+msgid "Scanning… (about %(duration)s)"
+msgstr "Buscando… (unos %(duration)s)"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.scan"
+msgid "Scan again"
+msgstr "Buscar de nuevo"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.scan"
+msgid "Nothing found. Is Bluetooth on and the desk in pairing mode? Try again."
+msgstr ""
+"No se encontró nada. ¿Está el Bluetooth activado y el escritorio en modo de "
+"emparejamiento? Inténtalo de nuevo."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.usage"
+msgid "How do you want to use it?"
+msgstr "¿Cómo quieres usarlo?"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.usage"
+msgid "Move the desk for me"
+msgstr "Mueve el escritorio por mí"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.usage"
+msgid ""
+"The desk alternates between your sit and stand presets while you're working. "
+"You can change the timings, pause it, or turn it off later in Settings."
+msgstr ""
+"El escritorio alterna entre tus preajustes de sentado y de pie mientras "
+"trabajas. Puedes cambiar los tiempos, pausarlo o desactivarlo más tarde en "
+"Configuración."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.usage"
+msgid "Just let me move the desk"
+msgstr "Solo quiero mover el escritorio"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup.usage"
+msgid ""
+"No timer. Presets, the tray menu and the statistics all still work — the "
+"desk only moves when you say so."
+msgstr ""
+"Sin temporizador. Los preajustes, el menú de la bandeja y las estadísticas "
+"siguen funcionando: el escritorio solo se mueve cuando tú lo indicas."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid "Idasen Companion setup"
+msgstr "Configuración de Idasen Companion"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid "It will move the desk between sit and stand while you work."
+msgstr "Moverá el escritorio entre sentado y de pie mientras trabajas."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid ""
+"Automation is off — the desk will only move when you ask it to. You can turn "
+"it on any time in Settings."
+msgstr ""
+"La automatización está desactivada: el escritorio solo se moverá cuando se "
+"lo pidas. Puedes activarla cuando quieras en Configuración."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid "It will start automatically when you log in."
+msgstr "Se iniciará automáticamente al iniciar sesión."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid ""
+"It will not start automatically when you log in — you can turn that on in "
+"Settings."
+msgstr ""
+"No se iniciará automáticamente al iniciar sesión: puedes activarlo en "
+"Ajustes."
+
+#: src/idasen_companion/gui/setup_wizard.py
+#, python-format
+msgctxt "setup"
+msgid "Success! Your desk is set up and currently at %s."
+msgstr "¡Listo! Tu escritorio está configurado y actualmente a %s."
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid "Desk connected"
+msgstr "Escritorio conectado"
+
+#: src/idasen_companion/gui/setup_wizard.py
+msgctxt "setup"
+msgid "Could not reach the desk"
+msgstr "No se pudo conectar con el escritorio"
+
+#: src/idasen_companion/gui/setup_wizard.py
+#, python-format
+msgctxt "setup"
+msgid ""
+"%s\n"
+"\n"
+"The address was not saved — pick a device and try again."
+msgstr ""
+"%s\n"
+"\n"
+"La dirección no se guardó — elige un dispositivo e inténtalo de nuevo."
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Starting…"
+msgstr "Iniciando…"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Toggle sit / stand"
+msgstr "Alternar sentado / de pie"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Presets"
+msgstr "Preajustes"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Stop movement"
+msgstr "Detener movimiento"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Pause automation"
+msgstr "Pausar automatización"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Skip next transition"
+msgstr "Omitir la próxima transición"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Snooze"
+msgstr "Posponer"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Open window"
+msgstr "Abrir ventana"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Quit"
+msgstr "Salir"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Daemon not running"
+msgstr "Demonio no en ejecución"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Resume automation"
+msgstr "Reanudar automatización"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%s left"
+msgstr "%s restante"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Connecting…"
+msgstr "Conectando…"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(position)s · %(status)s"
+msgstr "%(position)s · %(status)s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(position)s for %(duration)s"
+msgstr "%(position)s durante %(duration)s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "Standing up in %s"
+msgstr "De pie en %s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "Sitting down in %s"
+msgstr "Sentándose en %s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(status)s · %(countdown)s"
+msgstr "%(status)s · %(countdown)s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "Today: %(sitting)s sitting / %(standing)s standing"
+msgstr "Hoy: %(sitting)s sentado / %(standing)s de pie"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(name)s (%(height)s)"
+msgstr "%(name)s (%(height)s)"
+
+#: src/idasen_companion/gui/util.py
+msgctxt "shared-widget"
+msgid " in"
+msgstr " pulg"
+
+#: src/idasen_companion/gui/util.py
+msgctxt "shared-widget"
+msgid " cm"
+msgstr " cm"
+
+#: src/idasen_companion/gui/util.py
+msgctxt "shared-widget"
+msgid " min"
+msgstr " min"
+
+#: src/idasen_companion/gui/util.py
+msgctxt "shared-widget"
+msgid " s"
+msgstr " s"
+
+#: src/idasen_companion/gui/widgets.py
+#, python-format
+msgctxt "statistics.chart"
+msgid "%(day)s: sitting %(sit)s, standing %(stand)s"
+msgstr "%(day)s: sentado %(sit)s, de pie %(stand)s"
+
+#: src/idasen_companion/gui/widgets.py
+#, python-format
+msgctxt "statistics.chart"
+msgid "%(day)s: no data"
+msgstr "%(day)s: sin datos"

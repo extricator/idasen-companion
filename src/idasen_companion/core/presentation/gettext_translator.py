@@ -28,17 +28,21 @@ through this same exemption; it is one reason, covering both calls into
 
 from __future__ import annotations
 
-from ..i18n import _, ngettext
+from ..i18n import _, ngettext, npgettext, pgettext
+from .register import MessageKey
 
 
 class GettextTranslator:
     """Looks up a message through the process-wide gettext catalog."""
 
     def message(self, source: str, **values: object) -> str:
-        text = _(source)  # exempt: the one process-wide catalog lookup
+        text = (pgettext(source.context, str(source))
+                if isinstance(source, MessageKey) else _(source))
         return text % values if values else text
 
     def plural(self, singular: str, plural: str, count: int,
                **values: object) -> str:
-        text = ngettext(singular, plural, count)  # exempt: see message()
+        text = (npgettext(singular.context, str(singular), str(plural), count)
+                if isinstance(singular, MessageKey)
+                else ngettext(singular, plural, count))
         return text % values if values else text

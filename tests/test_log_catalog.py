@@ -1,19 +1,11 @@
-"""The two log catalogs must not drift.
-
-``core/logmsg.py`` is canonical (the daemon can't depend on Qt);
-``gui/log_catalog.py`` repeats the same English inside ``QT_TRANSLATE_NOOP``
-so ``lupdate`` can extract it. Two copies of a string is exactly the setup
-that rots silently — a daemon-side edit that never reaches the GUI copy
-compiles, ships, and shows the old sentence in every language including
-English. So the build fails instead.
-"""
+"""Activity Log reader rendering derives from the one canonical catalog."""
 
 import pytest
 
 pytest.importorskip("PySide6.QtCore",
                     reason="GUI catalog needs PySide6")
 
-from idasen_companion.core import logmsg  # noqa: E402
+from idasen_companion.core import i18n, logmsg  # noqa: E402
 from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation.formatter import (  # noqa: E402
     Formatter, PresentationContext,
@@ -135,3 +127,26 @@ def test_sub_minute_durations_stay_visible():
     assert "45s" in line
     line = log_catalog.render("presence.now_idle", {"idle_time": 3900}, "", fmt=fmt)
     assert "1h 05m" in line
+
+
+def test_snooze_reader_accepts_old_minutes_and_new_duration_payloads():
+    fmt = _formatter()
+    old = log_catalog.render(
+        "automation.snoozed", {"minutes": 10}, "old fallback", fmt=fmt)
+    new = log_catalog.render(
+        "automation.snoozed", {"duration": 600}, "new fallback", fmt=fmt)
+    assert old == new == "Snoozed for 10m."
+
+
+@pytest.mark.parametrize(("count", "expected"), [
+    (1, "Escaneo finalizado: 1 dispositivo encontrado."),
+    (2, "Escaneo finalizado: 2 dispositivos encontrados."),
+])
+def test_scan_count_uses_the_spanish_plural_rule(count, expected):
+    i18n.set_language("es")
+    try:
+        assert log_catalog.render(
+            "scan.finished", {"count": count}, "fallback", fmt=_formatter()
+        ) == expected
+    finally:
+        i18n.set_language(i18n.SYSTEM)

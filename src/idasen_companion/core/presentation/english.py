@@ -26,12 +26,6 @@ nothing to build.
 
 from __future__ import annotations
 
-from ..units import HeightUnit
-from .formatter import Formatter, PresentationContext
-from .plain_locale import PlainLocaleFormatter
-from .specs import TimeStyle
-
-
 class EnglishTranslator:
     """Returns every source string unchanged, selecting English's plural rule.
 
@@ -52,7 +46,7 @@ class EnglishTranslator:
 
 
 def format_duration_human(seconds: float | None) -> str:
-    """The journal's compact, greppable duration: "30s" / "45m" / "1h 05m".
+    """The released stable-English journal duration shape.
 
     Matches the shape ``gui/log_catalog.py`` renders the same
     ``Param.DURATION`` value in, which closes the split PRES-03 exists to
@@ -77,14 +71,6 @@ def format_duration_human(seconds: float | None) -> str:
     """
     if seconds is None:
         return "N/A"
-    context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
-        unit=HeightUnit.CENTIMETRES,  # inert: this renderer never touches a height
-        # Fixed, and unreachable from the user's display preferences: a
-        # journal line is read by whoever is debugging it, so it stays
-        # stable and greppable whatever the desktop session is set to --
-        # the same argument the pass-through English translator beside it
-        # already makes. The setting that moves every other surface's
-        # clock does not reach this file at all.
-        time_style=TimeStyle.HOUR_AND_MINUTE_24)
-    return Formatter(context).duration(seconds)
+    if seconds >= 60:
+        return f"{seconds / 60:.1f} minutes"
+    return f"{seconds:.0f} seconds"

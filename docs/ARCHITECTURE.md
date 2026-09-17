@@ -153,10 +153,10 @@ user, which `debug` used to stand in for.
 
 Activity lines are **catalogued** in `core/logmsg.py` as an id plus raw
 parameters (seconds, metres, state names — never pre-formatted strings, which
-can't be localized). The daemon renders English for the journal; the GUI renders
-its own translated sentence from `gui/log_catalog.py`, which repeats the same
-English inside `QT_TRANSLATE_NOOP` because `lupdate` can't read it out of
-`core/`. `tests/test_log_catalog.py` fails the build if the two drift.
+can't be localized). The canonical English and structure live once in
+`core/logmsg.py`. The daemon renders stable English for the journal; the reader
+passes the same `Message` through its selected gettext catalog and Babel-backed
+value formatters. Unknown ids use the English text carried on the wire.
 Diagnostic lines stay free-form English — never translated, since they exist to
 be pasted into a bug report.
 
@@ -259,25 +259,24 @@ module docstring carries the full reasoning, including why Qt's DBusMenu
 survives the takeover untouched. Any failure falls back to the plain
 `QSystemTrayIcon`.
 
-## Internationalization: two catalogs, because the daemon is Qt-free
+## Internationalization: one contextual app catalog
 
 Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
 
-* **GUI** uses Qt Linguist. Strings are wrapped in `self.tr(...)` /
-  `QCoreApplication.translate(...)`; `gui/i18n.py` installs the `QTranslator` at
-  startup (before any widget is built) for the `[ui] language` config value
-  (default `"system"` = `QLocale.system()`). Sources: `translations/*.ts` →
-  shipped `gui/translations/*.qm`. The language is chosen in **Settings →
-  General**; because strings bake at construction it applies on relaunch.
-* **Daemon notifications** use stdlib `gettext` (`_()` / `ngettext`, in
-  `core/i18n.py` so any Qt-free caller can reach it), since the daemon can't
-  depend on Qt. Sources: `po/*.po` → shipped `locale/<lang>/LC_MESSAGES/*.mo`.
-  `daemon/i18n.py` keeps only `human_delay`, whose plural literals are
-  extracted from a `daemon/`-scoped scan.
-* **The Activity Log** takes a third route, because the daemon composes it and
-  can't use Qt: the wire carries a message id plus raw parameters, and the GUI
-  renders from `gui/log_catalog.py`. **journald stays English on purpose**
-  (stable and greppable for bug reports) — same event, two renderings.
+* GUI, daemon, shared presentation and Activity Log messages use stdlib
+  gettext through `core/i18n.py`. English source plus a literal semantic
+  context is the key; plurals use `npgettext` or deferred `NP_` keys.
+* `scripts/build-translations.sh` scans every package Python file into one POT,
+  merges every discovered `po/*.po`, and compiles the shipped `.mo` catalogs.
+* `gui/i18n.py` also sets `QLocale` for native widget behavior and installs
+  only Qt's prebuilt `qtbase` translator for standard dialog/widget text.
+* The Activity Log wire continues to carry id, raw parameters and an English
+  fallback. **journald stays English on purpose** (stable and greppable for bug
+  reports), while a recognized Activity Log id renders in the reader's
+  language.
+
+The old app `.ts`/`.qm` files are frozen, inactive migration evidence until
+Phase 7; they are not a second runtime catalog.
 
 Compiled catalogs are committed, and ship via `MANIFEST.in` +
 `[tool.setuptools.package-data]`.
@@ -301,7 +300,7 @@ the profile.
 
 Three settings are intentionally independent:
 
-- `[ui] language` selects the gettext/Qt app catalogs and the Babel profile,
+- `[ui] language` selects the gettext app catalog, QLocale and Babel profile,
   so it controls words, number symbols, date names and localized meridiem text.
 - `[ui] units` answers directly for `cm`/`in`; `system` follows
   `LC_ALL`, `LC_MEASUREMENT`, then `LANG`. US and Liberia default to
@@ -337,7 +336,7 @@ restart needed. On first run it imports MAC + presets from the `idasen` CLI's
 
 ## Renaming anything
 
-Two identifiers here are load-bearing beyond their own file, and both fail
+Identifiers here can be load-bearing beyond their own file and fail
 **silently** — green build, shipped artifact, wrong behaviour:
 
 - **Config dataclass attribute names *are* the TOML keys.** `core/config.py`
@@ -345,16 +344,15 @@ Two identifiers here are load-bearing beyond their own file, and both fail
   from `tomllib`. Renaming a config *field* changes the user-facing config
   file format and breaks existing user configs. Renaming a *local* named
   `cfg` is fine; renaming an attribute is not.
-- **Qt translation contexts *are* class names.** Rename a GUI class and every
-  `<message>` under its `<name>` context in `translations/*.ts` orphans — the
-  strings fall back to English with nothing failing.
+- **Gettext semantic contexts are public translation keys.** Rename a literal
+  context only as an intentional catalog migration; class renames themselves
+  are safe because contexts describe roles rather than Python class names.
 
 So: never `sed` an identifier — it also renames same-named attributes on
 unrelated objects. Use a scope-aware rename tool with a preview instead. After
 any rename, run the suite **and**
-`PATH="$PWD/.venv/bin:$PATH" bash scripts/build-translations.sh`, then diff
-for new `type="unfinished"` entries — that diff is the only signal a rename
-broke a catalog.
+`bash scripts/build-translations.sh`, then inspect the PO/POT diff for orphaned
+or untranslated entries.
 
 ## Presets are special-cased today
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 import html
 
 from PySide6.QtCore import Qt
@@ -53,8 +55,7 @@ class PresetsPage(Page):
         left = QVBoxLayout()
         left.setSpacing(8)
         list_card = Card()
-        self._presets_empty = QLabel(self.tr(
-            "No presets yet — capture the desk's current height below."))
+        self._presets_empty = QLabel(pgettext('presets', "No presets yet — capture the desk's current height below."))
         self._presets_empty.setWordWrap(True)
 
         def _restyle_presets_empty(target: QLabel = self._presets_empty) -> None:
@@ -73,9 +74,9 @@ class PresetsPage(Page):
         # Joined two-segment footer strip.
         strip = QHBoxLayout()
         strip.setSpacing(0)
-        self._new_at_btn = QPushButton(self.tr("+ New preset"))
+        self._new_at_btn = QPushButton(pgettext('presets', "+ New preset"))
         self._new_at_btn.clicked.connect(self._capture_preset)
-        add_btn = QPushButton(self.tr("✎ Add manually…"))
+        add_btn = QPushButton(pgettext('presets', "✎ Add manually…"))
         add_btn.clicked.connect(self._add_preset)
         for i, btn in enumerate((self._new_at_btn, add_btn)):
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -94,7 +95,7 @@ class PresetsPage(Page):
 
         rail_card = Card()
         rail_card.setFixedWidth(156)
-        rail_card.body.addWidget(section_label(self.tr("Range")))
+        rail_card.body.addWidget(section_label(pgettext('presets', "Range")))
         self.range_rail = RangeRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
         rail_card.body.addWidget(self.range_rail, 1)
         layout.addWidget(rail_card)
@@ -111,7 +112,7 @@ class PresetsPage(Page):
         # the user's own word and is shown verbatim.
         display = preset_label(name)
         name_edit = QLineEdit(display)
-        name_edit.setToolTip(self.tr("Click to rename"))
+        name_edit.setToolTip(pgettext('presets', "Click to rename"))
         name_edit.setFont(emphasize(name_edit.font()))
 
         def _restyle_name_edit(target: QLineEdit = name_edit) -> None:
@@ -127,7 +128,7 @@ class PresetsPage(Page):
         if name in PROTECTED_PRESETS:
             name_edit.setReadOnly(True)
             name_edit.setToolTip(
-                self.tr("The sit and stand presets keep their names"))
+                pgettext('presets', "The sit and stand presets keep their names"))
         else:
             name_edit.editingFinished.connect(
                 lambda e=name_edit, n=name: self._rename_preset(n, e))
@@ -142,7 +143,7 @@ class PresetsPage(Page):
 
         restyle.register(height_label, _restyle_height_label)
         height_row.addWidget(height_label)
-        current_chip = pill(self.tr("current"), theme().success_text,
+        current_chip = pill(pgettext('presets', "current"), theme().success_text,
                             theme().success)
         current_chip.hide()
 
@@ -159,7 +160,7 @@ class PresetsPage(Page):
 
         move_btn = ToolIconButton(
             tinted_icon(icon("media-playback-start", "go-next"), theme().accent),
-            self.tr("Drive desk to %s") % self.ctx.fmt.height(height),
+            pgettext('presets', "Drive desk to %s") % self.ctx.fmt.height(height),
             fallback="▶")
 
         def _restyle_move_btn(target: ToolIconButton = move_btn) -> None:
@@ -171,17 +172,17 @@ class PresetsPage(Page):
                                  self.client.move_to_preset(n))
         set_btn = ToolIconButton(
             icon("crosshairs", "find-location", "zoom-fit-best"),
-            self.tr("Set to current desk height"), fallback="⌖")
+            pgettext('presets', "Set to current desk height"), fallback="⌖")
         set_btn.clicked.connect(lambda _=False, n=name: self._do_capture(n))
         del_btn = ToolIconButton(
-            icon("edit-delete", "user-trash"), self.tr("Delete preset"),
+            icon("edit-delete", "user-trash"), pgettext('presets', "Delete preset"),
             fallback="✕")
         del_btn.clicked.connect(lambda _=False, n=name:
                                 self._delete_preset(n))
         del_btn.setEnabled(name not in PROTECTED_PRESETS)
         if not del_btn.isEnabled():
             del_btn.setToolTip(
-                self.tr("The sit and stand presets can't be deleted"))
+                pgettext('presets', "The sit and stand presets can't be deleted"))
         for btn in (move_btn, set_btn, del_btn):
             hbox.addWidget(btn)
         self._preset_chips.append((height, current_chip))
@@ -243,8 +244,8 @@ class PresetsPage(Page):
         height = self._live_height
         # Without a height the button drops back to its plain label, rather
         # than keeping the last one it happened to be given.
-        text = (self.tr("+ New preset at %s") % self.ctx.fmt.height(height)
-                if height > 0 else self.tr("+ New preset"))
+        text = (pgettext('presets', "+ New preset at %s") % self.ctx.fmt.height(height)
+                if height > 0 else pgettext('presets', "+ New preset"))
         if self._new_at_btn.text() != text:
             self._new_at_btn.setText(text)
         self.range_rail.set_height(height)
@@ -264,13 +265,13 @@ class PresetsPage(Page):
             if not self.client.available:
                 edit.setText(old)
                 self._status_message(
-                    self.tr("The daemon is not running — rename discarded."),
+                    pgettext('presets', "The daemon is not running — rename discarded."),
                     5000)
                 return
             if new_name in self._presets:
                 QMessageBox.information(
-                    self, self.tr("Idasen Companion"),
-                    self.tr("A preset named '%s' already exists.")
+                    self, pgettext('presets', "Idasen Companion"),
+                    pgettext('presets', "A preset named '%s' already exists.")
                     % html.escape(new_name))
                 edit.setText(old)
                 return
@@ -282,8 +283,8 @@ class PresetsPage(Page):
             if not renamed:
                 edit.setText(old)
                 QMessageBox.warning(
-                    self, self.tr("Idasen Companion"),
-                    self.tr("Could not rename the preset:\n%s")
+                    self, pgettext('presets', "Idasen Companion"),
+                    pgettext('presets', "Could not rename the preset:\n%s")
                     % html.escape(err))
         finally:
             self._renaming = False
@@ -297,32 +298,32 @@ class PresetsPage(Page):
             self.unsetCursor()
         if captured and isinstance(result, float):
             self._status_message(
-                self.tr("Preset '%s' set to %s.")
-                % (name, self.ctx.fmt.height(result)), 5000)
+                pgettext('presets', "Preset '%(name)s' set to %(height)s.")
+                % {"name": name, "height": self.ctx.fmt.height(result)}, 5000)
         else:
             QMessageBox.warning(
-                self, self.tr("Idasen Companion"),
-                self.tr("Could not read the desk height:\n%s")
+                self, pgettext('presets', "Idasen Companion"),
+                pgettext('presets', "Could not read the desk height:\n%s")
                 % html.escape(str(result)))
 
     def _capture_preset(self) -> None:
-        name, accepted = QInputDialog.getText(self, self.tr("Capture preset"),
-                                              self.tr("Preset name:"))
+        name, accepted = QInputDialog.getText(self, pgettext('presets', "Capture preset"),
+                                              pgettext('presets', "Preset name:"))
         if accepted and name.strip():
             self._do_capture(name.strip())
 
     def _add_preset(self) -> None:
-        name, accepted = QInputDialog.getText(self, self.tr("Add preset"),
-                                              self.tr("Preset name:"))
+        name, accepted = QInputDialog.getText(self, pgettext('presets', "Add preset"),
+                                              pgettext('presets', "Preset name:"))
         if not (accepted and name.strip()):
             return
         fmt = self.ctx.fmt
         height, accepted = QInputDialog.getDouble(
-            self, self.tr("Add preset"),
+            self, pgettext('presets', "Add preset"),
             # The unit as a word, from the spin-box suffix so the two can
             # never disagree — its leading space is for setSuffix, which
             # inserts none, and is not wanted inside a sentence.
-            self.tr("Height (%s):") % suffix_height(fmt.unit).strip(),
+            pgettext('presets', "Height (%s):") % suffix_height(fmt.unit).strip(),
             fmt.to_display_height(1.0),
             fmt.to_display_height(MIN_HEIGHT), fmt.to_display_height(MAX_HEIGHT),
             fmt.height_decimals())
@@ -333,15 +334,15 @@ class PresetsPage(Page):
     def _delete_preset(self, name: str) -> None:
         if name in PROTECTED_PRESETS:
             QMessageBox.information(
-                self, self.tr("Idasen Companion"),
-                self.tr("The sit and stand presets can't be deleted."))
+                self, pgettext('presets', "Idasen Companion"),
+                pgettext('presets', "The sit and stand presets can't be deleted."))
             return
         # A single trash-icon click is easy to hit by mistake and deleting
         # a preset is irreversible (re-creating it needs a live capture),
         # so confirm first.
         if QMessageBox.question(
-                self, self.tr("Delete preset"),
-                self.tr("Delete the preset '%s'?") % html.escape(name),
+                self, pgettext('presets', "Delete preset"),
+                pgettext('presets', "Delete the preset '%s'?") % html.escape(name),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
             return

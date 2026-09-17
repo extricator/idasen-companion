@@ -1,9 +1,8 @@
-"""Guard: every translatable marker outside ``gui/`` is actually extracted.
+"""Guard: every translatable marker is actually extracted.
 
 ``scripts/build-translations.sh``'s ``xgettext`` scan covers every ``*.py``
-under ``src/idasen_companion`` except ``gui/`` — the GUI's strings go through
-Qt Linguist instead, see that script. A marker call outside that scope, or a
-marker call inside it that the script's own keyword list doesn't recognize,
+under ``src/idasen_companion``. A marker call that the script's keyword list
+doesn't recognize
 would ship untranslated with nothing to notice: the ``.pot`` never grows, the
 regenerate-and-diff gate stays green *because nothing changed*, and the
 string ships in English forever. That is the exact failure mode a green
@@ -34,7 +33,11 @@ _PO_STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 #: (``core/presentation/register.py``) adds alongside them. Named once, as
 #: data, so both checks below read the same definition rather than two that
 #: could drift apart.
-_MARKER_CALLS = frozenset({"_", "ngettext", "N_", "NP_"})
+_MARKER_ARGS = {
+    "_": (0,), "ngettext": (0, 1),
+    "pgettext": (1,), "npgettext": (1, 2),
+    "P_": (1,), "NP_": (1, 2),
+}
 
 
 def _iter_pot_entries():
@@ -152,9 +155,13 @@ def _marked_literals() -> dict[str, Path]:
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
-            if _call_name(node) not in _MARKER_CALLS:
+            positions = _MARKER_ARGS.get(_call_name(node))
+            if positions is None:
                 continue
-            for arg in node.args:
+            for position in positions:
+                if position >= len(node.args):
+                    continue
+                arg = node.args[position]
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     literals.setdefault(arg.value, path)
     return literals

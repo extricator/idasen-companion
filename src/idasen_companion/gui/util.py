@@ -16,33 +16,22 @@ separating space of its own.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, TypeVar
 
-from PySide6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
-
+from ..core.i18n import pgettext
 from ..core.presentation import daemon_errors, dates, words
 from ..core.presentation.formatter import Formatter
 from ..core.presentation.gettext_translator import GettextTranslator
+from ..core.presentation.register import MessageKey, P_
 from ..core.units import HeightUnit
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
 
 
-def _tr(text: object) -> str:
-    """Translate a ``util`` string at call time.
-
-    Takes ``object`` because that is what PySide6's stubs say
-    ``QT_TRANSLATE_NOOP`` returns, even though at runtime it hands back the
-    string literal it was given, untouched.
-
-    This module is imported at startup — before ``main()`` installs the
-    ``QTranslator`` — so its user-facing strings can't be translated at
-    import/definition time. They are instead marked for extraction with
-    ``QT_TRANSLATE_NOOP`` (which ``lupdate`` recognizes; a plain ``_tr(...)``
-    wrapper would hide the literal from it) and translated on each call here.
-    """
-    return QCoreApplication.translate("util", cast(str, text))
+def _tr(text: MessageKey) -> str:
+    """Translate one deferred shared-widget key through the current catalog."""
+    return pgettext(text.context, text)
 
 
 _F = TypeVar("_F", bound=Callable[..., Any])
@@ -103,22 +92,22 @@ def suffix_height(unit: HeightUnit) -> str:
     # (and suffix_minutes/suffix_seconds below) exists only for that spin-box
     # API — nothing else should call it; reach for Formatter.height instead.
     if unit == HeightUnit.INCHES:
-        return _tr(QT_TRANSLATE_NOOP("util", " in"))
-    return _tr(QT_TRANSLATE_NOOP("util", " cm"))
+        return _tr(P_("shared-widget", " in"))
+    return _tr(P_("shared-widget", " cm"))
 
 
 @returns_translated
 def suffix_minutes() -> str:
     """Translated minutes suffix for a spin box, leading space."""
     # See suffix_height — the leading space is deliberate, setSuffix adds none.
-    return _tr(QT_TRANSLATE_NOOP("util", " min"))
+    return _tr(P_("shared-widget", " min"))
 
 
 @returns_translated
 def suffix_seconds() -> str:
     """Translated seconds suffix for a spin box, leading space."""
     # See suffix_height — the leading space is deliberate, setSuffix adds none.
-    return _tr(QT_TRANSLATE_NOOP("util", " s"))
+    return _tr(P_("shared-widget", " s"))
 
 
 @returns_translated
@@ -205,7 +194,7 @@ def fmt_day_heading(fmt: Formatter, when: datetime) -> str:
 
     See ``core/presentation/dates.py``'s ``day_heading`` for why the field
     order is fixed by its style. Nothing here is marked with
-    ``tr()``/``QT_TRANSLATE_NOOP``, so this introduces no translatable
+    a gettext marker, so this introduces no translatable
     string and neither catalog gains an entry.
     """
     return dates.day_heading(fmt.context.locale, when)

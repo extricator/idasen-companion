@@ -1,23 +1,19 @@
-"""The gettext-flavour register of marked translatable constants.
+"""Contextual gettext keys for deferred shared messages.
 
 The pattern already used at ``gui/main_window.py``'s ``NAV_ITEMS``,
 ``gui/util.py`` and ``gui/background_portal.py``: every translatable
 literal lives once, as a module-level constant marked for extraction, and
 a formatter references the constant's name rather than writing a string
 literal inline. This module is that register for the code under
-``core/`` — the half of the app that has no Qt translator to mark
-literals with.
+``core/`` and for GUI constants that must wait until render time.
 
-Two divergences from the Qt-flavour register are load-bearing.
+Every key carries a literal semantic context.  ``MessageKey`` is a ``str``
+subclass, so existing formatting and English-only translators keep working;
+the gettext backend additionally reads its ``context`` attribute at lookup.
 
-**No context argument.** ``QT_TRANSLATE_NOOP`` takes a context name because
-each ``.ts`` file keeps per-context sections; ``po/idasen_companion.pot`` is
-one flat catalog with no such split, so there is nothing for a context
-argument to select and :func:`N_`/:func:`NP_` take none.
-
-**One call carries both plural forms.** :func:`NP_` takes the singular and
+**One call carries both plural forms.** :func:`NP_` takes context, singular and
 the plural literal together and returns them as a pair, so
-``scripts/build-translations.sh``'s ``--keyword=NP_:1,2`` reads them as one
+``scripts/build-translations.sh``'s ``--keyword=NP_:1c,2,3`` reads them as one
 ``(msgid, msgid_plural)`` entry from a single call site — unlike gettext's
 own ``ngettext(singular, plural, count)``, which needs both literals again
 at every *call*, this register needs them written down exactly once. This
@@ -31,28 +27,39 @@ not the phase to give it that second job.
 from __future__ import annotations
 
 
-def N_(source: str) -> str:  # pylint: disable=invalid-name  # gettext's own extraction-marker convention, not a project abbreviation
-    """Mark ``source`` for extraction. Returns it unchanged."""
-    return source
+class MessageKey(str):
+    """A source string plus the semantic gettext context used to look it up."""
+
+    context: str
+
+    def __new__(cls, context: str, source: str) -> "MessageKey":
+        instance = super().__new__(cls, source)
+        instance.context = context
+        return instance
 
 
-def NP_(singular: str, plural: str) -> tuple[str, str]:  # pylint: disable=invalid-name  # gettext's own extraction-marker convention, not a project abbreviation
-    """Mark a plural pair for extraction. Returns the pair unchanged."""
-    return singular, plural
+def P_(context: str, source: str) -> MessageKey:  # pylint: disable=invalid-name
+    """Mark a contextual source string for extraction without translating it."""
+    return MessageKey(context, source)
+
+
+def NP_(context: str, singular: str, plural: str) -> tuple[MessageKey, MessageKey]:  # pylint: disable=invalid-name
+    """Mark a contextual plural pair for extraction without translating it."""
+    return MessageKey(context, singular), MessageKey(context, plural)
 
 
 #: A count of whole hours. Source strings carried over byte-identically from
 #: ``daemon/i18n.py``'s pre-merge literals so the extracted msgids match what
 #: ``po/es.po`` already holds.
-HOURS = NP_("%d hour", "%d hours")
+HOURS = NP_('shared.presentation', "%d hour", "%d hours")
 
 #: A count of whole minutes. Byte-identical to the existing msgid/msgid_plural
 #: in ``po/es.po`` — see the module docstring above.
-MINUTES = NP_("%d minute", "%d minutes")
+MINUTES = NP_('shared.presentation', "%d minute", "%d minutes")
 
 #: A count of whole seconds. Byte-identical to the existing msgid/msgid_plural
 #: in ``po/es.po`` — see the module docstring above.
-SECONDS = NP_("%d second", "%d seconds")
+SECONDS = NP_('shared.presentation', "%d second", "%d seconds")
 
 #: Joins two already-whole, already-translated duration messages (an hours
 #: message and a minutes message) into one sentence fragment, e.g.
@@ -61,19 +68,19 @@ SECONDS = NP_("%d second", "%d seconds")
 #: ``core/presentation/formatter.py``'s ``Formatter.duration_verbose`` for
 #: the caller and the reasoning that substitution is not a whole-message-rule
 #: violation.
-HOURS_AND_MINUTES = N_("%(hours)s %(minutes)s")
+HOURS_AND_MINUTES = P_('shared.presentation', "%(hours)s %(minutes)s")
 
 #: The compact hours-and-minutes duration, e.g. "1h 05m" — the journal's and
 #: the Activity Log's shared shape. Source string carried over byte-for-byte
 #: from the ``util`` context of ``translations/idasen_companion_es.ts`` (the
 #: pre-migration home of ``gui/util.py``'s ``fmt_hm``), so its existing
 #: Spanish survives the move between catalogs.
-HOURS_AND_MINUTES_COMPACT = N_("%(hours)sh %(minutes)sm")
+HOURS_AND_MINUTES_COMPACT = P_('shared.presentation', "%(hours)sh %(minutes)sm")
 
 #: The compact minutes-only duration, e.g. "45m". Byte-identical to the
 #: existing ``util``-context source string — see
 #: :data:`HOURS_AND_MINUTES_COMPACT` above.
-MINUTES_COMPACT = N_("%(minutes)sm")
+MINUTES_COMPACT = P_('shared.presentation', "%(minutes)sm")
 
 #: The picker's minutes duration, e.g. "45 min" — the unit spelled as its
 #: word abbreviation with a space before it, where :data:`MINUTES_COMPACT`
@@ -95,24 +102,24 @@ MINUTES_COMPACT = N_("%(minutes)sm")
 #: two source strings' translations differ was considered and rejected,
 #: because it would invent a difference the language does not have purely to
 #: satisfy a check.
-MINUTES_ABBREVIATED = N_("%(minutes)s min")
+MINUTES_ABBREVIATED = P_('shared.presentation', "%(minutes)s min")
 
 #: The compact seconds-only duration, e.g. "45s". Byte-identical to the
 #: existing ``util``-context source string — see
 #: :data:`HOURS_AND_MINUTES_COMPACT` above.
-SECONDS_COMPACT = N_("%(seconds)ss")
+SECONDS_COMPACT = P_('shared.presentation', "%(seconds)ss")
 
 #: A height shown in centimetres, e.g. "110.5 cm". Source string carried
 #: over byte-for-byte from the ``util`` context of
 #: ``translations/idasen_companion_es.ts`` (the pre-migration home of
 #: ``gui/util.py``'s ``fmt_height``), so its existing Spanish survives the
 #: move between catalogs.
-HEIGHT_CENTIMETRES = N_("%(value)s cm")
+HEIGHT_CENTIMETRES = P_('shared.presentation', "%(value)s cm")
 
 #: A height shown in inches, e.g. "43.50 in". Byte-identical to the
 #: existing ``util``-context source string — see :data:`HEIGHT_CENTIMETRES`
 #: above.
-HEIGHT_INCHES = N_("%(value)s in")
+HEIGHT_INCHES = P_('shared.presentation', "%(value)s in")
 
 #: What the automation is doing, keyed by the wire value
 #: ``core/machine.py``'s ``Status`` enum carries. The long form, shown where
@@ -121,18 +128,18 @@ HEIGHT_INCHES = N_("%(value)s in")
 #: pre-migration home of ``gui/util.py``'s ``status_label``), so their
 #: existing Spanish survives the move between catalogs.
 STATUS_LABELS = {
-    "active": N_("Automation active"),
-    "move-failed": N_("Last move failed"),
-    "unconfigured": N_("Not set up yet — no desk chosen"),
-    "disabled": N_("Automation off"),
-    "paused": N_("Paused"),
-    "snoozed": N_("Snoozed"),
-    "user-idle": N_("Waiting — you seem to be away"),
-    "locked": N_("Waiting — session locked"),
-    "away": N_("Waiting — switched to another session"),
-    "no-session": N_("On hold — no desktop session"),
-    "out-of-schedule": N_("Outside scheduled hours"),
-    "held": N_("Paused — desk moved off sit/stand"),
+    "active": P_('shared.presentation', "Automation active"),
+    "move-failed": P_('shared.presentation', "Last move failed"),
+    "unconfigured": P_('shared.presentation', "Not set up yet — no desk chosen"),
+    "disabled": P_('shared.presentation', "Automation off"),
+    "paused": P_('shared.presentation', "Paused"),
+    "snoozed": P_('shared.presentation', "Snoozed"),
+    "user-idle": P_('shared.presentation', "Waiting — you seem to be away"),
+    "locked": P_('shared.presentation', "Waiting — session locked"),
+    "away": P_('shared.presentation', "Waiting — switched to another session"),
+    "no-session": P_('shared.presentation', "On hold — no desktop session"),
+    "out-of-schedule": P_('shared.presentation', "Outside scheduled hours"),
+    "held": P_('shared.presentation', "Paused — desk moved off sit/stand"),
 }
 
 #: The same states as the Overview status head shown beside the status dot.
@@ -142,15 +149,15 @@ STATUS_LABELS = {
 #: cannot render one state two ways. Byte-identical to the existing
 #: ``util``-context source strings — see :data:`STATUS_LABELS` above.
 STATUS_HEADS = {
-    "active": N_("Active"),
-    "paused": N_("Paused"),
-    "user-idle": N_("You're away"),
-    "away": N_("In another session"),
-    "locked": N_("Session locked"),
-    "out-of-schedule": N_("Outside schedule"),
-    "disabled": N_("Automation off"),
-    "held": N_("Off-cycle"),
-    "move-failed": N_("Last move failed"),
+    "active": P_('shared.presentation', "Active"),
+    "paused": P_('shared.presentation', "Paused"),
+    "user-idle": P_('shared.presentation', "You're away"),
+    "away": P_('shared.presentation', "In another session"),
+    "locked": P_('shared.presentation', "Session locked"),
+    "out-of-schedule": P_('shared.presentation', "Outside schedule"),
+    "disabled": P_('shared.presentation', "Automation off"),
+    "held": P_('shared.presentation', "Off-cycle"),
+    "move-failed": P_('shared.presentation', "Last move failed"),
 }
 
 # ----- the daemon's desktop notifications --------------------------------
@@ -169,45 +176,45 @@ STATUS_HEADS = {
 
 #: The pre-move warning's summary when the desk is about to rise. %s is a
 #: verbose delay, e.g. "1 hour 5 minutes".
-PRE_MOVE_STANDING = N_("Standing up in about %s")
+PRE_MOVE_STANDING = P_('shared.presentation', "Standing up in about %s")
 
 #: The pre-move warning's summary when the desk is about to lower.
-PRE_MOVE_SITTING = N_("Sitting down in about %s")
+PRE_MOVE_SITTING = P_('shared.presentation', "Sitting down in about %s")
 
 #: The pre-move warning's body, under either summary.
-PRE_MOVE_BODY = N_("The desk will move once you're due.")
+PRE_MOVE_BODY = P_('shared.presentation', "The desk will move once you're due.")
 
 #: The pre-move warning's snooze button. %d is a whole number of minutes.
-SNOOZE_ACTION = N_("Snooze %d min")
+SNOOZE_ACTION = P_('shared.presentation', "Snooze %d min")
 
 #: The pre-move warning's skip button.
-SKIP_ACTION = N_("Skip this one")
+SKIP_ACTION = P_('shared.presentation', "Skip this one")
 
 #: Shown when the desk is parked somewhere that is neither preset.
-AUTOMATION_PAUSED_SUMMARY = N_("Automation paused")
+AUTOMATION_PAUSED_SUMMARY = P_('shared.presentation', "Automation paused")
 
 #: The body of the same notification.
-AUTOMATION_PAUSED_BODY = N_("The desk was moved to an unrecognized position. "
+AUTOMATION_PAUSED_BODY = P_('shared.presentation', "The desk was moved to an unrecognized position. "
                             "It will resume once the desk is back at sit or "
                             "stand.")
 
 #: The failed-move notification's summary when the desk should have risen.
-MOVE_FAILED_STANDING = N_("The desk didn't stand up")
+MOVE_FAILED_STANDING = P_('shared.presentation', "The desk didn't stand up")
 
 #: The failed-move notification's summary when it should have lowered.
-MOVE_FAILED_SITTING = N_("The desk didn't sit down")
+MOVE_FAILED_SITTING = P_('shared.presentation', "The desk didn't sit down")
 
 #: The failed-move body when the desk gave a reason. %s is that reason, in
 #: the daemon's English — diagnostic detail, not translated text.
-MOVE_FAILED_BODY_WITH_REASON = N_("It didn't respond (%s). The next change "
+MOVE_FAILED_BODY_WITH_REASON = P_('shared.presentation', "It didn't respond (%s). The next change "
                                   "is a whole interval away.")
 
 #: The failed-move body when no reason came back.
-MOVE_FAILED_BODY = N_("It didn't respond. The next change is a whole "
+MOVE_FAILED_BODY = P_('shared.presentation', "It didn't respond. The next change is a whole "
                       "interval away.")
 
 #: The failed-move notification's retry button.
-TRY_NOW_ACTION = N_("Try now")
+TRY_NOW_ACTION = P_('shared.presentation', "Try now")
 
 
 # ----- what the daemon's D-Bus error *names* mean, in the reader's language --
@@ -226,15 +233,15 @@ TRY_NOW_ACTION = N_("Try now")
 #: ``gui/util.py``'s ``daemon_error_message``), so their existing Spanish
 #: survives the move between catalogs.
 DAEMON_ERROR_MESSAGES = {
-    "MoveFailed": N_("The desk did not respond. Check that it is powered and "
+    "MoveFailed": P_('shared.presentation', "The desk did not respond. Check that it is powered and "
                      "in range, then try again."),
-    "SetupFailed": N_("Could not connect to the desk. Make sure it is "
+    "SetupFailed": P_('shared.presentation', "Could not connect to the desk. Make sure it is "
                       "powered, nearby, and in pairing mode."),
-    "NoHeight": N_("Could not read the desk's height."),
-    "OutOfRange": N_("That height is outside the desk's range."),
-    "InvalidPreset": N_("That preset name or height is not valid."),
-    "UnknownPreset": N_("There is no preset by that name."),
-    "ConfigWriteFailed": N_("Could not save the configuration. Check that "
+    "NoHeight": P_('shared.presentation', "Could not read the desk's height."),
+    "OutOfRange": P_('shared.presentation', "That height is outside the desk's range."),
+    "InvalidPreset": P_('shared.presentation', "That preset name or height is not valid."),
+    "UnknownPreset": P_('shared.presentation', "There is no preset by that name."),
+    "ConfigWriteFailed": P_('shared.presentation', "Could not save the configuration. Check that "
                             "your home directory is writable and has free "
                             "space."),
 }
@@ -242,7 +249,7 @@ DAEMON_ERROR_MESSAGES = {
 #: The last step of the error fallback chain: an error name nobody has
 #: written a sentence for, arriving with no diagnostic detail either.
 #: Byte-identical to the existing ``util``-context source string.
-DAEMON_ERROR_GENERIC = N_(
+DAEMON_ERROR_GENERIC = P_('shared.presentation',
     "The background service could not carry out that request.")
 
 
@@ -257,7 +264,7 @@ DAEMON_ERROR_GENERIC = N_(
 # than quoted at a call site.
 
 #: Stands in for the snooze deadline before the client has fetched it.
-LATER = N_("later")
+LATER = P_('shared.presentation', "later")
 
 #: The snooze line, e.g. "Snoozed until 14:32". One whole message with the
 #: time substituted in — never a verb joined to a fragment — because a
@@ -265,13 +272,13 @@ LATER = N_("later")
 #: translate this sentence at all. The substituted value is a finished
 #: clock string the caller formats; see ``core/presentation/words.py``'s
 #: ``snooze_line``.
-SNOOZED_UNTIL = N_("Snoozed until %s")
+SNOOZED_UNTIL = P_('shared.presentation', "Snoozed until %s")
 
 #: Shown where a countdown would be, once it has run out.
-DUE_NOW = N_("Due now")
+DUE_NOW = P_('shared.presentation', "Due now")
 
 #: The desk is at neither preset — parked somewhere of the user's choosing.
-CUSTOM = N_("Custom")
+CUSTOM = P_('shared.presentation', "Custom")
 
 #: A running countdown as minutes and zero-padded seconds, e.g. "2:05".
 #: Both halves are rendered by the locale backend and substituted in, so
@@ -279,7 +286,7 @@ CUSTOM = N_("Custom")
 #: so a language that punctuates a countdown differently has somewhere to
 #: say so; Spanish does not, and its translation matches the English for
 #: the same reason :data:`DAY_RANGE` and the day/clock pattern do.
-COUNTDOWN = N_("%(minutes)s:%(seconds)s")
+COUNTDOWN = P_('shared.presentation', "%(minutes)s:%(seconds)s")
 
 #: The short weekday names an automation schedule is shown with, keyed by
 #: the schedule's own day wire values. Source strings carried over
@@ -288,25 +295,25 @@ COUNTDOWN = N_("%(minutes)s:%(seconds)s")
 #: ``gui/util.py``'s ``day_label``), so their existing Spanish survives the
 #: move between catalogs.
 DAY_NAMES = {
-    "mon": N_("Mon"),
-    "tue": N_("Tue"),
-    "wed": N_("Wed"),
-    "thu": N_("Thu"),
-    "fri": N_("Fri"),
-    "sat": N_("Sat"),
-    "sun": N_("Sun"),
+    "mon": P_('shared.presentation', "Mon"),
+    "tue": P_('shared.presentation', "Tue"),
+    "wed": P_('shared.presentation', "Wed"),
+    "thu": P_('shared.presentation', "Thu"),
+    "fri": P_('shared.presentation', "Fri"),
+    "sat": P_('shared.presentation', "Sat"),
+    "sun": P_('shared.presentation', "Sun"),
 }
 
 #: Stands in for the day list when an automation schedule has no days
 #: selected, e.g. "Automation runs no days, 09:00–17:00." Reachable because
 #: the Automation page lets every day chip be unchecked and ``_validate``
 #: does not refuse an empty list.
-NO_DAYS = N_("no days")
+NO_DAYS = P_('shared.presentation', "no days")
 
 #: A run of three or more consecutive days collapsed into a range, e.g.
 #: "Mon–Fri". %(first)s is the run's first day, %(last)s its last. The
 #: separator is an en dash, not a hyphen.
-DAY_RANGE = N_("%(first)s–%(last)s")
+DAY_RANGE = P_('shared.presentation', "%(first)s–%(last)s")
 
 #: Two day-list entries joined, e.g. "Mon, Wed". Folded left across a longer
 #: list to build the whole thing, e.g. "Mon, Wed, Fri" — %(first)s is
@@ -314,7 +321,7 @@ DAY_RANGE = N_("%(first)s–%(last)s")
 #: substituted as complete translated messages, never assembled fragments;
 #: see ``core/presentation/words.py``'s ``fmt_days`` for why one pair
 #: pattern folded left is the whole key set.
-DAY_PAIR = N_("%(first)s, %(second)s")
+DAY_PAIR = P_('shared.presentation', "%(first)s, %(second)s")
 
 #: A day plus a wall-clock time, e.g. "Mon 17 14:32". %(day)s and %(clock)s
 #: are both finished strings the caller renders through the locale backend
@@ -324,7 +331,7 @@ DAY_PAIR = N_("%(first)s, %(second)s")
 #: ``translations/idasen_companion_es.ts`` (the pre-migration home of
 #: ``gui/util.py``'s ``fmt_day_and_clock``), so its existing Spanish
 #: survives the move between catalogs.
-DAY_AND_CLOCK = N_("%(day)s %(clock)s")
+DAY_AND_CLOCK = P_('shared.presentation', "%(day)s %(clock)s")
 
 #: The desk position wire values shown as UI words, capitalised because
 #: they stand alone as a label or a noun.
@@ -343,8 +350,8 @@ DAY_AND_CLOCK = N_("%(day)s %(clock)s")
 #: ``gui/util.py``'s ``position_label``), so their existing Spanish
 #: survives the move between catalogs.
 POSITION_LABELS = {
-    "sitting": N_("Sitting"),
-    "standing": N_("Standing"),
+    "sitting": P_('shared.presentation', "Sitting"),
+    "standing": P_('shared.presentation', "Standing"),
 }
 
 #: The two protected presets, shown as UI words. A third distinct rendering
@@ -354,8 +361,8 @@ POSITION_LABELS = {
 #: reaches this table. Byte-identical to the existing ``util``-context
 #: source strings — see :data:`POSITION_LABELS` above.
 PRESET_LABELS = {
-    "sit": N_("Sit"),
-    "stand": N_("Stand"),
+    "sit": P_('shared.presentation', "Sit"),
+    "stand": P_('shared.presentation', "Stand"),
 }
 
 #: What caused a recorded transition, as stored in the stats DB's
@@ -363,10 +370,10 @@ PRESET_LABELS = {
 #: because the pill reads as a tag, not a sentence. Byte-identical to the
 #: existing ``util``-context source strings — see :data:`POSITION_LABELS`.
 TRIGGER_LABELS = {
-    "automation": N_("automation"),
-    "manual": N_("manual"),
-    "external": N_("external"),
-    "setup": N_("setup"),
+    "automation": P_('shared.presentation', "automation"),
+    "manual": P_('shared.presentation', "manual"),
+    "external": P_('shared.presentation', "external"),
+    "setup": P_('shared.presentation', "setup"),
 }
 
 #: The sidebar footer line while the desk is connected. Source string carried
@@ -374,33 +381,33 @@ TRIGGER_LABELS = {
 #: ``translations/idasen_companion_es.ts`` (the pre-migration home of
 #: ``gui/util.py``'s ``connection_state``), so its existing Spanish survives
 #: the move between catalogs. A single altered character loses it.
-CONNECTION_FOOTER_CONNECTED = N_("Desk: connected")
+CONNECTION_FOOTER_CONNECTED = P_('shared.presentation', "Desk: connected")
 
 #: The Overview connection chip while the desk is connected. Byte-identical
 #: to the existing ``util``-context source string — see
 #: :data:`CONNECTION_FOOTER_CONNECTED` above.
-CONNECTION_CHIP_CONNECTED = N_("Connected")
+CONNECTION_CHIP_CONNECTED = P_('shared.presentation', "Connected")
 
 #: The sidebar footer line when the desk is unreachable, or when a persistent
 #: link is configured and not up. Byte-identical to the existing
 #: ``util``-context source string — see :data:`CONNECTION_FOOTER_CONNECTED`.
-CONNECTION_FOOTER_DISCONNECTED = N_("Desk: disconnected")
+CONNECTION_FOOTER_DISCONNECTED = P_('shared.presentation', "Desk: disconnected")
 
 #: The Overview connection chip for the same state. Byte-identical to the
 #: existing ``util``-context source string — see
 #: :data:`CONNECTION_FOOTER_CONNECTED` above.
-CONNECTION_CHIP_DISCONNECTED = N_("Disconnected")
+CONNECTION_CHIP_DISCONNECTED = P_('shared.presentation', "Disconnected")
 
 #: The sidebar footer line when the desk is reachable but only connected to
 #: on demand. Byte-identical to the existing ``util``-context source string —
 #: see :data:`CONNECTION_FOOTER_CONNECTED` above.
-CONNECTION_FOOTER_ON_DEMAND = N_("Desk: on demand")
+CONNECTION_FOOTER_ON_DEMAND = P_('shared.presentation', "Desk: on demand")
 
 #: The Overview connection chip for the same state, which spells out what
 #: "on demand" means where the footer has less room. Byte-identical to the
 #: existing ``util``-context source string — see
 #: :data:`CONNECTION_FOOTER_CONNECTED` above.
-CONNECTION_CHIP_ON_DEMAND = N_("Not connected · on demand")
+CONNECTION_CHIP_ON_DEMAND = P_('shared.presentation', "Not connected · on demand")
 
 #: A preset tick's name next to its live height, e.g. "Sit · 110.5".
 #: %(name)s is the preset's display name (already translated where it is
@@ -408,5 +415,4 @@ CONNECTION_CHIP_ON_DEMAND = N_("Not connected · on demand")
 #: the bare formatted number the rail already shows alongside it.
 #: Byte-identical to the existing ``util``-context source string — see
 #: :data:`HEIGHT_CENTIMETRES` above.
-PRESET_TICK = N_("%(name)s · %(height)s")
-
+PRESET_TICK = P_('shared.presentation', "%(name)s · %(height)s")

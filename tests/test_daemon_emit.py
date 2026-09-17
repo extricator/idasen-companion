@@ -64,6 +64,9 @@ def test_snooze_emits_state():
     d = _daemon()
     d.snooze(10)
     assert d.machine.snooze.called
+    d.activity_log.emit.assert_called_once()
+    assert d.activity_log.emit.call_args.kwargs == {
+        "minutes": 10, "duration": 600}
     _assert_announced(d)
 
 

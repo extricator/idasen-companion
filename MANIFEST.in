@@ -85,10 +85,10 @@ include tests/goldens/vocabulary_es.json
 # above: a data file a test opens has to ship with the suite that opens it.
 include tests/goldens/window_en.json
 include tests/goldens/window_es.json
-# Translations: editable sources (.ts/.po/.pot) + the build script, plus the
-# compiled catalogs that ship inside the package (.qm for the Qt GUI, .mo for
-# the daemon's gettext notifications). See docs/TRANSLATING.md.
+# Translations: live gettext sources/compiled catalog plus frozen inactive
+# .ts/.qm migration evidence retained until Phase 7. See docs/TRANSLATING.md.
 include scripts/build-translations.sh
+include scripts/migrate-contextual-gettext.py
 include scripts/build-dist.sh
 # The suite ships whole (recursive-include tests above) and the RPM's %check
 # runs it from an unpacked sdist, so every script a test reads must ship too.
