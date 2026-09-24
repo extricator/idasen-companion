@@ -189,6 +189,8 @@ Post-implementation human acceptance:
     layout required a 950×600 minimum, so the production default correctly
     opened at 950×660. The unchanged single Activity Log row showed
     `Depuración`, `Información`, `Aviso`, `Error` and `y superior` in full;
+    the user reviewed the captured real-desktop rendering and confirmed it
+    looked good;
   - both Activity Log controls still filtered correctly;
   - startup produced one aggregate for two warnings. Preloading and navigating
     between both settings-class pages produced no duplicate; one later unknown
