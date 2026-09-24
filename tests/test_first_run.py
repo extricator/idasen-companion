@@ -30,7 +30,7 @@ def qapp():
 
 
 def run_main(monkeypatch, qapp, *, mac, daemon_available,
-             load_config=None):
+             load_config=None, window_factory=None):
     """Drive gui.main.main() far enough to see the wizard decision."""
     import idasen_companion.gui.main as gui_main
     import idasen_companion.gui.setup_wizard as wizard_mod
@@ -65,7 +65,8 @@ def run_main(monkeypatch, qapp, *, mac, daemon_available,
     monkeypatch.setattr(gui_main, "DaemonClient", lambda: client)
     monkeypatch.setattr(gui_main.QSystemTrayIcon, "isSystemTrayAvailable",
                         staticmethod(lambda: False))
-    monkeypatch.setattr(gui_main, "MainWindow", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(
+        gui_main, "MainWindow", window_factory or (lambda *a, **kw: MagicMock()))
     monkeypatch.setattr(gui_main, "SingleInstance", lambda *a, **kw: MagicMock())
     monkeypatch.setattr(wizard_mod, "SetupWizard", FakeWizard)
     # Return from app.exec() immediately instead of entering the event loop.
@@ -115,6 +116,7 @@ def test_a_broken_config_still_launches_the_app(monkeypatch, qapp):
 
 def test_unknown_config_data_is_visible_at_gui_startup(monkeypatch, qapp):
     import idasen_companion.gui.main as gui_main
+    from unittest.mock import MagicMock
 
     cfg = AppConfig()
     cfg.desk.mac = "AA:BB:CC:DD:EE:FF"
@@ -122,19 +124,17 @@ def test_unknown_config_data_is_visible_at_gui_startup(monkeypatch, qapp):
         ConfigWarning(Path("/tmp/future.toml"), None, "future_root"),
         ConfigWarning(Path("/tmp/future.toml"), "ui", "future_theme"),
     )
-    shown = []
-    monkeypatch.setattr(
-        gui_main.QMessageBox, "warning",
-        staticmethod(lambda *args: shown.append(args)))
+    presented = []
+
+    def window_factory(*_args, **_kwargs):
+        window = MagicMock()
+        window.show_config_warnings.side_effect = presented.append
+        return window
 
     run_main(monkeypatch, qapp, mac=cfg.desk.mac, daemon_available=True,
-             load_config=lambda _path: cfg)
+             load_config=lambda _path: cfg, window_factory=window_factory)
 
-    assert len(shown) == 1
-    assert shown[0][2].count("future_root") == 1
-    assert shown[0][2].count("future_theme") == 1
-    assert shown[0][2].index("future_root") < shown[0][2].index("future_theme")
-    assert "preserved" in shown[0][2]
+    assert presented == [cfg.warnings]
 
 
 # ----- the CLI surface -----

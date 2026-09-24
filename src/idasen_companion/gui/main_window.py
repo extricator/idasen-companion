@@ -31,6 +31,7 @@ from .theme import (NAV_ICON_SIZE, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css,
                     theme)
 from .util import connection_state, daemon_error_message
 from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
+from ..core.config import ConfigWarning, format_config_warning
 from ..core.i18n import pgettext
 from ..core.i18n import P_
 
@@ -86,8 +87,14 @@ class MainWindow(QMainWindow):
         self.client = client
         self.ctx = AppContext(client, tray_available)
         self.setWindowTitle(pgettext('window-shell', "Idasen Companion"))
-        self.setMinimumSize(760, 600)
-        self.resize(860, 660)
+
+        # One GUI-session owner for forward-compatibility warnings. The two
+        # settings-class pages are preloaded below, so collect while the shell
+        # is being assembled and present their union only once at the end.
+        self._shown_config_warnings: set[ConfigWarning] = set()
+        self._pending_config_warnings: list[ConfigWarning] = []
+        self._collect_config_warnings = True
+        self.ctx.configWarnings.connect(self.show_config_warnings)
 
         self._connected = False
         # The page the sidebar is on. Tracked rather than read back from the
@@ -173,6 +180,57 @@ class MainWindow(QMainWindow):
         # first on_shown, so neither can be displayed holding widget defaults.
         self.automation.load()
         self.settings.load()
+
+        self._collect_config_warnings = False
+        pending = tuple(self._pending_config_warnings)
+        self._pending_config_warnings.clear()
+        self.show_config_warnings(pending)
+
+        # QWidget.minimumSizeHint() is the complete shell layout's current
+        # recommendation: active translations, font, style and computed
+        # sidebar width included. An explicit 760px minimum set before the
+        # shell existed overrode that recommendation and let Spanish's single
+        # Activity Log toolbar compress. Preserve the usability floor while
+        # allowing the live layout to ask for either dimension to grow.
+        layout_minimum = self.minimumSizeHint()
+        effective_minimum = QSize(max(760, layout_minimum.width()),
+                                  max(600, layout_minimum.height()))
+        self.setMinimumSize(effective_minimum)
+        self.resize(QSize(max(860, effective_minimum.width()),
+                          max(660, effective_minimum.height())))
+
+    def show_config_warnings(self, warnings: tuple[ConfigWarning, ...]) -> None:
+        """Present each forward-compatibility warning once per GUI session.
+
+        Warnings stay structured until here so their dataclass value is the
+        fingerprint and their source order is preserved. A warning remains in
+        ``_shown_config_warnings`` after it disappears, preventing a reload
+        loop when external tooling removes and later restores the same data.
+        """
+        new_warnings: list[ConfigWarning] = []
+        already_queued = set(self._pending_config_warnings)
+        for warning in warnings:
+            if (warning in self._shown_config_warnings
+                    or warning in already_queued):
+                continue
+            new_warnings.append(warning)
+            already_queued.add(warning)
+
+        if self._collect_config_warnings:
+            self._pending_config_warnings.extend(new_warnings)
+            return
+        if not new_warnings:
+            return
+
+        self._shown_config_warnings.update(new_warnings)
+        QMessageBox.warning(
+            self, pgettext('config-warning', "Idasen Companion"),
+            pgettext(
+                'config-warning',
+                "Some configuration settings are not recognized by this "
+                "version. They will be preserved:\n%s")
+            % "\n".join(format_config_warning(warning)
+                         for warning in new_warnings))
 
     def _on_command_failed(self, name: str, detail: str) -> None:
         """Report a command the daemon refused.

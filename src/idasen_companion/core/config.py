@@ -385,10 +385,26 @@ def load_config(path: Path | None = None) -> AppConfig:
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as error:
         raise ConfigError(f"{path}: {error}") from error
 
-    for section_name in ("desk", "automation", "schedule", "notifications",
-                         "advanced", "ui"):
-        section_data = data.pop(section_name, None)
-        if section_data is None:
+    known_sections = {"desk", "automation", "schedule", "notifications",
+                      "advanced", "ui"}
+    presets = None
+    # Walk the parsed document in its insertion order. Besides applying known
+    # values, this makes warnings from known sections, unknown sections and
+    # unknown top-level keys share the source order the user sees in the file.
+    # The previous fixed schema-order pass grouped known-section warnings ahead
+    # of top-level warnings even when the latter appeared first in the source.
+    for section_name, section_data in list(data.items()):
+        if section_name == "presets":
+            presets = section_data
+            continue
+        if section_name == "hotkeys":
+            # Back-compat: the old in-app global-shortcuts portal wrote this
+            # table. The portal is gone, so retain the established silent drop.
+            continue
+        if section_name not in known_sections:
+            warnings.append(ConfigWarning(
+                path, section_name if isinstance(section_data, dict) else None,
+                None if isinstance(section_data, dict) else section_name))
             continue
         if not isinstance(section_data, dict):
             raise ConfigError(f"[{section_name}] must be a table")
@@ -421,7 +437,6 @@ def load_config(path: Path | None = None) -> AppConfig:
         _apply_section(getattr(config, section_name), section_name, section_data,
                        source=path, warnings=warnings)
 
-    presets = data.pop("presets", None)
     if presets is not None:
         if not isinstance(presets, dict):
             raise ConfigError("[presets] must be a table of name = height")
@@ -434,16 +449,6 @@ def load_config(path: Path | None = None) -> AppConfig:
         config.presets = {name: _preset_height(name, h) for name, h in presets.items()}
     for name, height in FALLBACK_PRESETS.items():
         config.presets.setdefault(name, height)
-
-    # Back-compat: the old in-app global-shortcuts portal wrote a [hotkeys]
-    # table. The portal is gone, but an existing config still carries the
-    # section — drop it silently rather than failing the unknown-section check.
-    data.pop("hotkeys", None)
-
-    for name, value in data.items():
-        warnings.append(ConfigWarning(
-            path, name if isinstance(value, dict) else None,
-            None if isinstance(value, dict) else name))
 
     _validate(config)
     # A tuple makes the loader result immutable at the boundary and preserves

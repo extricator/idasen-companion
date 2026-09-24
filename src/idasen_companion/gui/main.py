@@ -14,14 +14,10 @@ import sys
 from PySide6.QtCore import QEvent, QObject, Slot
 from PySide6.QtDBus import QDBusConnection, QDBusInterface
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from .. import APP_ID, DBUS_NAME, __version__
-from ..core.config import (
-    AppConfig, ConfigError, DEFAULT_CONFIG_PATH, format_config_warning,
-    load_config,
-)
-from ..core.i18n import pgettext
+from ..core.config import AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config
 from . import appearance_portal, background_portal, restyle
 from .dbus_client import DaemonClient
 from .i18n import apply_language
@@ -117,15 +113,7 @@ def main() -> int:
     background_portal.reconcile_autostart(startup_cfg.ui.run_at_login)
 
     window = MainWindow(client, tray_available)
-    if startup_cfg.warnings:
-        QMessageBox.warning(
-            window, pgettext('config-warning', "Idasen Companion"),
-            pgettext(
-                'config-warning',
-                "Some configuration settings are not recognized by this "
-                "version. They will be preserved:\n%s")
-            % "\n".join(format_config_warning(warning)
-                         for warning in startup_cfg.warnings))
+    window.show_config_warnings(startup_cfg.warnings)
     instance = SingleInstance(window)
     session_bus.registerObject(GUI_DBUS_PATH, instance,
                                QDBusConnection.RegisterOption.ExportAllSlots)

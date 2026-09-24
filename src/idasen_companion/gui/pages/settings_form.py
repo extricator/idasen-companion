@@ -58,7 +58,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-from ...core.config import AppConfig, format_config_warning
+from ...core.config import AppConfig
 from ...core.i18n import pgettext
 from ...core.i18n import MessageKey, P_
 from ..theme import css, theme
@@ -364,15 +364,6 @@ class SettingsFormPage(Page):
             # Narrowed rather than asserted so -O cannot remove the guard.
             return
         self._fill(config, rebase=True)
-        if config.warnings:
-            QMessageBox.warning(
-                self, _tr(P_("config-warning", "Idasen Companion")),
-                _tr(P_(
-                    "config-warning",
-                    "Some configuration settings are not recognized by this "
-                    "version. They will be preserved:\n%s"))
-                % "\n".join(format_config_warning(warning)
-                             for warning in config.warnings))
 
     def _fill(self, config: AppConfig, rebase: bool) -> None:
         """Put ``config`` into the widgets without it counting as an edit.

@@ -36,6 +36,7 @@ from .i18n import apply_language
 
 class AppContext(QObject):
     configChanged = Signal()
+    configWarnings = Signal(object)
 
     def __init__(self, client: DaemonClient, tray_available: bool = True):
         super().__init__()
@@ -104,6 +105,10 @@ class AppContext(QObject):
         apply_language(QApplication.instance(), self.cfg.ui.language)
         self.fmt = self._build_formatter(self.cfg)
         self.configChanged.emit()
+        # Presentation belongs to the GUI shell, not to either settings page.
+        # Keep the structured warnings intact so that owner can aggregate and
+        # fingerprint them before translating their display text.
+        self.configWarnings.emit(self.cfg.warnings)
         return None
 
     def write_config(self, mutate: Callable[[AppConfig], None]) -> str | None:

@@ -24,6 +24,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod, service_ctl  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -117,12 +118,14 @@ def test_settings_page_never_owns_unknown_config_dialogs(
     assert shown == []
 
 
+@pytest.mark.parametrize("language", ["en", "es"])
 def test_main_window_aggregates_and_remembers_unknown_config_warnings(
-        qapp, tmp_path, monkeypatch):
+        qapp, tmp_path, monkeypatch, language):
     path = tmp_path / "config.toml"
     initial = (
         'future_root = "kept"\n'
         '[ui]\n'
+        f'language = "{language}"\n'
         'future_theme = "violet"\n'
     )
     path.write_text(initial)
@@ -137,39 +140,40 @@ def test_main_window_aggregates_and_remembers_unknown_config_warnings(
         QMessageBox, "warning",
         staticmethod(lambda *args: shown.append(args)))
 
-    window = MainWindow(WindowClient(), tray_available=True)
-    try:
-        assert len(shown) == 1
-        body = shown[0][2]
-        assert body.count("future_root") == 1
-        assert body.count("future_theme") == 1
-        assert body.index("future_root") < body.index("future_theme")
+    with _language(language):
+        window = MainWindow(WindowClient(), tray_available=True)
+        try:
+            assert len(shown) == 1
+            body = shown[0][2]
+            assert body.count("future_root") == 1
+            assert body.count("future_theme") == 1
+            assert body.index("future_root") < body.index("future_theme")
 
-        # Both pages were preloaded by MainWindow. Navigating to each reloads
-        # the same file and must not create another modal.
-        window._nav.setCurrentRow(1)  # pylint: disable=protected-access
-        window._nav.setCurrentRow(5)  # pylint: disable=protected-access
-        assert len(shown) == 1
+            # Both pages were preloaded by MainWindow. Navigating to each
+            # reloads the same file and must not create another modal.
+            window._nav.setCurrentRow(1)  # pylint: disable=protected-access
+            window._nav.setCurrentRow(5)  # pylint: disable=protected-access
+            assert len(shown) == 1
 
-        path.write_text(initial + '\n[future]\nvalue = 7\n')
-        window.settings.load()
-        assert len(shown) == 2
-        assert "[future]" in shown[1][2]
-        assert "future_root" not in shown[1][2]
-        assert "future_theme" not in shown[1][2]
+            path.write_text(initial + '\n[future]\nvalue = 7\n')
+            window.settings.load()
+            assert len(shown) == 2
+            assert "[future]" in shown[1][2]
+            assert "future_root" not in shown[1][2]
+            assert "future_theme" not in shown[1][2]
 
-        window.settings.load()
-        assert len(shown) == 2
+            window.settings.load()
+            assert len(shown) == 2
 
-        # Seen fingerprints remain remembered even if one disappears and is
-        # later reintroduced during this GUI process.
-        path.write_text(initial)
-        window.settings.load()
-        path.write_text(initial + '\n[future]\nvalue = 7\n')
-        window.settings.load()
-        assert len(shown) == 2
-    finally:
-        window.close()
+            # Seen fingerprints remain remembered even if one disappears and
+            # is later reintroduced during this GUI process.
+            path.write_text(initial)
+            window.settings.load()
+            path.write_text(initial + '\n[future]\nvalue = 7\n')
+            window.settings.load()
+            assert len(shown) == 2
+        finally:
+            window.close()
 
 
 def test_editing_a_field_enables_apply_and_reset(page):
