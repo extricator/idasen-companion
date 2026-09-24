@@ -77,7 +77,7 @@ the handoff commit.
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Complete | `3626d3a` | this commit | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
-| 6. RTL readiness | In progress | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
+| 6. RTL readiness | Complete | `5d2ca22` | this commit | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
 
 Allowed states are `Pending`, `In progress`, `Blocked` and `Complete`. A phase
@@ -798,7 +798,7 @@ also name the controls manually inspected offscreen or in a local GUI run.
 
 ### Phase 6 execution record
 
-- State: In progress
+- State: Complete
 - Starting commit: `e9edc21`
 - Controls covered automatically/manually: application direction, sidebar
   divider, Overview Move icon and progress caption, Activity Log journal chip,
@@ -807,7 +807,7 @@ also name the controls manually inspected offscreen or in a local GUI run.
   automatically in both directions. Offscreen construction/rendering covers
   the same controls; a native-speaker installed-GUI walk remains a release gate
   for the first real RTL catalog rather than a claim made by this phase.
-- Implementation commit: —
+- Implementation commit: `5d2ca22`
 - Commands/results: preflight full pytest — 2,031 passed/1 skipped; preflight
   naming — exit 0. Official Qt for Python 6 documentation was consulted through
   Context7 for application layout direction and `QStyle` visual mapping.
