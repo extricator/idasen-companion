@@ -76,7 +76,8 @@ jobs:
             python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtwidgets \
             python3-pyside6.qtdbus python3-pyside6.qtsvg \
             qt6-translations-l10n \
-            python3-tomlkit python3-yaml python3-dbus-fast python3-idasen python3-bleak
+            python3-babel python3-tomlkit python3-yaml python3-dbus-fast \
+            python3-idasen python3-bleak
 
       - name: Build both Debian release variants
         if: steps.changed.outputs.relevant == 'true'

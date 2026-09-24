@@ -43,6 +43,8 @@ PORTABILITY_VERIFIER = ROOT / "scripts" / "verify-rpm-portability.sh"
 RELEASE_BUILDER = ROOT / "scripts" / "build-release-variants.sh"
 RELEASE_VERIFIER = ROOT / "scripts" / "verify-release-artifacts.sh"
 RPM_WORKFLOW = ROOT / ".github" / "workflows" / "rpm.yml"
+DEB_WORKFLOW = ROOT / ".github" / "workflows" / "deb.yml"
+FLATPAK_WORKFLOW = ROOT / ".github" / "workflows" / "flatpak.yml"
 SRC = ROOT / "src" / "idasen_companion"
 STATS = SRC / "daemon" / "stats.py"
 
@@ -128,6 +130,24 @@ def test_every_existing_artifact_path_carries_babel():
     flatpak = read(FLATPAK_DEPS)
     assert "babel==2.18.0" in flatpak
     assert "babel-2.18.0-py3-none-any.whl" in flatpak
+
+
+def test_debian_ci_installs_babel_before_checking_build_dependencies():
+    """The CI image installs a deliberate package list instead of build-dep."""
+    assert "python3-babel" in read(DEB_WORKFLOW)
+
+
+def test_flatpak_ci_installs_the_manifest_base_app_branch():
+    manifest = read(FLATPAK_MANIFEST)
+    base = re.search(r"^base: (\S+)$", manifest, re.M)
+    branch = re.search(r"^base-version: ['\"]?([^'\"\n]+)", manifest, re.M)
+    assert base is not None
+    assert branch is not None
+    expected_ref = f"{base.group(1)}//{branch.group(1)}"
+
+    workflow = read(FLATPAK_WORKFLOW)
+    assert "flatpak install --noninteractive --assumeyes flathub" in workflow
+    assert expected_ref in workflow
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda p: p.name)

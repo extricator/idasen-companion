@@ -62,6 +62,12 @@ jobs:
         if: steps.changed.outputs.relevant == 'true'
         run: python3 -m pip install --quiet build
 
+      - name: Install the PySide BaseApp used by the manifest
+        if: steps.changed.outputs.relevant == 'true'
+        run: >-
+          flatpak install --noninteractive --assumeyes flathub
+          io.qt.PySide.BaseApp//6.10
+
       - name: Build the full Flatpak release bundle
         if: steps.changed.outputs.relevant == 'true'
         run: bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
