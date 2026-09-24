@@ -111,7 +111,7 @@ if $build_flatpak; then
     build_sdist
     flatpak_work=$(mktemp -d)
     trap 'rm -rf "${rpm_top:-}" "${deb_tree:-}" "${flatpak_work:-}"' EXIT
-    flatpak-builder --force-clean --disable-cache \
+    flatpak-builder --force-clean --disable-cache --disable-rofiles-fuse \
         --state-dir="$flatpak_work/state" --repo="$flatpak_work/repo" \
         "$flatpak_work/build" \
         packaging/flatpak/io.github.extricator.IdasenCompanion.yaml

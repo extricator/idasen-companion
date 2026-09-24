@@ -68,15 +68,9 @@ jobs:
           flatpak install --noninteractive --assumeyes flathub
           io.qt.PySide.BaseApp//6.10
 
-      - name: Initialize the container machine ID for the build bus
-        if: steps.changed.outputs.relevant == 'true'
-        run: dbus-uuidgen --ensure=/etc/machine-id
-
       - name: Build the full Flatpak release bundle
         if: steps.changed.outputs.relevant == 'true'
-        run: >-
-          dbus-run-session --
-          bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
+        run: bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
 
       - name: Upload the bundle
         if: steps.changed.outputs.relevant == 'true'

@@ -152,8 +152,7 @@ def test_flatpak_ci_installs_the_manifest_base_app_branch():
     workflow = read(FLATPAK_WORKFLOW)
     assert "flatpak install --noninteractive --assumeyes flathub" in workflow
     assert expected_ref in workflow
-    assert "dbus-uuidgen --ensure=/etc/machine-id" in workflow
-    assert "dbus-run-session --" in workflow
+    assert "--disable-rofiles-fuse" in read(RELEASE_BUILDER)
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda p: p.name)
