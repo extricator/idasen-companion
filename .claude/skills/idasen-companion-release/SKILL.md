@@ -278,8 +278,8 @@ release. Show the user the version and the release notes, then wait for an
 explicit go-ahead.
 
 Offer a dry run first when the release machinery itself changed. A dry run
-builds all three packages and writes the checksums, and creates no tag and no
-release:
+builds all five release artifacts and writes their checksums, and creates no
+tag and no release:
 
 ```bash
 gh workflow run release.yml -f version=X.Y.Z -f dry_run=true
@@ -294,9 +294,10 @@ gh run watch <run-id> --exit-status
 ```
 
 The workflow re-checks the version against `__version__`, refuses a tag that
-already exists, builds the RPM, the `.deb` and the Flatpak bundle, writes
-`SHA256SUMS` over the three, creates the `vX.Y.Z` tag pointing at the commit
-the artifacts came from, and publishes.
+already exists, builds the full and headless RPMs, the full and headless
+`.deb` packages, and the Flatpak bundle, writes `SHA256SUMS` over all five,
+creates the `vX.Y.Z` tag pointing at the commit the artifacts came from, and
+publishes.
 
 Report the release URL:
 
