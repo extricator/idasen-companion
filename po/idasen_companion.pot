@@ -1070,22 +1070,6 @@ msgctxt "background-permission"
 msgid "Start the desk automation automatically at login"
 msgstr ""
 
-#: src/idasen_companion/gui/main.py
-#: src/idasen_companion/gui/pages/settings_form.py
-msgctxt "config-warning"
-msgid "Idasen Companion"
-msgstr ""
-
-#: src/idasen_companion/gui/main.py
-#: src/idasen_companion/gui/pages/settings_form.py
-#, python-format
-msgctxt "config-warning"
-msgid ""
-"Some configuration settings are not recognized by this version. They will be "
-"preserved:\n"
-"%s"
-msgstr ""
-
 #: src/idasen_companion/gui/main_window.py
 msgctxt "window-shell"
 msgid "Overview"
@@ -1137,6 +1121,20 @@ msgid ""
 "No system tray detected (on GNOME, install the AppIndicator extension). "
 "Closing this window keeps the app running in the background; automation runs "
 "in the daemon either way."
+msgstr ""
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "config-warning"
+msgid "Idasen Companion"
+msgstr ""
+
+#: src/idasen_companion/gui/main_window.py
+#, python-format
+msgctxt "config-warning"
+msgid ""
+"Some configuration settings are not recognized by this version. They will be "
+"preserved:\n"
+"%s"
 msgstr ""
 
 #: src/idasen_companion/gui/main_window.py

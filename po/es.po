@@ -1168,24 +1168,6 @@ msgid "Start the desk automation automatically at login"
 msgstr ""
 "Iniciar la automatización del escritorio automáticamente al iniciar sesión"
 
-#: src/idasen_companion/gui/main.py
-#: src/idasen_companion/gui/pages/settings_form.py
-msgctxt "config-warning"
-msgid "Idasen Companion"
-msgstr "Idasen Companion"
-
-#: src/idasen_companion/gui/main.py
-#: src/idasen_companion/gui/pages/settings_form.py
-#, python-format
-msgctxt "config-warning"
-msgid ""
-"Some configuration settings are not recognized by this version. They will be "
-"preserved:\n"
-"%s"
-msgstr ""
-"Esta versión no reconoce algunos ajustes de configuración. Se conservarán:\n"
-"%s"
-
 #: src/idasen_companion/gui/main_window.py
 msgctxt "window-shell"
 msgid "Overview"
@@ -1241,6 +1223,22 @@ msgstr ""
 "No se detectó bandeja del sistema (en GNOME, instala la extensión "
 "AppIndicator). Cerrar esta ventana mantiene la app en segundo plano; la "
 "automatización se ejecuta en el demonio de todos modos."
+
+#: src/idasen_companion/gui/main_window.py
+msgctxt "config-warning"
+msgid "Idasen Companion"
+msgstr "Idasen Companion"
+
+#: src/idasen_companion/gui/main_window.py
+#, python-format
+msgctxt "config-warning"
+msgid ""
+"Some configuration settings are not recognized by this version. They will be "
+"preserved:\n"
+"%s"
+msgstr ""
+"Esta versión no reconoce algunos ajustes de configuración. Se conservarán:\n"
+"%s"
 
 #: src/idasen_companion/gui/main_window.py
 msgctxt "window-shell"

@@ -1,6 +1,6 @@
 # Phase 9 — close human-acceptance UX findings
 
-Plan date: 2026-09-24. Status: **Planned**. This phase follows the completed
+Plan date: 2026-09-24. Status: **Complete**. This phase follows the completed
 human-acceptance pass recorded in
 [`i18n-distribution-implementation-plan.md`](i18n-distribution-implementation-plan.md#13-phase-8--human-acceptance-without-installation).
 It fixes the two current-scope UX findings discovered there without reopening
@@ -168,9 +168,34 @@ Post-implementation human acceptance:
 
 ## 7. Completion record
 
-- State: Planned
-- Starting commit: `8fe1da6`
-- Implementation commit: —
-- Human-verification commit: —
-- Quality-gate results: —
-- Remaining findings: —
+- State: Complete
+- Starting checkpoint: `11c22ff`
+- Regression-test commit: `83a2c81`
+- Implementation commit: `488466c`
+- Human-verification record: this completion record
+- Automated verification:
+  - focused Phase 9 suite: 152 passed;
+  - full suite: 1566 passed, 1 skipped;
+  - naming-span check: passed;
+  - mypy: no issues in 57 source files;
+  - pylint 4.0.6: 10.00/10;
+  - translation build and `git diff --check`: passed.
+- Human acceptance:
+  - temporary root: `/tmp/idasen-companion-phase9-1vbCrQ`;
+  - the installed GUI and daemon were stopped before the branch session;
+    process checks proved one branch GUI and one mock daemon, never two tray
+    instances;
+  - the real-xcb window used the desktop's font and style. Spanish's complete
+    layout required a 950×600 minimum, so the production default correctly
+    opened at 950×660. The unchanged single Activity Log row showed
+    `Depuración`, `Información`, `Aviso`, `Error` and `y superior` in full;
+  - both Activity Log controls still filtered correctly;
+  - startup produced one aggregate for two warnings. Preloading and navigating
+    between both settings-class pages produced no duplicate; one later unknown
+    section produced one new aggregate, and an unchanged reload produced none;
+  - applying a known clock-format edit preserved the unknown option, unknown
+    sections, values, canary comment and source ordering;
+  - the branch GUI and mock daemon were stopped afterward. Final process proof:
+    installed service active, one installed GUI process, no branch process.
+- Remaining Phase 9 findings: none. The first-shipped-RTL-language gate in
+  section 4 remains deliberately deferred and unchanged.
