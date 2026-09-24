@@ -22,7 +22,7 @@ This is a focused polish phase. It does not add Arabic, change the stable
 English/metres journal policy, alter config validity rules, or redesign the
 settings pages.
 
-## 2. Finding A — responsive Activity Log filters
+## 2. Finding A — layout-driven Activity Log minimum width
 
 ### Observed failure
 
@@ -34,27 +34,43 @@ and stretch in one non-wrapping `QHBoxLayout`.
 
 ### Required design
 
-- Replace the single crowded toolbar with two stable logical rows:
-  - audience: Show + Activity/All;
-  - severity: Level + Debug/Info/Warn/Error + “and above”.
+- Preserve the present single-row toolbar, including the Show label,
+  Activity/All audience segments, four minimum-severity segments and trailing
+  “and above” label. Do not turn it into two permanent rows or replace either
+  segmented control with a different interaction.
+- Stop the top-level window's explicit 760 px minimum width from overriding
+  Qt's layout-derived minimum. The effective minimum must be the larger of:
+  - the existing 760×600 usability floor; and
+  - the complete window layout's current `minimumSizeHint()`, calculated from
+    the active translations, font, style and sidebar width.
+- Express that rule through Qt's size-hint/layout machinery. Do not maintain a
+  table of pixel widths by language and do not guess a new global width such as
+  800 or 820 px.
+- Keep the 860×660 initial window size when it is no smaller than the effective
+  minimum; if the layout genuinely requires more, the initial window must honor
+  that minimum rather than open with clipped controls.
 - Preserve the current filtering behavior and selected defaults.
-- Let Qt mirror both rows naturally in RTL; do not hand-code left/right order.
+- Let Qt mirror the row naturally in RTL; do not hand-code left/right order.
 - Keep every segment's full translated text. Do not solve clipping by shortening
-  Spanish, eliding labels, shrinking the font, or increasing the application's
-  global minimum width.
+  Spanish, eliding labels, shrinking the font or reducing control padding.
 - Preserve keyboard navigation, accessible names/descriptions and the visible
-  relationship between each label and its segmented control.
+  relationship between the labels and segmented controls.
 
 ### Tests
 
-- Construct the real Activity Log page under English and Spanish at the window
-  minimum (760×600) and default (860×660) sizes.
+- Construct the real main window under English and Spanish and obtain its
+  effective minimum through the same layout/size-hint path used in production.
+- Assert the English window retains at least the 760×600 usability floor and
+  that each language can raise either dimension when its real layout requires
+  more space.
+- Resize each window to its effective minimum and to the 860×660 default when
+  permitted by that minimum.
 - Assert every filter button's content rectangle can contain its full text in
   normal and selected/DemiBold states.
 - Run the same geometry assertions in LTR and RTL directions so the repair does
   not regress Phase 6.
 - Retain the existing filter-behavior tests; add a focused test proving both
-  rows still drive `_visible()` correctly.
+  controls still drive `_visible()` correctly.
 
 ## 3. Finding B — deduplicate unknown-config dialogs
 
@@ -96,9 +112,9 @@ the same warnings a fourth time. Preservation itself passed.
 
 ## 4. Explicit non-solutions and deferred RTL gate
 
-Do not fix either finding by raising the minimum window size, deleting
-translations, hiding warnings, weakening config validation, or avoiding config
-reloads.
+Do not fix either finding by guessing a larger fixed minimum window width,
+deleting translations, hiding warnings, weakening config validation, or
+avoiding config reloads.
 
 The Arabic fallback observation from Phase 8 is not implementation scope here:
 no RTL catalog ships. Before the first RTL language is released, its own phase
@@ -111,8 +127,9 @@ phase.
 
 1. Add failing geometry tests for the Spanish Activity Log at minimum/default
    widths and both layout directions.
-2. Recompose the filter toolbar into the two logical rows and make those tests
-   pass without changing the global window minimum.
+2. Replace the explicit top-level minimum-width override with the approved
+   layout-derived minimum plus the existing usability floor. Make the geometry
+   tests pass without changing the one-row toolbar.
 3. Add failing startup/navigation/reload tests for duplicate warning modals.
 4. Centralize warning presentation and fingerprinting at GUI scope; remove
    page-owned unknown-data dialogs.
@@ -137,8 +154,11 @@ git diff --check
 
 Post-implementation human acceptance:
 
-- Spanish at 760×600 and 860×660: every Activity Log filter label is visible
-  without resizing.
+- English and Spanish at each layout-derived effective minimum: every Activity
+  Log filter label is visible on the unchanged single toolbar row.
+- The initial window remains 860×660 where that satisfies the effective minimum;
+  a platform whose translated font/style needs more opens at the larger
+  layout-derived size rather than clipping.
 - English and Spanish filtering still behaves correctly.
 - One startup dialog lists multiple unknown items once; opening Settings and
   revisiting it produces no duplicate.
