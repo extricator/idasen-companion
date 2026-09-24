@@ -1081,7 +1081,8 @@ reader-side Activity Log, live unit/clock preferences, Spanish localization,
 structural RTL, unknown-config preservation and installed-version restoration.
 The physical desk never moved during mock testing.
 
-Two non-blocking UX findings remain for a later code change:
+Two non-blocking UX findings remain for the focused follow-up in
+[`i18n-distribution-phase-9-plan.md`](i18n-distribution-phase-9-plan.md):
 
 1. At the default window width, Spanish Activity Log severity controls can
    clip their longer labels; widening the window resolves it.
