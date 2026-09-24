@@ -134,10 +134,14 @@ def test_every_existing_artifact_path_carries_babel():
 
 def test_debian_ci_installs_babel_before_checking_build_dependencies():
     """The CI image installs a deliberate package list instead of build-dep."""
+    if not DEB_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
     assert "python3-babel" in read(DEB_WORKFLOW)
 
 
 def test_flatpak_ci_installs_the_manifest_base_app_branch():
+    if not FLATPAK_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
     manifest = read(FLATPAK_MANIFEST)
     base = re.search(r"^base: (\S+)$", manifest, re.M)
     branch = re.search(r"^base-version: ['\"]?([^'\"\n]+)", manifest, re.M)
@@ -148,6 +152,7 @@ def test_flatpak_ci_installs_the_manifest_base_app_branch():
     workflow = read(FLATPAK_WORKFLOW)
     assert "flatpak install --noninteractive --assumeyes flathub" in workflow
     assert expected_ref in workflow
+    assert "dbus-uuidgen --ensure=/etc/machine-id" in workflow
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda p: p.name)
