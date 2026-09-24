@@ -32,7 +32,7 @@ from .theme import (NAV_ICON_SIZE, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css,
 from .util import connection_state, daemon_error_message
 from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
 from ..core.i18n import pgettext
-from ..core.presentation.register import P_
+from ..core.i18n import P_
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication

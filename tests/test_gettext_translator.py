@@ -10,11 +10,11 @@ from __future__ import annotations
 import pytest
 
 from idasen_companion.core import i18n
-from idasen_companion.core.presentation.gettext_translator import (
+from idasen_companion.core.i18n import (
     GettextTranslator,
 )
-from idasen_companion.core.presentation.protocols import Translator
-from idasen_companion.core.presentation import register
+from idasen_companion.core.i18n import Translator
+from idasen_companion.core import i18n as register
 
 
 @pytest.fixture(autouse=True)

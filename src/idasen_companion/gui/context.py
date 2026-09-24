@@ -25,11 +25,11 @@ from PySide6.QtWidgets import QApplication
 from ..core.config import (
     DEFAULT_CONFIG_PATH, AppConfig, load_config, save_config,
 )
-from ..core.clock_format import ClockSetting, resolve_clock_style
+from ..core.display_prefs import ClockSetting, resolve_clock_style
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
-from ..core.presentation.formatter import Formatter, PresentationContext
-from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.units import UnitSetting, resolve_height_unit
+from ..core.presentation import Formatter, PresentationContext
+from ..core.i18n import GettextTranslator
+from ..core.display_prefs import UnitSetting, resolve_height_unit
 from .dbus_client import DaemonClient
 from .i18n import apply_language
 
@@ -61,7 +61,7 @@ class AppContext(QObject):
 
         A display language is not a statement about measurement. The
         environment is not a guess here — it is the only signal that
-        actually describes the user's country. ``core/units.py``'s own
+        actually describes the user's country. ``core/display_prefs.py``'s own
         module docstring lists the intended order (``language`` when it
         names a territory, then ``LC_ALL``, ``LC_MEASUREMENT``, ``LANG``,
         ``LANGUAGE``); passing the resolved locale's name manufactures a

@@ -2,8 +2,8 @@
 
 import pytest
 
-from idasen_companion.core.clock_format import ClockSetting, resolve_clock_style
-from idasen_companion.core.presentation.specs import TimeStyle
+from idasen_companion.core.display_prefs import ClockSetting, resolve_clock_style
+from idasen_companion.core.locale_profile import TimeStyle
 
 _TWELVE = TimeStyle.HOUR_AND_MINUTE_12
 _TWENTY_FOUR = TimeStyle.HOUR_AND_MINUTE_24

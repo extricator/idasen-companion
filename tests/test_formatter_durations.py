@@ -1,31 +1,29 @@
 """``Formatter.duration_verbose``/``duration``/``duration_hm`` -- the merged
 PRES-03/D-01/D-02 duration policy.
 
-Built against the real :class:`EnglishTranslator` (not the markers in
-``presentation_fakes``), the same choice ``test_formatter_heights.py`` makes:
-these methods produce rendered English text, and a marker-only test could
-not distinguish "1 hour" from a policy bug that happened to also produce a
-string.
+Built against the real :class:`EnglishTranslator`, the same choice
+``test_formatter_heights.py`` makes: these methods produce rendered English
+text, so the assertions catch product-policy regressions.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from idasen_companion.core.presentation.english import (
+from idasen_companion.core.presentation import (
     EnglishTranslator, format_duration_human,
 )
-from idasen_companion.core.presentation.formatter import (
+from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
-from idasen_companion.core.units import HeightUnit
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
 
 
 def _formatter() -> Formatter:
     context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)

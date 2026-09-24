@@ -8,7 +8,7 @@ formatters while preserving the English wire fallback for unknown ids.
 from __future__ import annotations
 
 from ..core import activity_log, logmsg
-from ..core.presentation.formatter import Formatter
+from ..core.presentation import Formatter
 
 # Transitional read-only aliases: migration-audit tests can prove this module
 # derives from the canonical definitions without carrying a second catalog.

@@ -4,9 +4,8 @@ from datetime import datetime
 
 import pytest
 
-from idasen_companion.core.locale_profile import LocaleProfile, resolve_app_locale
-from idasen_companion.core.presentation.specs import (
-    DateStyle, IntegerSpec, NumberSpec, TimeStyle,
+from idasen_companion.core.locale_profile import (
+    DateStyle, LocaleProfile, TimeStyle, resolve_app_locale,
 )
 
 
@@ -21,10 +20,8 @@ from idasen_companion.core.presentation.specs import (
 def test_number_integer_and_percent_matrix(
         locale_name, decimal, integer, percent):
     profile = LocaleProfile(locale_name)
-    assert profile.number(
-        1234.5, NumberSpec(decimals=1, grouping=True)) == decimal
-    assert profile.integer(
-        12345, IntegerSpec(grouping=True)) == integer
+    assert profile.number(1234.5, decimals=1, grouping=True) == decimal
+    assert profile.integer(12345, grouping=True) == integer
     assert profile.percent(0.375) == percent
 
 

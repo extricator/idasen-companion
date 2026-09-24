@@ -119,7 +119,7 @@ def _pin_timezone():
 def _pin_default_locale():
     """Pin QLocale's default to en_US for the whole run.
 
-    QtLocaleFormatter is built from QLocale() on every path that doesn't
+    LocaleProfile is built from QLocale() on every path that doesn't
     name a language, so without this the builder's own $LANG leaks into a
     rendered decimal — test_log_catalog.py's "110.0 cm" assertion would only hold on
     an English machine, and would silently fail the RPM's %check on a

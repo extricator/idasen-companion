@@ -1,6 +1,6 @@
 """``STATUS_LABELS`` must not drift from ``Status``.
 
-``core/presentation/register.py`` maps every wire-format status value to a
+``core/i18n.py`` maps every wire-format status value to a
 translated label by hand, alongside the ``Status`` enum in
 ``core/machine.py``. A future status value that ships without a label
 degrades gracefully at runtime (``status_label()`` falls back to the raw wire
@@ -14,7 +14,7 @@ to force.
 """
 
 from idasen_companion.core.machine import Status
-from idasen_companion.core.presentation.register import STATUS_LABELS
+from idasen_companion.core.i18n import STATUS_LABELS
 
 
 def test_every_status_has_a_label():

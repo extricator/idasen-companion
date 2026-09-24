@@ -29,8 +29,8 @@ from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.core.config import (  # noqa: E402
     MAX_HEIGHT, MIN_HEIGHT, AppConfig, load_config, save_config,
 )
-from idasen_companion.core import units as core_units  # noqa: E402
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
+from idasen_companion.core import display_prefs as core_units  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
@@ -55,7 +55,7 @@ def locale(request):
 
 # ---- resolving the setting ------------------------------------------------
 #
-# core.units.resolve_height_unit is the one place "system" resolves (D-07);
+# core.display_prefs.resolve_height_unit is the one place "system" resolves (D-07);
 # the Qt-based resolver gui/util.py used to carry is gone, on the evidence of
 # test_the_qt_free_resolver_agrees_with_the_qt_one, which passed before this
 # module deleted the resolver it compared against (see the plan's commit
@@ -88,16 +88,16 @@ def test_system_follows_measurement_locale_not_selected_language(
 
 
 def _formatter(unit: core_units.HeightUnit):
-    from idasen_companion.core.presentation.english import EnglishTranslator
-    from idasen_companion.core.presentation.formatter import (
+    from idasen_companion.core.presentation import EnglishTranslator
+    from idasen_companion.core.presentation import (
         Formatter, PresentationContext,
     )
-    from idasen_companion.core.presentation.plain_locale import (
-        PlainLocaleFormatter,
+    from idasen_companion.core.locale_profile import (
+        LocaleProfile,
     )
 
     return Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=unit,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
@@ -123,16 +123,16 @@ def test_inches_render_as_inches(locale):
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
 def test_the_locale_still_owns_the_decimal_separator(locale):
-    from idasen_companion.core.presentation.gettext_translator import (
+    from idasen_companion.core.i18n import (
         GettextTranslator,
     )
-    from idasen_companion.core.presentation.formatter import (
+    from idasen_companion.core.presentation import (
         Formatter, PresentationContext,
     )
-    from idasen_companion.gui.locale_backend import QtLocaleFormatter
+    from idasen_companion.core.locale_profile import LocaleProfile
 
     fmt = Formatter(PresentationContext(
-        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=core_units.HeightUnit.INCHES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.height(1.105).startswith("43,50")
@@ -147,7 +147,7 @@ def test_a_displayed_height_survives_the_trip_back(unit, meters):
     Overview's Move button does precisely this with a spin box the user never
     touched, so the rounding at display precision has to be smaller than the
     desk cares about — and must never land outside its travel. The
-    conversion is ``core/units.py``'s own — the same arithmetic
+    conversion is ``core/display_prefs.py``'s own — the same arithmetic
     ``ctx.fmt.to_display_height``/``from_display_height`` reach it through.
     """
     shown = round(core_units.to_display_height(meters, unit),

@@ -20,7 +20,7 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 from ..core.machine import (
     COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES,
 )
-from ..core.presentation.formatter import Formatter
+from ..core.presentation import Formatter
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,

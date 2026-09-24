@@ -26,7 +26,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion import DBUS_NAME  # noqa: E402
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
-from idasen_companion.core.presentation.register import (  # noqa: E402
+from idasen_companion.core.i18n import (  # noqa: E402
     DAEMON_ERROR_MESSAGES,
 )
 from idasen_companion.gui.util import daemon_error_message  # noqa: E402
@@ -68,7 +68,7 @@ def test_every_mapped_error_is_translated_in_spanish(qapp, name):
     Spanish install is the failure this mapping exists to prevent.
 
     Spanish is bound through the gettext catalog, not by loading the Qt
-    ``.qm``: the sentences moved to ``core/presentation/`` so the future CLI
+    ``.qm``: the sentences moved to ``core/presentation.py`` so the future CLI
     can reach them without a second copy, and a shared word is looked up in
     the shared catalog. The claim under test is unchanged — every mapped
     name renders differently in Spanish than in English.

@@ -39,8 +39,8 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
-from idasen_companion.core.presentation.formatter import Formatter  # noqa: E402
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
+from idasen_companion.core.presentation import Formatter  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui.pages.statistics import StatisticsPage  # noqa: E402
 
 

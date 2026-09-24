@@ -30,7 +30,7 @@ _PO_STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 
 #: Call names an extraction marker's literal is passed to, positionally --
 #: gettext's own pair, and the two functions the shared layer's own register
-#: (``core/presentation/register.py``) adds alongside them. Named once, as
+#: (``core/i18n.py``) adds alongside them. Named once, as
 #: data, so both checks below read the same definition rather than two that
 #: could drift apart.
 _MARKER_ARGS = {

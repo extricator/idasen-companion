@@ -13,9 +13,9 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .clock_format import ClockSetting
+from .display_prefs import ClockSetting
 from .durations import format_duration_compact, parse_duration
-from .units import UnitSetting
+from .display_prefs import UnitSetting
 
 DEFAULT_CONFIG_DIR = Path(
     os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -63,7 +63,7 @@ VALID_CLOSE_ACTIONS = ("tray", "quit")
 VALID_UNITS = tuple(member.value for member in UnitSetting)
 
 # See UiConfig.clock_format. "system" reads the POSIX time locale and, failing
-# that, the territory of the language in play (see core/clock_format.py);
+# that, the territory of the language in play (see core/display_prefs.py);
 # "12" and "24" pin the clock outright. Derived from ClockSetting rather than
 # restated, for the same reason the units tuple above is.
 VALID_CLOCK_FORMATS = tuple(member.value for member in ClockSetting)
@@ -201,7 +201,7 @@ class UiConfig:
     # tomllib), and the tomlkit write path in save_config below writes
     # whatever this holds verbatim, so a StrEnum instance must never reach
     # it. Coercion to UnitSetting happens at the point of use instead — the
-    # boundary core/units.py's resolve_height_unit sits behind.
+    # boundary core/display_prefs.py's resolve_height_unit sits behind.
     units: str = "system"
     # See VALID_CLOCK_FORMATS. Which clock every wall-clock time the app shows
     # is read on. "system" is a first guess from the environment rather than
@@ -213,7 +213,7 @@ class UiConfig:
     # Stays str, not ClockSetting, for the reason the units field above gives:
     # this attribute name is the TOML key, and the tomlkit write path must
     # never be handed a StrEnum instance. Coercion happens at the point of
-    # use, behind core/clock_format.py's resolver.
+    # use, behind core/display_prefs.py's resolver.
     clock_format: str = "system"
     # Window/tray behaviour. All of these only bite when a system tray exists;
     # with no tray the window always shows and closing it exits (see gui/main).

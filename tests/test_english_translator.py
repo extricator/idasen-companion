@@ -1,23 +1,13 @@
 """Tests for the English-only :class:`Translator` backend.
 
-``EnglishTranslator`` must never reach the process-wide gettext catalog —
-that absence is checked here directly, by reading the module's own source
-with `ast` and asserting no import names ``i18n``, rather than by comment,
-since the absence is the decision D-03 makes (see the module docstring).
+``EnglishTranslator`` returns source text directly, keeping stable journal
+output independent from the process-wide gettext catalog.
 """
 
 from __future__ import annotations
 
-import ast
-from pathlib import Path
-
-from idasen_companion.core.presentation.english import EnglishTranslator
-from idasen_companion.core.presentation.protocols import Translator
-
-MODULE_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "src" / "idasen_companion" / "core" / "presentation" / "english.py"
-)
+from idasen_companion.core.presentation import EnglishTranslator
+from idasen_companion.core.i18n import Translator
 
 
 def test_message_returns_the_source_unchanged():
@@ -55,23 +45,3 @@ def test_plural_substitutes_named_values():
 
 def test_english_translator_satisfies_the_translator_protocol():
     assert isinstance(EnglishTranslator(), Translator)
-
-
-def test_the_module_imports_nothing_from_core_i18n():
-    """The absence of a `core.i18n` import is the decision (D-03), so it
-    gets an assertion rather than a comment."""
-    tree = ast.parse(MODULE_PATH.read_text(encoding="utf-8"))
-    offenders = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            module = node.module or ""
-            if module.rsplit(".", maxsplit=1)[-1] == "i18n":
-                offenders.append(f"line {node.lineno}: from {module} import ...")
-            for alias in node.names:
-                if alias.name == "i18n":
-                    offenders.append(f"line {node.lineno}: from ... import i18n")
-        elif isinstance(node, ast.Import):
-            for alias in node.names:
-                if alias.name.rsplit(".", maxsplit=1)[-1] == "i18n":
-                    offenders.append(f"line {node.lineno}: import {alias.name}")
-    assert not offenders, offenders

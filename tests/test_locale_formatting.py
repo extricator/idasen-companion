@@ -23,21 +23,19 @@ from datetime import datetime  # noqa: E402
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox  # noqa: E402
 
-from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
-from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.i18n import (  # noqa: E402
     GettextTranslator,
 )
-from idasen_companion.core.presentation.formatter import (  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
-    PlainLocaleFormatter,
+from idasen_companion.core.locale_profile import (  # noqa: E402
+    LocaleProfile,
 )
-from idasen_companion.core.presentation.specs import (  # noqa: E402
-    NumberSpec, TimeStyle,
-)
-from idasen_companion.core.units import HeightUnit  # noqa: E402
-from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
 from idasen_companion.gui.util import fmt_day_heading  # noqa: E402
 
@@ -46,7 +44,7 @@ def _plain_formatter(unit: HeightUnit = HeightUnit.CENTIMETRES) -> Formatter:
     # English backend, not the Qt catalog -- these two assertions are about
     # the number/padding policy, not translation.
     return Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=unit,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
@@ -78,8 +76,8 @@ def test_english_locale_output_is_unchanged(locale):
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
 def test_spanish_locale_uses_a_comma(locale):
-    formatter = QtLocaleFormatter(QLocale())
-    assert "," in formatter.number(110.5, NumberSpec(decimals=1))
+    formatter = LocaleProfile(QLocale().name())
+    assert "," in formatter.number(110.5, decimals=1)
     fmt = Formatter(PresentationContext(
         locale=formatter, translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
@@ -89,10 +87,11 @@ def test_spanish_locale_uses_a_comma(locale):
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_trim_drops_a_trailing_zero_decimal(locale):
-    formatter = QtLocaleFormatter(QLocale())
-    spec = NumberSpec(decimals=1, trim_trailing_zeroes=True)
-    assert formatter.number(60.0, spec) == "60"
-    assert formatter.number(60.5, spec) == "60.5"
+    formatter = LocaleProfile(QLocale().name())
+    assert formatter.number(
+        60.0, decimals=1, trim_trailing_zeroes=True) == "60"
+    assert formatter.number(
+        60.5, decimals=1, trim_trailing_zeroes=True) == "60.5"
 
 
 def _ambient_formatter() -> Formatter:
@@ -103,7 +102,7 @@ def _ambient_formatter() -> Formatter:
     thing the fixture is actually varying.
     """
     return Formatter(PresentationContext(
-        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
 

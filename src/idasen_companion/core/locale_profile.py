@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from enum import StrEnum
 from typing import Literal, Mapping
 
 from babel import Locale
@@ -17,7 +18,33 @@ from babel.dates import format_date, format_time, get_time_format
 from babel.numbers import format_decimal, format_percent
 from babel.units import format_unit
 
-from .presentation.specs import DateStyle, IntegerSpec, NumberSpec, TimeStyle
+class DateStyle(StrEnum):
+    """A calendar date shape requested by a presentation surface."""
+
+    WEEKDAY_AND_DAY = "weekday_and_day"
+    WEEKDAY_DAY_MONTH_YEAR = "weekday_day_month_year"
+
+
+class TimeStyle(StrEnum):
+    """A resolved wall-clock display shape."""
+
+    HOUR_AND_MINUTE_12 = "hour_and_minute_12"
+    HOUR_AND_MINUTE_24 = "hour_and_minute_24"
+    HOUR_MINUTE_AND_SECOND_12 = "hour_minute_and_second_12"
+    HOUR_MINUTE_AND_SECOND_24 = "hour_minute_and_second_24"
+
+    @property
+    def with_seconds(self) -> TimeStyle:
+        """This style's seconds-bearing sibling, on the same clock."""
+        return {
+            TimeStyle.HOUR_AND_MINUTE_12: TimeStyle.HOUR_MINUTE_AND_SECOND_12,
+            TimeStyle.HOUR_AND_MINUTE_24: TimeStyle.HOUR_MINUTE_AND_SECOND_24,
+            TimeStyle.HOUR_MINUTE_AND_SECOND_12:
+                TimeStyle.HOUR_MINUTE_AND_SECOND_12,
+            TimeStyle.HOUR_MINUTE_AND_SECOND_24:
+                TimeStyle.HOUR_MINUTE_AND_SECOND_24,
+        }[self]
+
 
 _APP_LOCALE_ENVIRON = ("LC_ALL", "LC_MESSAGES", "LANGUAGE", "LANG")
 
@@ -84,21 +111,25 @@ class LocaleProfile:
         """The CLDR default whose symbols Babel uses for this profile."""
         return self._locale.default_numbering_system
 
-    def number(self, value: float, spec: NumberSpec) -> str:
-        decimals = spec.decimals
-        if spec.trim_trailing_zeroes and value == int(value):
+    def number(self, value: float, *, decimals: int,
+               trim_trailing_zeroes: bool = False,
+               grouping: bool = False) -> str:
+        """Format a decimal with call-site precision and grouping policy."""
+        if trim_trailing_zeroes and value == int(value):
             decimals = 0
-        integer = "#,##0" if spec.grouping else "0"
+        integer = "#,##0" if grouping else "0"
         pattern = integer + ("." + "0" * decimals if decimals else "")
         return format_decimal(
             Decimal(str(value)), format=pattern, locale=self._locale,
-            decimal_quantization=True, group_separator=spec.grouping,
+            decimal_quantization=True, group_separator=grouping,
             numbering_system="default")
 
-    def integer(self, value: int, spec: IntegerSpec) -> str:
-        zeroes = "0" * spec.min_digits
-        pattern = ("#,##" if spec.grouping else "") + zeroes
-        options = {"group_separator": True} if spec.grouping else {}
+    def integer(self, value: int, *, min_digits: int = 1,
+                grouping: bool = False) -> str:
+        """Format an integer with call-site width and grouping policy."""
+        zeroes = "0" * min_digits
+        pattern = ("#,##" if grouping else "") + zeroes
+        options = {"group_separator": True} if grouping else {}
         return format_decimal(
             int(value), format=pattern, locale=self._locale,
             numbering_system="default", **options)

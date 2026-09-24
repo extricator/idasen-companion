@@ -29,9 +29,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from .presentation.english import format_duration_human
-from .presentation.protocols import Translator
-from .presentation.register import MessageKey, NP_, P_
+from .presentation import format_duration_human
+from .i18n import Translator
+from .i18n import MessageKey, NP_, P_
 
 
 class Channel(StrEnum):

@@ -19,7 +19,7 @@ for: this module never reads it, it only acts on what it is told.
 
 **Why QtDBus and not the daemon's own D-Bus stack.** The options and results
 here are dictionaries of variants (``a{sv}``) — the variant-*wrapped* case
-QtDBus demarshals natively, not the non-variant containers CLAUDE.md's D-Bus
+QtDBus demarshals natively, not the non-variant containers the project's D-Bus
 wire-format note warns about. Calling synchronously from a nested event loop,
 the same shape ``setup_wizard.py`` already uses to wait for the daemon, keeps
 this a plain function call from a click handler's point of view, matching how

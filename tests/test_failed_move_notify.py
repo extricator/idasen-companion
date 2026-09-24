@@ -18,15 +18,15 @@ from unittest.mock import AsyncMock, MagicMock
 from idasen_companion.core.machine import (
     DeskState, HeldOffCycle, MoveFailed, SyncFailed,
 )
-from idasen_companion.core.presentation.formatter import (
+from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.gettext_translator import (
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.i18n import (
     GettextTranslator,
 )
-from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
-from idasen_companion.core.units import HeightUnit
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
 from idasen_companion.daemon.main import Daemon
 
 TARGET = 45 * 60
@@ -51,7 +51,7 @@ def _daemon(*, problems: bool = True, enabled: bool = False):
     # which has no resolvable [ui] units — the pair is the same one the
     # daemon builds for itself (D-06).
     d.fmt = Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=GettextTranslator(),
+        locale=LocaleProfile("en_US"), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
     d._notifier = MagicMock(send=AsyncMock())

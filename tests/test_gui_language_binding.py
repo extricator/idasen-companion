@@ -49,7 +49,7 @@ def test_apply_language_binds_the_gettext_catalog(qapp):
     installed = apply_language(qapp, "es")
     try:
         # A known po/es.po msgid -- proves core/i18n.py's catalog (which
-        # QtTranslator never touches) is the one that moved.
+        # Qt's own translator never touches) is the one that moved.
         assert (core_i18n.pgettext("shared.presentation", "Try now")
                 == "Intentar ahora")
     finally:

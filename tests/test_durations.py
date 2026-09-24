@@ -7,8 +7,8 @@ from idasen_companion.core.durations import (
     format_duration_compact,
     parse_duration,
 )
-from idasen_companion.core.presentation.english import format_duration_human
-from idasen_companion.core.units import UnitSetting
+from idasen_companion.core.presentation import format_duration_human
+from idasen_companion.core.display_prefs import UnitSetting
 
 
 @pytest.mark.parametrize(

@@ -3,8 +3,7 @@
 This module records the design's § 14 call-site decision — the choice
 between threading a presentation context explicitly through every
 formatter's signature, and bundling it behind a small facade object — as
-committed source, because ``.planning/`` is gitignored on this project and
-would take the reasoning with it if it lived there instead.
+committed source so the reasoning stays beside the implementation.
 
 **The chosen shape.** A single ``Formatter`` facade, built once from a
 ``PresentationContext``, so a call site reads ``Formatter(ctx).height(m)``
@@ -31,7 +30,7 @@ a parameter worth binding once instead of repeating everywhere.
 
 **What this facade is not.** There is still exactly one ``Formatter``
 implementation — the polymorphism lives entirely in its collaborators, the
-``LocaleFormatter`` and ``Translator`` the context carries. That is the
+``LocaleProfile`` and ``Translator`` the context carries. That is the
 distinction from the per-surface renderer set this project already
 rejected: a Qt renderer and a headless renderer each reimplementing the
 same formatting policy. Here the policy is written once, in this facade's
@@ -44,18 +43,16 @@ solved that on its own — PRES-06 did, by handing those widgets a
 ``Formatter`` at construction. A widget that needs one now takes one.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 
-from .. import units
-from ..durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
-from ..machine import DeskState
-from ..units import HeightUnit
-from . import dates, words
-from .protocols import LocaleFormatter, Translator
-from .register import (
+from . import display_prefs as units
+from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
+from .machine import DeskState
+from .display_prefs import HeightUnit
+from .i18n import Translator
+from .i18n import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
     HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT,
     MINUTES, MINUTES_ABBREVIATED, MINUTES_COMPACT, MOVE_FAILED_BODY,
@@ -63,7 +60,7 @@ from .register import (
     PRESET_TICK, PRE_MOVE_BODY, PRE_MOVE_SITTING, PRE_MOVE_STANDING, SECONDS,
     SECONDS_COMPACT, SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
-from .specs import IntegerSpec, NumberSpec, TimeStyle
+from .locale_profile import LocaleProfile, TimeStyle
 
 
 @dataclass(frozen=True)
@@ -77,7 +74,7 @@ class PresentationContext:
     nothing here changes over the context's lifetime.
 
     ``unit`` carries no default. ``"system"`` is a setting, not a unit —
-    :func:`idasen_companion.core.units.resolve_height_unit` is the one
+    :func:`idasen_companion.core.display_prefs.resolve_height_unit` is the one
     place that resolves it — and a default here would quietly let a
     caller hand this context an unresolved policy question instead of an
     answer.
@@ -88,7 +85,7 @@ class PresentationContext:
     let a caller hand this context the question instead of the answer.
     """
 
-    locale: LocaleFormatter
+    locale: LocaleProfile
     translator: Translator
     unit: HeightUnit
     time_style: TimeStyle
@@ -102,8 +99,7 @@ class Formatter:
     a whole message goes through ``self._context.translator``, and nothing
     is ever concatenated in Python — the values these two collaborators
     produce are substituted into a translated pattern instead (see
-    ``core/presentation/formatter.py``'s callers and CLAUDE.md's
-    whole-message rule).
+    ``core/presentation.py``'s callers and the whole-message rule).
 
     See the module docstring for the recorded § 14 decision — this facade
     over an explicit context argument at every call site — and the
@@ -153,7 +149,7 @@ class Formatter:
         """
         return self._context.locale.number(
             self.to_display_height(meters),
-            NumberSpec(decimals=self.height_decimals(), trim_trailing_zeroes=trim))
+            decimals=self.height_decimals(), trim_trailing_zeroes=trim)
 
     def height(self, meters: float, trim: bool = False) -> str:
         """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
@@ -195,28 +191,28 @@ class Formatter:
         phrases with a theme colour and so stays in ``gui/``; both spellings
         resolve to the one implementation in :mod:`.words`.
         """
-        key = words.connection_state_key(connected, available, persistent)
-        return words.connection_phrases(self._context.translator, key)
+        key = connection_state_key(connected, available, persistent)
+        return connection_phrases(self._context.translator, key)
 
     def status_label(self, status: str) -> str:
         """The long automation-status sentence for a status wire value."""
-        return words.status_label(self._context.translator, status)
+        return status_label(self._context.translator, status)
 
     def status_head(self, status: str) -> str:
         """The short Overview status head word for a status wire value."""
-        return words.status_head(self._context.translator, status)
+        return status_head(self._context.translator, status)
 
     def position_label(self, position: str) -> str:
         """The display word for a desk position wire value."""
-        return words.position_label(self._context.translator, position)
+        return position_label(self._context.translator, position)
 
     def preset_label(self, name: str) -> str:
         """The display name for a preset; a user's own name is verbatim."""
-        return words.preset_label(self._context.translator, name)
+        return preset_label(self._context.translator, name)
 
     def trigger_label(self, trigger: str) -> str:
         """The word for a transition's trigger wire value."""
-        return words.trigger_label(self._context.translator, trigger)
+        return trigger_label(self._context.translator, trigger)
 
     # ----- the daemon's desktop notifications ---------------------------
     #
@@ -299,41 +295,41 @@ class Formatter:
 
     def later_label(self) -> str:
         """The stand-in for a snooze deadline not fetched yet."""
-        return words.later_label(self._context.translator)
+        return later_label(self._context.translator)
 
     def snooze_line(self, when_text: str) -> str:
         """"Snoozed until 14:32", from an already-formatted clock string."""
-        return words.snooze_line(self._context.translator, when_text)
+        return snooze_line(self._context.translator, when_text)
 
     def due_now_label(self) -> str:
         """Shown where a countdown would be, once it has run out."""
-        return words.due_now_label(self._context.translator)
+        return due_now_label(self._context.translator)
 
     def minutes_label(self, count: int) -> str:
         """The plural word for a count of minutes, e.g. "5 minutes"."""
-        return words.minutes_label(self._context.translator, count)
+        return minutes_label(self._context.translator, count)
 
     def position_or_custom(self, position: str) -> str:
         """The desk's position as a word, or "Custom" at neither preset."""
-        return words.position_or_custom(self._context.translator, position)
+        return position_or_custom(self._context.translator, position)
 
     def countdown(self, seconds: float) -> str:
         """A running countdown, e.g. 125 -> "2:05"."""
-        return words.countdown(
+        return countdown(
             self._context.translator, self._context.locale, seconds)
 
     def day_label(self, key: str) -> str:
         """The short day name for a schedule day key ('mon' -> 'Lun')."""
-        return words.day_label(self._context.translator, key)
+        return day_label(self._context.translator, key)
 
     def fmt_days(self, days: list[str]) -> str:
         """A schedule's day list, with consecutive runs collapsed to ranges."""
-        return words.fmt_days(self._context.translator, days)
+        return fmt_days(self._context.translator, days)
 
     # ----- the moment renderers: PRES-01's sanctioned divergence point ---
     #
     # These four ask the locale backend for a date/time *style* and never a
-    # pattern (see core/presentation/dates.py), which is what lets the
+    # pattern (see core/presentation.pypy), which is what lets the
     # Qt-free backend answer differently — a fixed ISO date rather than a
     # weekday/month name table it would otherwise have to own itself.
 
@@ -346,12 +342,12 @@ class Formatter:
         single most likely mistake at this site, which is why this method
         is named ``day_short`` rather than reusing ``day_label``.
         """
-        return dates.day_short(self._context.locale, when)
+        return day_short(self._context.locale, when)
 
     def day_heading(self, when: datetime) -> str:
         """A full calendar date as a day-separator heading, e.g.
         "Mon 17 Aug 2026" (Qt) / "2026-08-17" (Qt-free)."""
-        return dates.day_heading(self._context.locale, when)
+        return day_heading(self._context.locale, when)
 
     def clock(self, when: datetime) -> str:
         """The wall-clock render, e.g. "14:32" or, in a 12-hour locale,
@@ -360,7 +356,7 @@ class Formatter:
         Also not to be confused with :meth:`day_label`, the unrelated
         schedule-day-key word ('mon' -> 'Lun').
         """
-        return dates.clock(
+        return clock(
             self._context.locale, self._context.time_style, when)
 
     def clock_with_seconds(self, when: datetime) -> str:
@@ -373,14 +369,14 @@ class Formatter:
         exists to close. The seconds are what orders two events inside the
         same minute, so they stay.
         """
-        return dates.clock(
+        return clock(
             self._context.locale, self._context.time_style.with_seconds, when)
 
     def day_and_clock(self, when: datetime) -> str:
         """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
         translated message — see :mod:`.dates` for why the separating
         space is a catalog entry rather than a Python literal."""
-        return dates.day_and_clock(
+        return day_and_clock(
             self._context.locale, self._context.translator,
             self._context.time_style, when)
 
@@ -405,7 +401,7 @@ class Formatter:
         one for the minutes — inside :data:`~.register.HOURS_AND_MINUTES`.
 
         That nesting is not a violation of the whole-message rule: it is
-        the exact shape :func:`.words.fmt_days` and
+        the exact shape :func:`.fmt_days` and
         :data:`~.register.DAY_PAIR` already use and document, whole labels
         substituted into a translated
         pattern message, and ``tests/test_translation_markers.py``'s
@@ -413,7 +409,7 @@ class Formatter:
         ``+=``, f-string interpolation and ``.join()``, never
         ``%``-substitution into a catalog pattern. Both numbers still agree
         correctly in any language, and the translator owns the separator
-        and the order as well as the words.
+        and the order as well as the 
         """
         translator = self._context.translator
         if seconds < SUB_MINUTE_THRESHOLD_SECONDS:
@@ -440,17 +436,17 @@ class Formatter:
 
         The minutes half is zero-padded through the locale backend's own
         ``integer(min_digits=2)`` operation, not a Python f-string — the
-        case :mod:`.specs`'s ``IntegerSpec(min_digits=2)`` exists for.
+        case the locale profile's ``min_digits=2`` argument exists for.
         """
         locale = self._context.locale
         translator = self._context.translator
         parts = decompose_hms(seconds)
         if parts.hours:
-            hours = locale.integer(parts.hours, IntegerSpec())
-            minutes = locale.integer(parts.minutes, IntegerSpec(min_digits=2))
+            hours = locale.integer(parts.hours)
+            minutes = locale.integer(parts.minutes, min_digits=2)
             return translator.message(
                 HOURS_AND_MINUTES_COMPACT, hours=hours, minutes=minutes)
-        minutes = locale.integer(parts.minutes, IntegerSpec())
+        minutes = locale.integer(parts.minutes)
         return translator.message(MINUTES_COMPACT, minutes=minutes)
 
     def duration(self, seconds: float) -> str:
@@ -472,7 +468,7 @@ class Formatter:
         if seconds < SUB_MINUTE_THRESHOLD_SECONDS:
             locale = self._context.locale
             translator = self._context.translator
-            secs = locale.integer(max(0, int(seconds)), IntegerSpec())
+            secs = locale.integer(max(0, int(seconds)))
             return translator.message(SECONDS_COMPACT, seconds=secs)
         return self.duration_hm(seconds)
 
@@ -506,5 +502,340 @@ class Formatter:
         locale = self._context.locale
         translator = self._context.translator
         total_minutes = max(0, int(seconds)) // 60
-        minutes = locale.integer(total_minutes, IntegerSpec())
+        minutes = locale.integer(total_minutes)
         return translator.message(MINUTES_ABBREVIATED, minutes=minutes)
+
+
+from datetime import datetime
+
+from .i18n import Translator
+from .i18n import DAY_AND_CLOCK
+from .locale_profile import DateStyle, LocaleProfile, TimeStyle
+
+
+def day_short(locale: LocaleProfile, when: datetime) -> str:
+    """A short calendar day marker, e.g. "Mon 17" (Qt) / "2026-08-17"
+    (Qt-free). Carries no catalog entry — it renders through the locale
+    backend only."""
+    return locale.date(when, DateStyle.WEEKDAY_AND_DAY)
+
+
+def day_heading(locale: LocaleProfile, when: datetime) -> str:
+    """A full calendar date as a day-separator heading, e.g.
+    "Mon 17 Aug 2026" (Qt) / "2026-08-17" (Qt-free). Carries no catalog
+    entry — it renders through the locale backend only."""
+    return locale.date(when, DateStyle.WEEKDAY_DAY_MONTH_YEAR)
+
+
+def clock(locale: LocaleProfile, style: TimeStyle, when: datetime) -> str:
+    """A wall-clock time on the clock ``style`` names, e.g. "14:32" or
+    "2:32 PM". Carries no catalog entry — it renders through the locale
+    backend only.
+
+    ``style`` is an argument rather than a constant chosen here because
+    which clock the app shows is a user setting resolved once, in
+    ``core/display_prefs.py``, and carried to every renderer by the
+    presentation context. A member named in this body would be a second
+    place that answers the same question.
+    """
+    return locale.time(when, style)
+
+
+def day_and_clock(locale: LocaleProfile, translator: Translator,
+                  style: TimeStyle, when: datetime) -> str:
+    """A day plus a wall-clock time, e.g. "Mon 17 14:32", as one whole
+    translated message — see the module docstring for why this composes
+    :func:`day_short` and :func:`clock` through a catalog pattern rather
+    than joining them in Python. ``style`` travels through to the clock
+    half for the reason :func:`clock` gives."""
+    return translator.message(
+        DAY_AND_CLOCK, day=day_short(locale, when),
+        clock=clock(locale, style, when))
+
+
+from .locale_profile import LocaleProfile
+from .i18n import Translator
+from .i18n import (
+    CONNECTION_CHIP_CONNECTED, CONNECTION_CHIP_DISCONNECTED,
+    CONNECTION_CHIP_ON_DEMAND, CONNECTION_FOOTER_CONNECTED,
+    CONNECTION_FOOTER_DISCONNECTED, CONNECTION_FOOTER_ON_DEMAND, COUNTDOWN,
+    CUSTOM, DAY_NAMES, DAY_PAIR, DAY_RANGE, DUE_NOW, LATER, MINUTES, NO_DAYS,
+    POSITION_LABELS, PRESET_LABELS, SNOOZED_UNTIL, STATUS_HEADS,
+    STATUS_LABELS, TRIGGER_LABELS,
+)
+
+#: The seven schedule day wire values in week order. Pure data — no
+#: translation, no catalog entry. It lives here rather than in ``gui/``
+#: because :func:`fmt_days` is its only consumer and a function under
+#: ``core/`` may not reach back into ``gui/``.
+DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def connection_state_key(connected: bool, available: bool,
+                         persistent: bool) -> str:
+    """The desk's connection state as a key: connected/disconnected/on-demand.
+
+    Split out from :func:`connection_phrases` deliberately. ``gui/util.py``'s
+    ``connection_state`` needs the same state twice — once to pick a theme
+    colour, which cannot live under ``core/``, and once to pick the words,
+    which now do — and one shared key lets it branch on each without either
+    half restating the other's condition, where it would be free to drift.
+    """
+    if connected:
+        return "connected"
+    if not available or persistent:
+        return "disconnected"
+    return "on-demand"
+
+
+def connection_phrases(translator: Translator, key: str) -> tuple[str, str]:
+    """The ``(footer_text, chip_text)`` pair for a connection state key.
+
+    Any key other than ``"connected"`` or ``"disconnected"`` falls through
+    to the on-demand pair, which is exactly the shape the branch had before
+    the move: two tests and a return, with the last state unguarded.
+    """
+    if key == "connected":
+        return (translator.message(CONNECTION_FOOTER_CONNECTED),
+                translator.message(CONNECTION_CHIP_CONNECTED))
+    if key == "disconnected":
+        return (translator.message(CONNECTION_FOOTER_DISCONNECTED),
+                translator.message(CONNECTION_CHIP_DISCONNECTED))
+    return (translator.message(CONNECTION_FOOTER_ON_DEMAND),
+            translator.message(CONNECTION_CHIP_ON_DEMAND))
+
+
+def status_label(translator: Translator, status: str) -> str:
+    """The long automation-status sentence for a status wire value.
+
+    Falls back to the raw status string for an unrecognized key: a status
+    the app has not been taught yet is better shown as its wire value than
+    as nothing at all, and `tests/test_status_labels.py` is what stops that
+    fallback from becoming the way a new status ships.
+    """
+    source = STATUS_LABELS.get(status)
+    return translator.message(source) if source is not None else status
+
+
+def status_head(translator: Translator, status: str) -> str:
+    """The short Overview status head word for a status wire value.
+
+    Falls back to the raw status string for an unrecognized key."""
+    source = STATUS_HEADS.get(status)
+    return translator.message(source) if source is not None else status
+
+
+def position_label(translator: Translator, position: str) -> str:
+    """The display word for a desk position wire value.
+
+    Falls back to a capitalized copy for anything unrecognized, and ``""``
+    for an empty/unknown position (callers substitute their own
+    placeholder).
+    """
+    source = POSITION_LABELS.get(position)
+    if source is not None:
+        return translator.message(source)
+    return position.capitalize() if position else ""
+
+
+def preset_label(translator: Translator, name: str) -> str:
+    """The display name for a preset.
+
+    ``sit``/``stand`` are ours and translate; anything else the user named
+    themselves and is shown verbatim. Replaces ``name.capitalize()``, which
+    left the rail ticks and the tray submenu in English next to buttons
+    that were translated — the same preset labelled two ways on one screen.
+    """
+    source = PRESET_LABELS.get(name)
+    return translator.message(source) if source is not None else name
+
+
+def trigger_label(translator: Translator, trigger: str) -> str:
+    """The word for a transition's trigger wire value.
+
+    Falls back to the raw trigger string for an unrecognized key."""
+    source = TRIGGER_LABELS.get(trigger)
+    return translator.message(source) if source is not None else trigger
+
+
+def later_label(translator: Translator) -> str:
+    """The stand-in for a snooze deadline the client has not fetched yet."""
+    return translator.message(LATER)
+
+
+def snooze_line(translator: Translator, when_text: str) -> str:
+    """"Snoozed until 14:32" — one whole message, the time substituted in.
+
+    ``when_text`` is an *already-formatted* clock string, not a timestamp:
+    formatting a wall-clock time needs a locale backend and a timezone, and
+    the caller already has both. Taking the finished text keeps this
+    function a word rather than a date renderer, and means the eventual
+    move of the clock formatter changes only what fills this argument, not
+    this function.
+    """
+    return translator.message(SNOOZED_UNTIL) % when_text
+
+
+def due_now_label(translator: Translator) -> str:
+    """Shown where a countdown would be, once it has run out."""
+    return translator.message(DUE_NOW)
+
+
+def minutes_label(translator: Translator, count: int) -> str:
+    """The plural *word* for a count of minutes, e.g. 1 -> "1 minute",
+    5 -> "5 minutes" — selected by the catalog's own plural rule rather than
+    a Python ``count == 1`` check.
+
+    Deliberately narrower than :meth:`~.formatter.Formatter.duration_verbose`,
+    which this could otherwise be built from
+    (``duration_verbose(count * 60)``): that method decomposes into hours
+    and minutes, so a 60-minute value would render as "1 hour" — correct
+    for a duration, wrong here, where 60 is one of a fixed menu of minute
+    choices and must read as such. This function has no decomposition to
+    do, so it does none.
+    """
+    return translator.plural(*MINUTES, count) % count
+
+
+def position_or_custom(translator: Translator, position: str) -> str:
+    """The desk's position as a word, or "Custom" at neither preset."""
+    return (position_label(translator, position)
+            or translator.message(CUSTOM))
+
+
+def countdown(translator: Translator, locale: LocaleProfile,
+              seconds: float) -> str:
+    """A running countdown, e.g. 125 -> "2:05".
+
+    Takes both capabilities because a countdown needs both: the two numbers
+    are the locale backend's to render — including zero padding through its
+    ``min_digits`` argument rather than a Python format spec — and the
+    separator between them is the translator's, so a
+    language that punctuates a countdown differently can say so. Nothing
+    here is assembled in Python.
+
+    A negative value clamps to zero, as it did before this rendered
+    through the shared layer: the clock the callers read is monotonic in
+    principle but not in practice.
+    """
+    minutes, secs = divmod(max(0, int(seconds)), 60)
+    return translator.message(
+        COUNTDOWN,
+        minutes=locale.integer(minutes),
+        seconds=locale.integer(secs, min_digits=2))
+
+
+def day_label(translator: Translator, key: str) -> str:
+    """The short day name for a schedule day key ('mon' -> 'Lun').
+
+    Public because the schedule day chips need it too: :data:`DAY_NAMES`
+    holds unrendered source strings, so reading it directly yields the
+    untranslated English word.
+    """
+    return translator.message(DAY_NAMES[key])
+
+
+def fmt_days(translator: Translator, days: list[str]) -> str:
+    """['mon'..'fri'] -> 'Mon–Fri'; ['mon','wed','fri'] -> 'Mon, Wed, Fri'.
+
+    Consecutive runs of three or more days collapse into a range.
+    """
+    picked = [d for d in DAY_ORDER if d in days]
+    if not picked:
+        return translator.message(NO_DAYS)
+    runs: list[list[str]] = []
+    for day in picked:
+        if runs and (DAY_ORDER.index(day)
+                     - DAY_ORDER.index(runs[-1][-1])) == 1:
+            runs[-1].append(day)
+        else:
+            runs.append([day])
+    parts = []
+    for run in runs:
+        if len(run) >= 3:
+            parts.append(translator.message(
+                DAY_RANGE, first=day_label(translator, run[0]),
+                last=day_label(translator, run[-1])))
+        else:
+            parts.extend(day_label(translator, d) for d in run)
+    # One pair pattern, folded left across `parts`, rather than CLDR's
+    # four-key start/middle/end set: this is a unit list ("3 ft, 2 in"), not
+    # a sentence list, and both shipped languages render every position with
+    # the same plain comma join and no conjunction — a fuller key set would
+    # be catalog weight nobody can act on today. If a conjunction-taking
+    # language ships later, this fold is where the key set would grow.
+    result = parts[0]
+    for part in parts[1:]:
+        result = translator.message(DAY_PAIR, first=result, second=part)
+    return result
+
+
+class EnglishTranslator:
+    """Returns every source string unchanged, selecting English's plural rule.
+
+    Deliberately reaches no catalog of any kind -- no import of the
+    process-wide translation module, no ``ngettext``, nothing that follows
+    ``[ui] language``. That absence is the entire point: it is what keeps
+    this backend's output identical regardless of that catalog's current
+    binding.
+    """
+
+    def message(self, source: str, **values: object) -> str:
+        return source % values if values else source
+
+    def plural(self, singular: str, plural: str, count: int,
+               **values: object) -> str:
+        text = singular if count == 1 else plural
+        return text % values if values else text
+
+
+def format_duration_human(seconds: float | None) -> str:
+    """The released stable-English journal duration shape.
+
+    Matches the shape ``gui/log_catalog.py`` renders the same
+    ``Param.DURATION`` value in, which closes the split PRES-03 exists to
+    close -- the same log event no longer reads "45.0 minutes" for journald
+    and "45m" for the Activity Log.
+
+    ``None`` renders as "N/A", the same convention
+    ``core/logmsg.py``'s ``Param.HEIGHT`` formatter already uses; nothing in
+    this move changes that.
+
+    Builds a throwaway :class:`~idasen_companion.core.presentation.Formatter`
+    per call rather than binding one at module level -- the module-level
+    instance :mod:`tests.test_presentation_no_globals` flags and PRES-02
+    forbids. It cannot live in ``core/durations.py`` instead:
+    ``core/presentation.py`` already imports that module for
+    ``decompose_hms``, so the reverse import here would be circular. The
+    unit is stated explicitly as centimetres, the same one-line convention
+    plan 13-03's ``daemon/i18n.py`` uses for its own throwaway context --
+    the journal never renders a height, so the unit is inert, but
+    :class:`~idasen_companion.core.presentation.PresentationContext`
+    carries no default for it to fall back on.
+    """
+    if seconds is None:
+        return "N/A"
+    if seconds >= 60:
+        return f"{seconds / 60:.1f} minutes"
+    return f"{seconds:.0f} seconds"
+
+
+from .i18n import Translator
+from .i18n import DAEMON_ERROR_GENERIC, DAEMON_ERROR_MESSAGES
+
+
+def daemon_error_message(translator: Translator, name: str,
+                         detail: str = "") -> str:
+    """A translated sentence for a daemon D-Bus error name.
+
+    ``name`` may be the full ``…Error.MoveFailed`` or the bare tail. Falls
+    back to the daemon's English ``detail`` — untranslated, but better than
+    silence — and finally to a generic line.
+    """
+    key = name.rsplit(".", 1)[-1] if name else ""
+    source = DAEMON_ERROR_MESSAGES.get(key)
+    if source is not None:
+        return translator.message(source)
+    if detail:
+        return detail
+    return translator.message(DAEMON_ERROR_GENERIC)

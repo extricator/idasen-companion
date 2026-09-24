@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from . import logmsg
 from .logmsg import Param
-from .presentation.formatter import Formatter
-from .presentation.gettext_translator import GettextTranslator
-from .presentation.register import MessageKey, P_
-from .presentation.specs import IntegerSpec
+from .presentation import Formatter
+from .i18n import GettextTranslator
+from .i18n import MessageKey, P_
 
 
 _STATE_WORDS = {
@@ -36,8 +35,7 @@ def build_formatters(fmt: Formatter) -> dict[Param, object]:
         Param.STATE: _state,
         Param.TEXT: lambda value: (
             _translate(_NOT_AVAILABLE) if value is None else str(value)),
-        Param.INT: lambda count: fmt.context.locale.integer(
-            int(count), IntegerSpec()),
+        Param.INT: lambda count: fmt.context.locale.integer(int(count)),
     }
 
 

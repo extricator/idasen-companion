@@ -7,9 +7,7 @@ files ship under `src/idasen_companion/locale/`.
 
 Qt remains responsible only for standard widget text such as dialog buttons.
 `gui/i18n.py` installs Qt's prebuilt `qtbase` translator, not an app-owned Qt
-catalog. The committed `.ts`/`.qm` files are frozen migration evidence and are
-inactive at runtime; do not edit them. Phase 7 removes them after the migration
-audit is no longer needed.
+catalog.
 
 ## What is translated
 
@@ -141,19 +139,6 @@ filename-only locations, pins the POT creation date, merges each discovered PO
 and compiles its MO. Running it twice without source or translation edits must
 produce no diff.
 
-The one-time migration can be audited or replayed while the frozen Qt catalog
-exists:
-
-```bash
-.venv/bin/python scripts/migrate-contextual-gettext.py rewrite --check
-.venv/bin/python scripts/migrate-contextual-gettext.py catalog \
-  --po /path/to/pre-migration-es.po --output /tmp/replayed-es.po
-```
-
-The rewrite command uses Python AST source locations and refuses dynamic
-`tr(...)` calls. The catalog command combines the new POT, old PO and frozen TS
-data and refuses ambiguous translations.
-
 ## Developer API
 
 Import runtime lookups from `core.i18n`:
@@ -166,7 +151,7 @@ The extraction-freshness tests catch markers outside the configured keyword
 positions.
 
 For a message stored at module import and translated later, use `P_` or `NP_`
-from `core.presentation.register`. They return string-compatible keys carrying
+from `core.i18n`. They return string-compatible keys carrying
 their semantic context; `GettextTranslator` performs the lookup at render time,
 so a later language rebind remains visible.
 

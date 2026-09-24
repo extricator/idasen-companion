@@ -1,6 +1,6 @@
 import pytest
 
-from idasen_companion.core.clock_format import ClockSetting
+from idasen_companion.core.display_prefs import ClockSetting
 from idasen_companion.core.config import (
     VALID_CLOCK_FORMATS,
     AppConfig,

@@ -5,7 +5,7 @@ The sentence a user actually reads has to come from the *reader's* catalog,
 keyed on the stable error name — render it daemon-side and a Spanish user
 sees the daemon's language instead of their own, with a green build, a
 shipped catalog and nothing anywhere to notice. Moving the table out of
-``gui/`` and into ``core/presentation/`` is what lets the future CLI reach it
+``gui/`` and into ``core/presentation.py`` is what lets the future CLI reach it
 without a second copy, and it is also what makes that mistake newly
 *reachable*: the daemon can import ``core/`` freely. A comment relies on a
 future reader reading it; this fails the build instead.
@@ -116,7 +116,7 @@ def test_the_formatter_offers_no_door_to_the_daemon_error_sentences():
     ``Formatter`` from its own config, so a method here would put the table
     one attribute access away from the process that must never render it.
     """
-    from idasen_companion.core.presentation.formatter import (  # pylint: disable=import-outside-toplevel
+    from idasen_companion.core.presentation import (  # pylint: disable=import-outside-toplevel
         Formatter,
     )
 

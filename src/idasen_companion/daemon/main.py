@@ -40,11 +40,11 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.migration import import_idasen_cli_config
-from ..core.clock_format import ClockSetting, resolve_clock_style
-from ..core.presentation.english import format_duration_human
-from ..core.presentation.formatter import Formatter, PresentationContext
-from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.units import UnitSetting, resolve_height_unit
+from ..core.display_prefs import ClockSetting, resolve_clock_style
+from ..core.presentation import format_duration_human
+from ..core.presentation import Formatter, PresentationContext
+from ..core.i18n import GettextTranslator
+from ..core.display_prefs import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 
@@ -190,7 +190,7 @@ class Daemon:
         The notifications this formatter renders go through the app ``gettext``
         catalog, so a verbose delay translates — "2 minutes" / "30 seconds"
         in the user's language. The journal's own lines do not: they render
-        through ``core/presentation/english.py`` and stay English and
+        through ``core/presentation.py`` and stay English and
         greppable, because a log line is read by whoever is debugging it
         rather than by whoever owns the desktop session. Two renderings of
         the same duration policy, deliberately, and this is the one that

@@ -78,7 +78,7 @@ the handoff commit.
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Complete | `3626d3a` | this commit | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Complete | `5d2ca22` | this commit | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
-| 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
+| 7. Obsolete removal | In progress | — | — | no obsolete imports/files, complete quality and artifact gates |
 
 Allowed states are `Pending`, `In progress`, `Blocked` and `Complete`. A phase
 becomes `Complete` only in its handoff commit.
@@ -928,14 +928,38 @@ freshness without treating the phase's intentional pre-commit edits as dirt.
 
 ### Phase 7 execution record
 
-- State: Pending
-- Starting commit: —
-- Removed files/symbols/tests: —
-- Replacement behavior tests retained: —
+- State: Implementation complete; final handoff pending
+- Starting commit: `3f4f36f`
+- Removed files/symbols/tests: removed the `core/presentation/` compatibility
+  package, `PlainLocaleFormatter`, `QtLocaleFormatter`, formatter specs and
+  protocol matrix, Qt app catalog/backend, frozen clock table, migration tool,
+  legacy GUI command parser, dual-catalog/collision/divergence checks, full
+  window goldens and structural presentation inventories.
+- Replacement behavior tests retained: focused formatter, dates/durations,
+  contextual gettext, whole-message, activity-log, stable-journal, config,
+  CLI/fake-bus/live-bus, packaging, fresh-process Qt-free, language binding and
+  offscreen RTL geometry tests remain. English/Spanish output and representative
+  Arabic locale formatting continue to be covered directly.
 - Implementation commit: —
-- Complete quality/build/artifact results: —
-- Deviations from accepted design: —
-- Remaining release/manual gates: —
+- Complete quality/build/artifact results: preflight full pytest — 2,043
+  passed/1 skipped; preflight naming — exit 0. Final full pytest — 1,559
+  passed/1 skipped; naming — exit 0; mypy — success across 57 source files;
+  pylint — 10.00/10; `git diff --check` — exit 0. Translation generation,
+  `msgfmt --check --check-format`, `msgcmp`, sdist/wheel construction and all
+  three required-absence searches passed. The wheel contains the gettext `.mo`
+  catalog and no app `.qm`. Bundled-source RPM tests passed at 781/45 skipped
+  (headless) and 1,553/7 skipped (full); Debian package tests passed at
+  1,558/2 skipped. Both RPMs, both DEBs and the full-only Flatpak passed clean
+  install, payload/dependency, version and isolated mock-D-Bus runtime smoke
+  checks. Final offscreen/Qt-free/CLI selection passed at 28/1 skipped. The
+  secrets scanner's canary passed; its nine worktree findings are the deliberate
+  fake AWS canaries preserved in historical `.planning` scan evidence.
+- Deviations from accepted design: none. The first clean Debian rebuild exposed
+  that the container bootstrap omitted `python3-babel`; adding that build/test
+  dependency fixed the release path and the corrected build passed completely.
+- Remaining release/manual gates: no local acceptance gate remains. Hosted
+  GitHub CI, release publication and an interactive desktop-session smoke remain
+  external release operations rather than branch implementation work.
 - Final handoff: State whether the branch is ready for review, list any
   intentionally deferred work, and give the exact compare range from
   `refactor` to the final handoff commit.

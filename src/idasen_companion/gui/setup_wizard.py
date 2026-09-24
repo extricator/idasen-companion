@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
     QRadioButton, QVBoxLayout, QWizard, QWizardPage,
 )
 
-from ..core.presentation.formatter import Formatter
+from ..core.presentation import Formatter
 from . import service_ctl
 from .context import AppContext
 from .dbus_client import DaemonClient

@@ -60,7 +60,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import AppConfig, format_config_warning
 from ...core.i18n import pgettext
-from ...core.presentation.register import MessageKey, P_
+from ...core.i18n import MessageKey, P_
 from ..theme import css, theme
 from .. import restyle, util
 from ..widgets import icon, page_scroll, separator

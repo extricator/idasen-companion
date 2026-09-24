@@ -179,6 +179,443 @@ msgctxt "config-warning.detail"
 msgid "%(path)s: unknown option [%(section)s] %(key)s; preserving it"
 msgstr "%(path)s: opción desconocida [%(section)s] %(key)s; se conservará"
 
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%d hour"
+msgid_plural "%d hours"
+msgstr[0] "%d hora"
+msgstr[1] "%d horas"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] "%d minuto"
+msgstr[1] "%d minutos"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%d second"
+msgid_plural "%d seconds"
+msgstr[0] "%d segundo"
+msgstr[1] "%d segundos"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(hours)s %(minutes)s"
+msgstr "%(hours)s y %(minutes)s"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(hours)sh %(minutes)sm"
+msgstr "%(hours)s h %(minutes)s min"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)sm"
+msgstr "%(minutes)s min"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)s min"
+msgstr "%(minutes)s min"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(seconds)ss"
+msgstr "%(seconds)s s"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(value)s cm"
+msgstr "%(value)s cm"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(value)s in"
+msgstr "%(value)s pulg"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Automation active"
+msgstr "Automatización activa"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Last move failed"
+msgstr "El último movimiento falló"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Not set up yet — no desk chosen"
+msgstr "Sin configurar — no has elegido escritorio"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Automation off"
+msgstr "Automatización desactivada"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Paused"
+msgstr "En pausa"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Snoozed"
+msgstr "Pospuesto"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Waiting — you seem to be away"
+msgstr "Esperando — parece que no estás"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Waiting — session locked"
+msgstr "Esperando — sesión bloqueada"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Waiting — switched to another session"
+msgstr "Esperando — cambiaste a otra sesión"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "On hold — no desktop session"
+msgstr "En espera — sin sesión de escritorio"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Outside scheduled hours"
+msgstr "Fuera del horario programado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Paused — desk moved off sit/stand"
+msgstr "En pausa — escritorio movido fuera de sentado/de pie"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Active"
+msgstr "Activa"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "You're away"
+msgstr "No estás"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "In another session"
+msgstr "En otra sesión"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Session locked"
+msgstr "Sesión bloqueada"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Outside schedule"
+msgstr "Fuera del horario"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Off-cycle"
+msgstr "Fuera de ciclo"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "Standing up in about %s"
+msgstr "De pie en aproximadamente %s"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "Sitting down in about %s"
+msgstr "Sentándose en aproximadamente %s"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "The desk will move once you're due."
+msgstr "El escritorio se moverá cuando corresponda."
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "Snooze %d min"
+msgstr "Posponer %d min"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Skip this one"
+msgstr "Omitir esta vez"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Automation paused"
+msgstr "Automatización en pausa"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid ""
+"The desk was moved to an unrecognized position. It will resume once the desk "
+"is back at sit or stand."
+msgstr ""
+"El escritorio se movió a una posición no reconocida. Se reanudará cuando "
+"vuelva a sentado o de pie."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "The desk didn't stand up"
+msgstr "El escritorio no subió"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "The desk didn't sit down"
+msgstr "El escritorio no bajó"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "It didn't respond (%s). The next change is a whole interval away."
+msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "It didn't respond. The next change is a whole interval away."
+msgstr "No respondió. El próximo cambio tardará un intervalo completo."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Try now"
+msgstr "Intentar ahora"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid ""
+"The desk did not respond. Check that it is powered and in range, then try "
+"again."
+msgstr ""
+"El escritorio no respondió. Comprueba que está encendido y al alcance, y "
+"vuelve a intentarlo."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid ""
+"Could not connect to the desk. Make sure it is powered, nearby, and in "
+"pairing mode."
+msgstr ""
+"No se pudo conectar con el escritorio. Asegúrate de que está encendido, "
+"cerca y en modo de emparejamiento."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Could not read the desk's height."
+msgstr "No se pudo leer la altura del escritorio."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "That height is outside the desk's range."
+msgstr "Esa altura está fuera del rango del escritorio."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "That preset name or height is not valid."
+msgstr "Ese nombre o altura de preajuste no es válido."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "There is no preset by that name."
+msgstr "No hay ningún preajuste con ese nombre."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid ""
+"Could not save the configuration. Check that your home directory is writable "
+"and has free space."
+msgstr ""
+"No se pudo guardar la configuración. Comprueba que tu carpeta personal tiene "
+"permisos de escritura y espacio libre."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "The background service could not carry out that request."
+msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "later"
+msgstr "más tarde"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "Snoozed until %s"
+msgstr "Pospuesto hasta %s"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Due now"
+msgstr "Ya toca"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Custom"
+msgstr "Personalizada"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)s:%(seconds)s"
+msgstr "%(minutes)s:%(seconds)s"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Mon"
+msgstr "Lun"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Tue"
+msgstr "Mar"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Wed"
+msgstr "Mié"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Thu"
+msgstr "Jue"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Fri"
+msgstr "Vie"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Sat"
+msgstr "Sáb"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Sun"
+msgstr "Dom"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "no days"
+msgstr "ningún día"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(first)s–%(last)s"
+msgstr "%(first)s–%(last)s"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(first)s, %(second)s"
+msgstr "%(first)s, %(second)s"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(day)s %(clock)s"
+msgstr "%(day)s %(clock)s"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Sitting"
+msgstr "Sentado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Standing"
+msgstr "De pie"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Sit"
+msgstr "Sentarse"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Stand"
+msgstr "Levantarse"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "automation"
+msgstr "automatización"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "manual"
+msgstr "manual"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "external"
+msgstr "externo"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "setup"
+msgstr "configuración"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Desk: connected"
+msgstr "Escritorio: conectado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Connected"
+msgstr "Conectado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Desk: disconnected"
+msgstr "Escritorio: desconectado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Disconnected"
+msgstr "Desconectado"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Desk: on demand"
+msgstr "Escritorio: bajo demanda"
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "Not connected · on demand"
+msgstr "No conectado · bajo demanda"
+
+#: src/idasen_companion/core/i18n.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(name)s · %(height)s"
+msgstr "%(name)s · %(height)s"
+
 #: src/idasen_companion/core/logmsg.py
 #, python-format
 msgctxt "activity-log.entry"
@@ -715,443 +1152,6 @@ msgid "Autostart disabled: the daemon will not start at login."
 msgstr ""
 "Inicio automático desactivado: el servicio no se iniciará al entrar en la "
 "sesión."
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%d hour"
-msgid_plural "%d hours"
-msgstr[0] "%d hora"
-msgstr[1] "%d horas"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%d minute"
-msgid_plural "%d minutes"
-msgstr[0] "%d minuto"
-msgstr[1] "%d minutos"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%d second"
-msgid_plural "%d seconds"
-msgstr[0] "%d segundo"
-msgstr[1] "%d segundos"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(hours)s %(minutes)s"
-msgstr "%(hours)s y %(minutes)s"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(hours)sh %(minutes)sm"
-msgstr "%(hours)s h %(minutes)s min"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(minutes)sm"
-msgstr "%(minutes)s min"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(minutes)s min"
-msgstr "%(minutes)s min"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(seconds)ss"
-msgstr "%(seconds)s s"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(value)s cm"
-msgstr "%(value)s cm"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(value)s in"
-msgstr "%(value)s pulg"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Automation active"
-msgstr "Automatización activa"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Last move failed"
-msgstr "El último movimiento falló"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Not set up yet — no desk chosen"
-msgstr "Sin configurar — no has elegido escritorio"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Automation off"
-msgstr "Automatización desactivada"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Paused"
-msgstr "En pausa"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Snoozed"
-msgstr "Pospuesto"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Waiting — you seem to be away"
-msgstr "Esperando — parece que no estás"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Waiting — session locked"
-msgstr "Esperando — sesión bloqueada"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Waiting — switched to another session"
-msgstr "Esperando — cambiaste a otra sesión"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "On hold — no desktop session"
-msgstr "En espera — sin sesión de escritorio"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Outside scheduled hours"
-msgstr "Fuera del horario programado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Paused — desk moved off sit/stand"
-msgstr "En pausa — escritorio movido fuera de sentado/de pie"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Active"
-msgstr "Activa"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "You're away"
-msgstr "No estás"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "In another session"
-msgstr "En otra sesión"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Session locked"
-msgstr "Sesión bloqueada"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Outside schedule"
-msgstr "Fuera del horario"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Off-cycle"
-msgstr "Fuera de ciclo"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "Standing up in about %s"
-msgstr "De pie en aproximadamente %s"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "Sitting down in about %s"
-msgstr "Sentándose en aproximadamente %s"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "The desk will move once you're due."
-msgstr "El escritorio se moverá cuando corresponda."
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "Snooze %d min"
-msgstr "Posponer %d min"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Skip this one"
-msgstr "Omitir esta vez"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Automation paused"
-msgstr "Automatización en pausa"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid ""
-"The desk was moved to an unrecognized position. It will resume once the desk "
-"is back at sit or stand."
-msgstr ""
-"El escritorio se movió a una posición no reconocida. Se reanudará cuando "
-"vuelva a sentado o de pie."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "The desk didn't stand up"
-msgstr "El escritorio no subió"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "The desk didn't sit down"
-msgstr "El escritorio no bajó"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "It didn't respond (%s). The next change is a whole interval away."
-msgstr "No respondió (%s). El próximo cambio tardará un intervalo completo."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "It didn't respond. The next change is a whole interval away."
-msgstr "No respondió. El próximo cambio tardará un intervalo completo."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Try now"
-msgstr "Intentar ahora"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid ""
-"The desk did not respond. Check that it is powered and in range, then try "
-"again."
-msgstr ""
-"El escritorio no respondió. Comprueba que está encendido y al alcance, y "
-"vuelve a intentarlo."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid ""
-"Could not connect to the desk. Make sure it is powered, nearby, and in "
-"pairing mode."
-msgstr ""
-"No se pudo conectar con el escritorio. Asegúrate de que está encendido, "
-"cerca y en modo de emparejamiento."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Could not read the desk's height."
-msgstr "No se pudo leer la altura del escritorio."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "That height is outside the desk's range."
-msgstr "Esa altura está fuera del rango del escritorio."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "That preset name or height is not valid."
-msgstr "Ese nombre o altura de preajuste no es válido."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "There is no preset by that name."
-msgstr "No hay ningún preajuste con ese nombre."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid ""
-"Could not save the configuration. Check that your home directory is writable "
-"and has free space."
-msgstr ""
-"No se pudo guardar la configuración. Comprueba que tu carpeta personal tiene "
-"permisos de escritura y espacio libre."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "The background service could not carry out that request."
-msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "later"
-msgstr "más tarde"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "Snoozed until %s"
-msgstr "Pospuesto hasta %s"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Due now"
-msgstr "Ya toca"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Custom"
-msgstr "Personalizada"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(minutes)s:%(seconds)s"
-msgstr "%(minutes)s:%(seconds)s"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Mon"
-msgstr "Lun"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Tue"
-msgstr "Mar"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Wed"
-msgstr "Mié"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Thu"
-msgstr "Jue"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Fri"
-msgstr "Vie"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Sat"
-msgstr "Sáb"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Sun"
-msgstr "Dom"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "no days"
-msgstr "ningún día"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(first)s–%(last)s"
-msgstr "%(first)s–%(last)s"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(first)s, %(second)s"
-msgstr "%(first)s, %(second)s"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(day)s %(clock)s"
-msgstr "%(day)s %(clock)s"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Sitting"
-msgstr "Sentado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Standing"
-msgstr "De pie"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Sit"
-msgstr "Sentarse"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Stand"
-msgstr "Levantarse"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "automation"
-msgstr "automatización"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "manual"
-msgstr "manual"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "external"
-msgstr "externo"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "setup"
-msgstr "configuración"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Desk: connected"
-msgstr "Escritorio: conectado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Connected"
-msgstr "Conectado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Desk: disconnected"
-msgstr "Escritorio: desconectado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Disconnected"
-msgstr "Desconectado"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Desk: on demand"
-msgstr "Escritorio: bajo demanda"
-
-#: src/idasen_companion/core/presentation/register.py
-msgctxt "shared.presentation"
-msgid "Not connected · on demand"
-msgstr "No conectado · bajo demanda"
-
-#: src/idasen_companion/core/presentation/register.py
-#, python-format
-msgctxt "shared.presentation"
-msgid "%(name)s · %(height)s"
-msgstr "%(name)s · %(height)s"
 
 # What the portal autostarts. Always this project's own daemon executable name, a
 # constant — never assembled from config or user input, since a granted request

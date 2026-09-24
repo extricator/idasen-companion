@@ -1,22 +1,20 @@
 """Height arithmetic on the ``Formatter`` facade — the first real methods.
 
-Built against the real :class:`PlainLocaleFormatter` (not the markers in
-``presentation_fakes``) precisely because these methods produce a rendered
-number, and a marker-only test could not tell "110.5" from a policy bug
-that happened to also produce a string.
+Built against the real :class:`LocaleProfile` because these methods produce
+a rendered number, so the assertions catch locale-policy regressions.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from idasen_companion.core.presentation.english import EnglishTranslator
-from idasen_companion.core.presentation.formatter import (
+from idasen_companion.core.presentation import EnglishTranslator
+from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
-from idasen_companion.core.units import HeightUnit
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
 
 #: A fixed height in metres, chosen for a non-trivial fractional result in
 #: both units (1.105 m -> 110.5 cm / 43.5039... in) — see PRES-07.
@@ -25,7 +23,7 @@ HEIGHT_METERS = 1.105
 
 def _formatter(unit: HeightUnit) -> Formatter:
     context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(), unit=unit,
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(), unit=unit,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
 

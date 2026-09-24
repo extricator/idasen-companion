@@ -3,7 +3,7 @@
 The caller changed in Phase 14 and the values did not. This used to reach
 ``daemon/i18n.py``'s ``human_delay``, which built a throwaway presentation
 context on every call; that module is gone and the daemon now owns one
-:class:`~idasen_companion.core.presentation.formatter.Formatter` built from
+:class:`~idasen_companion.core.presentation.Formatter` built from
 its config, so these render through the shared implementation directly.
 ``human_delay`` had already been a pure ``duration_verbose`` delegation
 since Phase 13, which is why every expected string below is unchanged from
@@ -19,15 +19,15 @@ from __future__ import annotations
 import pytest
 
 from idasen_companion.core import i18n
-from idasen_companion.core.presentation.formatter import (
+from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.gettext_translator import (
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.i18n import (
     GettextTranslator,
 )
-from idasen_companion.core.presentation.plain_locale import PlainLocaleFormatter
-from idasen_companion.core.units import HeightUnit
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
 
 
 @pytest.fixture(autouse=True)
@@ -45,7 +45,7 @@ def _delay(seconds: int) -> str:
     question.
     """
     context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=GettextTranslator(),
+        locale=LocaleProfile("en_US"), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context).duration_verbose(seconds)

@@ -5,7 +5,7 @@ default, Qt's own ``QTranslator`` stack, and the gettext catalog
 ``core/i18n.py`` binds. Three test modules were each keeping their own copy
 of the block that installs and unwinds all three, and the copies had already
 drifted -- two of them leaked every ``QTranslator`` they installed for the
-rest of the session, which CLAUDE.md's GUI-test rules name as a real hazard
+rest of the session, which the project's GUI-test rules name as a real hazard
 (a Qt object collected after the offscreen platform is gone segfaults the
 interpreter at exit, failing the RPM's ``%check`` with every test passing).
 
@@ -16,9 +16,7 @@ the block rather than trusting a pre-recorded list, so a translator some
 unwound too, and it destroys each one it removes rather than leaving it
 parented to the session ``QApplication``.
 
-Importing this module needs Qt, so it is for the Qt-bearing test modules
-only. ``tests/presentation_samples.py`` is the Qt-free counterpart and must
-stay that way -- do not reach for this module from there.
+Importing this module needs Qt, so it is for Qt-bearing tests only.
 """
 
 from __future__ import annotations
@@ -47,7 +45,7 @@ def qt_locale_for(language: str) -> QLocale:
 
     ``"en"`` resolves to ``en_US`` rather than to a bare ``QLocale("en")``,
     which is what :func:`installed_language` binds as the default below, so
-    a test constructing a ``QtLocaleFormatter`` directly and a test reading
+    a test constructing a ``LocaleProfile`` directly and a test reading
     the process default agree on what "English" renders as.
     """
     return QLocale("en_US") if language == "en" else QLocale(language)

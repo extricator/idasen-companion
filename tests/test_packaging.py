@@ -1807,23 +1807,18 @@ def test_build_dist_allowlist_is_exactly_three_patterns():
 
 
 def test_build_dist_wheel_check_matches_package_data():
-    """The wheel check's asserted catalog paths and pyproject's
-    package-data patterns must describe the same two files, or one could
-    silently drift from the other."""
+    """The wheel check and package-data must name the same app catalog."""
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
     package_data = pyproject["tool"]["setuptools"]["package-data"]["idasen_companion"]
 
     s = read(BUILD_DIST)
-    required_qm = re.search(r'required_qm = "([^"]+)"', s)
     mo_pattern = re.search(r'mo_pattern = "([^"]+)"', s)
-    assert required_qm, "no required_qm found in build-dist.sh"
     assert mo_pattern, "no mo_pattern found in build-dist.sh"
 
-    for asserted in (required_qm.group(1), mo_pattern.group(1)):
-        rel = asserted.removeprefix("idasen_companion/")
-        assert any(fnmatch.fnmatch(rel, pattern) for pattern in package_data), (
-            f"{asserted} matches none of pyproject.toml's package-data patterns"
-        )
+    asserted = mo_pattern.group(1)
+    rel = asserted.removeprefix("idasen_companion/")
+    assert any(fnmatch.fnmatch(rel, pattern) for pattern in package_data), (
+        f"{asserted} matches none of pyproject.toml's package-data patterns")
 
 
 def load_trimmer():

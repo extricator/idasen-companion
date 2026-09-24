@@ -24,8 +24,8 @@ from PySide6.QtCore import QObject, QSize, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QFontMetricsF, QIcon, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
-from idasen_companion.core.presentation.formatter import Formatter  # noqa: E402
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
+from idasen_companion.core.presentation import Formatter  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import restyle, util  # noqa: E402
 from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa: E402

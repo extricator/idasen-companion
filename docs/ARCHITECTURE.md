@@ -290,9 +290,6 @@ Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
   reports), while a recognized Activity Log id renders in the reader's
   language.
 
-The old app `.ts`/`.qm` files are frozen, inactive migration evidence until
-Phase 7; they are not a second runtime catalog.
-
 Compiled catalogs are committed, and ship via `MANIFEST.in` +
 `[tool.setuptools.package-data]`.
 
@@ -333,10 +330,8 @@ decimal/group separators and localized date, meridiem and unit text, while the
 digit glyphs remain Latin. The tests record that actual behavior rather than
 claiming that every Arabic locale automatically substitutes native digits.
 
-Compatibility names `PlainLocaleFormatter` and `QtLocaleFormatter` remain
-temporarily so later phases can migrate callers independently, but both
-delegate to `LocaleProfile`; they are not separate value engines. Fresh
-process tests prove the daemon/shared path imports no PySide6 or shiboken.
+Fresh-process tests prove the daemon/shared path imports no PySide6 or
+shiboken.
 
 ## Config
 

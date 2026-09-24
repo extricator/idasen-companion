@@ -156,25 +156,17 @@ def test_an_unknown_flag_is_an_error_not_a_window():
     assert exc.value.code != 0
 
 
-@pytest.mark.parametrize("argv,expected", [
-    (["x", "--toggle"], ("GestureMove", ["toggle"])),
-    (["x", "--sit"], ("GestureMove", ["sit"])),
-    (["x", "--stand"], ("GestureMove", ["stand"])),
-    (["x", "--stop"], ("Stop", [])),
-    (["x", "--preset", "focus"], ("MoveToPreset", ["focus"])),
-    (["x", "--preset=focus"], ("MoveToPreset", ["focus"])),
-    (["x"], None),
-    (["x", "--window"], None),
-])
-def test_command_flags_map_to_the_right_dbus_call(argv, expected):
+def test_window_is_the_only_gui_action_flag():
     import idasen_companion.gui.main as gui_main
-    assert gui_main._command_from_argv(argv) == expected
+    gui_main._parse_argv(["idasen-companion", "--window"])
 
 
 @pytest.mark.parametrize("flag", ["--toggle", "--sit", "--stand", "--stop",
-                                  "--window"])
-def test_every_documented_flag_is_accepted_by_the_parser(flag):
-    """The parser and the flag map are two lists; a flag in one and not the
-    other either errors out or is silently ignored."""
+                                  "--preset"])
+def test_legacy_command_flags_point_callers_to_the_cli(flag, capsys):
     import idasen_companion.gui.main as gui_main
-    gui_main._parse_argv(["idasen-companion", flag])  # must not raise
+
+    with pytest.raises(SystemExit) as exc:
+        gui_main._parse_argv(["idasen-companion", flag])
+    assert exc.value.code == 2
+    assert "unrecognized arguments" in capsys.readouterr().err

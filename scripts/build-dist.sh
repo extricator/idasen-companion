@@ -103,7 +103,7 @@ if [ "$SDIST_SIZE" -gt "$SDIST_SIZE_CEILING" ]; then
     exit 1
 fi
 
-echo ">> Checking the wheel contains both compiled translation catalogs..."
+echo ">> Checking the wheel contains the compiled app catalogs..."
 "$PYTHON" - "$WHEEL" <<'PYEOF'
 import fnmatch
 import sys
@@ -113,18 +113,14 @@ wheelpath = sys.argv[1]
 
 # Wheel contents come from [tool.setuptools.package-data] in pyproject.toml,
 # not MANIFEST.in, so the risk here inverts: shipping too little rather
-# than too much. Missing either catalog is a silently untranslated app.
-required_qm = "idasen_companion/gui/translations/idasen_companion_es.qm"
+# than too much. A missing catalog is a silently untranslated app.
 mo_pattern = "idasen_companion/locale/*/LC_MESSAGES/idasen_companion.mo"
 
 with zipfile.ZipFile(wheelpath) as wheel:
     names = wheel.namelist()
 
-missing = []
-if required_qm not in names:
-    missing.append(required_qm)
-if not any(fnmatch.fnmatch(name, mo_pattern) for name in names):
-    missing.append(mo_pattern)
+missing = ([] if any(fnmatch.fnmatch(name, mo_pattern) for name in names)
+           else [mo_pattern])
 
 if missing:
     print("error: wheel is missing compiled catalog(s):", file=sys.stderr)

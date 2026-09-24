@@ -55,12 +55,8 @@ version = { attr = "idasen_companion.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-# The gettext .mo is the live app catalog. The .qm is frozen, inactive
-# migration evidence retained through Phase 6 and removed in Phase 7.
-idasen_companion = [
-    "gui/translations/*.qm",
-    "locale/*/LC_MESSAGES/*.mo",
-]
+# The contextual gettext catalog is the only app-owned runtime catalog.
+idasen_companion = ["locale/*/LC_MESSAGES/*.mo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

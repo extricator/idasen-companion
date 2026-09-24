@@ -17,16 +17,17 @@ from dbus_fast.errors import DBusError
 
 from . import DBUS_NAME, DBUS_PATH, __version__
 from .core import activity_log, i18n
-from .core.clock_format import ClockSetting, resolve_clock_style
+from .core.display_prefs import ClockSetting, resolve_clock_style
 from .core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, format_config_warning,
     load_config,
 )
 from .core.locale_profile import LocaleProfile, resolve_app_locale
-from .core.presentation import daemon_errors
-from .core.presentation.formatter import Formatter, PresentationContext
-from .core.presentation.gettext_translator import GettextTranslator
-from .core.units import UnitSetting, resolve_height_unit
+from .core.presentation import (
+    Formatter, PresentationContext, daemon_error_message,
+)
+from .core.i18n import GettextTranslator
+from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
 IFACE_AUTO = f"{DBUS_NAME}.Automation1"
@@ -300,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
         name = getattr(error, "type", "")
         detail = str(error)
         if isinstance(error, DBusError):
-            detail = daemon_errors.daemon_error_message(
+            detail = daemon_error_message(
                 GettextTranslator(), name, detail)
         message = i18n.pgettext(
             "cli.error",

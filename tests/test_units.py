@@ -1,4 +1,4 @@
-"""Pure, Qt-free tests for :mod:`idasen_companion.core.units`.
+"""Pure, Qt-free tests for :mod:`idasen_companion.core.display_prefs`.
 
 No PySide6 import anywhere in this module or in what it imports — that
 absence is itself part of what the module promises.
@@ -6,7 +6,7 @@ absence is itself part of what the module promises.
 
 import pytest
 
-from idasen_companion.core.units import (
+from idasen_companion.core.display_prefs import (
     METRES_PER_INCH,
     HeightUnit,
     UnitSetting,

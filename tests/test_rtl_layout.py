@@ -20,7 +20,6 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QStyle  # noqa:
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
-from idasen_companion.core.presentation.specs import NumberSpec  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import service_ctl  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -194,6 +193,5 @@ def test_arabic_layout_keeps_babels_observed_numbering_behavior():
     profile = LocaleProfile("ar_EG")
     # Babel 2.18 supplies Arabic separators but Latin digit glyphs here.  Do
     # not turn structural RTL readiness into an unsupported native-digit claim.
-    assert profile.number(
-        1234.5, NumberSpec(decimals=1, grouping=True)) == "1٬234٫5"
+    assert profile.number(1234.5, decimals=1, grouping=True) == "1٬234٫5"
     assert profile.percent(0.375) == "38%"

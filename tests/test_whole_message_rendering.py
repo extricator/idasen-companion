@@ -37,15 +37,15 @@ from PySide6.QtGui import QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.presentation.formatter import (  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+from idasen_companion.core.i18n import (  # noqa: E402
     GettextTranslator,
 )
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
-from idasen_companion.core.units import HeightUnit  # noqa: E402
-from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui import service_ctl  # noqa: E402
@@ -189,7 +189,7 @@ def _drawn_texts(widget) -> list[str]:
 
 def _widget_ctx() -> AppContext:
     """A real ``AppContext``, so ``ctx.fmt`` renders through the same
-    ``QtLocaleFormatter``/``GettextTranslator`` pair the app builds --
+    ``LocaleProfile``/``GettextTranslator`` pair the app builds --
     these tests assert rendered text, so a fake ``Formatter`` would prove
     nothing about what actually reaches the screen. The client is a bare
     ``QObject``: these two widgets never call it, only ``AppContext``'s
@@ -371,7 +371,7 @@ def test_the_out_of_schedule_note_follows_the_clock_format(overview_page):
 
     def note_at(style):
         page.ctx.fmt = Formatter(PresentationContext(
-            locale=QtLocaleFormatter(QLocale("en_US")),
+            locale=LocaleProfile(QLocale("en_US").name()),
             translator=GettextTranslator(),
             unit=HeightUnit.CENTIMETRES, time_style=style))
         page.client.statusChanged.emit("out-of-schedule")

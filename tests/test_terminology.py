@@ -4,9 +4,9 @@ On 2026-08-01, ``preset`` shipped as both "posición (guardada)" (five
 ``LogMessage`` entries) and "preajuste" (twenty-one other strings) in the
 same session. Compounding it, "posición" was *also* the app's translation
 of the desk's physical position in seven other strings -- one word covering
-two concepts, and one concept split across two words. The catalogs already
-enforce *completeness* (``CLAUDE.md`` forbids ``type="unfinished"`` and
-empty ``msgstr``, checked both in CI and, below, inside this suite), but
+two concepts, and one concept split across two words. The catalog checks
+already enforce *completeness* (no empty ``msgstr``, checked both in CI and,
+below, inside this suite), but
 nothing enforced *consistency*, so nothing caught it. A glossary alone was
 considered and rejected for the same reason it failed here: it's advisory,
 and advisory is exactly what failed.
@@ -18,13 +18,11 @@ rather than keeping a second copy that could drift from it.
 """
 
 import re
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_TS_PATH = _REPO_ROOT / "translations" / "idasen_companion_es.ts"
 _PO_PATH = _REPO_ROOT / "po" / "es.po"
 
 # English term -> {language code: required stem in the translation}.
@@ -41,8 +39,7 @@ TERMS = {
 # Source strings where the English term legitimately doesn't name a
 # glossary concept: {source string: written reason}. Ships empty on
 # purpose -- the measured false-positive rate against the current
-# catalogs is 0 across 36 matching strings (35 in the .ts, 1 in the
-# .po), and an escape hatch added before it's needed is one nobody
+# catalog is 0, and an escape hatch added before it's needed is one nobody
 # audits. Add an entry here only once a real false positive is found,
 # with the reason as the value.
 EXCEPTIONS = {}
@@ -80,18 +77,6 @@ def _find_violation(source, translation, lang, exceptions=EXCEPTIONS):
         if stem not in lower_translation:
             return term
     return None
-
-
-def _iter_ts_pairs():
-    """Yield (source, translation) for every message in the .ts file."""
-    tree = ET.parse(_TS_PATH)
-    for message in tree.getroot().iter("message"):
-        source = message.find("source")
-        if source is None or not source.text:
-            continue
-        translation = message.find("translation")
-        text = translation.text if translation is not None else None
-        yield source.text, text or ""
 
 
 _PO_STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -219,17 +204,6 @@ def test_the_exceptions_table_ships_empty():
 
 # ---- Integration tests against the real catalogs ---------------------------
 
-def test_ts_terminology_is_consistent():
-    violations = [(source, term)
-                  for source, translation in _iter_ts_pairs()
-                  for term in [_find_violation(source, translation, "es")]
-                  if term]
-    assert not violations, (
-        "terminology drift in translations/idasen_companion_es.ts "
-        f"(source, English term that lacks its mapped Spanish stem): "
-        f"{violations}")
-
-
 def test_po_terminology_is_consistent():
     violations = [(source, term)
                   for source, translation in _iter_po_pairs()
@@ -248,51 +222,8 @@ def test_every_term_has_at_least_one_language(term):
 
 # ---- Shipped-catalog completeness -------------------------------------------
 # GATE-03's CI job (.github/workflows/checks.yml) already asserts this
-# property by regenerating both catalogs and grepping/msgattrib-ing the
-# result -- an enforcement external to the pytest suite that also runs
-# inside the RPM's %check. These two are the same property, asserted a
-# second way, so it travels inside the package's own test run rather than
-# living only in the workflow.
-
-
-def test_ts_catalog_has_no_unfinished_or_empty_entry():
-    """An incomplete catalog renders English inside a translated build, with
-    nothing failing at runtime -- a missing or unconfirmed entry just falls
-    back to its source text, silently. This reads
-    translations/idasen_companion_es.ts (``_TS_PATH``, the same file
-    ``_iter_ts_pairs`` above parses) directly, so it can also read each
-    ``<translation>``'s own ``type="unfinished"`` attribute rather than only
-    its text, and fails when any message is marked unfinished or carries no
-    translation text at all. A plural message stores its text across
-    several ``<numerusform>`` children rather than directly in
-    ``<translation>``, so those are read individually -- a plain
-    ``translation.text`` read is only the whitespace between them and would
-    misreport every plural entry as empty. Reports every offending source
-    string, not only the first, so one run tells the whole story.
-    """
-    tree = ET.parse(_TS_PATH)
-    offenders = []
-    for message in tree.getroot().iter("message"):
-        source = message.find("source")
-        if source is None or not source.text:
-            continue
-        translation = message.find("translation")
-        if translation is None:
-            offenders.append(source.text)
-            continue
-        if translation.get("type") == "unfinished":
-            offenders.append(source.text)
-            continue
-        numerus_forms = translation.findall("numerusform")
-        if numerus_forms:
-            empty = not all((form.text or "").strip() for form in numerus_forms)
-        else:
-            empty = not (translation.text or "").strip()
-        if empty:
-            offenders.append(source.text)
-    assert not offenders, (
-        "unfinished or empty translation in "
-        f"translations/idasen_companion_es.ts: {offenders}")
+# property by regenerating the catalog and using msgattrib on the result. The
+# test below carries the same protection inside the package's own test run.
 
 
 def test_po_catalog_has_no_empty_translation():
@@ -301,8 +232,8 @@ def test_po_catalog_has_no_empty_translation():
     runtime. Iterates with ``_iter_po_pairs``, this file's own
     multi-line-aware entry reader, so a translation spread over several
     lines (``msgstr ""`` opening a continuation) is not misread as empty --
-    a naive single-line check would flag exactly that shape, the case
-    ``CLAUDE.md``'s own convention calls out. Skips the header entry, whose
+    a naive single-line check would flag exactly that shape. Skips the header
+    entry, whose
     ``msgid`` is empty by definition.
     """
     offenders = [msgid for msgid, msgstr in _iter_po_pairs()

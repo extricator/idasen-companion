@@ -1,7 +1,7 @@
 """Small GUI formatting helpers.
 
 The height, duration, day and clock renderers that once lived here now live
-under ``core/presentation/``, reached through a :class:`~idasen_companion.core.presentation.formatter.Formatter`
+under ``core/presentation.py``, reached through a :class:`~idasen_companion.core.presentation.Formatter`
 built onto an explicit unit (see ``gui/context.py``'s ``AppContext.fmt``) —
 nothing in this module reads a process-global unit any more (D-07). Every
 formatter this app renders now has one implementation there; what stays
@@ -19,11 +19,11 @@ from datetime import datetime
 from typing import Any, Callable, TypeVar
 
 from ..core.i18n import pgettext
-from ..core.presentation import daemon_errors, dates, words
-from ..core.presentation.formatter import Formatter
-from ..core.presentation.gettext_translator import GettextTranslator
-from ..core.presentation.register import MessageKey, P_
-from ..core.units import HeightUnit
+from ..core import presentation
+from ..core.presentation import Formatter
+from ..core.i18n import GettextTranslator
+from ..core.i18n import MessageKey, P_
+from ..core.display_prefs import HeightUnit
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
@@ -65,7 +65,7 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
     read the same state. ``tokens`` is the active theme.
 
     **Why this one stays in ``gui/``.** Its words moved to
-    ``core/presentation/words.py`` with the rest of the app's vocabulary,
+    ``core/presentation.py`` with the rest of the app's vocabulary,
     but what is left is a pairing of those words with a *theme colour*, and
     a theme is a Qt concept. ``docs/ARCHITECTURE.md``'s ``gui``/``daemon``
     -> ``core`` -> nothing rule keeps Qt out of ``core/``, so the pairing
@@ -73,14 +73,15 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
     daemon, or the future CLI — asks a ``Formatter`` for
     ``connection_phrases`` instead and reaches the same implementation.
     """
-    key = words.connection_state_key(connected, available, persistent)
+    key = presentation.connection_state_key(connected, available, persistent)
     if key == "connected":
         color = tokens.success
     elif key == "disconnected":
         color = tokens.error
     else:
         color = tokens.muted
-    footer_text, chip_text = words.connection_phrases(GettextTranslator(), key)
+    footer_text, chip_text = presentation.connection_phrases(
+        GettextTranslator(), key)
     return (color, footer_text, chip_text)
 
 
@@ -121,14 +122,14 @@ def fmt_countdown(fmt: Formatter, seconds: float) -> str:
     Takes ``fmt`` rather than building a locale profile, like every other
     helper here; the caller owns locale selection and dependency injection.
     """
-    return words.countdown(
+    return presentation.countdown(
         fmt.context.translator, fmt.context.locale, seconds)
 
 
 @returns_translated
 def day_label(key: str) -> str:
     """Translated short day name for a schedule day key ('mon' -> 'Lun')."""
-    return words.day_label(GettextTranslator(), key)
+    return presentation.day_label(GettextTranslator(), key)
 
 
 @returns_translated
@@ -136,7 +137,7 @@ def fmt_days(days: list[str]) -> str:
     """['mon'..'fri'] -> 'Mon–Fri'; ['mon','wed','fri'] -> 'Mon, Wed, Fri'.
 
     Consecutive runs of three or more days collapse into a range."""
-    return words.fmt_days(GettextTranslator(), days)
+    return presentation.fmt_days(GettextTranslator(), days)
 
 
 @returns_translated
@@ -144,7 +145,7 @@ def status_label(status: str) -> str:
     """Translated automation-status sentence for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
-    return words.status_label(GettextTranslator(), status)
+    return presentation.status_label(GettextTranslator(), status)
 
 
 @returns_translated
@@ -152,7 +153,7 @@ def status_head(status: str) -> str:
     """Translated Overview status head word for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
-    return words.status_head(GettextTranslator(), status)
+    return presentation.status_head(GettextTranslator(), status)
 
 
 @returns_translated
@@ -161,13 +162,13 @@ def position_label(position: str) -> str:
 
     Falls back to a capitalized copy for anything unrecognized, and "" for an
     empty/unknown position (callers substitute their own placeholder)."""
-    return words.position_label(GettextTranslator(), position)
+    return presentation.position_label(GettextTranslator(), position)
 
 
 @returns_translated
 def trigger_label(trigger: str) -> str:
     """Translated word for a transition's trigger wire value."""
-    return words.trigger_label(GettextTranslator(), trigger)
+    return presentation.trigger_label(GettextTranslator(), trigger)
 
 
 @returns_translated
@@ -176,28 +177,28 @@ def preset_label(name: str) -> str:
 
     ``sit``/``stand`` are ours and translate; anything else the user named
     themselves and is shown verbatim."""
-    return words.preset_label(GettextTranslator(), name)
+    return presentation.preset_label(GettextTranslator(), name)
 
 
 def fmt_day_label(fmt: Formatter, when: datetime) -> str:
     """A day as "Mon 03", in the user's locale.
 
-    See ``core/presentation/dates.py``'s ``day_short`` for why this asks
+    See ``core/presentation.py``'s ``day_short`` for why this asks
     the locale backend for a style rather than a ``strftime``-shaped
     pattern.
     """
-    return dates.day_short(fmt.context.locale, when)
+    return presentation.day_short(fmt.context.locale, when)
 
 
 def fmt_day_heading(fmt: Formatter, when: datetime) -> str:
     """A full calendar date as a day-separator heading, e.g. "Mon 17 Aug 2026".
 
-    See ``core/presentation/dates.py``'s ``day_heading`` for why the field
+    See ``core/presentation.py``'s ``day_heading`` for why the field
     order is fixed by its style. Nothing here is marked with
     a gettext marker, so this introduces no translatable
     string and neither catalog gains an entry.
     """
-    return dates.day_heading(fmt.context.locale, when)
+    return presentation.day_heading(fmt.context.locale, when)
 
 
 def fmt_clock(fmt: Formatter, when: datetime) -> str:
@@ -208,7 +209,7 @@ def fmt_clock(fmt: Formatter, when: datetime) -> str:
     owns. A caller reads that formatter fresh from the shared context at
     use time rather than caching it, which is what carries a change
     through to the next redraw; ``gui/tray.py``'s ``_fmt`` writes that
-    reasoning down in full. See ``core/presentation/dates.py``'s ``clock``.
+    reasoning down in full. See ``core/presentation.py``'s ``clock``.
     """
     return fmt.clock(when)
 
@@ -224,7 +225,7 @@ def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     backend and carry no catalog entry, the same as Formatter.height_value),
     so no mechanical check can ever flag this site; it converts on that
     reasoning alone. The clock half follows ``fmt``, for the reason
-    :func:`fmt_clock` gives. See ``core/presentation/dates.py``'s
+    :func:`fmt_clock` gives. See ``core/presentation.py``'s
     ``day_and_clock`` for the shared implementation.
     """
     return fmt.day_and_clock(when)
@@ -238,21 +239,21 @@ def daemon_error_message(name: str, detail: str = "") -> str:
     to the daemon's English detail — untranslated, but better than silence —
     and finally to a generic line.
 
-    The sentences themselves live in ``core/presentation/daemon_errors.py``,
+    The sentences themselves live in ``core/presentation.py``,
     which records why they must come from the *reader's* catalog and why that
     module gets no ``Formatter`` method.
     """
-    return daemon_errors.daemon_error_message(
+    return presentation.daemon_error_message(
         GettextTranslator(), name, detail)
 
 
 # ----- shared cycle rendering (the tray and Overview say the same things) -----
 #
 # The four words behind these helpers now live once in
-# core/presentation/register.py, which carries the reason they were
+# core/i18n.py, which carries the reason they were
 # consolidated in the first place: each of them once appeared twice in the
-# .ts, under the TrayIcon and OverviewPage contexts, because the tray and
-# Overview each wrote it out.
+# legacy Qt catalog, under separate TrayIcon and OverviewPage contexts,
+# because the tray and Overview each wrote it out.
 
 
 @returns_translated
@@ -276,10 +277,10 @@ def snooze_line(fmt: Formatter, until: float) -> str:
 @returns_translated
 def due_now_label() -> str:
     """Shown where a countdown would be, once it has run out."""
-    return words.due_now_label(GettextTranslator())
+    return presentation.due_now_label(GettextTranslator())
 
 
 @returns_translated
 def position_or_custom(position: str) -> str:
     """The desk's position as a word, or "Custom" when it is at neither preset."""
-    return words.position_or_custom(GettextTranslator(), position)
+    return presentation.position_or_custom(GettextTranslator(), position)

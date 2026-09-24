@@ -122,7 +122,7 @@ def _lambda_definitions(tree):
 #: The calls that count as reaching a translator directly. `gui/util.py` has
 #: three ways to ask for translated text: the module-private wrapper; the
 #: shared presentation layer's Qt-free translator backend, which a forwarder
-#: constructs on the spot and hands to `core/presentation/words.py`; and a
+#: constructs on the spot and hands to `core/presentation.py`; and a
 #: `Formatter` the *caller* supplies, whose message-rendering methods reach
 #: that same backend. Each such forwarder's return value is still translated
 #: text -- it is simply looked up one layer further down -- so it must keep
@@ -241,7 +241,7 @@ def test_a_call_through_a_second_function_reaches_tr():
 
 def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
     """A `gui/util.py` forwarder that delegates the word itself to
-    `core/presentation/` no longer calls the module-private wrapper -- it
+    `core/presentation.py` no longer calls the module-private wrapper -- it
     builds the Qt-free translator backend and hands it over. Its result is
     still translated text, so it must still be seen to reach a translator.
     """

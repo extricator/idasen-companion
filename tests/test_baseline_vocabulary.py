@@ -38,17 +38,17 @@ from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
-from idasen_companion.core.presentation import register  # noqa: E402
-from idasen_companion.core.presentation.formatter import (  # noqa: E402
+from idasen_companion.core import i18n as register  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
-from idasen_companion.core.presentation.gettext_translator import (  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
+from idasen_companion.core.i18n import (  # noqa: E402
     GettextTranslator,
 )
-from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import util  # noqa: E402
-from idasen_companion.gui.locale_backend import QtLocaleFormatter  # noqa: E402
+from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 
 #: Set to regenerate the committed goldens instead of comparing against them.
 #: Unset (the default, and the only state CI ever runs in), a mismatch fails
@@ -99,7 +99,7 @@ def _height_formatter(unit: HeightUnit) -> Formatter:
     # its own Formatter, per D-07, rather than a shared instance mutated
     # through a process-global setter.
     context = PresentationContext(
-        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=unit,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
@@ -121,7 +121,7 @@ def _height_cases() -> dict[str, str]:
 
 def _spin_suffix_cases() -> dict[str, str]:
     # suffix_height is covered per-unit in _height_cases; these two are the
-    # remaining spin-box suffix exception CLAUDE.md documents.
+    # remaining spin-box suffix exception project documentation documents.
     return {
         "minutes": util.suffix_minutes(),
         "seconds": util.suffix_seconds(),
@@ -141,7 +141,7 @@ def _duration_formatter() -> Formatter:
     # currently-installed default, and GettextTranslator reads whatever
     # _language() above just bound.
     context = PresentationContext(
-        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)
@@ -190,7 +190,7 @@ def _clock_formatter(style: TimeStyle) -> Formatter:
     unit and the clock -- move one at a time and a regeneration diff says
     which."""
     return Formatter(PresentationContext(
-        locale=QtLocaleFormatter(QLocale()), translator=GettextTranslator(),
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=HeightUnit.CENTIMETRES, time_style=style))
 
 

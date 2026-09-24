@@ -12,7 +12,7 @@ This module owns the arithmetic every duration renderer in the app shares
 (:data:`SUB_MINUTE_THRESHOLD_SECONDS`) and the hours/minutes/seconds
 decomposition (:func:`decompose_hms`). The *rendering* — including the
 journal's own English — sits one layer up, in
-``core/presentation/formatter.py`` and ``core/presentation/english.py``:
+``core/presentation.py`` and ``core/presentation.py``:
 this module supplies only the numbers, never a translated string.
 """
 

@@ -49,8 +49,6 @@ schedule:
 - **Tray gestures and the CLI** — middle-click toggle plus
   `idasen-companion-cli status`, `toggle`, `sit`, `stand`, `stop`, `preset`
   and `log`, including the unknown-preset, missing-name and daemon-down exits.
-  The deprecated `idasen-companion --toggle`-style compatibility flags still
-  route to the same daemon during the migration window.
 - **Single instance**, both halves: a second GUI activates the existing
   window; a second daemon exits rather than running a rival loop.
 - **Daemon down** — the red banner and "Start daemon" button in the window.

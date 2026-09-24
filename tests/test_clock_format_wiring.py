@@ -30,8 +30,8 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.presentation import english  # noqa: E402
-from idasen_companion.core.presentation.specs import TimeStyle  # noqa: E402
+from idasen_companion.core import presentation as english  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.daemon.main import Daemon  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402

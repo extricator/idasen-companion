@@ -2,13 +2,10 @@
 # Extract, update, and compile all translation catalogs.
 #
 # One app-owned GNU gettext catalog covers GUI, daemon and core. Qt's prebuilt
-# qtbase catalog remains separate and is not built by this project. The frozen
-# app .ts/.qm files remain migration evidence until Phase 7, but this script no
-# longer reads or updates them.
+# qtbase catalog remains separate and is not built by this project.
 #
 # Run after adding/changing user-facing strings, or to add a language. Adding
-# a language = add its code to LANGS below and re-run; then translate the new
-# translations/*.ts and po/*.po and re-run to compile. Idempotent.
+# a language = add po/<code>.po and re-run. Idempotent.
 #
 # Requires: xgettext, msginit, msgmerge and msgfmt.
 set -euo pipefail
@@ -21,7 +18,7 @@ mapfile -t LANGS < <(find po -maxdepth 1 -name '*.po' -printf '%f\n' \
 cd "$(dirname "$0")/.."
 PKG=src/idasen_companion
 
-mkdir -p translations "$PKG/gui/translations" po
+mkdir -p po
 
 app_sources=$(find "$PKG" -name '*.py' | sort)
 

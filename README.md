@@ -201,8 +201,8 @@ successful output goes to stdout. A successful command exits 0, a D-Bus or
 configuration failure exits 1, and invalid command syntax exits 2.
 
 Bind the move commands to keys in your desktop's own keyboard settings. The
-older `idasen-companion --toggle`-style GUI flags remain compatible for this
-release but are deprecated in favor of the standalone executable.
+`idasen-companion` executable is GUI-only; scripts and shortcuts use
+`idasen-companion-cli`.
 
 Note: a screen locker takes an exclusive input grab, so no desktop shortcut
 fires while the session is locked. The automation itself carries on.

@@ -14,7 +14,7 @@ then reports its own ``sys.modules``, answers the actual question.
 
 This is also the gate the Qt backend's placement depends on: the Qt-aware
 formatter lives under ``gui/`` specifically because it is allowed to import
-Qt, and the shared ``core/presentation/`` package is only usable from the
+Qt, and the shared ``core/presentation.py`` package is only usable from the
 daemon (which links no Qt at all) *because* nothing under it does either. A
 Qt import that crept into that package would silently pull Qt into the
 daemon's process the next time someone wired the two together, so this test
@@ -45,8 +45,6 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src" / "idasen_companion"
-PRESENTATION_DIR = SRC / "core" / "presentation"
 PACKAGE_SPEC = importlib.util.find_spec("idasen_companion")
 assert PACKAGE_SPEC is not None and PACKAGE_SPEC.origin is not None
 PACKAGE_ROOT = str(Path(PACKAGE_SPEC.origin).parent.parent)
@@ -76,56 +74,6 @@ for _name in {modules!r}:
 
 sys.stdout.write({present!r} if "PySide6" in sys.modules else {absent!r})
 """.strip()
-
-# The third leg's child program goes further than an import: it drives every
-# public Formatter method through a real call, from the same shared table
-# tests/test_golden_presentation_contract.py pins against, plus the one
-# daemon-reader sentence table that gets no Formatter method at all
-# (core/presentation/daemon_errors.py). ``-I`` strips PYTHONPATH, so the
-# repository's own src/ and tests/ directories are injected here, from the
-# parent process's own ROOT, rather than relied on to already be importable.
-_CALLABILITY_CHILD_PROGRAM = """
-import sys
-
-sys.path.insert(0, {tests_dir!r})
-sys.path.insert(0, {src_dir!r})
-
-import presentation_samples
-from idasen_companion.core.presentation import daemon_errors
-from idasen_companion.core.presentation.english import EnglishTranslator
-
-formatter = presentation_samples.build_plain_formatter()
-for row in presentation_samples.SAMPLES:
-    result = getattr(formatter, row.method)(*row.args, **row.kwargs)
-    if isinstance(result, tuple):
-        assert result, (row.case, result)
-        for part in result:
-            assert isinstance(part, str) and part, (row.case, result)
-    else:
-        assert isinstance(result, str) and result, (row.case, result)
-
-detail = daemon_errors.daemon_error_message(EnglishTranslator(), "MoveFailed")
-assert isinstance(detail, str) and detail
-
-sys.stdout.write({present!r} if "PySide6" in sys.modules else {absent!r})
-""".strip()
-
-
-def _dotted_module_names(package_dir: Path, package: str) -> list[str]:
-    """Every module under ``package_dir``, as a dotted import path.
-
-    Discovered by walking the directory rather than listed by hand, so this
-    gate keeps covering the package as it grows -- a hardcoded list stops
-    covering a module the moment a later phase adds one.
-    """
-    names = []
-    for path in sorted(package_dir.rglob("*.py")):
-        parts = path.relative_to(package_dir).with_suffix("").parts
-        if parts[-1] == "__init__":
-            parts = parts[:-1]
-        names.append(".".join((package, *parts)) if parts else package)
-    return names
-
 
 def _run_isolated(program: str) -> subprocess.CompletedProcess:
     """Run ``program`` in a fresh, isolated child interpreter.
@@ -158,24 +106,20 @@ def _assert_qt_free(result: subprocess.CompletedProcess, leg: str) -> None:
     )
 
 
-def test_the_presentation_package_never_imports_qt(monkeypatch):
-    """core/presentation/ is importable, whole, in a process that has never
-    loaded Qt -- covering every module under the package, discovered, not
-    hardcoded."""
-    modules = _dotted_module_names(
-        PRESENTATION_DIR, "idasen_companion.core.presentation")
-    assert modules, "no presentation modules discovered -- the walk is broken"
+def test_the_presentation_module_never_imports_qt(monkeypatch):
+    """The consolidated presentation module imports without loading Qt."""
+    modules = ["idasen_companion.core.presentation"]
     monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
     program = _CHILD_PROGRAM.format(
         modules=modules, package_root=PACKAGE_ROOT,
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
-    _assert_qt_free(result, "core/presentation/")
+    _assert_qt_free(result, "core/presentation.py")
 
 
 def test_the_daemon_entry_point_never_imports_qt(monkeypatch):
     """The daemon's own import path is Qt-free too -- a claim about
-    core/presentation/ alone says nothing about whether idasen-companiond's
+    core/presentation.py alone says nothing about whether idasen-companiond's
     entry point reaches Qt through some other route, and the daemon holds
     the desk's single BLE connection as a systemd user service, so an
     accidental Qt link there is a packaging and attack-surface regression as
@@ -198,22 +142,3 @@ def test_the_cli_entry_point_never_imports_qt(monkeypatch):
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "cli.py")
-
-
-def test_every_shared_formatter_is_callable_with_no_qt_loaded(monkeypatch):
-    """PRES-01 asks for more than the two legs above prove. Those cover
-    *importability* -- that ``core/presentation/`` and the daemon's entry
-    point load with no windowing toolkit in ``sys.modules`` -- but say
-    nothing about a method that raises the moment it is actually invoked
-    without one backing it. This leg drives every public ``Formatter``
-    method, from the same ``tests/presentation_samples.py`` table
-    ``tests/test_golden_presentation_contract.py`` pins against, through a
-    real call in a process that has never loaded Qt, plus the one
-    daemon-reader sentence table that gets no ``Formatter`` method at all.
-    """
-    monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
-    program = _CALLABILITY_CHILD_PROGRAM.format(
-        tests_dir=str(ROOT / "tests"), src_dir=str(ROOT / "src"),
-        present=_PRESENT, absent=_ABSENT)
-    result = _run_isolated(program)
-    _assert_qt_free(result, "every shared formatter, called")

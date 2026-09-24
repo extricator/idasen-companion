@@ -1,50 +1,51 @@
-"""The height unit as a type, and the arithmetic that switches on it.
+"""Resolve independent clock and height-unit display preferences."""
 
-Qt-free and IO-free, like :mod:`core.durations`: nothing here imports Qt, and
-:func:`resolve_height_unit` reads nothing from the process — every input it
-needs arrives as an argument. That is what lets it run on the daemon's side
-of the D-Bus seam as easily as the GUI's.
-
-D-04 — why this is two types, not one. ``"system"`` is not a unit; it is a
-setting that resolves into one. Two types make the illegal state
-unrepresentable — a formatter cannot be handed ``"system"`` — which is the
-main thing the type buys. One type plus a documented resolver leaves nothing
-stopping a later contributor widening the enum to include ``SYSTEM``, which
-is exactly how the distinction erodes. :class:`UnitSetting` is what
-``[ui] units`` stores; :class:`HeightUnit` is what a formatter receives;
-:func:`resolve_height_unit` is the one place that turns the first into the
-second.
-
-Both enums are ``StrEnum``, the same choice ``core/machine.py`` makes for
-``DeskState``/``Status`` and for the same reason: under a plain ``str, Enum``
-a missed ``.value`` puts a Python repr (``HeightUnit.CENTIMETRES``) into
-user-visible text instead of the wire value, and that failure is silent
-until someone reads a screenshot.
-
-The four functions below carry the height conversion and the fractional-digit
-policy out of ``gui/util.py``: they take the unit as an explicit argument
-rather than reading a module global, so neither backend is ever asked a
-product question (PRES-07) — a formatter states a value and a unit, and the
-answer is the same regardless of who is asking.
-
-``resolve_height_unit``'s ``"system"`` policy is independent from app
-language. An explicit setting answers for itself. Otherwise the territory
-comes from the first set value of ``LC_ALL``, ``LC_MEASUREMENT`` and ``LANG``.
-A territory of ``US`` or ``LR`` resolves to inches; everything else —
-including ``GB``, deliberately, because a UK desk is advertised, reviewed and
-sold in centimetres — resolves to centimetres. An absent or unparseable answer
-resolves to centimetres. The retained ``language`` parameter is transitional
-API compatibility and is deliberately ignored.
-CLDR's own measurement-system field is coarser than this and is heading for
-deprecation; this is this project's own settled product default, which the
-Settings page can always override for good. The reasoning is settled and is
-not to be re-derived here or at any call site.
-"""
-
-from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import StrEnum
+
+from .locale_profile import (
+    TimeStyle, locale_uses_twelve_hour_clock, normalize_locale,
+)
+
+
+class ClockSetting(StrEnum):
+    """What ``[ui] clock_format`` stores: a preference, not a clock."""
+
+    SYSTEM = "system"
+    TWELVE = "12"
+    TWENTY_FOUR = "24"
+
+
+def _system_time_locale(environ: Mapping[str, str]) -> str | None:
+    """Resolve the POSIX time locale without using the selected app language."""
+    for key in ("LC_ALL", "LC_TIME", "LANG"):
+        value = environ.get(key)
+        if value:
+            # The first explicit time-locale input answers outright. C,
+            # POSIX, invalid and unsupported values use the deterministic
+            # 24-hour fallback rather than leaking into another category.
+            return normalize_locale(value)
+    return None
+
+
+def resolve_clock_style(setting: ClockSetting, *, language: str,
+                        environ: Mapping[str, str]) -> TimeStyle:
+    """Resolve a setting once; ``language`` is retained for API compatibility.
+
+    The accepted preference model intentionally does not consult ``language``
+    for ``SYSTEM``. Changing the app's words and symbols must not silently
+    change the user's hour cycle.
+    """
+    del language
+    if setting is ClockSetting.TWELVE:
+        return TimeStyle.HOUR_AND_MINUTE_12
+    if setting is ClockSetting.TWENTY_FOUR:
+        return TimeStyle.HOUR_AND_MINUTE_24
+    locale_name = _system_time_locale(environ)
+    if locale_name and locale_uses_twelve_hour_clock(locale_name):
+        return TimeStyle.HOUR_AND_MINUTE_12
+    return TimeStyle.HOUR_AND_MINUTE_24
 
 #: Metres per inch, exactly — the one conversion factor both height
 #: functions below are built on.

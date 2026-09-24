@@ -111,27 +111,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gettext
 
-      # Pinned to the version the committed .ts was produced with, so a
-      # different lupdate output is not mistaken for a stale catalog.
-      - name: Install PySide6 pinned to the version the committed catalogs were produced with
-        run: python -m pip install --upgrade pip 'PySide6==6.11.1'
-
       # When this gate goes red on a future pull request, the first question
       # is whether the toolchain moved -- the answer belongs in this log.
       - name: Log the catalog toolchain versions
         run: |
           xgettext --version
           msgmerge --version
-          pyside6-lupdate -version
 
-      - name: Regenerate both catalogs
-        run: |
-          PATH="$(python -c 'import sysconfig;print(sysconfig.get_path("scripts"))'):$PATH" bash scripts/build-translations.sh
+      - name: Regenerate the app catalog
+        run: bash scripts/build-translations.sh
 
       # The command below prints the diff before returning non-zero, so a
       # stale run's log already shows what regenerated differently.
       - name: Fail if regeneration produced a diff
-        run: git diff --exit-code -- translations/ po/ src/idasen_companion/gui/translations src/idasen_companion/locale
+        run: git diff --exit-code -- po/ src/idasen_companion/locale
 
       # gettext's own PO grammar, not a regex -- the tool below correctly
       # skips the header block and mid-message continuation lines, both of
@@ -149,12 +142,6 @@ jobs:
             fi
           done
 
-      - name: Fail on an unfinished Qt Linguist entry
-        run: |
-          if grep -l 'type="unfinished"' translations/*.ts; then
-            exit 1
-          fi
-
   metainfo:
     name: Validate the AppStream metainfo
     runs-on: ubuntu-24.04
@@ -169,7 +156,7 @@ jobs:
 
       # Non-strict deliberately: this project gates on exit codes and avoids
       # promoting pedantic hints to failures (see the coverage-gate lesson in
-      # CLAUDE.md). No grep of appstreamcli's own output either.
+      # project documentation). No grep of appstreamcli's own output either.
       - name: Validate the AppStream metainfo
         run: appstreamcli validate --no-net --explain data/io.github.extricator.IdasenCompanion.metainfo.xml
 

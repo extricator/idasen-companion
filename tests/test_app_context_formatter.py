@@ -19,7 +19,7 @@ from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 

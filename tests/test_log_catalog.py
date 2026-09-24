@@ -6,21 +6,21 @@ pytest.importorskip("PySide6.QtCore",
                     reason="GUI catalog needs PySide6")
 
 from idasen_companion.core import i18n, logmsg  # noqa: E402
-from idasen_companion.core.presentation.english import EnglishTranslator  # noqa: E402
-from idasen_companion.core.presentation.formatter import (  # noqa: E402
+from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
-    PlainLocaleFormatter,
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.locale_profile import (  # noqa: E402
+    LocaleProfile,
 )
-from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import log_catalog  # noqa: E402
 
 
 def _formatter() -> Formatter:
     context = PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)
     return Formatter(context)

@@ -88,14 +88,8 @@ recursive-include tests *.py
 # passes, because the file is sitting right there in the working tree.
 include tests/goldens/vocabulary_en.json
 include tests/goldens/vocabulary_es.json
-# The window before-picture's two goldens, for the same reason as the pair
-# above: a data file a test opens has to ship with the suite that opens it.
-include tests/goldens/window_en.json
-include tests/goldens/window_es.json
-# Translations: live gettext sources/compiled catalog plus frozen inactive
-# .ts/.qm migration evidence retained until Phase 7. See docs/TRANSLATING.md.
+# Translations: live gettext sources and compiled catalogs.
 include scripts/build-translations.sh
-include scripts/migrate-contextual-gettext.py
 include scripts/build-dist.sh
 include scripts/build-release-variants.sh
 include scripts/verify-release-artifacts.sh
@@ -147,7 +141,5 @@ include scripts/verify-bundled-bytecode.sh
 # local run passes, because the file is sitting right there in the working
 # tree.
 include scripts/verify-rpm-portability.sh
-recursive-include translations *.ts
 recursive-include po *.po *.pot
-recursive-include src/idasen_companion/gui/translations *.qm
 recursive-include src/idasen_companion/locale *.mo

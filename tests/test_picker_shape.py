@@ -4,10 +4,8 @@ Three renderings of one concept — a spelled-out unit in the Automation
 page's spin boxes, a one-letter compact form two rows away in its own
 dropdowns, and the tray Snooze submenu's verbose plural word again — is
 what let this drift apart while every gate stayed green. A human walking
-the app in two languages found it; nothing automated did. The window
-golden (``tests/goldens/window_en.json`` / ``window_es.json``) covers only
-two of the five surfaces (the Automation dropdowns and the Overview Snooze
-button's text) — this module covers all five, each in its own test, so a
+the app in two languages found it; nothing automated did. This module now
+covers all five surfaces directly, each in its own test, so a
 partial regression on one surface fails on that surface rather than as one
 opaque golden diff naming a combo box index nobody can place.
 
@@ -45,17 +43,17 @@ from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.presentation.english import (  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     EnglishTranslator,
 )
-from idasen_companion.core.presentation.formatter import (  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
-from idasen_companion.core.presentation.specs import TimeStyle
-from idasen_companion.core.presentation.plain_locale import (  # noqa: E402
-    PlainLocaleFormatter,
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.locale_profile import (  # noqa: E402
+    LocaleProfile,
 )
-from idasen_companion.core.units import HeightUnit  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import log_catalog  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -75,7 +73,7 @@ def _plain_formatter() -> Formatter:
     module is checked against, so nothing here depends on a ``QLocale`` or a
     gettext catalog binding."""
     return Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
@@ -326,7 +324,7 @@ def _summary_on(page, style: TimeStyle) -> str:
     about one sentence.
     """
     page.ctx.fmt = Formatter(PresentationContext(
-        locale=PlainLocaleFormatter(), translator=EnglishTranslator(),
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES, time_style=style))
     page.sched_enabled.setChecked(True)
     page.start_time.setTime(QTime(9, 0))
