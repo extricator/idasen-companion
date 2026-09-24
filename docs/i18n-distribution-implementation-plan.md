@@ -76,7 +76,7 @@ the handoff commit.
 | 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
-| 5. Artifact variants | In progress | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
+| 5. Artifact variants | Complete | `3626d3a` | this commit | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
 
@@ -700,7 +700,7 @@ is not phase completion.
 
 ### Phase 5 execution record
 
-- State: In progress
+- State: Complete
 - Starting commit: `b793e64`
 - Shared variant input/generator: `scripts/build-release-variants.sh` builds
   both RPM flavors from `packaging/idasen-companion-bundled.spec`, both Debian
@@ -712,7 +712,7 @@ is not phase completion.
   (24,149,766 bytes), `idasen-companion_1.1.1-1_all.deb` (243,368 bytes),
   `idasen-companion-headless_1.1.1-1_all.deb` (125,904 bytes), and
   `idasen-companion-1.1.1.flatpak` (17,725,040 bytes).
-- Implementation commit: —
+- Implementation commit: `3626d3a`
 - Build/inspection/smoke results: Fedora 43 bundled builds passed their ELF,
   daemon, bytecode and packaged-source suites (full: 1,982 passed/50 skipped;
   headless: 994 passed/49 skipped). Debian 13 built both packages after its
