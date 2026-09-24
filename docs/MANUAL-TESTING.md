@@ -300,6 +300,28 @@ redraw:
       Looking only at the scheme you just switched to is how the failure this
       guards against survives.
 
+### First right-to-left catalog release gate
+
+Structural RTL tests mirror the known asymmetric controls, but they cannot
+validate language quality or reveal every interaction between real text,
+desktop fonts and widget geometry. Run this block before releasing the first
+right-to-left catalog; it is not required while no such catalog ships.
+
+- [ ] A native speaker reviews every translated message in context, including
+      plurals, units, clock text, punctuation and mixed-direction values. Right:
+      the catalog is linguistically owned, not machine-generated guesswork.
+- [ ] From the installed full package, walk all seven pages and every dialog in
+      that language. Right: the sidebar moves to the right, its divider stays
+      beside the content, forward/action icons face the reading direction,
+      joined controls keep one shared seam, and no label overlaps or elides.
+- [ ] Exercise the Overview height rail by clicking and dragging both ends,
+      inspect the Presets vertical rail, and inspect Statistics with non-empty
+      daily bars. Right: painting, labels, fills, targets and pointer hit-testing
+      mirror together rather than only looking mirrored.
+- [ ] Inspect Activity Log rows containing Latin command text, numbers and
+      timestamps. Right: mixed-direction content remains readable and the copy
+      icon follows the selected layout direction without reversing the command.
+
 ### Flatpak Background portal autostart
 
 Unreachable any other way: `RequestBackground` talks to a real portal

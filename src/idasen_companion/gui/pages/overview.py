@@ -10,7 +10,7 @@ from datetime import datetime
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QDoubleSpinBox, QHBoxLayout, QLabel, QProgressBar, QPushButton,
-    QVBoxLayout, QWidget,
+    QStyle, QVBoxLayout, QWidget,
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
@@ -133,7 +133,10 @@ class OverviewPage(Page):
         self._shape_height_spin()
         self.height_spin.valueChanged.connect(self._on_spin_changed)
         move_btn = primary_button(pgettext('overview', "Move"))
-        move_btn.setIcon(icon("media-playback-start", "go-next", "arrow-right"))
+        # SP_ArrowForward is semantic: QStyle maps it to the visual direction
+        # of the selected locale instead of baking a right-pointing glyph in.
+        move_btn.setIcon(move_btn.style().standardIcon(
+            QStyle.StandardPixmap.SP_ArrowForward, None, move_btn))
         move_btn.clicked.connect(
             lambda: self.client.move_to_height(
                 self.ctx.fmt.from_display_height(self.height_spin.value())))
@@ -258,7 +261,7 @@ class OverviewPage(Page):
 
         restyle.register(self.countdown_bar, _restyle_countdown_bar)
         self.progress_caption = QLabel("")
-        self.progress_caption.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.progress_caption.setAlignment(Qt.AlignmentFlag.AlignTrailing)
 
         def _restyle_progress_caption(
                 target: QLabel = self.progress_caption) -> None:

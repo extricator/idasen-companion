@@ -238,9 +238,10 @@ class MainWindow(QMainWindow):
 
     def _restyle_sidebar(self) -> None:
         tokens = theme()
+        divider_side = "left" if self.isRightToLeft() else "right"
         self._sidebar.setStyleSheet(
             f"QWidget#Sidebar {{ background: {css(tokens.sidebar_bg)};"
-            f" border-right: 1px solid {css(tokens.separator)}; }}")
+            f" border-{divider_side}: 1px solid {css(tokens.separator)}; }}")
         self._nav.setStyleSheet(
             "QListWidget { background: transparent; outline: none; }"
             "QListWidget::item {"

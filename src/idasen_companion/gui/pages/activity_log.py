@@ -163,7 +163,6 @@ class ActivityLogPage(Page):
         self._journal_chip = SpacedLabelButton(self._JOURNAL_CMD)
         self._journal_chip.setFont(mono)
         self._journal_chip.setIconSize(QSize(16, 16))
-        self._journal_chip.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # icon at right
         self._journal_chip.setCursor(Qt.CursorShape.PointingHandCursor)
         self._journal_chip.setToolTip(pgettext('activity-log.controls', "Copy command"))
         restyle.register(self._journal_chip, self._restyle_journal_chip)

@@ -77,7 +77,7 @@ the handoff commit.
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Complete | `3626d3a` | this commit | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
-| 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
+| 6. RTL readiness | In progress | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
 
 Allowed states are `Pending`, `In progress`, `Blocked` and `Complete`. A phase
@@ -798,16 +798,43 @@ also name the controls manually inspected offscreen or in a local GUI run.
 
 ### Phase 6 execution record
 
-- State: Pending
-- Starting commit: —
-- Controls covered automatically/manually: —
+- State: In progress
+- Starting commit: `e9edc21`
+- Controls covered automatically/manually: application direction, sidebar
+  divider, Overview Move icon and progress caption, Activity Log journal chip,
+  Presets leading padding, joined segment seams/corners, horizontal height rail
+  paint/hit mapping, vertical range rail, and daily-bar rectangles are covered
+  automatically in both directions. Offscreen construction/rendering covers
+  the same controls; a native-speaker installed-GUI walk remains a release gate
+  for the first real RTL catalog rather than a claim made by this phase.
 - Implementation commit: —
-- Commands/results: —
-- Deviations from plan: —
-- Known risks carried forward: —
-- Handoff to Phase 7: Enumerate every transitional file, import, test and doc
-  rule now safe to remove. Include `rg` commands that prove each replacement
-  has a live consumer before deletion.
+- Commands/results: preflight full pytest — 2,031 passed/1 skipped; preflight
+  naming — exit 0. Official Qt for Python 6 documentation was consulted through
+  Context7 for application layout direction and `QStyle` visual mapping.
+  Focused RTL/locale suite — 45 passed; full offscreen pytest — 2,043 passed/1
+  skipped; naming — exit 0; mypy — no issues in 69 source files; pylint —
+  10.00/10; `git diff --check` — exit 0. Manual offscreen inspection covered
+  Overview, Presets, Statistics and Activity Log: the sidebar/divider, semantic
+  forward icon, horizontal rail fill/ends, vertical range rail, preset rows,
+  daily-bar order/labels/share, and journal chip all mirrored as one layout.
+- Deviations from plan: None. No RTL catalog or language-picker entry was added.
+- Known risks carried forward: structural geometry cannot validate translation
+  quality, mixed-direction prose or a desktop's real fonts. The first real RTL
+  catalog therefore remains gated on native-speaker review and an installed-GUI
+  walk in `docs/MANUAL-TESTING.md`.
+- Handoff to Phase 7: Transitional production owners are
+  `core/presentation/{plain_locale,protocols,specs,dates,gettext_translator,english,formatter,words,register}.py`
+  and `gui/locale_backend.py`; frozen app Qt catalogs live under
+  `translations/` and `src/idasen_companion/gui/translations/`; the one-shot
+  converter is `scripts/migrate-contextual-gettext.py`. Transitional structural
+  tests include `test_locale_backend.py`, `test_plain_locale.py`,
+  `test_presentation_{protocols,policy,seam,divergence_surface}.py`,
+  `test_golden_presentation_contract.py`, `test_catalog_concept_overlap.py`,
+  `presentation_{fakes,samples}.py`, and `tests/goldens/window_{en,es}.json`.
+  Re-run the three required-absence `rg` commands in Phase 7 section 11; the
+  current output above is the deletion inventory. Before deleting adapters,
+  prove live replacements with `rg -n 'LocaleProfile\\(' src` and
+  `rg -n '\\b(pgettext|npgettext)\\(' src/idasen_companion`.
 
 ## 11. Phase 7 — remove obsolete machinery and close the rebuild
 

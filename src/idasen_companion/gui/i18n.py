@@ -55,6 +55,10 @@ def install_translators(app, language: str = SYSTEM) -> list[QTranslator]:
     # QLocale here gives QDoubleSpinBox/QSpinBox/QTimeEdit the same locale for
     # their native editing behavior and supplies Qt's layout direction.
     QLocale.setDefault(locale)
+    # Do this explicitly rather than relying on a loaded Qtbase translation:
+    # app-owned gettext catalogs and Qt's widget catalogs are independent, and
+    # an RTL locale must still mirror the GUI when either catalog is partial.
+    app.setLayoutDirection(locale.textDirection())
     installed: list[QTranslator] = []
 
     # Only Qt's own catalog is installed. App-owned strings use gettext.

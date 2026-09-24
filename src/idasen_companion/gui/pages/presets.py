@@ -86,7 +86,8 @@ class PresetsPage(Page):
                 last: bool = i == 1,
             ) -> None:
                 target.setStyleSheet(
-                    segment_css(first, last, padding="5px 12px"))
+                    segment_css(first, last, padding="5px 12px",
+                                direction=target.layoutDirection()))
 
             restyle.register(btn, _restyle_footer_btn)
             strip.addWidget(btn, 1)
@@ -137,9 +138,10 @@ class PresetsPage(Page):
         height_label = QLabel(self.ctx.fmt.height(height))
 
         def _restyle_height_label(target: QLabel = height_label) -> None:
+            padding_side = "right" if target.isRightToLeft() else "left"
             target.setStyleSheet(
                 f"color: {css(theme().secondary)}; border: none;"
-                " padding-left: 4px;")
+                f" padding-{padding_side}: 4px;")
 
         restyle.register(height_label, _restyle_height_label)
         height_row.addWidget(height_label)

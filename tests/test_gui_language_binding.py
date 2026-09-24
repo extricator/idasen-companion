@@ -21,7 +21,7 @@ from pathlib import Path  # noqa: E402
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QLocale  # noqa: E402
+from PySide6.QtCore import QLocale, Qt  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
@@ -69,6 +69,19 @@ def test_apply_language_binds_the_qt_locale(qapp):
         for translator in installed:
             qapp.removeTranslator(translator)
             shiboken6.delete(translator)
+        QLocale.setDefault(QLocale("en_US"))
+
+
+def test_apply_language_sets_direction_from_locale_without_a_catalog(qapp):
+    original_direction = qapp.layoutDirection()
+    installed = apply_language(qapp, "ar_EG")
+    try:
+        assert qapp.layoutDirection() == Qt.LayoutDirection.RightToLeft
+    finally:
+        for translator in installed:
+            qapp.removeTranslator(translator)
+            shiboken6.delete(translator)
+        qapp.setLayoutDirection(original_direction)
         QLocale.setDefault(QLocale("en_US"))
 
 

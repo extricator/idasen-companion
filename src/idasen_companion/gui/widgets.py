@@ -391,7 +391,9 @@ def equal_height_row(*controls: QWidget, spacing: int = 10) -> QWidget:
     return row_widget
 
 
-def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
+def segment_css(first: bool, last: bool, padding: str = "4px 12px",
+                direction: Qt.LayoutDirection = Qt.LayoutDirection.LeftToRight,
+                ) -> str:
     """Stylesheet for one segment of a joined button strip. With
     first=last=True it doubles as a standalone chip (Schedule days).
     Checked rules are inert on non-checkable buttons (Presets footer).
@@ -402,13 +404,15 @@ def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
     Schedule days stayed vividly selected with "Use schedule" unticked while
     the plain QTimeEdits beside them greyed out correctly."""
     tokens = theme()
-    radius_left = f"{CONTROL_RADIUS}px" if first else "0"
-    radius_right = f"{CONTROL_RADIUS}px" if last else "0"
-    left_border = "" if first else "border-left: none;"
+    rtl = direction == Qt.LayoutDirection.RightToLeft
+    radius_left = f"{CONTROL_RADIUS}px" if (last if rtl else first) else "0"
+    radius_right = f"{CONTROL_RADIUS}px" if (first if rtl else last) else "0"
+    shared_border = ("" if first else
+                     ("border-right: none;" if rtl else "border-left: none;"))
     return (
         f"QPushButton {{ background: {css(tokens.card_bg)};"
         f" color: {css(tokens.secondary)};"
-        f" border: 1px solid {css(tokens.border)}; {left_border}"
+        f" border: 1px solid {css(tokens.border)}; {shared_border}"
         f" border-top-left-radius: {radius_left};"
         f" border-bottom-left-radius: {radius_left};"
         f" border-top-right-radius: {radius_right};"
@@ -526,7 +530,9 @@ class SegmentedControl(QWidget):
                 target: QPushButton = button, first: bool = is_first,
                 last: bool = is_last,
             ) -> None:
-                target.setStyleSheet(segment_css(first, last))
+                target.setStyleSheet(
+                    segment_css(first, last,
+                                direction=target.layoutDirection()))
 
             restyle.register(button, _restyle_segment)
             # The selected segment renders DemiBold (segment_css :checked),
@@ -777,11 +783,13 @@ class HeightRail(QWidget):
     def _x(self, meters: float) -> float:
         span = self.width() - 2 * self._PAD
         frac = (meters - self._lo) / (self._hi - self._lo)
-        return self._PAD + _clamp01(frac) * span
+        logical_x = self._PAD + _clamp01(frac) * span
+        return self.width() - logical_x if self.isRightToLeft() else logical_x
 
     def _meters(self, pixel_x: float) -> float:
         span = self.width() - 2 * self._PAD
-        frac = (pixel_x - self._PAD) / max(1.0, span)
+        logical_x = self.width() - pixel_x if self.isRightToLeft() else pixel_x
+        frac = (logical_x - self._PAD) / max(1.0, span)
         return self._lo + _clamp01(frac) * (self._hi - self._lo)
 
     # ----- interaction -----
@@ -818,9 +826,11 @@ class HeightRail(QWidget):
         painter.drawRoundedRect(track, 3, 3)
 
         fill_x = self._x(self._height)
-        if fill_x > left:
-            fill = QRectF(left, track_y - self._TRACK_H / 2,
-                          fill_x - left, self._TRACK_H)
+        low_x = self._x(self._lo)
+        if abs(fill_x - low_x) > 0:
+            fill = QRectF(min(fill_x, low_x),
+                          track_y - self._TRACK_H / 2,
+                          abs(fill_x - low_x), self._TRACK_H)
             painter.setBrush(tokens.accent)
             painter.drawRoundedRect(fill, 3, 3)
 
@@ -883,11 +893,22 @@ class RangeRail(QWidget):
         frac = (self._hi - meters) / (self._hi - self._lo)
         return self._PAD + _clamp01(frac) * span
 
+    def _track_x(self) -> float:
+        """Physical x for the logical leading edge of the range rail."""
+        return (self.width() - self._TRACK_X
+                if self.isRightToLeft() else self._TRACK_X)
+
+    def _tick_text_x(self, text_width: float) -> float:
+        """Physical x for text following a tick in logical reading order."""
+        track_x = self._track_x()
+        return (track_x - 9 - text_width if self.isRightToLeft()
+                else track_x + 9)
+
     def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
         tokens = theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        track_x = self._TRACK_X
+        track_x = self._track_x()
 
         painter.setPen(QPen(tokens.separator, 2))
         painter.drawLine(QPointF(track_x, self._PAD), QPointF(track_x, self.height() - self._PAD))
@@ -908,8 +929,9 @@ class RangeRail(QWidget):
             if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
                 continue
             label = self.ctx.fmt.height(meters, trim=True)
-            painter.drawText(QPointF(self.width() - metrics.horizontalAdvance(label),
-                               label_y), label)
+            label_x = (0 if self.isRightToLeft()
+                       else self.width() - metrics.horizontalAdvance(label))
+            painter.drawText(QPointF(label_x, label_y), label)
 
         live_shown = False
         for name, meters in sorted(self._presets.items(),
@@ -928,8 +950,10 @@ class RangeRail(QWidget):
             # do not reintroduce the bare `name` here.
             text = (self.ctx.fmt.preset_tick(preset_label(name), meters)
                     if at_preset else preset_label(name))
-            painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
-                       text)
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = self._tick_text_x(text_width)
+            painter.drawText(QPointF(
+                text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
             live_shown = live_shown or at_preset
 
         if self._height > 0 and not live_shown:
@@ -938,8 +962,11 @@ class RangeRail(QWidget):
             painter.drawLine(QPointF(track_x - 5, tick_y), QPointF(track_x + 5, tick_y))
             painter.setFont(bold)
             painter.setPen(tokens.accent_text)
-            painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
-                       self.ctx.fmt.height_value(self._height))
+            text = self.ctx.fmt.height_value(self._height)
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = self._tick_text_x(text_width)
+            painter.drawText(QPointF(
+                text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
         painter.end()
 
 
@@ -987,6 +1014,13 @@ class DailyBarsChart(QWidget):
                 "stand": self.ctx.fmt.duration_hm(stand)}
         return pgettext('statistics.chart', "%(day)s: no data") % {"day": label}
 
+    def _visual_rect(self, logical: QRectF) -> QRectF:
+        """Map a logical LTR painter rectangle through this widget's direction."""
+        if not self.isRightToLeft():
+            return logical
+        return QRectF(self.width() - logical.x() - logical.width(), logical.y(),
+                      logical.width(), logical.height())
+
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name
         index = int(event.position().y() // self.ROW_H)
         if 0 <= index < len(self._rows):
@@ -1018,7 +1052,9 @@ class DailyBarsChart(QWidget):
 
             painter.setFont(today_font if is_today else small)
             painter.setPen(tokens.accent_text if is_today else tokens.secondary)
-            painter.drawText(QPointF(4, baseline), label)
+            label_width = painter.fontMetrics().horizontalAdvance(label)
+            label_x = self.width() - 4 - label_width if self.isRightToLeft() else 4
+            painter.drawText(QPointF(label_x, baseline), label)
 
             sit_w = span * sit_seconds / max_total
             stand_w = span * stand / max_total
@@ -1026,16 +1062,21 @@ class DailyBarsChart(QWidget):
             if sit_w > 0:
                 # Round the baseline (outer) end; the inner end facing the
                 # gap stays square (rounded only when it's the whole bar).
-                rect = QRectF(left, bar_y, sit_w, self.BAR_H)
+                rect = self._visual_rect(QRectF(left, bar_y, sit_w, self.BAR_H))
                 painter.setBrush(sit_color)
-                self._draw_segment(painter, rect, round_left=True,
-                                   round_right=stand_w <= 0)
+                self._draw_segment(
+                    painter, rect,
+                    round_left=(stand_w <= 0 if self.isRightToLeft() else True),
+                    round_right=(True if self.isRightToLeft() else stand_w <= 0))
             if stand_w > 0:
                 stand_x = left + sit_w + (self.GAP if sit_w > 0 else 0)
-                rect = QRectF(stand_x, bar_y, max(2.0, stand_w - self.GAP), self.BAR_H)
+                rect = self._visual_rect(QRectF(
+                    stand_x, bar_y, max(2.0, stand_w - self.GAP), self.BAR_H))
                 painter.setBrush(stand_color)
-                self._draw_segment(painter, rect, round_left=sit_w <= 0,
-                                   round_right=True)
+                self._draw_segment(
+                    painter, rect,
+                    round_left=(True if self.isRightToLeft() else sit_w <= 0),
+                    round_right=(sit_w <= 0 if self.isRightToLeft() else True))
 
             total = sit_seconds + stand
             painter.setFont(small)
@@ -1043,7 +1084,8 @@ class DailyBarsChart(QWidget):
             share = (self.ctx.fmt.context.locale.percent(stand / total)
                      if total else "—")
             share_w = painter.fontMetrics().horizontalAdvance(share)
-            painter.drawText(QPointF(self.width() - share_w - 2, baseline), share)
+            share_x = 2 if self.isRightToLeft() else self.width() - share_w - 2
+            painter.drawText(QPointF(share_x, baseline), share)
         painter.end()
 
     @staticmethod

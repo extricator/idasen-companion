@@ -206,7 +206,8 @@ class AutomationPage(SettingsFormPage):
             # entry restyling only the last day built.
             def _restyle_day_chip(target: QPushButton = chip) -> None:
                 target.setStyleSheet(segment_css(first=True, last=True,
-                                                 padding="3px 9px"))
+                                                 padding="3px 9px",
+                                                 direction=target.layoutDirection()))
 
             restyle.register(chip, _restyle_day_chip)
             chip.toggled.connect(self._update_sched_summary)

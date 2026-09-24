@@ -117,6 +117,16 @@ Example: French (`fr`).
 
 English is the source language and needs no catalog.
 
+### First right-to-left catalog
+
+The GUI already maps its known asymmetric layouts and custom painting through
+Qt's selected layout direction, but that is structural readiness rather than a
+claim that an RTL language is supported. Before the first Arabic, Hebrew or
+other right-to-left catalog is released, it requires both a native-speaker
+linguistic review and the installed-GUI visual walk in
+`docs/MANUAL-TESTING.md`. Do not add the language to a release based only on
+the offscreen geometry suite or machine-generated translations.
+
 ## Update catalogs after a string change
 
 Run:
