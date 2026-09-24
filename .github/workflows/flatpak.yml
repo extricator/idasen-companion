@@ -74,7 +74,9 @@ jobs:
 
       - name: Build the full Flatpak release bundle
         if: steps.changed.outputs.relevant == 'true'
-        run: bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
+        run: >-
+          dbus-run-session --
+          bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
 
       - name: Upload the bundle
         if: steps.changed.outputs.relevant == 'true'
