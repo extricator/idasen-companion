@@ -87,8 +87,8 @@ before changing the shape of something rather than working within it.
 Released artifacts are built by CI. Build them by hand when you change
 packaging, or when you package the app for a distribution.
 
-The RPM build uses a project-local tree (`./rpmbuild/`), not `~/rpmbuild`.
-Install the prerequisites first:
+The checked-in release builder creates an isolated RPM topdir. Install the
+prerequisites first when running the RPM selector directly:
 
 ```bash
 sudo dnf install rpm-build rpmdevtools python3-devel python3-build \
@@ -98,7 +98,6 @@ sudo dnf install rpm-build rpmdevtools python3-devel python3-build \
     'libGL.so.1()(64bit)' 'libEGL.so.1()(64bit)' 'libxkbcommon.so.0()(64bit)' \
     'libfontconfig.so.1()(64bit)' 'libfreetype.so.6()(64bit)' \
     'libdbus-1.so.3()(64bit)'
-mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 ```
 
 Six of those names are library sonames and three are program paths, and
@@ -119,22 +118,16 @@ the extraction the spec unpacks, and that extraction brings its own of both.
 The sdist step below still assembles an isolated environment of its own, for
 which `python3-build` pulls in what it needs.
 
-The shipped package is the self-contained single RPM. It carries the app's
-whole Python runtime — the interpreter, and every library it imports, Qt
-included and trimmed to the modules it reaches — so it installs on any RPM
-distribution rather than on the one it was built against:
+The release ships two standalone self-contained RPMs from the same spec. Both
+carry the app's Python runtime and common dependencies; the full flavor also
+carries Qt, while the headless flavor contains only the CLI and daemon:
 
 ```bash
-python3 -m build --sdist
-cp dist/idasen_companion-*.tar.gz rpmbuild/SOURCES/
-bash scripts/fetch-bundled-runtime.sh rpmbuild/SOURCES
-rpmbuild --define "_topdir $PWD/rpmbuild" -bb packaging/idasen-companion-bundled.spec
+bash scripts/build-release-variants.sh --rpm --output dist-release
 ```
 
-The third line is the only one that needs the network, and it pins every
-version it downloads. `rpmbuild` then runs offline against the tarball it
-wrote, which is why the two sources are staged by hand rather than fetched
-from the spec: one of them does not exist anywhere to fetch from.
+The builder regenerates the sdist, fetches the pinned runtime input, then runs
+both spec flavors offline against those shared sources.
 
 The result is architecture-specific — it contains Qt — so it appears under
 `rpmbuild/RPMS/x86_64/`.
@@ -156,19 +149,25 @@ two libraries separately. This is not what ships, and nothing in CI builds
 and undetected, until this phase's research built it by hand and found the
 break; a follow-up commit removed the stray line, but the spec still has no
 build gate, so it can go stale again the same way. It is unverified between
-releases. The self-contained single RPM is the supported path. If you build
+releases. The two self-contained release RPMs are the supported path. If you build
 the split anyway, build the two library packages and install them before you
 build the app package.
 
-The `.deb` needs a checkout with the Debian build dependencies present:
+The Debian selector produces the full and headless packages from one pybuild
+staging tree:
 
 ```bash
-dpkg-buildpackage -us -uc -b
+bash scripts/build-release-variants.sh --deb --output dist-release
 ```
 
-For the Flatpak bundle, read `packaging/flatpak/README.md`. A local build
-writes an unversioned `idasen-companion.flatpak`, and the released asset
-carries the version in its name.
+For the Flatpak bundle, read `packaging/flatpak/README.md`. To reproduce all
+five release artifacts in their Fedora and Debian container environments and
+then smoke-test them:
+
+```bash
+bash scripts/build-release-variants.sh --all --output dist-release
+bash scripts/verify-release-artifacts.sh dist-release
+```
 
 ## Translations
 
@@ -231,12 +230,11 @@ getting it wrong costs a version number. Follow this top to bottom.
 
    The workflow refuses to go on unless the version you typed matches
    `__version__` on the default branch, so a bump you forgot to land stops it
-   before anything is built. It then builds all three formats at that commit,
-   resolves each built filename, writes `SHA256SUMS` over the set, creates the
+   before anything is built. It then builds all five artifacts at that commit,
+   installs and smokes every flavor, writes `SHA256SUMS` over the set, creates the
    `v<version>` tag pointing at exactly the commit the artifacts came from, and
-   publishes a release carrying the RPM — one package, built once, named for
-   the architecture rather than for a distribution — the `.deb`, the versioned
-   `.flatpak` bundle and the checksums. The body is the matching
+   publishes a release carrying full/headless RPMs, full/headless `.deb`
+   packages, the full-only versioned `.flatpak` bundle and the checksums. The body is the matching
    `CHANGELOG.md` section.
 
    Tick **dry run** to rehearse instead: same builds, same checksums, no tag

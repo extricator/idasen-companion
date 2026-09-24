@@ -52,11 +52,14 @@ flatpak run io.github.extricator.IdasenCompanion
 ## Single-file bundle (distributable)
 
 ```bash
-flatpak-builder --user --force-clean --repo=repo \
-    build-dir packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
-flatpak build-bundle repo idasen-companion.flatpak \
-    io.github.extricator.IdasenCompanion
+bash scripts/build-release-variants.sh --flatpak --output dist-release
 ```
+
+This produces the versioned full GUI bundle used by the release workflow. The
+installed `idasen-companion-cli` entry point is available only inside its
+sandbox, for example with `flatpak run --command=idasen-companion-cli
+io.github.extricator.IdasenCompanion status`; it is not a host-level headless
+installation.
 
 ## Size
 

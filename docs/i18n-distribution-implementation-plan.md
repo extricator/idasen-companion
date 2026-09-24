@@ -76,7 +76,7 @@ the handoff commit.
 | 2. Contextual gettext | Complete | `912f1eb` | this commit | extraction freshness, catalog audit, mixed-version log tests, full tests |
 | 3. Config compatibility | Complete | `f9860da` | this commit | unknown-key round trips, visible warnings, strict known-key tests, full tests |
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
-| 5. Artifact variants | Pending | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
+| 5. Artifact variants | In progress | — | — | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Pending | — | — | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
 | 7. Obsolete removal | Pending | — | — | no obsolete imports/files, complete quality and artifact gates |
 
@@ -700,14 +700,39 @@ is not phase completion.
 
 ### Phase 5 execution record
 
-- State: Pending
-- Starting commit: —
-- Shared variant input/generator: —
-- Artifact names and sizes: —
+- State: In progress
+- Starting commit: `b793e64`
+- Shared variant input/generator: `scripts/build-release-variants.sh` builds
+  both RPM flavors from `packaging/idasen-companion-bundled.spec`, both Debian
+  flavors from one pybuild staging tree and `.install` manifests, and the
+  full-only Flatpak. `--all` creates the Fedora 43 and Debian 13 build
+  containers and puts exactly five outputs in one directory.
+- Artifact names and sizes: `idasen-companion-1.1.1-1.x86_64.rpm`
+  (50,266,612 bytes), `idasen-companion-headless-1.1.1-1.x86_64.rpm`
+  (24,149,766 bytes), `idasen-companion_1.1.1-1_all.deb` (243,368 bytes),
+  `idasen-companion-headless_1.1.1-1_all.deb` (125,904 bytes), and
+  `idasen-companion-1.1.1.flatpak` (17,725,040 bytes).
 - Implementation commit: —
-- Build/inspection/smoke results: —
-- Deviations from plan: —
-- Known risks carried forward: —
+- Build/inspection/smoke results: Fedora 43 bundled builds passed their ELF,
+  daemon, bytecode and packaged-source suites (full: 1,982 passed/50 skipped;
+  headless: 994 passed/49 skipped). Debian 13 built both packages after its
+  complete package suite passed (1,987 passed/45 skipped).
+  `scripts/verify-release-artifacts.sh dist-release-test` installed all four
+  native artifacts in fresh Fedora/Debian containers; each CLI reached a live
+  mock daemon and printed status, while payload/dependency/conflict, catalog,
+  service, version and GUI-boundary checks passed. It installed the Flatpak in
+  an isolated user directory and passed GUI-version and sandboxed-CLI help
+  smokes. Focused packaging/workflow/Qt-free tests passed (87); full pytest
+  passed (2,031 passed/1 skipped); naming exited 0; mypy found no issues in 69
+  files; pylint scored 10.00/10; workflow YAML parsed; shell syntax and
+  `git diff --check` passed. `scripts/build-dist.sh` built and audited the
+  wheel plus a 241-member, 820,553-byte sdist with all members tracked.
+- Deviations from plan: None. The full/headless product pair is standalone,
+  not an install-time subpackage graph; Flatpak remains full-only and exposes
+  its CLI only through `flatpak run --command=idasen-companion-cli`.
+- Known risks carried forward: CI YAML has not run on GitHub in this local
+  execution; its checked-in commands and pin tests are covered locally, and a
+  release dry run remains the external workflow proof.
 - Handoff to Phase 6: Confirm packaging is green before UI geometry changes,
   and list the full artifact/test command used for offscreen GUI verification.
 

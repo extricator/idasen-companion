@@ -124,7 +124,9 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       rpm: ${{ steps.assets.outputs.rpm }}
+      rpm_headless: ${{ steps.assets.outputs.rpm_headless }}
       deb: ${{ steps.assets.outputs.deb }}
+      deb_headless: ${{ steps.assets.outputs.deb_headless }}
       flatpak: ${{ steps.assets.outputs.flatpak }}
     steps:
       - name: Check out the repository
@@ -158,7 +160,14 @@ jobs:
           name: idasen-companion-flatpak
           path: artifacts
 
-      - name: Resolve each asset's filename and checksum the three
+      - name: Install the five-artifact verifier's host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman flatpak
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive flathub org.kde.Platform//6.10
+
+      - name: Resolve each asset's filename and checksum the five
         id: assets
         run: |
           VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
@@ -170,35 +179,52 @@ jobs:
           # refuse to continue unless the match is unique: the unshipped split
           # spec builds a package of a very similar name, which must never
           # reach a release by accident.
-          rpm_matches=(idasen-companion-*.rpm)
+          rpm_matches=(idasen-companion-[0-9]*.rpm)
           if [ "${#rpm_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one RPM, found ${#rpm_matches[@]}: ${rpm_matches[*]}" >&2
+            echo "Expected exactly one full RPM, found ${#rpm_matches[@]}: ${rpm_matches[*]}" >&2
+            exit 1
+          fi
+          rpm_headless_matches=(idasen-companion-headless-*.rpm)
+          if [ "${#rpm_headless_matches[@]}" -ne 1 ]; then
+            echo "Expected exactly one headless RPM, found ${#rpm_headless_matches[@]}: ${rpm_headless_matches[*]}" >&2
             exit 1
           fi
           deb_matches=(idasen-companion_*.deb)
           if [ "${#deb_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one .deb, found ${#deb_matches[@]}: ${deb_matches[*]}" >&2
+            echo "Expected exactly one full .deb, found ${#deb_matches[@]}: ${deb_matches[*]}" >&2
+            exit 1
+          fi
+          deb_headless_matches=(idasen-companion-headless_*.deb)
+          if [ "${#deb_headless_matches[@]}" -ne 1 ]; then
+            echo "Expected exactly one headless .deb, found ${#deb_headless_matches[@]}: ${deb_headless_matches[*]}" >&2
             exit 1
           fi
           RPM="${rpm_matches[0]}"
+          RPM_HEADLESS="${rpm_headless_matches[0]}"
           DEB="${deb_matches[0]}"
+          DEB_HEADLESS="${deb_headless_matches[0]}"
 
-          # The bundle is built under a fixed name because CI rebuilds it on
-          # every push, where a version in the filename buys nothing. A file
-          # downloaded to sit beside two versioned siblings wants one, so it
-          # gains it here rather than in the builder.
-          FLATPAK="idasen-companion-${VERSION}.flatpak"
-          mv idasen-companion.flatpak "$FLATPAK"
+          flatpak_matches=(idasen-companion-[0-9]*.flatpak)
+          if [ "${#flatpak_matches[@]}" -ne 1 ]; then
+            echo "Expected exactly one Flatpak, found ${#flatpak_matches[@]}: ${flatpak_matches[*]}" >&2
+            exit 1
+          fi
+          FLATPAK="${flatpak_matches[0]}"
 
-          # One checksum file for all three, written beside them, so
-          # `sha256sum -c` works wherever the four are downloaded together.
-          sha256sum "$RPM" "$DEB" "$FLATPAK" > SHA256SUMS
+          cd ..
+          bash scripts/verify-release-artifacts.sh artifacts
+          cd artifacts
+
+          # One checksum file for all five, written beside them.
+          sha256sum "$RPM" "$RPM_HEADLESS" "$DEB" "$DEB_HEADLESS" "$FLATPAK" > SHA256SUMS
           cat SHA256SUMS
 
           {
             echo "VERSION=$VERSION"
             echo "RPM=$RPM"
+            echo "RPM_HEADLESS=$RPM_HEADLESS"
             echo "DEB=$DEB"
+            echo "DEB_HEADLESS=$DEB_HEADLESS"
             echo "FLATPAK=$FLATPAK"
           } >> "$GITHUB_ENV"
 
@@ -207,7 +233,9 @@ jobs:
           # let it name each asset explicitly rather than re-globbing them.
           {
             echo "rpm=$RPM"
+            echo "rpm_headless=$RPM_HEADLESS"
             echo "deb=$DEB"
+            echo "deb_headless=$DEB_HEADLESS"
             echo "flatpak=$FLATPAK"
           } >> "$GITHUB_OUTPUT"
 
@@ -293,7 +321,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RPM: ${{ needs.package.outputs.rpm }}
+          RPM_HEADLESS: ${{ needs.package.outputs.rpm_headless }}
           DEB: ${{ needs.package.outputs.deb }}
+          DEB_HEADLESS: ${{ needs.package.outputs.deb_headless }}
           FLATPAK: ${{ needs.package.outputs.flatpak }}
           TAG: ${{ needs.gate.outputs.tag }}
         run: |
@@ -322,6 +352,8 @@ jobs:
             "${TARGET[@]}" \
             --notes-file release-notes.md \
             "artifacts/$RPM" \
+            "artifacts/$RPM_HEADLESS" \
             "artifacts/$DEB" \
+            "artifacts/$DEB_HEADLESS" \
             "artifacts/$FLATPAK" \
             artifacts/SHA256SUMS

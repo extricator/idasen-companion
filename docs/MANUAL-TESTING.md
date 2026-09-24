@@ -196,9 +196,9 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
 
 ## Packaging variant
 
-The bundled single RPM is what ships and is rebuilt constantly. The split is
-documented in `CONTRIBUTING.md`, honestly, as unverified between releases —
-nothing in CI builds it. All three specs have been built with `rpmbuild -bb`
+The standalone full and headless bundled RPMs ship and are rebuilt constantly
+from one spec. The distro-integrated split is documented in `CONTRIBUTING.md`,
+honestly, as unverified between releases — nothing in CI builds it. All three specs have been built with `rpmbuild -bb`
 in a fresh Fedora 43 container: the two library specs during this phase's
 research, and the app spec by the fix that landed alongside this checklist
 update. What remains genuinely manual:

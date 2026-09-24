@@ -1,0 +1,5 @@
+usr/bin/idasen-companion
+usr/bin/idasen-companion-cli
+usr/bin/idasen-companiond
+usr/lib/python3*/dist-packages/idasen_companion/
+usr/lib/python3*/dist-packages/idasen_companion-*.dist-info/

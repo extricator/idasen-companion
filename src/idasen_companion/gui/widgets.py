@@ -206,8 +206,11 @@ def sidebar_width_for_labels(
     metrics = QFontMetrics(emphasize(font))
     widest = max((metrics.horizontalAdvance(label) for label in labels),
                  default=0)
+    # QListView rounds one style metric outward after combining the text and
+    # icon rectangles. Debian 13's Qt/font stack exposes the extra physical
+    # pixel; reserving it keeps the calculation conservative across stacks.
     chrome = (2 * NAV_ITEM_PADDING_H + 2 * NAV_ITEM_MARGIN_H
-              + NAV_ICON_SIZE + NAV_ICON_TEXT_GAP)
+              + NAV_ICON_SIZE + NAV_ICON_TEXT_GAP + 1)
     return max(floor, min(ceiling, widest + chrome))
 
 

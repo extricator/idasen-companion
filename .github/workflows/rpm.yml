@@ -93,27 +93,9 @@ jobs:
             'libxkbcommon.so.0()(64bit)' 'libfontconfig.so.1()(64bit)' \
             'libfreetype.so.6()(64bit)' 'libdbus-1.so.3()(64bit)'
 
-      - name: Build the sdist
+      - name: Build both RPM release variants
         if: steps.changed.outputs.relevant == 'true'
-        run: python3 -m build --sdist
-
-      - name: Copy the sdist into rpmbuild/SOURCES
-        if: steps.changed.outputs.relevant == 'true'
-        run: |
-          mkdir -p rpmbuild/SOURCES
-          VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
-          cp "dist/idasen_companion-${VERSION}.tar.gz" rpmbuild/SOURCES/
-
-      - name: Fetch the bundled runtime
-        if: steps.changed.outputs.relevant == 'true'
-        # The same script a contributor runs, so CI and a local build bundle
-        # the same pinned interpreter and the same pinned libraries. Both live
-        # there and nowhere else.
-        run: scripts/fetch-bundled-runtime.sh rpmbuild/SOURCES
-
-      - name: Build the RPM
-        if: steps.changed.outputs.relevant == 'true'
-        run: rpmbuild -bb --define "_topdir $PWD/rpmbuild" packaging/idasen-companion-bundled.spec
+        run: bash scripts/build-release-variants.sh --rpm --output dist-rpm
 
       - name: Ask the built package what it requires, offers and is written as
         if: steps.changed.outputs.relevant == 'true'
@@ -121,14 +103,16 @@ jobs:
         # about metadata rpmbuild generates rather than about anything written
         # in the spec, so nothing before this point can answer them — and a
         # gate that runs after the artifact is published is not a gate.
-        run: scripts/verify-rpm-metadata.sh rpmbuild/RPMS/x86_64/*.rpm
+        run: |
+          scripts/verify-rpm-metadata.sh dist-rpm/idasen-companion-[0-9]*.rpm
+          scripts/verify-rpm-metadata.sh dist-rpm/idasen-companion-headless-*.rpm
 
       - name: Upload the built RPM
         if: steps.changed.outputs.relevant == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: idasen-companion-rpm
-          path: rpmbuild/RPMS/x86_64/*.rpm
+          path: dist-rpm/*.rpm
           if-no-files-found: error
 
   # Deliberately a job on the runner rather than a step in the one above: the
@@ -138,10 +122,9 @@ jobs:
   # form could not -- that what a release publishes is what was installed and
   # started, not a file that only ever existed in a build directory.
   #
-  # One job for the one artifact. Which environments it is carried into is a
-  # decision the script owns; splitting them across jobs here would turn a
-  # piece of evidence into a published claim about where this package is
-  # supported.
+  # One job for the two standalone flavors. Which environments they are
+  # carried into is a decision the script owns; splitting those environments
+  # across jobs here would turn evidence into a support-matrix claim.
   portability:
     name: Install and start the package away from where it was built
     needs: [rpm]
@@ -157,5 +140,8 @@ jobs:
           name: idasen-companion-rpm
           path: package
 
-      - name: Install it and start the daemon in containers
-        run: scripts/verify-rpm-portability.sh package/*.rpm
+      - name: Install each flavor and start its daemon in containers
+        run: |
+          for artifact in package/*.rpm; do
+            scripts/verify-rpm-portability.sh "$artifact"
+          done

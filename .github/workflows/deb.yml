@@ -75,11 +75,12 @@ jobs:
             python3-pytest python3-pytest-asyncio \
             python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtwidgets \
             python3-pyside6.qtdbus python3-pyside6.qtsvg \
+            qt6-translations-l10n \
             python3-tomlkit python3-yaml python3-dbus-fast python3-idasen python3-bleak
 
-      - name: Build the .deb
+      - name: Build both Debian release variants
         if: steps.changed.outputs.relevant == 'true'
-        run: dpkg-buildpackage -us -uc -b
+        run: bash scripts/build-release-variants.sh --deb --output dist-deb
 
       - name: Lint the built package
         if: steps.changed.outputs.relevant == 'true'
@@ -88,16 +89,12 @@ jobs:
           # a man page would document. initial-upload-closes-no-bugs: this
           # package is never uploaded through the Debian NEW queue, so there
           # is no ITP bug for a first upload to close.
-          lintian --fail-on error,warning \
-            --suppress-tags no-manual-page \
-            --suppress-tags initial-upload-closes-no-bugs \
-            ../idasen-companion_*.changes
-
-      - name: Move the built .deb into the workspace
-        if: steps.changed.outputs.relevant == 'true'
-        run: |
-          mkdir -p dist-deb
-          mv ../idasen-companion_*.deb dist-deb/
+          for package in dist-deb/*.deb; do
+            lintian --fail-on error,warning \
+              --suppress-tags no-manual-page \
+              --suppress-tags initial-upload-closes-no-bugs \
+              "$package"
+          done
 
       - name: Upload the built .deb
         if: steps.changed.outputs.relevant == 'true'
@@ -158,7 +155,7 @@ jobs:
           exit 1
 
       - name: Install the .deb from the archive
-        run: docker exec deb-smoke bash -c "apt-get update -qq && apt-get install -y /artifacts/idasen-companion_*.deb"
+        run: docker exec deb-smoke bash -c "apt-get update -qq && apt-get install -y /artifacts/idasen-companion_[0-9]*.deb"
 
       - name: Create an unprivileged test user and enable linger
         run: |

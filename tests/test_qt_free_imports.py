@@ -47,6 +47,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "idasen_companion"
 PRESENTATION_DIR = SRC / "core" / "presentation"
+PACKAGE_SPEC = importlib.util.find_spec("idasen_companion")
+assert PACKAGE_SPEC is not None and PACKAGE_SPEC.origin is not None
+PACKAGE_ROOT = str(Path(PACKAGE_SPEC.origin).parent.parent)
 
 # Captured here, at module import time, before no_real_subprocesses' per-test
 # setup replaces subprocess.run -- see the module docstring.
@@ -65,6 +68,8 @@ _PRESENT = "PYSIDE6_PRESENT"
 _CHILD_PROGRAM = """
 import importlib
 import sys
+
+sys.path.insert(0, {package_root!r})
 
 for _name in {modules!r}:
     importlib.import_module(_name)
@@ -162,7 +167,8 @@ def test_the_presentation_package_never_imports_qt(monkeypatch):
     assert modules, "no presentation modules discovered -- the walk is broken"
     monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
     program = _CHILD_PROGRAM.format(
-        modules=modules, present=_PRESENT, absent=_ABSENT)
+        modules=modules, package_root=PACKAGE_ROOT,
+        present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "core/presentation/")
 
@@ -177,7 +183,7 @@ def test_the_daemon_entry_point_never_imports_qt(monkeypatch):
     assert importlib.util.find_spec("idasen_companion.daemon.main") is not None
     monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
     program = _CHILD_PROGRAM.format(
-        modules=["idasen_companion.daemon.main"],
+        modules=["idasen_companion.daemon.main"], package_root=PACKAGE_ROOT,
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "daemon/main.py")
@@ -188,7 +194,7 @@ def test_the_cli_entry_point_never_imports_qt(monkeypatch):
     assert importlib.util.find_spec("idasen_companion.cli") is not None
     monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
     program = _CHILD_PROGRAM.format(
-        modules=["idasen_companion.cli"],
+        modules=["idasen_companion.cli"], package_root=PACKAGE_ROOT,
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "cli.py")

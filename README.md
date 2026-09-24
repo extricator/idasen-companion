@@ -59,10 +59,15 @@ Overview tab reports the idle backend as `none`.
 Download the artifact for your system from the [releases page][releases].
 Updates are manual: download the new release, then install it again.
 
-**RPM, on x86_64**
+Native releases come in two mutually exclusive flavors. The full
+`idasen-companion` package contains the GUI, CLI and daemon. The
+`idasen-companion-headless` package contains only the Qt-free CLI and daemon;
+install it on machines where the desk is controlled entirely from a terminal.
+
+**RPM, on x86_64 (full)**
 
 ```
-sudo dnf install ./idasen-companion-*.x86_64.rpm
+sudo dnf install ./idasen-companion-[0-9]*.x86_64.rpm
 ```
 
 One package, self-contained. It carries its own Python — the interpreter and
@@ -72,11 +77,18 @@ distribution ships, and whether it ships a Python at all, does not come into
 it. What the package does ask for is Bluetooth and the ordinary desktop
 libraries Qt draws with, which any desktop already has.
 
-About 37 MB to download, and about 133 MB on disk once installed. That is what
-carrying the runtime costs, and it buys a package that is correct on the
-system you have rather than on the one it was built against.
+The full RPM carries Qt. For the smaller Qt-free installation, download the
+separately named headless artifact instead:
 
-**Debian 13 (trixie) or newer, and Ubuntu 25.10 (questing) or newer**
+```
+sudo dnf install ./idasen-companion-headless-*.x86_64.rpm
+```
+
+Both RPMs carry their own Python and application dependencies. They declare a
+mutual conflict, so switching flavors replaces one complete installation with
+the other rather than layering packages that own the same daemon and files.
+
+**Debian 13 (trixie) or newer, and Ubuntu 25.10 (questing) or newer (full)**
 
 ```
 sudo apt install ./idasen-companion_*_all.deb
@@ -86,6 +98,16 @@ Use `apt` and not `dpkg -i`, because `apt` installs the dependencies. This
 package contains no bundled libraries. Older releases have no PySide6
 packages, so this package cannot install there. Use the Flatpak instead.
 
+The Qt-free Debian flavor uses the distribution's Python libraries but does
+not depend on PySide6 or Qt:
+
+```
+sudo apt install ./idasen-companion-headless_*_all.deb
+```
+
+As with the RPMs, the full and headless Debian artifacts conflict and cannot
+be installed together.
+
 **Any distribution, with Flatpak**
 
 ```
@@ -93,7 +115,12 @@ flatpak install --user ./idasen-companion-*.flatpak
 ```
 
 The Flathub remote supplies the KDE runtime for the bundle. It does not
-supply the app. The app is not on Flathub.
+supply the app. The app is not on Flathub. Flatpak remains full-only. Its CLI
+is available inside the sandbox, not as a host command:
+
+```
+flatpak run --command=idasen-companion-cli io.github.extricator.IdasenCompanion status
+```
 
 ### Verify a download
 
@@ -104,8 +131,8 @@ directory as the artifact, then run:
 sha256sum --ignore-missing -c SHA256SUMS
 ```
 
-The `--ignore-missing` flag matters when you downloaded only one of the three
-artifacts. Without it, the other two are reported as failures.
+The `--ignore-missing` flag matters when you downloaded only one of the five
+artifacts. Without it, the other four are reported as failures.
 
 This check catches a corrupted or substituted download. It is not a signature,
 and it does not prove who built the file.
@@ -126,6 +153,10 @@ hold the button on the control box until the light flashes. Then scan again.
 The wizard connects to the desk and reads its height before it saves
 anything. It then enables the service, so the daemon starts at every
 graphical login.
+
+The headless flavor has no setup wizard. Configure the desk first with a full
+installation or the `idasen` CLI, then enable the same user service and use
+`idasen-companion-cli` for status and control.
 
 To change this later, use **Settings → General → Start automatically at
 login**. From a terminal, run one of these commands:

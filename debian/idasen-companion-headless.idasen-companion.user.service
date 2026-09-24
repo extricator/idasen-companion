@@ -1,0 +1,14 @@
+[Unit]
+Description=Idasen Companion sit/stand automation daemon
+Documentation=https://github.com/extricator/idasen-companion
+After=graphical-session.target bluetooth.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/idasen-companiond
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
