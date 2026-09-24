@@ -990,3 +990,106 @@ test, artifact inspection or explicit manual record:
       test remains outside the historical review.
 - [x] Architecture, translation, configuration, CLI, installation and release
       documentation describe what the artifacts actually ship.
+
+## 13. Phase 8 — human acceptance without installation
+
+This is a post-implementation acceptance pass, not an eighth code phase. It
+runs the branch directly from the repository against a simulated desk, a
+private session bus and temporary XDG/config paths. The installed `main`
+version, its normal session bus, real configuration and physical desk remain
+outside the test boundary.
+
+- State: Complete — functional pass with two non-blocking UX findings
+- Test commit: `513d2f3`
+- Temporary root: `/tmp/idasen-companion-phase8-513d2f3`
+- Installed baseline state to restore after step 8: GUI was running and
+  `idasen-companion.service` was active; both were stopped before visual
+  inspection so only the branch window remains.
+- Step 2 first attempt: inconclusive because the harness redirected
+  `XDG_CONFIG_HOME`, hiding the desktop's Qt font/palette configuration and
+  making the source window look materially different. The session was
+  relaunched with only app-owned config/data isolated; desktop theme config is
+  now inherited normally. This was a harness defect, not yet an app verdict.
+- Step 2 second attempt: main-window font, palette and behavior matched the
+  installed app. Tray menu/tooltip did not look native on the private bus;
+  that observation is also inconclusive because Plasma's StatusNotifier host
+  lives on the normal session bus. With the installed GUI/service stopped, the
+  mock branch session was relaunched on the normal desktop bus for a genuine
+  tray integration check; config, data and desk access remain isolated.
+- Before the tray recheck, two branch tray icons were visible because the
+  terminated private-bus launcher had left its child GUI/daemon alive. All
+  installed and branch instances were stopped and counted at zero, then one
+  normal-bus branch GUI and one mock daemon were launched. The verified live
+  invariant is now: installed service inactive, installed processes 0, branch
+  GUI 1, branch mock daemon 1.
+- Journal boundary correction: redirecting the manual daemon's stdout keeps
+  free-form terminal output in the temporary log, but structured application
+  entries deliberately send directly to journald. The mock records therefore
+  appear under the shared `idasen-companion` identifier but under the
+  temporary launcher scope, not `idasen-companion.service`. Existing service
+  records were not changed; selective removal is neither available nor
+  attempted. Heights in both old and new journal records remain stable English
+  metres regardless of the GUI's current display unit.
+- [x] 1. Confirm source/version, display and isolation prerequisites.
+- [x] 2. Inspect the English GUI shell and mock-daemon connection. Main window
+      matched the installed app after preserving desktop theme configuration;
+      on the real Plasma bus, one responsive tray icon showed its native menu
+      and status tooltip correctly.
+- [x] 3. Exercise mock movements and the standalone CLI together. CLI `stand`
+      updated GUI/tray to 110.0 cm and Standing; CLI `preset focus` updated the
+      GUI to 100.0 cm and produced the matching reader-side Activity Log entry.
+      The physical desk did not move, as required by `--mock-desk`.
+- [x] 4. Verify centimetre/inch and 12/24-hour display preferences. Applying
+      inches/12-hour immediately updated all inspected heights and Activity Log
+      timestamps; restoring centimetres/24-hour did the same without restart.
+      The user accepted the deliberate journal policy: raw height parameters
+      remain metres and journal rendering remains stable English regardless of
+      display preferences.
+- [x] 5. Verify Spanish application and value localization. Navigation, pages,
+      values, tray and reader-side Activity Log rendering passed; centimetres
+      used the expected decimal comma. One non-blocking responsive-layout
+      finding remains: at the default window width, the Activity Log severity
+      filter row clips some of Spanish's longer level labels (notably
+      `Depuración`/`Información`). Widening the window makes them fully visible.
+      This is an app finding for follow-up, not a localization or harness
+      failure, and code was not changed during acceptance.
+- [x] 6. Inspect structural RTL behavior with an Arabic locale fallback.
+      Sidebar, dividers, page rows, rails and controls mirrored coherently.
+      Screenshots showed no glyph actually clipped at a field edge, but native
+      RTL spin boxes mixing Arabic digits/direction with untranslated English
+      fallback suffixes (`cm`, `min`, `s`) looked awkward. Arabic is not a
+      shipped/selectable catalog; translating and explicitly testing these
+      bidi suffix fields is recorded as a requirement for the first real RTL
+      language, not a defect in the current English/Spanish product.
+- [x] 7. Verify unknown-config warning and preservation behavior. The startup
+      warning named both the unknown `[ui] future_accent` key and the unknown
+      `[future_release]` section; applying a known clock-format change retained
+      both values and the adjacent canary comment byte-for-byte. One UX defect
+      remains: the same warnings appeared in three startup modal dialogs
+      (Automation preload, Settings preload and the startup aggregate), then
+      appeared again when Settings opened. One consolidated startup warning
+      should suffice; unchanged warnings should not repeatedly block the user.
+- [x] 8. Shut down the branch session and restore the installed app. Final
+      process proof: branch GUI/daemon count 0, installed user service active,
+      installed GUI count 1. The user confirmed one responsive tray icon, the
+      normal installed configuration/appearance and real desk state.
+
+### Phase 8 verdict
+
+Human acceptance passed the English GUI/tray, mock movement, Qt-free CLI,
+reader-side Activity Log, live unit/clock preferences, Spanish localization,
+structural RTL, unknown-config preservation and installed-version restoration.
+The physical desk never moved during mock testing.
+
+Two non-blocking UX findings remain for a later code change:
+
+1. At the default window width, Spanish Activity Log severity controls can
+   clip their longer labels; widening the window resolves it.
+2. Unknown config data is preserved correctly, but the same warning is shown
+   by both preloaded settings-class pages, the startup aggregate and another
+   Settings reload, producing three startup dialogs plus one on navigation.
+
+The Arabic-locale fallback also demonstrated why the first shipped RTL catalog
+must explicitly test translated spin-box suffixes: untranslated English unit
+suffixes mixed with native RTL editing look awkward, though the accepted RTL
+geometry itself mirrored correctly and no glyph was visibly clipped.
