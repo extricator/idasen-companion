@@ -78,7 +78,7 @@ the handoff commit.
 | 4. CLI | Complete | `5920fb4` | this commit | Qt-free import, command contract, isolated D-Bus smoke, full tests |
 | 5. Artifact variants | Complete | `3626d3a` | this commit | full/headless RPM and DEB builds and smoke tests, Flatpak gate |
 | 6. RTL readiness | Complete | `5d2ca22` | this commit | offscreen LTR/RTL geometry and Arabic formatting tests, full tests |
-| 7. Obsolete removal | In progress | — | — | no obsolete imports/files, complete quality and artifact gates |
+| 7. Obsolete removal | Complete | `365df29` | this commit | no obsolete imports/files, complete quality and artifact gates |
 
 Allowed states are `Pending`, `In progress`, `Blocked` and `Complete`. A phase
 becomes `Complete` only in its handoff commit.
@@ -928,7 +928,7 @@ freshness without treating the phase's intentional pre-commit edits as dirt.
 
 ### Phase 7 execution record
 
-- State: Implementation complete; final handoff pending
+- State: Complete
 - Starting commit: `3f4f36f`
 - Removed files/symbols/tests: removed the `core/presentation/` compatibility
   package, `PlainLocaleFormatter`, `QtLocaleFormatter`, formatter specs and
@@ -940,7 +940,7 @@ freshness without treating the phase's intentional pre-commit edits as dirt.
   CLI/fake-bus/live-bus, packaging, fresh-process Qt-free, language binding and
   offscreen RTL geometry tests remain. English/Spanish output and representative
   Arabic locale formatting continue to be covered directly.
-- Implementation commit: —
+- Implementation commit: `365df29`
 - Complete quality/build/artifact results: preflight full pytest — 2,043
   passed/1 skipped; preflight naming — exit 0. Final full pytest — 1,559
   passed/1 skipped; naming — exit 0; mypy — success across 57 source files;
@@ -960,31 +960,33 @@ freshness without treating the phase's intentional pre-commit edits as dirt.
 - Remaining release/manual gates: no local acceptance gate remains. Hosted
   GitHub CI, release publication and an interactive desktop-session smoke remain
   external release operations rather than branch implementation work.
-- Final handoff: State whether the branch is ready for review, list any
-  intentionally deferred work, and give the exact compare range from
-  `refactor` to the final handoff commit.
+- Final handoff: the branch is ready for review. The intentionally deferred
+  work remains the accepted out-of-scope list in section 1, notably live
+  language switching, an RTL catalog and the later date-format preference.
+  Compare the complete rebuild with `git diff refactor..HEAD` (equivalently,
+  from `30e59a1` through this final handoff commit).
 
 ## 12. Final acceptance checklist
 
 The rebuild is ready for review only when every box can be answered with a
 test, artifact inspection or explicit manual record:
 
-- [ ] All seven ledger rows are `Complete` with implementation and handoff
+- [x] All seven ledger rows are `Complete` with implementation and handoff
       commit hashes.
-- [ ] Full pytest, naming, mypy and pylint gates are green at final `HEAD`.
-- [ ] Translation regeneration is deterministic and produces only contextual
+- [x] Full pytest, naming, mypy and pylint gates are green at final `HEAD`.
+- [x] Translation regeneration is deterministic and produces only contextual
       gettext POT/PO/MO artifacts.
-- [ ] English and Spanish behavior is covered; representative Arabic locale
+- [x] English and Spanish behavior is covered; representative Arabic locale
       value and RTL-geometry tests are green without an Arabic catalog.
-- [ ] D-Bus N/N-1 payload compatibility and stable journal output are covered.
-- [ ] Unknown config data warns and survives a known-key edit/save/reload;
+- [x] D-Bus N/N-1 payload compatibility and stable journal output are covered.
+- [x] Unknown config data warns and survives a known-key edit/save/reload;
       recognized invalid data still fails.
-- [ ] CLI read/write/log behavior passes both fake-bus and isolated live-bus
+- [x] CLI read/write/log behavior passes both fake-bus and isolated live-bus
       tests and imports with no Qt.
-- [ ] Full/headless RPM and DEB variants build, conflict correctly and pass
+- [x] Full/headless RPM and DEB variants build, conflict correctly and pass
       content/dependency smoke tests; Flatpak remains intentionally full-only.
-- [ ] No app-owned Qt catalog, competing locale backend, divergence matrix,
+- [x] No app-owned Qt catalog, competing locale backend, divergence matrix,
       collision registry, legacy GUI command parser or superseded structural
       test remains outside the historical review.
-- [ ] Architecture, translation, configuration, CLI, installation and release
+- [x] Architecture, translation, configuration, CLI, installation and release
       documentation describe what the artifacts actually ship.
