@@ -118,8 +118,10 @@ def test_unknown_config_data_is_visible_at_gui_startup(monkeypatch, qapp):
 
     cfg = AppConfig()
     cfg.desk.mac = "AA:BB:CC:DD:EE:FF"
-    cfg.warnings = (ConfigWarning(
-        Path("/tmp/future.toml"), "ui", "future_theme"),)
+    cfg.warnings = (
+        ConfigWarning(Path("/tmp/future.toml"), None, "future_root"),
+        ConfigWarning(Path("/tmp/future.toml"), "ui", "future_theme"),
+    )
     shown = []
     monkeypatch.setattr(
         gui_main.QMessageBox, "warning",
@@ -129,7 +131,9 @@ def test_unknown_config_data_is_visible_at_gui_startup(monkeypatch, qapp):
              load_config=lambda _path: cfg)
 
     assert len(shown) == 1
-    assert "future_theme" in shown[0][2]
+    assert shown[0][2].count("future_root") == 1
+    assert shown[0][2].count("future_theme") == 1
+    assert shown[0][2].index("future_root") < shown[0][2].index("future_theme")
     assert "preserved" in shown[0][2]
 
 

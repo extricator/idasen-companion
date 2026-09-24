@@ -21,11 +21,13 @@ import os
 # can't reach that display. Tests must not depend on an ambient one.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.gui import context as context_mod  # noqa: E402
+from idasen_companion.gui import context as context_mod, service_ctl  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
+from idasen_companion.gui.main_window import MainWindow  # noqa: E402
 from idasen_companion.gui.pages.automation import AutomationPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
 
@@ -39,6 +41,28 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
+
+
+class WindowClient(QObject):
+    """Every signal the real main window and its preloaded pages consume."""
+
+    availableChanged = Signal(bool)
+    heightChanged = Signal(float)
+    positionChanged = Signal(str)
+    connectedChanged = Signal(bool)
+    movingChanged = Signal(bool)
+    statusChanged = Signal(str)
+    progressChanged = Signal(float, float)
+    transitionCompleted = Signal(str, str, bool)
+    snoozeUntilChanged = Signal(float)
+    presetsChanged = Signal(dict)
+    logEntry = Signal(float, str, str, str, dict, str)
+    commandFailed = Signal(str, str)
+
+    available = False
+
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
 
 
 @pytest.fixture(scope="session")
@@ -76,7 +100,7 @@ def test_a_freshly_loaded_page_is_clean(page):
     assert not page._reset_btn.isEnabled()
 
 
-def test_unknown_config_data_is_visible_when_settings_load(
+def test_settings_page_never_owns_unknown_config_dialogs(
         ctx, monkeypatch):
     path = context_mod.DEFAULT_CONFIG_PATH
     with path.open("a") as stream:
@@ -90,9 +114,62 @@ def test_unknown_config_data_is_visible_when_settings_load(
     page = SettingsPage(ctx)
     page.load()
 
-    assert len(shown) == 1
-    assert "future_palette" in shown[0][2]
-    assert "preserved" in shown[0][2]
+    assert shown == []
+
+
+def test_main_window_aggregates_and_remembers_unknown_config_warnings(
+        qapp, tmp_path, monkeypatch):
+    path = tmp_path / "config.toml"
+    initial = (
+        'future_root = "kept"\n'
+        '[ui]\n'
+        'future_theme = "violet"\n'
+    )
+    path.write_text(initial)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
+    monkeypatch.setattr(
+        service_ctl, "autostart_state",
+        lambda: service_ctl.AutostartState("enabled", True, ""))
+
+    shown = []
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        staticmethod(lambda *args: shown.append(args)))
+
+    window = MainWindow(WindowClient(), tray_available=True)
+    try:
+        assert len(shown) == 1
+        body = shown[0][2]
+        assert body.count("future_root") == 1
+        assert body.count("future_theme") == 1
+        assert body.index("future_root") < body.index("future_theme")
+
+        # Both pages were preloaded by MainWindow. Navigating to each reloads
+        # the same file and must not create another modal.
+        window._nav.setCurrentRow(1)  # pylint: disable=protected-access
+        window._nav.setCurrentRow(5)  # pylint: disable=protected-access
+        assert len(shown) == 1
+
+        path.write_text(initial + '\n[future]\nvalue = 7\n')
+        window.settings.load()
+        assert len(shown) == 2
+        assert "[future]" in shown[1][2]
+        assert "future_root" not in shown[1][2]
+        assert "future_theme" not in shown[1][2]
+
+        window.settings.load()
+        assert len(shown) == 2
+
+        # Seen fingerprints remain remembered even if one disappears and is
+        # later reintroduced during this GUI process.
+        path.write_text(initial)
+        window.settings.load()
+        path.write_text(initial + '\n[future]\nvalue = 7\n')
+        window.settings.load()
+        assert len(shown) == 2
+    finally:
+        window.close()
 
 
 def test_editing_a_field_enables_apply_and_reset(page):
