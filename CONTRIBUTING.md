@@ -223,29 +223,38 @@ getting it wrong costs a version number. Follow this top to bottom.
    exactly it — and the suite fails if it is missing or empty. The metainfo
    `<release>` prose from step 1 is a second, shorter piece of writing aimed at
    software centres; it is not generated from the changelog.
-3. **Land all of that on `main`** and wait for `CI OK` to go green.
-4. **Run the release from the Actions tab.** Open **Actions → Release → Run
-   workflow**, enter the version without a leading `v` (for example `1.1.0`),
-   and run it. That is the whole release.
+3. **Land the preparation PR on `main`** and wait for its full `main` CI run to
+   pass. The PR's `PR CI` is ordinary per-update verification. Applying the
+   `full-ci` label starts complete PR verification and reports `CI OK` for that
+   head. An approving review can start the same full run when another reviewer
+   is available. The repository currently has one contributor, so no review,
+   `CI OK`, or branch-protection requirement is enforced yet. A new PR commit
+   needs a new full run before its result can describe the current head.
+4. **Dry-run the merged commit.** Open **Actions → Release → Run workflow** on
+   `main`, enter the version without a leading `v` (for example `1.2.0`), and
+   tick **dry run**. It runs Python, quality, all package builds, Debian smoke,
+   RPM portability, and five-asset assembly without creating a tag or release.
+   Save the successful run ID. A branch dry run can exercise release changes,
+   but only a successful dry run on the current `main` commit can be promoted.
+5. **Publish that verified set.** Run **Actions → Release → Run workflow** again
+   on `main` with the same version and the successful dry run's ID in
+   **promotion run ID**. Leave **dry run** and **full rebuild** unticked. The
+   workflow checks the source run, exact `main` commit, version, required job
+   results, five file names, release notes, and checksums before publishing
+   those bytes. It verifies the published tag and assets before deleting the
+   source artifact. Dry-run artifacts expire after one day.
 
-   The workflow refuses to go on unless the version you typed matches
-   `__version__` on the default branch, so a bump you forgot to land stops it
-   before anything is built. It then builds all five artifacts at that commit,
-   installs and smokes every flavor, writes `SHA256SUMS` over the set, creates the
-   `v<version>` tag pointing at exactly the commit the artifacts came from, and
-   publishes a release carrying full/headless RPMs, full/headless `.deb`
-   packages, the full-only versioned `.flatpak` bundle and the checksums. The body is the matching
+   If the dry run expired or cannot be promoted, run a new dry run or select
+   **full rebuild** for a real release. Full rebuild reruns every verification
+   and package proof. Select exactly one real-release mode: a promotion run ID
+   or full rebuild. A push of a `v*` tag also uses full rebuild. The workflow
+   refuses a dispatch from a side branch or a version that disagrees with
+   `__version__` on `main`.
+
+   The release carries full/headless RPMs, full/headless `.deb` packages, the
+   versioned full `.flatpak` bundle, and `SHA256SUMS`. Its body is the matching
    `CHANGELOG.md` section.
-
-   Tick **dry run** to rehearse instead: same builds, same checksums, no tag
-   and no release. Worth doing when the release machinery itself has changed,
-   since nothing else exercises it. A dry run is the one case that may be run
-   from a branch other than the default one.
-
-   Pushing a `v*` tag by hand does the same thing and is still supported, but
-   the form is the intended route — it cannot create a tag that disagrees with
-   the source, and it refuses a version that has already been released.
-5. **Check what shipped.** Download the assets and, in that directory:
+6. **Check what shipped.** Download the assets and, in that directory:
 
    ```bash
    sha256sum --ignore-missing -c SHA256SUMS
@@ -357,44 +366,16 @@ gh api repos/extricator/idasen-companion \
 
 Both lines should read `enabled`.
 
-*Apply branch protection to `main` — after the public flip.* GitHub offers it
-to a Free-plan personal-account repository only while that repository is
-public; while it is private, both the classic API and rulesets answer 403.
-
-```bash
-gh api \
-  --method PUT \
-  repos/extricator/idasen-companion/branches/main/protection \
-  --input - <<'JSON'
-{
-  "required_status_checks": {
-    "strict": false,
-    "checks": [{"context": "CI OK"}]
-  },
-  "enforce_admins": false,
-  "required_pull_request_reviews": {
-    "required_approving_review_count": 0
-  },
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false
-}
-JSON
-```
-
-What that actually binds, because the field names mislead: `main` cannot be
-force-pushed and cannot be deleted **by anyone, the owner included** — those
-two are independent top-level settings. The required check and the required
-pull request bind everyone *except* an admin, because admin bypass is
-deliberately left on: a solo maintainer still expects to push to `main`
-directly. No approving review is required, since one maintainer cannot approve
-their own pull request; the rule is "a pull request exists", not "someone
-signed off".
-
-The check is named the way GitHub displays it, not by the job id in
-`ci.yml` — those two differ here, and the id would silently match nothing,
-leaving `main` unprotected against a red run while the settings page looks
-correct.
+*Decide the `main` approval policy before adding protection.* This private
+repository has one contributor, who cannot approve their own PR. Do not make
+an approving review or `CI OK` required until that contributor policy is
+settled and live PR runs confirm the exact check names and head-SHA association.
+`PR CI` reports ordinary updates; `CI OK` comes only from a full run triggered
+by approval or by applying `full-ci`. Neither check is enforced today. Keep
+force-push and deletion prevention in the eventual protection decision, and
+check the rules available to the account at that time. The old command with a
+required `CI OK` check and zero required reviews must not be reused: it could
+block the sole contributor's PRs because ordinary pushes do not create `CI OK`.
 
 *Enable private vulnerability reporting* the moment the repository is public.
 `SECURITY.md` already tells reporters to use it, and it is unavailable on a

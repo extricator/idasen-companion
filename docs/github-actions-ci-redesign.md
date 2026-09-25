@@ -4,7 +4,8 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **Phase 3 implemented and locally verified; Phase 4 not started**
+Status: **Phase 3 implemented and locally verified; Phase 4 local documentation
+updated; live evidence pending branch publication**
 
 Branch: `ci-workflow-rebuild`
 
@@ -620,3 +621,28 @@ invalid promotion fails closed so the operator must choose the rebuild path.
 Read-only inspection of the existing 1.2.0 dry run confirmed that GitHub's
 run API reports the workflow path as `.github/workflows/release.yml` (without
 an `@ref` suffix); the validator uses that observed format.
+
+## Phase 4 progress (2026-09-25)
+
+The remote has no `ci-workflow-rebuild` PR or run. Its latest runs are from the
+old workflow topology on `main`; they cannot establish the new PR check names,
+SHA association, job timing, or artifact cleanup. `CONTRIBUTING.md` now records
+the PR check model, merged-commit dry run, promotion, explicit full rebuild,
+and current one-contributor approval hold. The obsolete branch-protection
+command was removed so it cannot accidentally require an unavailable `CI OK`.
+
+Publishing this branch to start a draft PR was rejected by automatic approval
+review as unapproved data egress to an external GitHub destination. No push or
+PR creation occurred. Continue local verification and document cleanup without
+using another route to publish. To resume live Phase 4, obtain explicit user
+authorization to push `ci-workflow-rebuild` to the existing private
+`extricator/idasen-companion` remote and open a PR. Remote release dry runs and
+publication still require separate explicit authorization. The contributor
+approval policy remains unresolved; do not enforce reviews or `CI OK`.
+
+Once the branch can be published, collect ordinary PR, packaging update,
+ready-for-review, `full-ci` label, and superseded-update run evidence. An
+approval/reapproval run requires another authorized reviewer. Record run URLs,
+job conclusions, head SHA, timings, and artifact inventory here. Before merge,
+move any remaining lasting guidance into maintained docs and remove this
+temporary handoff.
