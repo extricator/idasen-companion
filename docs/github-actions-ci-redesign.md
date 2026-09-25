@@ -4,12 +4,12 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **design amended after the 1.2.0 release; implementation not approved or started**
+Status: **Phase 2 implemented and locally verified; Phase 3 not started**
 
 Branch: `ci-workflow-rebuild`
 
-Baseline: `eb829e2` (`main` when this phase began). `main` has since advanced
-to `a20f559` (`v1.2.0`); synchronize it before implementation.
+Baseline: `eb829e2` (`main` when this phase began). Phase 2 merged local
+`main` at `a20f559` (`v1.2.0`) before workflow edits.
 
 Last updated: 2026-09-25
 
@@ -537,36 +537,42 @@ authorizes external execution.
 Verification: recorded run URLs/timings, correct selected/skipped jobs, stable
 `CI OK`, and a clean repository/reference search after temporary cleanup.
 
-## Approval boundary and next-conversation handoff
+## Phase 2 handoff (2026-09-25)
 
-No workflow implementation has begun. Approval is requested for these design
-choices:
+The branch contains the 1.2.0 merge from `main` (`a20f559`), including the
+isolated Flatpak runtime verifier and one-day artifact retention. Phase 2
+replaced the old reusable test/check/package workflows with `verify.yml` and
+`packages.yml`, added the event-aware planner in `ci.yml`, and added
+`full-ci.yml` for complete PR verification. RPM metadata and optional
+portability run in one RPM job; Debian build, lint, and systemd smoke run in
+one Debian job. The release workflow now calls `packages.yml` with every
+format and RPM portability selected, so its existing dry-run assembly remains
+reachable until the larger Phase 3 release rewrite. Its Python/quality gate,
+asset promotion, cleanup, timeouts, and permission tightening remain Phase 3
+work.
 
-1. five-workflow topology with separate ordinary and approval-triggered PR
-   entry points, two grouped quality jobs, and one job per package format;
-2. event-delta automatic package selection, with full-diff fallback and
-   full-diff evaluation when a draft becomes ready;
-3. approving review as the primary full-CI authorization and future merge
-   gate, with `full-ci` retained only as an interim/diagnostic fallback;
-4. future branch protection requiring approval, stale-approval handling,
-   `PR CI`, and approval-triggered `CI OK` on the current head;
-5. RPM portability only for verifier changes, approval/full fallback, `main`,
-   manual full, and release/dry-run;
-6. full tests, checks, all five package builds, Debian smoke, and RPM
-   portability on both `main` and release;
-7. no whole-script deletion in the topology phase, with `scan-secrets.sh` as
-   a separately proven simplification candidate;
-8. one-day retention plus scoped deletion after the final consumer, with a
-   verified dry-run asset set retained only until promotion or expiry;
-9. explicit, provenance-checked promotion of a successful dry run's five
-   artifacts as the preferred manual release path, with full rebuild when
-   promotion is unavailable;
-10. a normal release-preparation PR once `main` is protected, followed by
-    full CI and a dry run of the merged commit before tagging.
+Verification completed locally: PyYAML loaded all five workflows; `bash -n`
+accepted every shell step; actionlint v1.7.12 accepted all five workflows;
+the focused workflow and packaging tests passed (100); and the complete suite
+passed (1,583 passed, one skipped). Representative planner fixtures covered
+source/docs-only, each package class, shared files, portability, draft/ready,
+unavailable prior SHA, `main`, and manual modes. No remote workflow run was
+started in Phase 2. The repository remains private.
 
-On approval, resume at **Phase 2**. Re-read this file and the current branch
-status first. Synchronize with `main` so the 1.2.0 release fixes are present;
-then implement only the planner/topology phase, verify it, commit it logically,
-and update this handoff before stopping. The local `gh` token's annotation 403
-is a separate diagnostic and does not block run-status collection. No
-workflow implementation is authorized by this design update.
+**Approval policy is on hold.** There is currently only one contributor, so
+requiring an approving review or making `CI OK` a required check could block
+that contributor's own PRs. Phase 2 implements the review trigger for later
+use and retains the explicit `full-ci` label event as the usable full-run path
+now. No branch protection, ruleset, required review, or required check was
+configured. Reconsider the future approval gate with the maintainer before
+any enforcement change; do not assume the design's proposed one-review rule
+is approved for the present contributor setup. The label fallback only runs
+when the label is applied, not on later pushes while it remains attached.
+
+Phase 3 should start by re-reading this handoff and checking the branch, then
+finish the release integration and controls specified above. Before choosing
+required check names, observe the PR check list and SHA association of both
+`pull_request_review` and label-triggered runs. GitHub documents both event
+families as eligible for PR status evaluation, but local validation cannot
+prove the live check association. Keep the repository private and leave
+approval enforcement disabled until the contributor policy is decided.

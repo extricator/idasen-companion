@@ -221,7 +221,7 @@ def test_every_term_has_at_least_one_language(term):
 
 
 # ---- Shipped-catalog completeness -------------------------------------------
-# GATE-03's CI job (.github/workflows/checks.yml) already asserts this
+# GATE-03's CI job (.github/workflows/verify.yml) already asserts this
 # property by regenerating the catalog and using msgattrib on the result. The
 # test below carries the same protection inside the package's own test run.
 

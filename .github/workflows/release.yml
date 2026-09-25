@@ -94,23 +94,14 @@ jobs:
   # run happened to produce, keeps one source of truth per format: a docs-only
   # tagged commit legitimately skips those builds in CI, leaving nothing to
   # attach.
-  rpm:
+  packages:
     needs: gate
-    uses: ./.github/workflows/rpm.yml
+    uses: ./.github/workflows/packages.yml
     with:
-      force: true
-
-  deb:
-    needs: gate
-    uses: ./.github/workflows/deb.yml
-    with:
-      force: true
-
-  flatpak:
-    needs: gate
-    uses: ./.github/workflows/flatpak.yml
-    with:
-      force: true
+      rpm: true
+      deb: true
+      flatpak: true
+      rpm_portability: true
 
   # Assembling is deliberately a separate job from publishing, and runs on every
   # trigger. A manual run is meant to exercise the whole path before the tag is
@@ -120,7 +111,7 @@ jobs:
   # doing nothing the ordinary CI build does not already do.
   package:
     name: Assemble and checksum the release assets
-    needs: [gate, rpm, deb, flatpak]
+    needs: [gate, packages]
     runs-on: ubuntu-24.04
     outputs:
       rpm: ${{ steps.assets.outputs.rpm }}

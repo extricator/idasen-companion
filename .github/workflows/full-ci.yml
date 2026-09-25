@@ -1,0 +1,94 @@
+name: Full PR CI
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Authorize full verification
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      head: ${{ steps.authorize.outputs.head }}
+    steps:
+      - name: Require an approved current head or an explicit label event
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_NAME: ${{ github.event_name }}
+          REVIEW_STATE: ${{ github.event.review.state }}
+          REVIEW_COMMIT: ${{ github.event.review.commit_id }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            [[ "$EVENT_ACTION" == labeled && "$LABEL_NAME" == full-ci ]] || {
+              echo 'Only applying the full-ci label authorizes this fallback.' >&2
+              exit 1
+            }
+          else
+            [[ "$REVIEW_STATE" == approved ]] || {
+              echo 'Only an approving review authorizes full verification.' >&2
+              exit 1
+            }
+          fi
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          head=$(jq -r '.head.sha' <<< "$pr")
+          [[ -n "$head" && "$head" != null ]] || exit 1
+          if [[ "$EVENT_NAME" == pull_request_review ]]; then
+            [[ "$REVIEW_COMMIT" == "$head" ]] || {
+              echo 'Approval was not submitted for the current PR head.' >&2
+              exit 1
+            }
+            decision=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json reviewDecision --jq '.reviewDecision')
+            [[ "$decision" == APPROVED ]] || {
+              echo "Aggregate review decision is $decision, not APPROVED." >&2
+              exit 1
+            }
+          fi
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "Full verification authorized for $head" >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    needs: gate
+    uses: ./.github/workflows/verify.yml
+    with:
+      ref: ${{ needs.gate.outputs.head }}
+
+  packages:
+    needs: gate
+    uses: ./.github/workflows/packages.yml
+    with:
+      ref: ${{ needs.gate.outputs.head }}
+      rpm: true
+      deb: true
+      flatpak: true
+      rpm_portability: true
+
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [gate, verify, packages]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require authorization and every proof to succeed
+        env:
+          GATE_RESULT: ${{ needs.gate.result }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          PACKAGES_RESULT: ${{ needs.packages.result }}
+        run: |
+          [[ "$GATE_RESULT" == success && "$VERIFY_RESULT" == success && "$PACKAGES_RESULT" == success ]]
