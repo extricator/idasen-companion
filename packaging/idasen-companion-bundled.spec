@@ -87,7 +87,7 @@
 %global _rpmformat 4
 
 Name:           %{package_name}
-Version:        1.1.1
+Version:        1.2.0
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
@@ -626,6 +626,18 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 
 %changelog
+* Fri Sep 25 2026 extricator <extricator@users.noreply.github.com> - 1.2.0-1
+- Add a localized Qt-free command-line client for status, activity and desk
+  control.
+- Ship full and headless RPM and Debian variants, and verify all five release
+  artifacts including the Flatpak bundle.
+- Unify application formatting and translations on Babel and contextual
+  gettext across the GUI, daemon and CLI.
+- Add a system/12-hour/24-hour clock preference and correct every displayed
+  clock to follow it.
+- Preserve unknown configuration across versions, improve translated and
+  right-to-left layouts, and harden package-build cleanup.
+
 * Thu Aug 20 2026 extricator <extricator@users.noreply.github.com> - 1.1.1-1
 - Label the Statistics range slider's preset ticks through the shared
   vocabulary, so they no longer print the raw lowercase preset key
