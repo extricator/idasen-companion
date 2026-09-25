@@ -18,6 +18,7 @@ authors = [{ name = "extricator" }]
 # nowhere, so bumping the bundled minor is not a reason to move this floor.
 requires-python = ">=3.11"
 dependencies = [
+    "Babel>=2.17",
     "idasen>=0.12",
     "bleak>=0.21",
     "dbus-fast>=2.0",
@@ -37,6 +38,7 @@ test = ["pytest>=7", "pytest-asyncio>=0.23", "types-PyYAML", "pytest-cov>=7"]
 [project.scripts]
 idasen-companiond = "idasen_companion.daemon.main:main"
 idasen-companion = "idasen_companion.gui.main:main"
+idasen-companion-cli = "idasen_companion.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/extricator/idasen-companion"
@@ -53,12 +55,8 @@ version = { attr = "idasen_companion.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-# Compiled catalogs shipped inside the package: Qt .qm for the GUI, gettext
-# .mo for the daemon notifications. Regenerate with scripts/build-translations.sh.
-idasen_companion = [
-    "gui/translations/*.qm",
-    "locale/*/LC_MESSAGES/*.mo",
-]
+# The contextual gettext catalog is the only app-owned runtime catalog.
+idasen_companion = ["locale/*/LC_MESSAGES/*.mo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

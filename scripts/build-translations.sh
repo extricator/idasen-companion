@@ -1,79 +1,41 @@
 #!/usr/bin/env bash
 # Extract, update, and compile all translation catalogs.
 #
-# Two independent catalogs (see docs/TRANSLATING.md and the module docstrings
-# in gui/i18n.py and daemon/i18n.py for *why* there are two):
-#
-#   * GUI  — Qt Linguist. Sources: gui/**/*.py wrapped in tr()/translate().
-#            .ts (editable, committed) -> .qm (compiled, shipped).
-#   * daemon notifications — GNU gettext. Sources: daemon/*.py wrapped in _().
-#            .pot/.po (editable, committed) -> .mo (compiled, shipped).
+# One app-owned GNU gettext catalog covers GUI, daemon and core. Qt's prebuilt
+# qtbase catalog remains separate and is not built by this project.
 #
 # Run after adding/changing user-facing strings, or to add a language. Adding
-# a language = add its code to LANGS below and re-run; then translate the new
-# translations/*.ts and po/*.po and re-run to compile. Idempotent.
+# a language = add po/<code>.po and re-run. Idempotent.
 #
-# Requires: pyside6-lupdate, pyside6-lrelease (PySide6 tools), xgettext,
-# msginit, msgmerge, msgfmt (gettext). Prefer running from the project venv so
-# the PySide6 tools are on PATH.
+# Requires: xgettext, msginit, msgmerge and msgfmt.
 set -euo pipefail
 
-# Languages we ship. English is the source language (no catalog needed).
-LANGS=(es)
+# Languages are discovered from editable catalogs. English is the source
+# language and needs no PO file.
+mapfile -t LANGS < <(find po -maxdepth 1 -name '*.po' -printf '%f\n' \
+    | sed 's/\.po$//' | sort)
 
 cd "$(dirname "$0")/.."
 PKG=src/idasen_companion
 
-# Tools: prefer venv-local pyside6-* if present.
-LUPDATE=${LUPDATE:-$(command -v pyside6-lupdate || echo pyside6-lupdate)}
-LRELEASE=${LRELEASE:-$(command -v pyside6-lrelease || echo pyside6-lrelease)}
+mkdir -p po
 
-mkdir -p translations "$PKG/gui/translations" po
+app_sources=$(find "$PKG" -name '*.py' | sort)
 
-# ---- GUI (Qt Linguist) -------------------------------------------------------
-gui_sources=$(find "$PKG/gui" -name '*.py' | sort)
-
-ts_args=()
-for lang in "${LANGS[@]}"; do
-    ts_args+=(-ts "translations/idasen_companion_${lang}.ts")
-done
-echo ">> lupdate: extracting GUI strings -> translations/*.ts"
-# Source references are not stored. Every other setting lupdate offers records
-# a line number, which then moves whenever anything above a translatable string
-# moves -- adding a comment was enough to rewrite four entries. That churn is
-# indistinguishable, to a regenerate-then-diff check, from a string shipped
-# untranslated, so the freshness gate would fail pull requests that touch no
-# text at all. The daemon catalog avoids the same trap via --add-location=file
-# below; lupdate has no filename-only setting, so it drops the reference.
-#
-# Nothing depends on the references: they are stripped when compiling to .qm,
-# no test or gate reads them, and lupdate re-matches entries by context plus
-# source text (verified -- all 391 existing translations survived their
-# removal). They served only Qt Linguist's jump-to-source. The glossary in
-# docs/TRANSLATING.md now carries the context a translator needs instead.
-# shellcheck disable=SC2086
-"$LUPDATE" -locations none -no-obsolete $gui_sources "${ts_args[@]}"
-
-for lang in "${LANGS[@]}"; do
-    echo ">> lrelease: translations/idasen_companion_${lang}.ts -> .qm"
-    "$LRELEASE" "translations/idasen_companion_${lang}.ts" \
-        -qm "$PKG/gui/translations/idasen_companion_${lang}.qm"
-done
-
-# ---- Daemon notifications (GNU gettext) --------------------------------------
-daemon_sources=$(find "$PKG/daemon" -name '*.py' | sort)
-
-echo ">> xgettext: extracting daemon strings -> po/idasen_companion.pot"
+echo ">> xgettext: extracting all app strings -> po/idasen_companion.pot"
 # Filename-only location comments below, so lines added or removed above a
 # translatable string don't shift every `#:` comment in the file and churn
 # the diff on every run (deterministic output for GATE-02 CI).
 # shellcheck disable=SC2086
 xgettext --language=Python --from-code=UTF-8 \
     --keyword=_ --keyword=ngettext:1,2 \
+    --keyword=pgettext:1c,2 --keyword=npgettext:1c,2,3 \
+    --keyword=P_:1c,2 --keyword=NP_:1c,2,3 \
+    --add-comments=Translators: \
     --add-location=file \
     --package-name=idasen-companion \
     --msgid-bugs-address=https://github.com/extricator/idasen-companion/issues \
-    -o po/idasen_companion.pot $daemon_sources
+    -o po/idasen_companion.pot $app_sources
 
 # Pin the creation date: xgettext stamps the current time, which would churn
 # the diff on every run even with zero source changes (deterministic output

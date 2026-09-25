@@ -29,7 +29,7 @@ from pathlib import Path
 # submodule, so pulling that dependency in offline would be dead weight.
 # Every package this project actually needs is already named here
 # explicitly.
-TOP = ["idasen", "bleak", "dbus-fast", "PyYAML", "tomlkit"]
+TOP = ["Babel", "idasen", "bleak", "dbus-fast", "PyYAML", "tomlkit"]
 
 OUT = Path(__file__).with_name("python3-deps.json")
 

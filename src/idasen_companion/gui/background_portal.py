@@ -19,7 +19,7 @@ for: this module never reads it, it only acts on what it is told.
 
 **Why QtDBus and not the daemon's own D-Bus stack.** The options and results
 here are dictionaries of variants (``a{sv}``) — the variant-*wrapped* case
-QtDBus demarshals natively, not the non-variant containers CLAUDE.md's D-Bus
+QtDBus demarshals natively, not the non-variant containers the project's D-Bus
 wire-format note warns about. Calling synchronously from a nested event loop,
 the same shape ``setup_wizard.py`` already uses to wait for the daemon, keeps
 this a plain function call from a click handler's point of view, matching how
@@ -56,12 +56,12 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import cast
 
-from PySide6.QtCore import QCoreApplication, QEventLoop, QObject, QTimer, QT_TRANSLATE_NOOP, SLOT, Slot
+from PySide6.QtCore import QEventLoop, QObject, QTimer, SLOT, Slot
 from PySide6.QtDBus import QDBusConnection, QDBusInterface, QDBusMessage
 
 from ..core import journal, logmsg
+from ..core.i18n import pgettext
 
 _SERVICE = "org.freedesktop.portal.Desktop"
 _PATH = "/org/freedesktop/portal/desktop"
@@ -92,10 +92,9 @@ def is_flatpak() -> bool:
 
 def _reason_text() -> str:
     """The text the OS shows in its own permission dialog for this request."""
-    return QCoreApplication.translate(
-        "BackgroundPortal",
-        cast(str, QT_TRANSLATE_NOOP(
-            "BackgroundPortal", "Start the desk automation automatically at login")))
+    # Translators: What the desktop permission dialog says will start at login.
+    text = pgettext("background-permission", "Start the desk automation automatically at login")
+    return text
 
 
 class _ResponseWaiter(QObject):

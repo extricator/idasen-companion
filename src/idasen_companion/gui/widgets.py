@@ -5,22 +5,29 @@ platform palette."""
 
 from __future__ import annotations
 
+from ..core.i18n import pgettext
+
+from collections.abc import Sequence
+
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QSizePolicy, QStyle, QStyleOptionButton, QVBoxLayout,
-    QWidget,
+    QScrollArea, QSizePolicy, QStyle, QStyleOptionButton, QToolTip,
+    QVBoxLayout, QWidget,
 )
 
 from . import restyle
+from .context import AppContext
 from .theme import (
     BORDER_WIDTH, BUTTON_PADDING_H, BUTTON_PADDING_V, CONTROL_RADIUS,
+    NAV_ICON_SIZE, NAV_ICON_TEXT_GAP, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H,
     SURFACE_RADIUS, button_icon_gap, control_height, css, extra_icon_gap,
     theme,
 )
+from .util import preset_label
 
 # paintEvent, sizeHint, mousePressEvent, mouseMoveEvent and mouseReleaseEvent
 # below are Qt virtual overrides, dispatched by name from Qt's C++
@@ -163,6 +170,48 @@ def emphasize(font: QFont) -> QFont:
     emphasized = QFont(font)
     emphasized.setWeight(QFont.Weight.DemiBold)
     return emphasized
+
+
+# The floor is today's hardcoded sidebar width, so English -- which needs
+# only 132px including chrome -- is unchanged pixel for pixel (44px spare).
+SIDEBAR_WIDTH_FLOOR: int = 176
+# The ceiling leaves 500px of content at the app's 760px minimum window
+# width, even for a translation whose widest label is pathologically long.
+SIDEBAR_WIDTH_CEILING: int = 260
+
+
+def sidebar_width_for_labels(
+    labels: Sequence[str], font: QFont,
+    floor: int = SIDEBAR_WIDTH_FLOOR, ceiling: int = SIDEBAR_WIDTH_CEILING,
+) -> int:
+    """The width the sidebar needs to show the widest of ``labels`` in full.
+
+    Measured DemiBold, not at ``font``'s own weight: the sidebar's selected
+    row is drawn DemiBold (``MainWindow._bold_selected_nav``), and any row
+    can become the selected one, so a width computed from the normal weight
+    would clip whichever row the user is actually on -- measured, "Registro
+    de actividad" is 118px normal and 123px DemiBold. ``emphasize`` supplies
+    the weight so no call site has to remember it.
+
+    Clamped between ``floor`` and ``ceiling`` so English stays at today's
+    176px pixel for pixel, and so a pathological translation cannot eat the
+    window (see the two constants' own rationale above).
+
+    The four chrome numbers this adds to the widest label come from
+    ``gui/theme.py``, declared once and shared with ``_restyle_sidebar``'s
+    stylesheet; what actually keeps them honest is not this arithmetic but
+    ``tests/test_sidebar_width.py``'s fit test, which asks Qt's own layout
+    accounting whether every shipped language still fits.
+    """
+    metrics = QFontMetrics(emphasize(font))
+    widest = max((metrics.horizontalAdvance(label) for label in labels),
+                 default=0)
+    # QListView rounds one style metric outward after combining the text and
+    # icon rectangles. Debian 13's Qt/font stack exposes the extra physical
+    # pixel; reserving it keeps the calculation conservative across stacks.
+    chrome = (2 * NAV_ITEM_PADDING_H + 2 * NAV_ITEM_MARGIN_H
+              + NAV_ICON_SIZE + NAV_ICON_TEXT_GAP + 1)
+    return max(floor, min(ceiling, widest + chrome))
 
 
 def section_label(text: str) -> QLabel:
@@ -342,7 +391,9 @@ def equal_height_row(*controls: QWidget, spacing: int = 10) -> QWidget:
     return row_widget
 
 
-def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
+def segment_css(first: bool, last: bool, padding: str = "4px 12px",
+                direction: Qt.LayoutDirection = Qt.LayoutDirection.LeftToRight,
+                ) -> str:
     """Stylesheet for one segment of a joined button strip. With
     first=last=True it doubles as a standalone chip (Schedule days).
     Checked rules are inert on non-checkable buttons (Presets footer).
@@ -353,13 +404,15 @@ def segment_css(first: bool, last: bool, padding: str = "4px 12px") -> str:
     Schedule days stayed vividly selected with "Use schedule" unticked while
     the plain QTimeEdits beside them greyed out correctly."""
     tokens = theme()
-    radius_left = f"{CONTROL_RADIUS}px" if first else "0"
-    radius_right = f"{CONTROL_RADIUS}px" if last else "0"
-    left_border = "" if first else "border-left: none;"
+    rtl = direction == Qt.LayoutDirection.RightToLeft
+    radius_left = f"{CONTROL_RADIUS}px" if (last if rtl else first) else "0"
+    radius_right = f"{CONTROL_RADIUS}px" if (first if rtl else last) else "0"
+    shared_border = ("" if first else
+                     ("border-right: none;" if rtl else "border-left: none;"))
     return (
         f"QPushButton {{ background: {css(tokens.card_bg)};"
         f" color: {css(tokens.secondary)};"
-        f" border: 1px solid {css(tokens.border)}; {left_border}"
+        f" border: 1px solid {css(tokens.border)}; {shared_border}"
         f" border-top-left-radius: {radius_left};"
         f" border-bottom-left-radius: {radius_left};"
         f" border-top-right-radius: {radius_right};"
@@ -477,7 +530,9 @@ class SegmentedControl(QWidget):
                 target: QPushButton = button, first: bool = is_first,
                 last: bool = is_last,
             ) -> None:
-                target.setStyleSheet(segment_css(first, last))
+                target.setStyleSheet(
+                    segment_css(first, last,
+                                direction=target.layoutDirection()))
 
             restyle.register(button, _restyle_segment)
             # The selected segment renders DemiBold (segment_css :checked),
@@ -689,13 +744,19 @@ class HeightRail(QWidget):
     _TRACK_Y = 14      # track centerline
     _TRACK_H = 6
 
-    def __init__(self, min_height: float, max_height: float, parent: QWidget | None = None):
+    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+                 parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = min_height
         self._target = min_height
         self._dragging = False
         self._marks: list[tuple[str, float]] = []   # (label, meters)
+        # ctx, not a stored Formatter: AppContext.fmt is rebuilt on every
+        # config change, so paintEvent reads self.ctx.fmt at paint time
+        # rather than holding a snapshot that would keep painting the
+        # previous unit after the user switches it.
+        self.ctx = ctx
         self.setMinimumHeight(46)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -722,11 +783,13 @@ class HeightRail(QWidget):
     def _x(self, meters: float) -> float:
         span = self.width() - 2 * self._PAD
         frac = (meters - self._lo) / (self._hi - self._lo)
-        return self._PAD + _clamp01(frac) * span
+        logical_x = self._PAD + _clamp01(frac) * span
+        return self.width() - logical_x if self.isRightToLeft() else logical_x
 
     def _meters(self, pixel_x: float) -> float:
         span = self.width() - 2 * self._PAD
-        frac = (pixel_x - self._PAD) / max(1.0, span)
+        logical_x = self.width() - pixel_x if self.isRightToLeft() else pixel_x
+        frac = (logical_x - self._PAD) / max(1.0, span)
         return self._lo + _clamp01(frac) * (self._hi - self._lo)
 
     # ----- interaction -----
@@ -763,15 +826,15 @@ class HeightRail(QWidget):
         painter.drawRoundedRect(track, 3, 3)
 
         fill_x = self._x(self._height)
-        if fill_x > left:
-            fill = QRectF(left, track_y - self._TRACK_H / 2,
-                          fill_x - left, self._TRACK_H)
+        low_x = self._x(self._lo)
+        if abs(fill_x - low_x) > 0:
+            fill = QRectF(min(fill_x, low_x),
+                          track_y - self._TRACK_H / 2,
+                          abs(fill_x - low_x), self._TRACK_H)
             painter.setBrush(tokens.accent)
             painter.drawRoundedRect(fill, 3, 3)
 
         # Preset ticks + labels under the track.
-        from .util import fmt_preset_tick
-
         small = painter.font()
         small.setPointSizeF(small.pointSizeF() * 0.82)
         painter.setFont(small)
@@ -780,7 +843,7 @@ class HeightRail(QWidget):
             tick_x = self._x(meters)
             painter.setPen(QPen(tokens.muted, 1.4))
             painter.drawLine(QPointF(tick_x, track_y + 5), QPointF(tick_x, track_y + 11))
-            text = fmt_preset_tick(label, meters, trim=True)
+            text = self.ctx.fmt.preset_tick(label, meters, trim=True)
             text_width = metrics.horizontalAdvance(text)
             text_x = min(max(tick_x - text_width / 2, left - self._PAD + 2),
                          self.width() - text_width - 2)
@@ -805,11 +868,15 @@ class RangeRail(QWidget):
     _TRACK_X = 10
     MATCH = 0.0075  # meters within which the desk counts as "at" a preset
 
-    def __init__(self, min_height: float, max_height: float, parent: QWidget | None = None):
+    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+                 parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = 0.0
         self._presets: dict[str, float] = {}
+        # See HeightRail.__init__ for why this holds the context rather
+        # than a stored Formatter.
+        self.ctx = ctx
         self.setMinimumWidth(96)
         self.setMinimumHeight(180)
 
@@ -826,13 +893,22 @@ class RangeRail(QWidget):
         frac = (self._hi - meters) / (self._hi - self._lo)
         return self._PAD + _clamp01(frac) * span
 
-    def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
-        from .util import fmt_height, fmt_height_value, fmt_preset_tick, preset_label
+    def _track_x(self) -> float:
+        """Physical x for the logical leading edge of the range rail."""
+        return (self.width() - self._TRACK_X
+                if self.isRightToLeft() else self._TRACK_X)
 
+    def _tick_text_x(self, text_width: float) -> float:
+        """Physical x for text following a tick in logical reading order."""
+        track_x = self._track_x()
+        return (track_x - 9 - text_width if self.isRightToLeft()
+                else track_x + 9)
+
+    def paintEvent(self, event) -> None:  # pylint: disable=invalid-name
         tokens = theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        track_x = self._TRACK_X
+        track_x = self._track_x()
 
         painter.setPen(QPen(tokens.separator, 2))
         painter.drawLine(QPointF(track_x, self._PAD), QPointF(track_x, self.height() - self._PAD))
@@ -852,9 +928,10 @@ class RangeRail(QWidget):
                                 (self._lo, self.height() - metrics.descent())):
             if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
                 continue
-            label = fmt_height(meters, trim=True)
-            painter.drawText(QPointF(self.width() - metrics.horizontalAdvance(label),
-                               label_y), label)
+            label = self.ctx.fmt.height(meters, trim=True)
+            label_x = (0 if self.isRightToLeft()
+                       else self.width() - metrics.horizontalAdvance(label))
+            painter.drawText(QPointF(label_x, label_y), label)
 
         live_shown = False
         for name, meters in sorted(self._presets.items(),
@@ -871,10 +948,12 @@ class RangeRail(QWidget):
             # protected presets must read the same words the Presets buttons
             # and the horizontal rail already use, not the raw config key —
             # do not reintroduce the bare `name` here.
-            text = (fmt_preset_tick(preset_label(name), meters) if at_preset
-                    else preset_label(name))
-            painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
-                       text)
+            text = (self.ctx.fmt.preset_tick(preset_label(name), meters)
+                    if at_preset else preset_label(name))
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = self._tick_text_x(text_width)
+            painter.drawText(QPointF(
+                text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
             live_shown = live_shown or at_preset
 
         if self._height > 0 and not live_shown:
@@ -883,8 +962,11 @@ class RangeRail(QWidget):
             painter.drawLine(QPointF(track_x - 5, tick_y), QPointF(track_x + 5, tick_y))
             painter.setFont(bold)
             painter.setPen(tokens.accent_text)
-            painter.drawText(QPointF(track_x + 9, tick_y + painter.fontMetrics().ascent() / 2 - 1),
-                       fmt_height_value(self._height))
+            text = self.ctx.fmt.height_value(self._height)
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = self._tick_text_x(text_width)
+            painter.drawText(QPointF(
+                text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
         painter.end()
 
 
@@ -900,10 +982,13 @@ class DailyBarsChart(QWidget):
     SHARE_W = 44
     GAP = 2          # surface gap between the stacked segments
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, ctx: AppContext, parent: QWidget | None = None):
         super().__init__(parent)
         # rows: (label, sit_seconds, stand_seconds, is_today)
         self._rows: list[tuple[str, float, float, bool]] = []
+        # See HeightRail.__init__ for why this holds the context rather
+        # than a stored Formatter.
+        self.ctx = ctx
         self.setMouseTracking(True)
 
     # Already scheme-aware (branches on is_dark below) and called from
@@ -922,15 +1007,21 @@ class DailyBarsChart(QWidget):
         self.update()
 
     def _tooltip_for(self, index: int) -> str:
-        from .util import fmt_hm
         label, sit, stand, _ = self._rows[index]
         if sit or stand:
-            return self.tr("%(day)s: sitting %(sit)s, standing %(stand)s") % {
-                "day": label, "sit": fmt_hm(sit), "stand": fmt_hm(stand)}
-        return self.tr("%(day)s: no data") % {"day": label}
+            return pgettext('statistics.chart', "%(day)s: sitting %(sit)s, standing %(stand)s") % {
+                "day": label, "sit": self.ctx.fmt.duration_hm(sit),
+                "stand": self.ctx.fmt.duration_hm(stand)}
+        return pgettext('statistics.chart', "%(day)s: no data") % {"day": label}
+
+    def _visual_rect(self, logical: QRectF) -> QRectF:
+        """Map a logical LTR painter rectangle through this widget's direction."""
+        if not self.isRightToLeft():
+            return logical
+        return QRectF(self.width() - logical.x() - logical.width(), logical.y(),
+                      logical.width(), logical.height())
 
     def mouseMoveEvent(self, event) -> None:  # pylint: disable=invalid-name
-        from PySide6.QtWidgets import QToolTip
         index = int(event.position().y() // self.ROW_H)
         if 0 <= index < len(self._rows):
             QToolTip.showText(event.globalPosition().toPoint(),
@@ -961,7 +1052,9 @@ class DailyBarsChart(QWidget):
 
             painter.setFont(today_font if is_today else small)
             painter.setPen(tokens.accent_text if is_today else tokens.secondary)
-            painter.drawText(QPointF(4, baseline), label)
+            label_width = painter.fontMetrics().horizontalAdvance(label)
+            label_x = self.width() - 4 - label_width if self.isRightToLeft() else 4
+            painter.drawText(QPointF(label_x, baseline), label)
 
             sit_w = span * sit_seconds / max_total
             stand_w = span * stand / max_total
@@ -969,23 +1062,30 @@ class DailyBarsChart(QWidget):
             if sit_w > 0:
                 # Round the baseline (outer) end; the inner end facing the
                 # gap stays square (rounded only when it's the whole bar).
-                rect = QRectF(left, bar_y, sit_w, self.BAR_H)
+                rect = self._visual_rect(QRectF(left, bar_y, sit_w, self.BAR_H))
                 painter.setBrush(sit_color)
-                self._draw_segment(painter, rect, round_left=True,
-                                   round_right=stand_w <= 0)
+                self._draw_segment(
+                    painter, rect,
+                    round_left=(stand_w <= 0 if self.isRightToLeft() else True),
+                    round_right=(True if self.isRightToLeft() else stand_w <= 0))
             if stand_w > 0:
                 stand_x = left + sit_w + (self.GAP if sit_w > 0 else 0)
-                rect = QRectF(stand_x, bar_y, max(2.0, stand_w - self.GAP), self.BAR_H)
+                rect = self._visual_rect(QRectF(
+                    stand_x, bar_y, max(2.0, stand_w - self.GAP), self.BAR_H))
                 painter.setBrush(stand_color)
-                self._draw_segment(painter, rect, round_left=sit_w <= 0,
-                                   round_right=True)
+                self._draw_segment(
+                    painter, rect,
+                    round_left=(True if self.isRightToLeft() else sit_w <= 0),
+                    round_right=(sit_w <= 0 if self.isRightToLeft() else True))
 
             total = sit_seconds + stand
             painter.setFont(small)
             painter.setPen(tokens.secondary if total else tokens.muted)
-            share = f"{stand / total * 100:.0f}%" if total else "—"
+            share = (self.ctx.fmt.context.locale.percent(stand / total)
+                     if total else "—")
             share_w = painter.fontMetrics().horizontalAdvance(share)
-            painter.drawText(QPointF(self.width() - share_w - 2, baseline), share)
+            share_x = 2 if self.isRightToLeft() else self.width() - share_w - 2
+            painter.drawText(QPointF(share_x, baseline), share)
         painter.end()
 
     @staticmethod

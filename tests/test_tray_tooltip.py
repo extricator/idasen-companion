@@ -33,11 +33,24 @@ from datetime import date, datetime
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from types import SimpleNamespace  # noqa: E402
+
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+import dataclasses  # noqa: E402
+
+from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.presentation import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
+from idasen_companion.core.locale_profile import (  # noqa: E402
+    LocaleProfile,
+)
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -92,8 +105,27 @@ class FakeClient(QObject):
         return lambda *a, **kw: None
 
 
+class _NullSignal:
+    """Stands in for a Qt signal ``TrayIcon.__init__`` connects to, without
+    a real ``QObject`` behind it."""
+
+    def connect(self, *args, **kwargs):
+        pass
+
+
 class FakeWindow:
-    """No ``ctx``, so TrayIcon._action falls back to its defaults."""
+    """A ``ctx`` carrying only what ``TrayIcon`` reaches for -- ``cfg``
+    stays ``None`` so ``TrayIcon._action`` still falls back to its
+    defaults, exactly as it did before ``_fmt()`` had a caller."""
+
+    def __init__(self):
+        self.ctx = SimpleNamespace(
+            cfg=None,
+            configChanged=_NullSignal(),
+            fmt=Formatter(PresentationContext(
+                locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
+                unit=HeightUnit.CENTIMETRES,
+                time_style=TimeStyle.HOUR_AND_MINUTE_24)))
 
 
 @pytest.fixture(scope="session")
@@ -227,7 +259,30 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(datetime(2026, 8, 3, 14, 32)))
+        "Snoozed until %s" % fmt_clock(
+            icon.window.ctx.fmt, datetime(2026, 8, 3, 14, 32)))
+
+
+def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(tray):
+    """The clock format applies on Apply, and this is the whole mechanism:
+    `AppContext.write_config` rebuilds `ctx.fmt`, and the tray reads that
+    formatter fresh at every redraw instead of caching it. No new signal and
+    no restart — so what is pinned here is that the surface re-reads, not
+    that the helper formats correctly, which its own tests already own.
+    """
+    icon, client = tray
+    standing_and_active(icon)
+    icon._on_status("snoozed")
+    deadline = datetime(2026, 8, 3, 14, 32)
+    client.set_snooze_until(deadline.timestamp())
+    assert "PM" not in icon.toolTip()
+
+    context = icon.window.ctx.fmt.context
+    icon.window.ctx.fmt = Formatter(dataclasses.replace(
+        context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
+    client.set_snooze_until(deadline.timestamp())
+
+    assert icon.toolTip().split("\n")[2] == "Snoozed until 2:32 PM"
 
 
 def test_snoozed_tooltip_says_later_until_the_deadline_arrives(tray):
@@ -252,7 +307,8 @@ def test_deadline_arriving_redraws_the_tooltip(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 9, 5).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(datetime(2026, 8, 3, 9, 5)))
+        "Snoozed until %s" % fmt_clock(
+            icon.window.ctx.fmt, datetime(2026, 8, 3, 9, 5)))
 
 
 def test_menu_entry_keeps_the_bare_word_while_snoozed(tray):

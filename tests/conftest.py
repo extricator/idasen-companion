@@ -60,32 +60,6 @@ def no_real_subprocesses(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _restore_global_height_unit():
-    """Undo any test's mutation of gui/util.py's process-global height unit.
-
-    ``AppContext.__init__`` calls ``util.set_height_unit(cfg.ui.units)``, and
-    the shipped default is "system" — which, against the en_US default pinned
-    below, resolves to inches. So merely *constructing* an AppContext switched
-    every later test's height rendering to inches, permanently.
-
-    Nothing revealed it, because collection is alphabetical and the two
-    leakers happen to sort after their victims. The suite passed in file order
-    and failed 6 tests in reverse order; it would also have broken under
-    pytest-xdist, pytest-randomly, a -k filter, or simply a new test file whose
-    name sorts differently. Restoring here makes the suite order-independent by
-    construction rather than by luck.
-    """
-    try:
-        from idasen_companion.gui import util
-    except ImportError:
-        yield  # PySide6 not installed; the GUI tests importorskip themselves
-        return
-    previous = util._unit
-    yield
-    util._unit = previous
-
-
-@pytest.fixture(autouse=True)
 def _restore_the_application_style():
     """Undo any test's mutation of the session QApplication's style.
 
@@ -145,9 +119,9 @@ def _pin_timezone():
 def _pin_default_locale():
     """Pin QLocale's default to en_US for the whole run.
 
-    gui/util.py's fmt_number()/fmt_height() read QLocale() to render
-    decimals, so without this the builder's own $LANG leaks into their
-    output — test_log_catalog.py's "110.0 cm" assertion would only hold on
+    LocaleProfile is built from QLocale() on every path that doesn't
+    name a language, so without this the builder's own $LANG leaks into a
+    rendered decimal — test_log_catalog.py's "110.0 cm" assertion would only hold on
     an English machine, and would silently fail the RPM's %check on a
     Spanish one. Guarded so the many non-Qt tests aren't made to depend on
     PySide6 being installed.
@@ -155,6 +129,11 @@ def _pin_default_locale():
     try:
         from PySide6.QtCore import QLocale
     except ImportError:
+        # `yield`, not a bare `return`. This is a generator fixture, so
+        # returning early yields nothing at all and pytest raises "did not
+        # yield a value" — and since this one is session-scoped and autouse,
+        # that error lands on every test in the run rather than on the Qt ones.
+        yield
         return
     previous = QLocale()
     QLocale.setDefault(QLocale("en_US"))

@@ -65,11 +65,11 @@ def test_diag_lines_carry_no_message_id():
 
 def test_entry_serializes_for_the_wire():
     ring = _ring(clock=lambda: 7.0)
-    ring.emit(logmsg.AUTOMATION_SNOOZED, minutes=5)
+    ring.emit(logmsg.AUTOMATION_SNOOZED, duration=300)
     assert ring.entries()[0].as_dict() == {
         "ts": 7.0, "level": "info", "channel": "activity",
-        "msg_id": "automation.snoozed", "params": {"minutes": 5},
-        "text": "Snoozed for 5 minutes."}
+        "msg_id": "automation.snoozed", "params": {"duration": 300},
+        "text": "Snoozed for 5.0 minutes."}
 
 
 def test_unserializable_params_never_escape_the_ring():
@@ -78,7 +78,7 @@ def test_unserializable_params_never_escape_the_ring():
     move that was being logged. Every consumer downstream dumps this unguarded.
     """
     ring = _ring(clock=lambda: 0.0)
-    ring.emit(logmsg.AUTOMATION_SNOOZED, minutes=object())
+    ring.emit(logmsg.AUTOMATION_SNOOZED, duration=object())
     entry = ring.entries()[0]
     assert entry.params == {}
     assert json.dumps(entry.as_dict())  # what GetRecent does

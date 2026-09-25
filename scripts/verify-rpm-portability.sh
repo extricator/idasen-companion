@@ -330,21 +330,34 @@ command -v dbus-run-session >/dev/null 2>&1 || exit 12
 echo "--- daemon"
 # A simulated desk, always: there is no Bluetooth here, and a run that
 # reached a real one would be driving somebody's furniture from a test.
-dbus-run-session -- idasen-companiond \
+# A *group* kill, and a group that announces its own id: killing the
+# dbus-run-session wrapper alone orphans the daemon it spawned, and inferring
+# the group from $! is only right when setsid execs rather than forks. See the
+# bundled spec's %check for the full reasoning; both sites carry the same fix.
+#
+# Guarded like dbus-run-session above, and for a sharper reason: setsid is
+# util-linux, which a minimal container may omit. Unguarded, its absence would
+# kill the background job instantly and this script — whose whole job is
+# diagnosis — would report a missing tool as a broken package.
+command -v setsid >/dev/null 2>&1 || exit 12
+
+setsid sh -c 'echo $$ > /tmp/idasen-companion-portability.pgid; exec "$@"' _ \
+    dbus-run-session -- idasen-companiond \
     --mock-desk --config /tmp/idasen-companion-portability.toml \
     > /tmp/daemon.log 2>&1 &
-daemon=$!
 
 sleep "$SETTLE_SECONDS"
 
-if ! kill -0 "$daemon" 2>/dev/null; then
+daemon=$(cat /tmp/idasen-companion-portability.pgid 2>/dev/null || true)
+if [ -z "$daemon" ] || ! kill -0 "$daemon" 2>/dev/null; then
     echo "--- the daemon exited during the first $SETTLE_SECONDS seconds"
     cat /tmp/daemon.log
+    [ -n "$daemon" ] && kill -- -"$daemon" 2>/dev/null || true
     exit 40
 fi
 
-kill "$daemon" 2>/dev/null || true
-wait "$daemon" 2>/dev/null || true
+kill -- -"$daemon" 2>/dev/null || true
+wait 2>/dev/null || true
 cat /tmp/daemon.log
 
 grep -q 'MOCK desk' /tmp/daemon.log || exit 41

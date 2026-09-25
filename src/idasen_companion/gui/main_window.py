@@ -10,9 +10,9 @@ without AppIndicator there is no tray.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QT_TRANSLATE_NOOP
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMainWindow,
@@ -27,9 +27,13 @@ from .pages import (
     SettingsPage, StatisticsPage,
 )
 from .pages.settings_form import SettingsFormPage
-from .theme import css, theme
+from .theme import (NAV_ICON_SIZE, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H, css,
+                    theme)
 from .util import connection_state, daemon_error_message
-from .widgets import StatusDot, icon, selectable_icon
+from .widgets import StatusDot, icon, selectable_icon, sidebar_width_for_labels
+from ..core.config import ConfigWarning, format_config_warning
+from ..core.i18n import pgettext
+from ..core.i18n import P_
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -51,26 +55,25 @@ def _app() -> QApplication:
     return app
 
 
-# Sidebar entries: (label, theme icon candidates). Labels are marked for
-# extraction with QT_TRANSLATE_NOOP under the "MainWindow" context (a plain
-# self.tr(label) on the variable below would be invisible to lupdate) and
-# translated at build time in _build_sidebar via self.tr(label).
+# Sidebar entries: (label, theme icon candidates). Deferred ``P_`` keys retain
+# a literal semantic context for extraction, then translate when the sidebar
+# is built rather than freezing the import-time language.
 NAV_ITEMS = [
-    (QT_TRANSLATE_NOOP("MainWindow", "Overview"), ("go-home", "user-home")),
+    (P_("window-shell", "Overview"), ("go-home", "user-home")),
     # Second, right after Overview: Overview acts on the current cycle, this
     # configures every cycle. The repeat glyph reads as the sit/stand loop.
-    (QT_TRANSLATE_NOOP("MainWindow", "Automation"),
+    (P_("window-shell", "Automation"),
      ("media-playlist-repeat", "chronometer", "view-refresh")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Presets"),
+    (P_("window-shell", "Presets"),
      ("bookmarks", "user-bookmarks", "bookmark-new")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Statistics"),
+    (P_("window-shell", "Statistics"),
      ("view-statistics", "office-chart-bar",
       "utilities-system-monitor-symbolic")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Activity Log"),
+    (P_("window-shell", "Activity Log"),
      ("view-list-text", "format-list-unordered", "text-x-generic")),
-    (QT_TRANSLATE_NOOP("MainWindow", "Settings"),
+    (P_("window-shell", "Settings"),
      ("configure", "preferences-system")),
-    (QT_TRANSLATE_NOOP("MainWindow", "About"),
+    (P_("window-shell", "About"),
      ("help-about", "help-about-symbolic", "dialog-information")),
 ]
 
@@ -83,9 +86,15 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.client = client
         self.ctx = AppContext(client, tray_available)
-        self.setWindowTitle(self.tr("Idasen Companion"))
-        self.setMinimumSize(760, 600)
-        self.resize(860, 660)
+        self.setWindowTitle(pgettext('window-shell', "Idasen Companion"))
+
+        # One GUI-session owner for forward-compatibility warnings. The two
+        # settings-class pages are preloaded below, so collect while the shell
+        # is being assembled and present their union only once at the end.
+        self._shown_config_warnings: set[ConfigWarning] = set()
+        self._pending_config_warnings: list[ConfigWarning] = []
+        self._collect_config_warnings = True
+        self.ctx.configWarnings.connect(self.show_config_warnings)
 
         self._connected = False
         # The page the sidebar is on. Tracked rather than read back from the
@@ -122,7 +131,7 @@ class MainWindow(QMainWindow):
         self._daemon_banner.hide()
         banner_row = QHBoxLayout()
         banner_row.addWidget(self._daemon_banner, 1)
-        self._start_daemon_btn = QPushButton(self.tr("Start daemon"))
+        self._start_daemon_btn = QPushButton(pgettext('window-shell', "Start daemon"))
         self._start_daemon_btn.clicked.connect(self._start_daemon)
         self._start_daemon_btn.hide()
         # Whether that button is currently offering to enable the unit at login
@@ -133,8 +142,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(banner_row)
         layout.addWidget(stack)
         if not tray_available:
-            hint = QLabel(self.tr(
-                "No system tray detected (on GNOME, install the AppIndicator "
+            hint = QLabel(pgettext('window-shell', "No system tray detected (on GNOME, install the AppIndicator "
                 "extension). Closing this window keeps the app running in the "
                 "background; automation runs in the daemon either way."))
             hint.setWordWrap(True)
@@ -173,6 +181,57 @@ class MainWindow(QMainWindow):
         self.automation.load()
         self.settings.load()
 
+        self._collect_config_warnings = False
+        pending = tuple(self._pending_config_warnings)
+        self._pending_config_warnings.clear()
+        self.show_config_warnings(pending)
+
+        # QWidget.minimumSizeHint() is the complete shell layout's current
+        # recommendation: active translations, font, style and computed
+        # sidebar width included. An explicit 760px minimum set before the
+        # shell existed overrode that recommendation and let Spanish's single
+        # Activity Log toolbar compress. Preserve the usability floor while
+        # allowing the live layout to ask for either dimension to grow.
+        layout_minimum = self.minimumSizeHint()
+        effective_minimum = QSize(max(760, layout_minimum.width()),
+                                  max(600, layout_minimum.height()))
+        self.setMinimumSize(effective_minimum)
+        self.resize(QSize(max(860, effective_minimum.width()),
+                          max(660, effective_minimum.height())))
+
+    def show_config_warnings(self, warnings: tuple[ConfigWarning, ...]) -> None:
+        """Present each forward-compatibility warning once per GUI session.
+
+        Warnings stay structured until here so their dataclass value is the
+        fingerprint and their source order is preserved. A warning remains in
+        ``_shown_config_warnings`` after it disappears, preventing a reload
+        loop when external tooling removes and later restores the same data.
+        """
+        new_warnings: list[ConfigWarning] = []
+        already_queued = set(self._pending_config_warnings)
+        for warning in warnings:
+            if (warning in self._shown_config_warnings
+                    or warning in already_queued):
+                continue
+            new_warnings.append(warning)
+            already_queued.add(warning)
+
+        if self._collect_config_warnings:
+            self._pending_config_warnings.extend(new_warnings)
+            return
+        if not new_warnings:
+            return
+
+        self._shown_config_warnings.update(new_warnings)
+        QMessageBox.warning(
+            self, pgettext('config-warning', "Idasen Companion"),
+            pgettext(
+                'config-warning',
+                "Some configuration settings are not recognized by this "
+                "version. They will be preserved:\n%s")
+            % "\n".join(format_config_warning(warning)
+                         for warning in new_warnings))
+
     def _on_command_failed(self, name: str, detail: str) -> None:
         """Report a command the daemon refused.
 
@@ -183,7 +242,7 @@ class MainWindow(QMainWindow):
         here from the error *name* so it can be translated — the daemon's own
         body crosses the wire in English and is in neither catalog.
         """
-        QMessageBox.warning(self, self.tr("Idasen Companion"),
+        QMessageBox.warning(self, pgettext('window-shell', "Idasen Companion"),
                             daemon_error_message(name, detail))
 
     def _restyle_daemon_banner(self) -> None:
@@ -196,7 +255,6 @@ class MainWindow(QMainWindow):
 
     def _build_sidebar(self) -> QWidget:
         sidebar = QWidget()
-        sidebar.setFixedWidth(176)
         sidebar.setAutoFillBackground(True)
         sidebar.setObjectName("Sidebar")
         self._sidebar = sidebar
@@ -206,10 +264,10 @@ class MainWindow(QMainWindow):
 
         nav_list = QListWidget()
         nav_list.setFrameShape(QListWidget.Shape.NoFrame)
-        nav_list.setIconSize(QSize(22, 22))
+        nav_list.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
         nav_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for label, _icon_names in NAV_ITEMS:
-            nav_list.addItem(QListWidgetItem(self.tr(cast("str", label))))
+            nav_list.addItem(QListWidgetItem(pgettext(label.context, label)))
         self._nav = nav_list
         nav_list.setCurrentRow(0)
         # One slot rather than three connections: switching pages can now be
@@ -232,17 +290,21 @@ class MainWindow(QMainWindow):
         vbox.addWidget(footer)
 
         restyle.register(self, self._restyle_sidebar)
+        restyle.register(self, self._resize_sidebar)
         restyle.register(self, self._update_conn_footer)
         return sidebar
 
     def _restyle_sidebar(self) -> None:
         tokens = theme()
+        divider_side = "left" if self.isRightToLeft() else "right"
         self._sidebar.setStyleSheet(
             f"QWidget#Sidebar {{ background: {css(tokens.sidebar_bg)};"
-            f" border-right: 1px solid {css(tokens.separator)}; }}")
+            f" border-{divider_side}: 1px solid {css(tokens.separator)}; }}")
         self._nav.setStyleSheet(
             "QListWidget { background: transparent; outline: none; }"
-            "QListWidget::item { padding: 6px 8px; margin: 1px 6px;"
+            "QListWidget::item {"
+            f" padding: 6px {NAV_ITEM_PADDING_H}px;"
+            f" margin: 1px {NAV_ITEM_MARGIN_H}px;"
             " border-radius: 4px; }"
             f"QListWidget::item:selected {{ background: {css(tokens.accent)};"
             f" color: {css(tokens.selection_text)}; font-weight: bold; }}"
@@ -258,6 +320,28 @@ class MainWindow(QMainWindow):
                 selectable_icon(icon(*icon_names), tokens.selection_text,
                                 tokens.text))
         self._conn_footer.setStyleSheet(f"color: {css(tokens.secondary)};")
+
+    def _resize_sidebar(self) -> None:
+        """Size the sidebar to the widest label it is actually showing.
+
+        Reads the rendered text back off the built list rather than
+        re-translating ``NAV_ITEMS``, so this measures exactly what
+        ``_build_sidebar`` put on screen and cannot drift from it. Recomputed
+        on every restyle sweep because a palette or font change moves the
+        metrics this depends on. Deliberately never persisted: a language
+        change applies on restart and the labels are baked in at
+        construction, so a construction-time computation is consistent with
+        the rest of this window's existing behaviour.
+
+        Registration order against ``_restyle_sidebar`` does not matter. The
+        chrome this width allows for comes from ``gui/theme.py``'s constants,
+        which both this and the stylesheet read directly -- neither waits on
+        the other, and nothing here queries a stylesheet that may not be
+        applied yet.
+        """
+        labels = [self._nav.item(i).text() for i in range(self._nav.count())]
+        self._sidebar.setFixedWidth(
+            sidebar_width_for_labels(labels, self._nav.font()))
 
     def _on_nav_changed(self, index: int) -> None:
         # currentRowChanged can emit -1 (no selection); ignore it rather than
@@ -315,14 +399,13 @@ class MainWindow(QMainWindow):
                 not background_portal.is_flatpak()
                 and service_ctl.autostart_state().offer_enable)
             if self._autostart_offer:
-                self._daemon_banner.setText(self.tr(
-                    "The Idasen Companion daemon is not running, and is not "
+                self._daemon_banner.setText(pgettext('window-shell', "The Idasen Companion daemon is not running, and is not "
                     "set to start when you log in."))
-                self._start_daemon_btn.setText(self.tr("Start at login"))
+                self._start_daemon_btn.setText(pgettext('window-shell', "Start at login"))
             else:
                 self._daemon_banner.setText(
-                    self.tr("The Idasen Companion daemon is not running."))
-                self._start_daemon_btn.setText(self.tr("Start daemon"))
+                    pgettext('window-shell', "The Idasen Companion daemon is not running."))
+                self._start_daemon_btn.setText(pgettext('window-shell', "Start daemon"))
             self._daemon_banner.show()
             self._start_daemon_btn.show()
         self._update_conn_footer()
@@ -348,10 +431,10 @@ class MainWindow(QMainWindow):
             # startDetached() used to swallow this, leaving the banner up with
             # no hint as to why nothing happened.
             QMessageBox.warning(
-                self, self.tr("Idasen Companion"),
-                self.tr("The background service could not be started:\n%s\n\n"
-                        "Try running this in a terminal:\n  %s")
-                % (err, command))
+                self, pgettext('window-shell', "Idasen Companion"),
+                pgettext('window-shell', "The background service could not be started:\n%(error)s\n\n"
+                        "Try running this in a terminal:\n  %(command)s")
+                % {"error": err, "command": command})
 
     # ================= window behavior =================
 
@@ -400,8 +483,8 @@ class MainWindow(QMainWindow):
         if not self.isVisible():
             self.present()
         answer = QMessageBox.warning(
-            self, self.tr("Idasen Companion"),
-            self.tr("This page has changes you haven't applied yet."),
+            self, pgettext('window-shell', "Idasen Companion"),
+            pgettext('window-shell', "This page has changes you haven't applied yet."),
             QMessageBox.StandardButton.Apply
             | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel,

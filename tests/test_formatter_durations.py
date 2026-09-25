@@ -1,0 +1,151 @@
+"""``Formatter.duration_verbose``/``duration``/``duration_hm`` -- the merged
+PRES-03/D-01/D-02 duration policy.
+
+Built against the real :class:`EnglishTranslator`, the same choice
+``test_formatter_heights.py`` makes: these methods produce rendered English
+text, so the assertions catch product-policy regressions.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from idasen_companion.core.presentation import (
+    EnglishTranslator, format_duration_human,
+)
+from idasen_companion.core.presentation import (
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
+
+
+def _formatter() -> Formatter:
+    context = PresentationContext(
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24)
+    return Formatter(context)
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (0, "1 second"),        # floored to at least one, never "0 seconds"
+        (1, "1 second"),
+        (2, "2 seconds"),
+        (30, "30 seconds"),
+        (59, "59 seconds"),
+    ],
+)
+def test_below_the_minute_threshold_renders_seconds_only(seconds, expected):
+    assert _formatter().duration_verbose(seconds) == expected
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (60, "1 minute"),
+        (90, "1 minute"),           # D-02's measured range: floor, not round
+        (120, "2 minutes"),
+        (3599, "59 minutes"),        # D-02's corrected range: still sub-hour
+    ],
+)
+def test_sub_hour_durations_render_minutes_only(seconds, expected):
+    assert _formatter().duration_verbose(seconds) == expected
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (3600, "1 hour"),
+        (7200, "2 hours"),
+    ],
+)
+def test_whole_hours_render_hours_only(seconds, expected):
+    assert _formatter().duration_verbose(seconds) == expected
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (3660, "1 hour 1 minute"),
+        (3900, "1 hour 5 minutes"),   # D-02's own worked example
+        (7260, "2 hours 1 minute"),
+        (7500, "2 hours 5 minutes"),
+    ],
+)
+def test_hours_and_minutes_nest_two_whole_messages(seconds, expected):
+    assert _formatter().duration_verbose(seconds) == expected
+
+
+# ---- duration / duration_hm / format_duration_human (D-01) ----------------
+#
+# The compact PRES-03 policy: one threshold, one decomposition, one padding
+# rule, shared by every compact renderer -- the journal (format_duration_human)
+# and the Activity Log and the tray (Formatter.duration/duration_hm). The
+# boundary table below walks the seam at every point that can disagree: just
+# under and at the sub-minute threshold, just under and at the hour mark, and
+# a value that exercises both padded minutes and a two-digit hour count.
+
+_BOUNDARY_TABLE = (
+    (0, "0s", "0m"),
+    (1, "1s", "0m"),
+    (30, "30s", "0m"),
+    (59, "59s", "0m"),
+    (60, "1m", "1m"),
+    (61, "1m", "1m"),
+    (90, "1m", "1m"),
+    (2700, "45m", "45m"),
+    (3600, "1h 00m", "1h 00m"),
+    (3900, "1h 05m", "1h 05m"),
+    (7325, "2h 02m", "2h 02m"),
+)
+
+
+@pytest.mark.parametrize("seconds,duration_expected,duration_hm_expected",
+                          _BOUNDARY_TABLE)
+def test_duration_boundary_table(seconds, duration_expected, duration_hm_expected):
+    fmt = _formatter()
+    assert fmt.duration(seconds) == duration_expected
+    assert fmt.duration_hm(seconds) == duration_hm_expected
+
+
+@pytest.mark.parametrize("seconds,expected", [
+    (0, "0 seconds"), (45.6, "46 seconds"),
+    (90, "1.5 minutes"), (3900, "65.0 minutes"),
+])
+def test_format_duration_human_keeps_stable_journal_precision(seconds, expected):
+    assert format_duration_human(seconds) == expected
+
+
+def test_format_duration_human_none_is_not_available():
+    assert format_duration_human(None) == "N/A"
+
+
+def test_duration_hm_clamps_a_negative_delay_to_zero():
+    # fmt_hm(-5) was a live bug: int(-5) // 60 == -1 and divmod(-1, 60) ==
+    # (-1, 59), so it rendered "-1h 59m". decompose_hms clamps negatives to
+    # zero, so duration_hm(-5) is "0m" -- fixed by this migration, pinned
+    # here so it stays fixed.
+    assert _formatter().duration_hm(-5) == "0m"
+
+
+def test_duration_clamps_a_negative_sub_minute_delay_to_zero():
+    # duration_hm(-5) clamped through decompose_hms from the first commit of
+    # this migration, but duration()'s own sub-minute branch never reached
+    # decompose_hms and so kept the sign: it rendered "-5s", and journald read
+    # it that way through format_duration_human. One policy has to mean both
+    # branches, not the one that happens to delegate.
+    assert _formatter().duration(-5) == "0s"
+
+
+def test_format_duration_human_keeps_the_released_negative_shape():
+    assert format_duration_human(-5) == "-5 seconds"
+
+
+def test_duration_floors_rather_than_rounds_a_sub_minute_value():
+    # fmt_duration used f"{seconds:.0f}", which rounds: fmt_duration(45.6)
+    # was "46s". decompose_hms's shared policy floors instead.
+    assert _formatter().duration(45.6) == "45s"

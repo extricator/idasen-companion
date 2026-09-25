@@ -6,11 +6,11 @@ Builds a single-app Flatpak that bundles both executables — the GUI
 
 ## How it differs from the RPM
 
-| | RPM | Flatpak |
+| | Self-contained RPM | Flatpak |
 |---|---|---|
-| Qt / PySide6 | system packages | `org.kde.Platform` + the `io.qt.PySide.BaseApp` |
-| Runtime deps | system RPMs / vendored | pinned pythonhosted wheels (`python3-deps.json`) |
-| Daemon at login | systemd **user service** | **Background portal** autostart (Settings → *Run automation at login*) |
+| Qt / PySide6 | bundled in the full flavor; absent from headless | `org.kde.Platform` + `io.qt.PySide.BaseApp` |
+| Runtime deps | bundled with a private Python interpreter | pinned pythonhosted wheels (`python3-deps.json`) |
+| Daemon at login | systemd **user service** | **Background portal** autostart (Settings → *Start automatically at login*) |
 | Daemon on demand | — | **session D-Bus activation** (`…IdasenCompanion.service`) |
 | Bluetooth | host BlueZ | `--system-talk-name=org.bluez` |
 
@@ -18,12 +18,11 @@ There is no systemd user service in the sandbox. The daemon starts two ways:
 
 - **On demand** — the exported D-Bus activation file
   (`data/io.github.extricator.IdasenCompanion.service`) launches it the moment
-  a client (the GUI, or a `idasen-companion --toggle` shortcut) connects to the
-  well-known name.
-- **At login** — not yet wired up. The systemd-based autostart toggle in
-  Settings has no sandbox equivalent yet; the intended replacement is the
-  Background portal (`org.freedesktop.portal.Background.RequestBackground`),
-  tracked in `TODO.md`.
+  a client such as the GUI or sandboxed CLI connects to the well-known name.
+- **At login** — **Settings → General → Start automatically at login** requests
+  permission through the Background portal
+  (`org.freedesktop.portal.Background.RequestBackground`). The desktop owns the
+  permission prompt and may decline the request.
 
 ## Prerequisites
 
@@ -37,8 +36,8 @@ flatpak install --user flathub org.kde.Platform//6.10 org.kde.Sdk//6.10 \
 The app module builds from the sdist, so regenerate it first:
 
 ```bash
-python3 -m build --sdist                 # -> dist/idasen_companion-1.0.0.tar.gz
-flatpak-builder --user --force-clean --disable-cache --install \
+python3 -m build --sdist                 # -> dist/idasen_companion-<version>.tar.gz
+flatpak-builder --user --force-clean --disable-cache --disable-rofiles-fuse --install \
     build-dir packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
 flatpak run io.github.extricator.IdasenCompanion
 ```
@@ -52,11 +51,14 @@ flatpak run io.github.extricator.IdasenCompanion
 ## Single-file bundle (distributable)
 
 ```bash
-flatpak-builder --user --force-clean --repo=repo \
-    build-dir packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
-flatpak build-bundle repo idasen-companion.flatpak \
-    io.github.extricator.IdasenCompanion
+bash scripts/build-release-variants.sh --flatpak --output dist-release
 ```
+
+This produces the versioned full GUI bundle used by the release workflow. The
+installed `idasen-companion-cli` entry point is available only inside its
+sandbox, for example with `flatpak run --command=idasen-companion-cli
+io.github.extricator.IdasenCompanion status`; it is not a host-level headless
+installation.
 
 ## Size
 
@@ -121,5 +123,5 @@ This manifest is Flathub-*shaped* but not yet submitted. For a submission,
 replace the app module's local sdist `source` with a tagged release archive
 (`type: archive` + `url` + `sha256`), keep the build offline (already the
 case), and validate the metainfo and desktop file (the build already runs
-`appstreamcli`/`desktop-file-validate` via the smoke-test steps in the repo
-`README.md`).
+`appstreamcli` and `desktop-file-validate`; release artifacts are exercised by
+`scripts/verify-release-artifacts.sh`).

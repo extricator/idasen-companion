@@ -1,4 +1,4 @@
-"""Duration parsing and formatting.
+"""Duration parsing and compact config-file formatting.
 
 Parsing follows the reference script's grammar: a duration string is a
 sequence of ``<int><unit>`` groups with units ``h``, ``m``, ``s``
@@ -6,15 +6,29 @@ sequence of ``<int><unit>`` groups with units ``h``, ``m``, ``s``
 a string with no recognizable groups raises ``ValueError`` instead of
 silently parsing to 0 — this only affects config validation, never
 automation behavior.
+
+This module owns the arithmetic every duration renderer in the app shares
+(PRES-03's one policy): the below-a-minute threshold
+(:data:`SUB_MINUTE_THRESHOLD_SECONDS`) and the hours/minutes/seconds
+decomposition (:func:`decompose_hms`). The *rendering* — including the
+journal's own English — sits one layer up, in
+``core/presentation.py`` and ``core/presentation.py``:
+this module supplies only the numbers, never a translated string.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 _UNIT_TO_SECONDS = {"h": 3600, "m": 60, "s": 1}
 _GROUP_RE = re.compile(r"(\d+)\s*([hms])")
 _FULL_RE = re.compile(r"(?:\s*\d+\s*[hms])+\s*")
+
+#: Below this many seconds, a compact duration renders the count as seconds
+#: rather than flooring it to "0m" — the split point every compact renderer
+#: in the app shares.
+SUB_MINUTE_THRESHOLD_SECONDS = 60
 
 
 def parse_duration(text: str) -> int:
@@ -44,10 +58,25 @@ def format_duration_compact(seconds: int) -> str:
     return "".join(parts)
 
 
-def format_duration_human(seconds: float | None) -> str:
-    """Human-readable duration for logs, matching the reference script's style."""
-    if seconds is None:
-        return "N/A"
-    if seconds >= 60:
-        return f"{seconds / 60:.1f} minutes"
-    return f"{seconds:.0f} seconds"
+@dataclass(frozen=True)
+class DurationParts:
+    """A count of seconds split into whole hours, minutes and seconds."""
+
+    hours: int
+    minutes: int
+    seconds: int
+
+
+def decompose_hms(total_seconds: float) -> DurationParts:
+    """Split ``total_seconds`` into whole hours, minutes and seconds.
+
+    Floor semantics — a fractional second is dropped, not rounded, matching
+    ``fmt_hm``'s existing ``int(seconds) // 60``. A negative value clamps to
+    zero rather than raising, matching ``fmt_countdown``'s existing
+    ``max(0, int(seconds))``: a countdown that has run out is still a valid
+    duration to render, not an error.
+    """
+    whole = max(0, int(total_seconds))
+    minutes, seconds = divmod(whole, 60)
+    hours, minutes = divmod(minutes, 60)
+    return DurationParts(hours=hours, minutes=minutes, seconds=seconds)

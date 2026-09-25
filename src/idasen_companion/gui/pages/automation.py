@@ -10,6 +10,10 @@ skip, snooze, turn on), this page configures *every* cycle.
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
+from datetime import datetime
+
 from PySide6.QtCore import Qt, QTime
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QSpinBox,
@@ -18,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import AppConfig, VALID_DAYS
 from .. import restyle
-from ..util import day_label, fmt_days, fmt_duration, preset_label
+from ..util import day_label, fmt_days, preset_label
 from ..widgets import (
     Card, SegmentedControl, section_label, segment_css, separator,
 )
@@ -59,12 +63,12 @@ class AutomationPage(SettingsFormPage):
         # ----- THE CYCLE -----
         auto = Card()
         head = QHBoxLayout()
-        head.addWidget(section_label(self.tr("Sit / stand cycle")))
+        head.addWidget(section_label(pgettext('automation-settings', "Sit / stand cycle")))
         head.addStretch()
         # The master switch. Off keeps presets, manual moves and statistics
         # working — only the sit/stand timer stops — so the rest of this card
         # dims rather than disappearing.
-        self.auto_enabled = QCheckBox(self.tr("Automate sit / stand"))
+        self.auto_enabled = QCheckBox(pgettext('automation-settings', "Automate sit / stand"))
         self.auto_enabled.toggled.connect(self._update_dimming)
         head.addWidget(self.auto_enabled)
         auto.body.addLayout(head)
@@ -84,11 +88,11 @@ class AutomationPage(SettingsFormPage):
             # "plus up to", not the "± " this used to read: machine.py adds
             # 0..variation to the baseline and never subtracts, so a ± was
             # promising a shorter interval than the desk will ever wait.
-            plus = QLabel(self.tr("plus up to"))
+            plus = QLabel(pgettext('automation-settings', "plus up to"))
             plus.setStyleSheet("border: none;")
             hbox.addWidget(plus)
             hbox.addWidget(var)
-            return self._settings_row(self.tr("%s for") % word, hbox)
+            return self._settings_row(pgettext('automation-settings', "%s for") % word, hbox)
 
         auto_details.addWidget(
             interval_row(preset_label("sit"), self.sit_dur, self.sit_var))
@@ -97,12 +101,12 @@ class AutomationPage(SettingsFormPage):
         auto_details.addWidget(separator())
         self.idle_thresh = self._minutes_spin(1, 120)
         auto_details.addWidget(self._settings_row(
-            self.tr("Count as away after"), self.idle_thresh,
-            self.tr("No keyboard or mouse input — the timer pauses")))
+            pgettext('automation-settings', "Count as away after"), self.idle_thresh,
+            pgettext('automation-settings', "No keyboard or mouse input — the timer pauses")))
         self.recent_input = self._minutes_spin(0, 60)
         auto_details.addWidget(self._settings_row(
-            self.tr("Only move if input within"), self.recent_input,
-            self.tr("Skips the change if you just stepped away")))
+            pgettext('automation-settings', "Only move if input within"), self.recent_input,
+            pgettext('automation-settings', "Skips the change if you just stepped away")))
         auto_details.addWidget(separator())
         # These two rows are the reactions to you taking the desk over yourself:
         # a scheduled move you cut short, and the desk being left off a preset
@@ -110,24 +114,24 @@ class AutomationPage(SettingsFormPage):
         # than a sub-heading (a "Manual control" heading under "Automation"
         # read as a contradiction).
         self.interruption_policy = SegmentedControl(
-            [self.tr("Undo"), self.tr("Leave it"), self.tr("Try again")])
+            [pgettext('automation-settings', "Undo"), pgettext('automation-settings', "Leave it"), pgettext('automation-settings', "Try again")])
         # The label carries the "when" that the old glossary opened with ("when
         # you stop it with the panel, or it hits something"), so dropping to a
         # per-segment line loses nothing.
         auto_details.addWidget(self._settings_row(
-            self.tr("If a move is stopped or blocked"), self.interruption_policy,
+            pgettext('automation-settings', "If a move is stopped or blocked"), self.interruption_policy,
             segment_help=[
-                self.tr("Returns the desk to where it started"),
-                self.tr("Keeps the height it stopped at"),
-                self.tr("Moves toward the target once more"),
+                pgettext('automation-settings', "Returns the desk to where it started"),
+                pgettext('automation-settings', "Keeps the height it stopped at"),
+                pgettext('automation-settings', "Moves toward the target once more"),
             ]))
         self.ext_policy = SegmentedControl(
-            [self.tr("Hold"), self.tr("Keep cycling")])
+            [pgettext('automation-settings', "Hold"), pgettext('automation-settings', "Keep cycling")])
         auto_details.addWidget(self._settings_row(
-            self.tr("If left off sit / stand"), self.ext_policy,
+            pgettext('automation-settings', "If left off sit / stand"), self.ext_policy,
             segment_help=[
-                self.tr("Pauses until the desk is back at sit or stand"),
-                self.tr("Counts it as the nearer one and keeps going"),
+                pgettext('automation-settings', "Pauses until the desk is back at sit or stand"),
+                pgettext('automation-settings', "Counts it as the nearer one and keeps going"),
             ]))
         auto.body.addWidget(self._auto_details)
         auto.body.addWidget(separator())
@@ -137,13 +141,13 @@ class AutomationPage(SettingsFormPage):
         # moving, not the app watching.
         self.sync_combo = self._themed_combo()
         auto.body.addWidget(self._settings_row(
-            self.tr("Check position every"), self.sync_combo,
-            self.tr("Catches moves made with the panel or another app. Off "
+            pgettext('automation-settings', "Check position every"), self.sync_combo,
+            pgettext('automation-settings', "Catches moves made with the panel or another app. Off "
                     "still checks right before each scheduled move")))
         self.check_spin = self._seconds_spin(5, 600)
         auto.body.addWidget(self._settings_row(
-            self.tr("Update countdown every"), self.check_spin,
-            self.tr("How finely automation tracks time, uses no Bluetooth")))
+            pgettext('automation-settings', "Update countdown every"), self.check_spin,
+            pgettext('automation-settings', "How finely automation tracks time, uses no Bluetooth")))
         outer.addWidget(auto)
 
         # ----- NOTIFICATIONS -----
@@ -155,8 +159,8 @@ class AutomationPage(SettingsFormPage):
         # the only thing that really is subordinate, so it alone is indented
         # under the checkbox that governs it.
         notif = Card()
-        notif.body.addWidget(section_label(self.tr("Notifications")))
-        self.notif_enabled = QCheckBox(self.tr("Warn before the desk moves"))
+        notif.body.addWidget(section_label(pgettext('automation-settings', "Notifications")))
+        self.notif_enabled = QCheckBox(pgettext('automation-settings', "Warn before the desk moves"))
         self.notif_enabled.toggled.connect(self._update_dimming)
         notif.body.addWidget(self.notif_enabled)
         self.lead_spin = self._seconds_spin(5, 300)
@@ -165,19 +169,19 @@ class AutomationPage(SettingsFormPage):
         lead_col.setContentsMargins(20, 0, 0, 0)
         lead_col.setSpacing(0)
         lead_col.addWidget(self._settings_row(
-            self.tr("Warning lead time"), self.lead_spin))
+            pgettext('automation-settings', "Warning lead time"), self.lead_spin))
         notif.body.addWidget(self._lead_row)
         self.problems_check = QCheckBox(
-            self.tr("Tell me when something goes wrong"))
+            pgettext('automation-settings', "Tell me when something goes wrong"))
         notif.body.addWidget(self.problems_check)
         outer.addWidget(notif)
 
         # ----- SCHEDULE -----
         sched = Card()
         head = QHBoxLayout()
-        head.addWidget(section_label(self.tr("Schedule")))
+        head.addWidget(section_label(pgettext('automation-settings', "Schedule")))
         head.addStretch()
-        self.sched_enabled = QCheckBox(self.tr("Use schedule"))
+        self.sched_enabled = QCheckBox(pgettext('automation-settings', "Use schedule"))
         self.sched_enabled.toggled.connect(self._update_dimming)
         head.addWidget(self.sched_enabled)
         sched.body.addLayout(head)
@@ -202,13 +206,14 @@ class AutomationPage(SettingsFormPage):
             # entry restyling only the last day built.
             def _restyle_day_chip(target: QPushButton = chip) -> None:
                 target.setStyleSheet(segment_css(first=True, last=True,
-                                                 padding="3px 9px"))
+                                                 padding="3px 9px",
+                                                 direction=target.layoutDirection()))
 
             restyle.register(chip, _restyle_day_chip)
             chip.toggled.connect(self._update_sched_summary)
             days_row.addWidget(chip)
         days_row.addStretch()
-        details.addWidget(self._settings_row(self.tr("Active days"), days_row))
+        details.addWidget(self._settings_row(pgettext('automation-settings', "Active days"), days_row))
         times_row = QHBoxLayout()
         times_row.setSpacing(6)
         self.start_time = QTimeEdit()
@@ -217,11 +222,11 @@ class AutomationPage(SettingsFormPage):
             edit.setDisplayFormat("HH:mm")
             edit.timeChanged.connect(self._update_sched_summary)
         times_row.addWidget(self.start_time)
-        to_label = QLabel(self.tr("to"))
+        to_label = QLabel(pgettext('automation-settings', "to"))
         to_label.setStyleSheet("border: none;")
         times_row.addWidget(to_label)
         times_row.addWidget(self.end_time)
-        details.addWidget(self._settings_row(self.tr("Active hours"), times_row))
+        details.addWidget(self._settings_row(pgettext('automation-settings', "Active hours"), times_row))
         sched.body.addWidget(self._sched_details)
         self._sched_summary = self._muted_label()
         sched.body.addWidget(self._sched_summary)
@@ -241,31 +246,53 @@ class AutomationPage(SettingsFormPage):
     def _update_sched_summary(self, *_args) -> None:
         if self.sched_enabled.isChecked():
             days = [d for d, c in self.day_checks.items() if c.isChecked()]
-            start = self.start_time.time().toString("HH:mm")
-            end = self.end_time.time().toString("HH:mm")
-            self._sched_summary.setText(self.tr(
-                "Automation runs %s, %s–%s. Outside these hours the desk "
-                "stays put.") % (fmt_days(days), start, end))
+            # Through the configured formatter, not QTime's own "HH:mm": this
+            # sentence is a wall-clock time the window shows, so it follows
+            # [ui] clock_format like every other one. The two QTimeEdits above
+            # keep their own 24-hour display — they are editors for a value
+            # stored as HH:MM, and an editor showing a different shape from
+            # the field it writes is a different kind of wrong.
+            start = self._clock(self.start_time.time())
+            end = self._clock(self.end_time.time())
+            self._sched_summary.setText(pgettext('automation-settings', "Automation runs %(days)s, %(start)s–%(end)s. Outside these hours the desk "
+                "stays put.") % {"days": fmt_days(days), "start": start,
+                                 "end": end})
         else:
-            self._sched_summary.setText(self.tr(
-                "Schedule off — automation runs whenever you're active."))
+            self._sched_summary.setText(pgettext('automation-settings', "Schedule off — automation runs whenever you're active."))
+
+    def _clock(self, when: QTime) -> str:
+        """A schedule boundary on the clock the user chose.
+
+        The date is arbitrary and unused — only the hour and minute reach
+        the rendering — but ``Formatter.clock`` takes a moment rather than a
+        time, so one is supplied rather than adding a second entry point to
+        the shared layer for this one caller.
+        """
+        moment = datetime(2000, 1, 1, when.hour(), when.minute())
+        return self.ctx.fmt.clock(moment)
 
     def _interval_label(self, seconds: int, zero_label: str = "") -> str:
         """Item text for one offered interval.
 
-        ``zero_label`` names the 0 entry for rows where a word reads better
-        than a number ("Check position every **Off**"). Rows whose label is
-        read *through* a connective leave it unset and get "0 min", because
-        "plus up to Off" is not a sentence.
+        Every row — the zero row and every other one — renders through the
+        one picker shape this page's dropdowns share with every other
+        control a user picks a duration from. ``zero_label`` names the 0
+        entry for rows where a word reads better than a number ("Check
+        position every **Off**"); rows whose label is read *through* a
+        connective leave it unset and get "0 min", because "plus up to Off"
+        is not a sentence.
+
+        A value that is not one of the offered choices — reachable only from
+        a hand-edited or older config, since every offered choice here is
+        itself a whole number of minutes — floors to whole minutes instead of
+        showing seconds. That is what a minute-granularity picker's scale
+        means: it used to keep a sub-minute value visible through ``duration``
+        instead, which is what "one picker shape everywhere" gives up in
+        exchange for no longer contradicting the spin boxes two rows above it.
         """
-        if seconds == 0 and zero_label:
-            return zero_label
-        if seconds % 60 == 0:
-            return self.tr("%d min") % (seconds // 60)
-        # Sub-minute: only reachable from a hand-edited config or a test one,
-        # and shown as it really is ("30s") rather than rounded into a minute
-        # count the user never chose.
-        return fmt_duration(seconds)
+        if seconds == 0:
+            return zero_label or self.ctx.fmt.duration_minutes(seconds)
+        return self.ctx.fmt.duration_minutes(seconds)
 
     def _fill_intervals(self, combo, choices, seconds: int,
                         zero_label: str = "") -> None:
@@ -304,7 +331,7 @@ class AutomationPage(SettingsFormPage):
         self.ext_policy.setCurrentIndex(
             1 if cfg.automation.external_move_policy == "adopt" else 0)
         self._fill_intervals(self.sync_combo, _SYNC_CHOICES,
-                             cfg.automation.sync_interval, self.tr("Off"))
+                             cfg.automation.sync_interval, pgettext('automation-settings', "Off"))
         self.check_spin.setValue(cfg.automation.check_interval)
         self.sched_enabled.setChecked(cfg.schedule.enabled)
         for day, check in self.day_checks.items():

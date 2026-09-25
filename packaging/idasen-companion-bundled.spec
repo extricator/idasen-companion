@@ -7,6 +7,20 @@
 # For repo-based distribution (COPR), prefer the clean three-package set:
 # idasen-companion.spec + python-bleak.spec + python-idasen.spec.
 
+# One spec builds both GitHub Release RPMs. The default is the full desktop
+# product; the build script passes ``--define 'release_flavor headless'`` for
+# the Qt-free product. Keeping the payload switch here means the interpreter,
+# dependency pins, catalog, service, and launchers cannot drift between two
+# copied specs.
+%global release_flavor %{?release_flavor}%{!?release_flavor:full}
+%if "%{release_flavor}" == "headless"
+%global package_name idasen-companion-headless
+%global with_gui 0
+%else
+%global package_name idasen-companion
+%global with_gui 1
+%endif
+
 %global appdir %{_prefix}/lib/idasen-companion
 
 # The Python runtime the package carries. Two lines state something and the
@@ -72,14 +86,14 @@
 # default moves.
 %global _rpmformat 4
 
-Name:           idasen-companion
+Name:           %{package_name}
 Version:        1.1.1
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
 # artifact that has nothing to do with it.
 Release:        1
-Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-contained build)
+Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-contained %{release_flavor} build)
 # The app itself, AND everything the package carries. Effective license of the
 # *package contents*, which is what a distribution asks for here — not just
 # the app's own terms. Four groups, in the order they appear: this app; the
@@ -98,7 +112,13 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # trim removes the module that would need it, and that removal is a recorded
 # entry which fails the build if it ever stops resolving, so the omission is
 # guarded rather than assumed.
+%if %{with_gui}
 License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
+Conflicts:      idasen-companion-headless
+%else
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
+Conflicts:      idasen-companion
+%endif
 URL:            https://github.com/extricator/idasen-companion
 # setuptools normalizes the sdist name per PEP 625 (underscore)
 Source0:        idasen_companion-%{version}.tar.gz
@@ -148,7 +168,9 @@ BuildRequires:  libdbus-1.so.3()(64bit)
 # a future `rpm -qp --requires` would mean something in the bundle started
 # linking it again, not a fix.
 Requires:       bluez
+%if %{with_gui}
 Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
+%endif
 
 # Bundled distributions, at the versions scripts/fetch-bundled-runtime.sh pins.
 # Bump a line there and its line here together. The first line is the runtime
@@ -156,25 +178,31 @@ Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
 # this section is what a security scanner reads, and the largest bundled
 # component in the package would otherwise be the one thing it cannot see.
 Provides:       bundled(python3) = 3.14.7
+%if %{with_gui}
 Provides:       bundled(python3dist(pyside6-essentials)) = 6.11.1
 Provides:       bundled(python3dist(shiboken6)) = 6.11.1
+%endif
 Provides:       bundled(python3dist(bleak)) = 3.0.2
 Provides:       bundled(python3dist(idasen)) = 0.13.1
 Provides:       bundled(python3dist(dbus-fast)) = 5.0.22
 Provides:       bundled(python3dist(pyyaml)) = 6.0.3
 Provides:       bundled(python3dist(tomlkit)) = 0.15.1
+Provides:       bundled(python3dist(babel)) = 2.18.0
 Provides:       bundled(python3dist(voluptuous)) = 0.16.0
 Provides:       bundled(python3dist(typing-extensions)) = 4.16.0
 
 %description
 Idasen Companion automatically alternates an IKEA Idåsen desk between
-sitting and standing positions based on your active time at the
-computer. Background daemon (systemd user service, D-Bus API, journald
-logging) plus a Qt 6 GUI with tray icon, live status, manual controls,
+sitting and standing positions based on your active time at the computer.
+This standalone %{release_flavor} build always includes the background daemon
+and command-line client.
+%if %{with_gui}
+It also includes the Qt 6 GUI, tray icon, live status, manual controls,
 presets, scheduling, statistics and desktop notifications.
+%endif
 
 This is the self-contained build. It carries its own Python — the interpreter
-and every library the app uses, Qt included — in a private directory, and both
+and every library the selected flavor uses — in a private directory, and its
 entry points run it directly. Nothing it installs depends on which Python a
 distribution ships or on which distribution it is, so the same package is
 correct wherever those two things differ. What it does need from the system is
@@ -267,7 +295,11 @@ fi
 # names no --target at all, on purpose: this is what turns that omission into
 # a build failure the day it stops being true, instead of a package that
 # happens to be correct because nobody asked it to be.
-escaped=$(find %{buildroot}%{bundled_libraries} -iname '*setuptools*')
+# Check only installable top-level build-backend paths. Runtime libraries such
+# as Babel legitimately contain modules named ``setuptools_frontend.py``.
+escaped=$(find %{buildroot}%{bundled_libraries} -maxdepth 1 \
+    \( -iname 'setuptools' -o -iname 'setuptools-*.dist-info' \
+       -o -iname '_distutils_hack' \) -print)
 if [ -n "$escaped" ]; then
     echo "$escaped" >&2
     echo "error: something meant only for the install driver reached the shipped tree" >&2
@@ -286,6 +318,22 @@ fi
 # Qt arrives whole and leaves as the modules the app reaches. See the script
 # for why the set is computed rather than listed.
 %{python3} scripts/trim-pyside6.py %{buildroot}%{bundled_libraries}
+
+%if ! %{with_gui}
+# The common offline wheel input contains the GUI closure so one fetched asset
+# feeds both builds. The headless payload removes that closure, the GUI source
+# package, and the GUI console script before bytecode compilation and ELF
+# inspection. The negative assertions make a renamed Qt wheel fail closed.
+find %{buildroot}%{bundled_libraries} -maxdepth 1 \
+    \( -iname 'pyside6*' -o -iname 'shiboken6*' \) -exec rm -rf {} +
+rm -rf %{buildroot}%{bundled_libraries}/idasen_companion/gui
+if find %{buildroot}%{bundled_libraries} \
+        \( -iname '*pyside*' -o -iname '*shiboken*' -o -iname '*qt6*' \) \
+        -print -quit | grep -q .; then
+    echo "error: GUI/Qt payload survived the headless trim" >&2
+    exit 1
+fi
+%endif
 
 # ...and the strip rpm's own build-root policy would have run, which is
 # switched off at the top of this file for the whole build root because it
@@ -332,11 +380,18 @@ install -Dm755 packaging/idasen-companion-launcher.sh \
 sed -i -e 's/@ENTRY@/idasen_companion.daemon.main/' \
        -e 's|@PYTHON@|%{bundled_interpreter}|' \
     %{buildroot}%{_bindir}/idasen-companiond
+%if %{with_gui}
 install -Dm755 packaging/idasen-companion-launcher.sh \
     %{buildroot}%{_bindir}/idasen-companion
 sed -i -e 's/@ENTRY@/idasen_companion.gui.main/' \
        -e 's|@PYTHON@|%{bundled_interpreter}|' \
     %{buildroot}%{_bindir}/idasen-companion
+%endif
+install -Dm755 packaging/idasen-companion-launcher.sh \
+    %{buildroot}%{_bindir}/idasen-companion-cli
+sed -i -e 's/@ENTRY@/idasen_companion.cli/' \
+       -e 's|@PYTHON@|%{bundled_interpreter}|' \
+    %{buildroot}%{_bindir}/idasen-companion-cli
 
 # Bundling obliges us to ship the bundled code's license texts too. Most
 # wheels carry theirs under one of two conventional names, so copy each out
@@ -374,6 +429,7 @@ cp python/lib/python%{bundled_minor}/LICENSE.txt LICENSE.cpython
 
 install -Dm644 data/idasen-companion.service \
     %{buildroot}%{_userunitdir}/idasen-companion.service
+%if %{with_gui}
 install -Dm644 data/io.github.extricator.IdasenCompanion.desktop \
     %{buildroot}%{_datadir}/applications/io.github.extricator.IdasenCompanion.desktop
 install -Dm644 data/icons/io.github.extricator.IdasenCompanion.svg \
@@ -382,10 +438,13 @@ install -Dm644 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
 install -Dm644 data/io.github.extricator.IdasenCompanion.metainfo.xml \
     %{buildroot}%{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
+%endif
 
 %check
+%if %{with_gui}
 desktop-file-validate \
     %{buildroot}%{_datadir}/applications/io.github.extricator.IdasenCompanion.desktop
+%endif
 # What the tree about to be packaged links, and how new a C library it asks
 # for. Both were measured once and then designed around — the shared copy of
 # libpython is absent because nothing here references it, and the oldest
@@ -406,8 +465,14 @@ bash scripts/verify-bundled-elf.sh %{buildroot}%{appdir}
 # host's own copy — so merely starting it against this tree compiled three of
 # these modules for an interpreter the package does not carry, and the build
 # packaged them.
+%if %{with_gui}
 QT_QPA_PLATFORM=offscreen %{buildroot}%{bundled_interpreter} -I -B \
     -c "from PySide6 import QtCore, QtGui, QtWidgets, QtDBus"
+%else
+%{buildroot}%{bundled_interpreter} -I -B -c \
+    "import idasen_companion.cli, idasen_companion.daemon.main, sys; assert not any(name == 'idasen_companion.gui' or name.startswith(('PySide6', 'shiboken6')) for name in sys.modules)"
+%{buildroot}%{bundled_interpreter} -I -B -m idasen_companion.cli --help >/dev/null
+%endif
 # Importing is not the interesting half. The two experiments this package's
 # design rests on were run against different trees — Qt against an untrimmed
 # interpreter, the standard library against a trimmed one that had no Qt in it
@@ -427,23 +492,43 @@ QT_QPA_PLATFORM=offscreen %{buildroot}%{bundled_interpreter} -I -B \
 smoke=$(pwd)/check-daemon
 rm -rf "$smoke"
 mkdir -p "$smoke/data" "$smoke/config"
+# A *group* kill, because the thing started here is dbus-run-session and the
+# thing under test is the daemon it spawns. Killing the wrapper alone leaves
+# the daemon orphaned and running — every build leaking one, silently, for as
+# long as the machine is up. Three were found alive on a developer's
+# workstation, the oldest three days old.
+#
+# The group announces its own id rather than being inferred from $!. setsid
+# execs in place *unless* the caller is already a process-group leader, in
+# which case it forks — so under job control $! would name a parent that
+# exits immediately, and the check below would report a healthy daemon as
+# dead while the group kill hit nothing. Writing $$ from inside the new
+# session, then exec-ing, is true in either shell: $$ is the session leader,
+# exec keeps that pid, and no assumption about the caller's shell is made.
+command -v setsid >/dev/null || {
+    echo "error: setsid is missing, so the smoke daemon cannot be confined" >&2
+    echo "to a killable process group; it would be orphaned by this build" >&2
+    exit 39
+}
 QT_QPA_PLATFORM=offscreen \
 XDG_DATA_HOME="$smoke/data" XDG_CONFIG_HOME="$smoke/config" \
-    dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B \
+    setsid sh -c 'echo $$ > "$1/pgid"; shift; exec "$@"' _ "$smoke" \
+        dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B \
         -m idasen_companion.daemon.main --mock-desk \
         --config "$smoke/daemon.toml" > "$smoke/daemon.log" 2>&1 &
-daemon=$!
 # Long enough to reach the first automation tick and the first status
 # broadcast, which is where a tree that imports but cannot run falls over.
 sleep 10
-if ! kill -0 "$daemon" 2>/dev/null; then
+daemon=$(cat "$smoke/pgid" 2>/dev/null || true)
+if [ -z "$daemon" ] || ! kill -0 "$daemon" 2>/dev/null; then
     cat "$smoke/daemon.log" >&2
     echo "error: the daemon did not survive its first seconds, so this build" >&2
     echo "is about to package a tree that does not run" >&2
+    [ -n "$daemon" ] && kill -- -"$daemon" 2>/dev/null || true
     exit 40
 fi
-kill "$daemon" 2>/dev/null || true
-wait "$daemon" 2>/dev/null || true
+kill -- -"$daemon" 2>/dev/null || true
+wait 2>/dev/null || true
 cat "$smoke/daemon.log"
 # Secondary, and deliberately not the gate: what decides the outcome above is
 # the process still being there. This says which path it took to get there —
@@ -466,10 +551,21 @@ grep -q 'MOCK desk' "$smoke/daemon.log" || exit 41
 # can import, and the day that stops being true the build says so.
 host_test_framework=$(%{python3} -c \
     'import os, pytest; print(os.path.dirname(os.path.dirname(pytest.__file__)))')
+%if %{with_gui}
 QT_QPA_PLATFORM=offscreen HOST_TEST_FRAMEWORK="$host_test_framework" \
     %{buildroot}%{bundled_interpreter} -I -B -c \
     'import os, sys; sys.path.append(os.environ["HOST_TEST_FRAMEWORK"]); import pytest; sys.exit(pytest.console_main())' \
     -q
+%else
+# This module directly imports the deliberately absent GUI package; all other
+# GUI suites discover missing Qt and skip at collection. The artifact-level
+# negative checks above are the headless boundary's authoritative proof.
+HOST_TEST_FRAMEWORK="$host_test_framework" \
+    %{buildroot}%{bundled_interpreter} -I -B -c \
+    'import os, sys; sys.path.append(os.environ["HOST_TEST_FRAMEWORK"]); import pytest; sys.exit(pytest.console_main())' \
+    -q --ignore=tests/test_service_ctl.py \
+       --ignore=tests/test_translation_markers.py
+%endif
 
 # Last of everything, because every step above runs *out of* the tree it
 # examines and this is what says none of them wrote there. What it holds the
@@ -503,21 +599,31 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %files
 # Named one by one rather than globbed: a wheel that stops shipping its
 # license text fails the build here instead of quietly dropping it.
+%if %{with_gui}
 %license LICENSE LICENSE.LGPL-3.0.txt LICENSE.bleak LICENSE.dbus_fast
-%license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.voluptuous
+%else
+%license LICENSE LICENSE.bleak LICENSE.dbus_fast
+%endif
+%license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.babel
+%license LICENSE.voluptuous
 %license LICENSE.typing_extensions LICENSE.cpython
 %license LICENSE.Apache-2.0.txt LICENSE.OpenSSL.txt LICENSE.X11.txt
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt
 %doc README.md
+%if %{with_gui}
 %{_bindir}/idasen-companion
+%endif
+%{_bindir}/idasen-companion-cli
 %{_bindir}/idasen-companiond
 %{appdir}/
 %{_userunitdir}/idasen-companion.service
+%if %{with_gui}
 %{_datadir}/applications/io.github.extricator.IdasenCompanion.desktop
 %{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
 %{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
+%endif
 
 %changelog
 * Thu Aug 20 2026 extricator <extricator@users.noreply.github.com> - 1.1.1-1

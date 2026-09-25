@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 from importlib.metadata import (
     PackageNotFoundError, packages_distributions, version,
 )
@@ -67,7 +69,7 @@ class AboutPage(Page):
         name_row.addWidget(version_label, 0, Qt.AlignmentFlag.AlignBaseline)
         name_row.addStretch()
         title_col.addLayout(name_row)
-        tagline = QLabel(self.tr("Sit/stand desk automation"))
+        tagline = QLabel(pgettext('about', "Sit/stand desk automation"))
 
         def _restyle_tagline(target: QLabel = tagline) -> None:
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
@@ -77,9 +79,9 @@ class AboutPage(Page):
 
         links = QHBoxLayout()
         links.setSpacing(8)
-        project_btn = QPushButton(self.tr("Project page"))
+        project_btn = QPushButton(pgettext('about', "Project page"))
         project_btn.clicked.connect(lambda: self._open_url(HOMEPAGE))
-        issue_btn = QPushButton(self.tr("Report an issue"))
+        issue_btn = QPushButton(pgettext('about', "Report an issue"))
         issue_btn.clicked.connect(
             lambda: self._open_url(f"{HOMEPAGE}/issues"))
         for btn in (project_btn, issue_btn):
@@ -94,21 +96,20 @@ class AboutPage(Page):
 
         # ----- about -----
         about = Card()
-        about.body.addWidget(section_label(self.tr("About")))
-        desc = QLabel(self.tr(
-            "Keeps your Idasen desk alternating sit / stand on a schedule, "
+        about.body.addWidget(section_label(pgettext('about', "About")))
+        desc = QLabel(pgettext('about', "Keeps your Idasen desk alternating sit / stand on a schedule, "
             "with presets and activity tracking."))
         desc.setWordWrap(True)
         desc.setStyleSheet("border: none;")
         about.body.addWidget(desc)
-        meta = QLabel(self.tr("GNU GPL v3 or later · © extricator"))
+        meta = QLabel(pgettext('about', "GNU GPL v3 or later · © extricator"))
 
         def _restyle_meta(target: QLabel = meta) -> None:
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
 
         restyle.register(meta, _restyle_meta)
         about.body.addWidget(meta)
-        credit = QLabel(self.tr("Built on idasen · bleak · PySide6 / Qt"))
+        credit = QLabel(pgettext('about', "Built on idasen · bleak · PySide6 / Qt"))
 
         def _restyle_credit(target: QLabel = credit) -> None:
             target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
@@ -119,9 +120,8 @@ class AboutPage(Page):
 
         # ----- global shortcuts -----
         shortcuts = Card()
-        shortcuts.body.addWidget(section_label(self.tr("Global shortcuts")))
-        intro = QLabel(self.tr(
-            "Bind these commands to keys in your desktop's own keyboard "
+        shortcuts.body.addWidget(section_label(pgettext('about', "Global shortcuts")))
+        intro = QLabel(pgettext('about', "Bind these commands to keys in your desktop's own keyboard "
             "settings — reliable on X11 and Wayland, on every desktop:"))
         intro.setWordWrap(True)
 
@@ -133,10 +133,10 @@ class AboutPage(Page):
         font.setPointSizeF(font.pointSizeF() * 0.88)
         intro.setFont(font)
         shortcuts.body.addWidget(intro)
-        commands = QLabel("idasen-companion --toggle\n"
-                          "idasen-companion --sit\n"
-                          "idasen-companion --stand\n"
-                          "idasen-companion --preset NAME")
+        commands = QLabel("idasen-companion-cli toggle\n"
+                          "idasen-companion-cli sit\n"
+                          "idasen-companion-cli stand\n"
+                          "idasen-companion-cli preset NAME")
         commands.setTextFormat(Qt.TextFormat.PlainText)
         commands.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         commands.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
@@ -151,11 +151,11 @@ class AboutPage(Page):
         # ----- system -----
         system = Card()
         head = QHBoxLayout()
-        head.addWidget(section_label(self.tr("System")))
+        head.addWidget(section_label(pgettext('about', "System")))
         head.addStretch()
-        self._copy_btn = QPushButton(self.tr("Copy"))
+        self._copy_btn = QPushButton(pgettext('about', "Copy"))
         self._copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._copy_btn.setToolTip(self.tr("Copy this system info for bug reports"))
+        self._copy_btn.setToolTip(pgettext('about', "Copy this system info for bug reports"))
         self._copy_btn.clicked.connect(self._copy_about)
         head.addWidget(self._copy_btn)
         system.body.addLayout(head)
@@ -165,12 +165,12 @@ class AboutPage(Page):
         # only the shown label goes through tr().
         self._fields: dict[str, QLabel] = {}
         rows = (
-            ("App version", self.tr("App version")),
-            ("Daemon", self.tr("Daemon")),
-            ("Desk", self.tr("Desk")),
-            ("Idle detection", self.tr("Idle detection")),
-            ("Config", self.tr("Config")),
-            ("Libraries", self.tr("Libraries")),
+            ("App version", pgettext('about', "App version")),
+            ("Daemon", pgettext('about', "Daemon")),
+            ("Desk", pgettext('about', "Desk")),
+            ("Idle detection", pgettext('about', "Idle detection")),
+            ("Config", pgettext('about', "Config")),
+            ("Libraries", pgettext('about', "Libraries")),
         )
         for i, (key, label) in enumerate(rows):
             if i:
@@ -191,7 +191,7 @@ class AboutPage(Page):
         # it never clips (e.g. "Idle detection") at larger fonts / locales.
         key_label.setFixedWidth(
             key_label.fontMetrics().horizontalAdvance(
-                self.tr("Idle detection")) + 12)
+                pgettext('about', "Idle detection")) + 12)
 
         def _restyle_key_label(target: QLabel = key_label) -> None:
             target.setStyleSheet(f"color: {css(theme().muted)}; border: none;")
@@ -243,16 +243,16 @@ class AboutPage(Page):
         config = self.ctx.cfg
         self._fields["App version"].setText(__version__)
         self._fields["Daemon"].setText(
-            (self.tr("running · %s") % __version__) if available
-            else self.tr("not running"))
+            (pgettext('about', "running · %s") % __version__) if available
+            else pgettext('about', "not running"))
         if config and config.desk.mac:
-            mode = (self.tr("persistent") if config.desk.connection == "persistent"
-                    else self.tr("on demand"))
+            mode = (pgettext('about', "persistent") if config.desk.connection == "persistent"
+                    else pgettext('about', "on demand"))
             self._fields["Desk"].setText(
-                self.tr("%(mac)s · %(mode)s")
+                pgettext('about', "%(mac)s · %(mode)s")
                 % {"mac": config.desk.mac, "mode": mode})
         else:
-            self._fields["Desk"].setText(self.tr("not configured"))
+            self._fields["Desk"].setText(pgettext('about', "not configured"))
         self._fields["Idle detection"].setText(
             self.client.idle_provider() if available else "—")
         path = str(DEFAULT_CONFIG_PATH)
@@ -289,8 +289,8 @@ class AboutPage(Page):
         # apiece lays the blob out; it does not build a sentence out of
         # translated pieces, so only the order is fixed in code.
         QGuiApplication.clipboard().setText("\n".join(lines))
-        self._copy_btn.setText(self.tr("Copied"))
-        QTimer.singleShot(1500, lambda: self._copy_btn.setText(self.tr("Copy")))
+        self._copy_btn.setText(pgettext('about', "Copied"))
+        QTimer.singleShot(1500, lambda: self._copy_btn.setText(pgettext('about', "Copy")))
 
     @staticmethod
     def _open_url(url: str) -> None:

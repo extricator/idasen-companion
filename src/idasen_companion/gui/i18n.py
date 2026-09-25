@@ -1,46 +1,20 @@
-"""Runtime translation loading for the GUI.
+"""Bind app gettext and install Qt's standard-widget translations.
 
-All user-facing GUI strings are wrapped in ``tr()`` /
-``QCoreApplication.translate()``. This module installs the ``QTranslator``s
-that make those calls resolve to the user's locale at startup:
-
-- the **app catalog** — our own strings, compiled from
-  ``translations/idasen_companion_<locale>.ts`` into ``.qm`` files shipped in
-  ``gui/translations/`` (see ``scripts/build-translations.sh``);
-- the **Qt base catalog** — Qt's own translations for standard widgets
-  (dialog buttons, etc.), shipped with PySide6.
-
-Everything degrades gracefully: a missing catalog just leaves the English
-source strings in place, so the app is fully functional untranslated.
+App-owned GUI strings use the same contextual gettext catalog as daemon and
+shared code. Qt contributes only its prebuilt ``qtbase`` catalog for native
+dialog buttons and other standard widget text. ``apply_language`` binds the
+app catalog, sets the default ``QLocale`` for widget behavior/direction and
+installs that Qtbase translator from one selected language.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
 
-#: Base name of our compiled catalogs, e.g. ``idasen_companion_es.qm``.
-CATALOG = "idasen_companion"
-
-#: Directory holding the shipped ``.qm`` files (populated by the build).
-TRANSLATIONS_DIR = Path(__file__).resolve().parent / "translations"
+from ..core.i18n import available_languages, set_language
 
 #: Config value meaning "follow the desktop locale".
 SYSTEM = "system"
-
-
-def available_languages() -> list[str]:
-    """Locale codes we ship a compiled ``.qm`` for (e.g. ``["es"]``), sorted.
-
-    English is the source language and needs no catalog, so it isn't listed
-    here — callers offer it (and "system") separately.
-    """
-    prefix = f"{CATALOG}_"
-    return sorted(
-        p.stem[len(prefix):]
-        for p in TRANSLATIONS_DIR.glob(f"{prefix}*.qm")
-    )
 
 
 def language_display_name(code: str) -> str:
@@ -76,25 +50,28 @@ def install_translators(app, language: str = SYSTEM) -> list[QTranslator]:
     """
     locale = resolve_locale(language)
     # The config's language can differ from the desktop locale, so the
-    # translators alone aren't enough to make numbers agree with the words
-    # around them. Setting the default QLocale before anything else is built
-    # is also what lets util.py — which has no access to config — read the
-    # effective locale for QLocale()-based formatting, and what gives every
-    # QDoubleSpinBox/QSpinBox/QTimeEdit its decimal separator for free (Qt
-    # resolves a widget's locale from QLocale::default() at construction).
+    # translators alone aren't enough to make native controls agree with the
+    # words around them. App-owned labels use Babel's LocaleProfile; setting
+    # QLocale here gives QDoubleSpinBox/QSpinBox/QTimeEdit the same locale for
+    # their native editing behavior and supplies Qt's layout direction.
     QLocale.setDefault(locale)
+    # Do this explicitly rather than relying on a loaded Qtbase translation:
+    # app-owned gettext catalogs and Qt's widget catalogs are independent, and
+    # an RTL locale must still mirror the GUI when either catalog is partial.
+    app.setLayoutDirection(locale.textDirection())
     installed: list[QTranslator] = []
 
-    # Qt's own catalog first, so our strings can override if ever needed.
+    # Only Qt's own catalog is installed. App-owned strings use gettext.
     qt_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     qt_tr = QTranslator(app)
     if qt_tr.load(locale, "qtbase", "_", qt_dir):
         app.installTranslator(qt_tr)
         installed.append(qt_tr)
 
-    app_tr = QTranslator(app)
-    if app_tr.load(locale, CATALOG, "_", str(TRANSLATIONS_DIR)):
-        app.installTranslator(app_tr)
-        installed.append(app_tr)
-
     return installed
+
+
+def apply_language(app, language: str = SYSTEM) -> list[QTranslator]:
+    """Bind app gettext and Qt widget locale/Qtbase from one config value."""
+    set_language(language)
+    return install_translators(app, language)

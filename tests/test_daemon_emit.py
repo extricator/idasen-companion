@@ -64,6 +64,9 @@ def test_snooze_emits_state():
     d = _daemon()
     d.snooze(10)
     assert d.machine.snooze.called
+    d.activity_log.emit.assert_called_once()
+    assert d.activity_log.emit.call_args.kwargs == {
+        "minutes": 10, "duration": 600}
     _assert_announced(d)
 
 
@@ -238,6 +241,10 @@ async def _interruptible_daemon(policy="undo"):
     cfg.presets = {"sit": 0.62, "stand": 1.10}
     cfg.automation.interruption_policy = policy
     d.config = cfg
+    # A real Formatter: this fixture drives a real StateMachine, which can
+    # emit HeldOffCycle -- whose notification renders through it. __init__ is
+    # bypassed here, so run()'s own _build_formatter never fires.
+    d.fmt = Daemon._build_formatter(d, cfg)
     d.desk = MockDesk(height=0.62)
     d.machine = StateMachine(cfg, d.desk, now=time.time())
     await d.machine.start(time.time())  # last_height = 0.62, state sitting

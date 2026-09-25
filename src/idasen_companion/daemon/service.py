@@ -28,7 +28,7 @@ from dbus_fast.constants import PropertyAccess
 from .. import DBUS_NAME
 
 # The exported members below (methods, properties, signals) are PascalCase by
-# the D-Bus wire-protocol convention documented in CLAUDE.md's "D-Bus wire
+# the D-Bus wire-protocol convention documented in the project's "D-Bus wire
 # format" section: they are called by exact string name off-process, over the
 # bus, so they cannot be renamed to snake_case. Each carries its own inline
 # naming-check suppression rather than a file-level one, so a genuinely new,

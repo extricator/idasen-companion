@@ -48,6 +48,7 @@ PINS=(
     "dbus-fast==5.0.22"
     "PyYAML==6.0.3"
     "tomlkit==0.15.1"
+    "Babel==2.18.0"
     "voluptuous==0.16.0"
     # Imported by bleak on any interpreter below 3.12, and declared by it
     # under a marker saying so. Nothing below reads that declaration -- the

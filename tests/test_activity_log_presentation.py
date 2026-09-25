@@ -17,17 +17,29 @@ import os  # noqa: E402
 # reach. See tests/test_settings_form.py for the same rule.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import dataclasses  # noqa: E402
 from datetime import datetime  # noqa: E402
 
+import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, QSize, Qt, Signal  # noqa: E402
-from PySide6.QtGui import QColor, QFontMetricsF, QIcon, QPixmap  # noqa: E402
-from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
+from PySide6.QtGui import (  # noqa: E402
+    QColor, QFontMetrics, QFontMetricsF, QIcon, QPixmap,
+)
+from PySide6.QtWidgets import (  # noqa: E402
+    QApplication, QPushButton, QStyle, QStyleOptionButton,
+)
 
+from language_context import installed_language as _language  # noqa: E402
+from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.presentation import Formatter  # noqa: E402
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
-from idasen_companion.gui import restyle, util  # noqa: E402
+from idasen_companion.gui import restyle, service_ctl, util  # noqa: E402
+from idasen_companion.gui.main_window import MainWindow  # noqa: E402
 from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa: E402
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
 from idasen_companion.gui.theme import extra_icon_gap, theme  # noqa: E402
+from idasen_companion.gui.widgets import emphasize  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -50,6 +62,21 @@ class FakeClient(QObject):
         return lambda *args, **kwargs: None
 
 
+class WindowClient(FakeClient):
+    """The complete signal surface subscribed to by the real main window."""
+
+    heightChanged = Signal(float)
+    positionChanged = Signal(str)
+    connectedChanged = Signal(bool)
+    movingChanged = Signal(bool)
+    statusChanged = Signal(str)
+    progressChanged = Signal(float, float)
+    transitionCompleted = Signal(str, str, bool)
+    snoozeUntilChanged = Signal(float)
+    presetsChanged = Signal(dict)
+    commandFailed = Signal(str, str)
+
+
 @pytest.fixture
 def page(qapp):
     restyle.reset_registry_for_tests()
@@ -70,6 +97,124 @@ def _entry(ts: float, text: str, **kw) -> dict:
             "params": {}, "text": text}
     base.update(kw)
     return base
+
+
+def _build_window(monkeypatch, tmp_path, language: str) -> MainWindow:
+    config_path = tmp_path / f"config-{language}.toml"
+    config = AppConfig()
+    config.desk.mac = "E1:B2:C3:D4:E5:F6"
+    config.ui.language = language
+    save_config(config, config_path)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", config_path)
+    monkeypatch.setattr(
+        service_ctl, "autostart_state",
+        lambda: service_ctl.AutostartState("enabled", True, ""))
+    return MainWindow(WindowClient(), tray_available=True)
+
+
+def _assert_filter_text_fits(window: MainWindow) -> None:
+    page = window.activity_log
+    for control in (page.channel, page.log_level):
+        for button in control.findChildren(QPushButton):
+            option = QStyleOptionButton()
+            button.initStyleOption(option)
+            content = button.style().subElementRect(
+                QStyle.SubElement.SE_PushButtonContents, option, button)
+            normal = QFontMetrics(button.font()).horizontalAdvance(button.text())
+            selected = QFontMetrics(emphasize(button.font())).horizontalAdvance(
+                button.text())
+            assert content.width() >= max(normal, selected), (
+                f"{button.text()!r} needs {max(normal, selected)}px of text "
+                f"space but its content rectangle is {content.width()}px")
+
+
+@pytest.mark.parametrize("language", ["en", "es"])
+@pytest.mark.parametrize("direction", [
+    Qt.LayoutDirection.LeftToRight,
+    Qt.LayoutDirection.RightToLeft,
+])
+def test_real_window_minimum_keeps_every_activity_filter_label_visible(
+        qapp, monkeypatch, tmp_path, language, direction):
+    original_direction = qapp.layoutDirection()
+    qapp.setLayoutDirection(direction)
+    with _language(language):
+        window = _build_window(monkeypatch, tmp_path, language)
+        try:
+            window.show()
+            window._nav.setCurrentRow(4)  # pylint: disable=protected-access
+            qapp.processEvents()
+
+            layout_minimum = window.minimumSizeHint()
+            expected = QSize(max(760, layout_minimum.width()),
+                             max(600, layout_minimum.height()))
+            assert window.minimumSize() == expected
+
+            for target in (
+                    expected,
+                    QSize(max(860, expected.width()),
+                          max(660, expected.height()))):
+                window.resize(target)
+                qapp.processEvents()
+                assert window.size() == target
+                _assert_filter_text_fits(window)
+        finally:
+            window.close()
+            shiboken6.delete(window)
+            qapp.setLayoutDirection(original_direction)
+            qapp.processEvents()
+
+
+def test_both_activity_filters_still_drive_visibility(page):
+    activity_info = _entry(1.0, "activity info")
+    activity_debug = _entry(2.0, "activity debug", level="debug")
+    diagnostic_info = _entry(
+        3.0, "diagnostic info", channel="diagnostic")
+
+    assert page._visible(activity_info)  # pylint: disable=protected-access
+    assert not page._visible(activity_debug)  # pylint: disable=protected-access
+    assert not page._visible(diagnostic_info)  # pylint: disable=protected-access
+
+    page.channel.setCurrentIndex(1)
+    assert page._visible(diagnostic_info)  # pylint: disable=protected-access
+    page.log_level.setCurrentIndex(0)
+    assert page._visible(activity_debug)  # pylint: disable=protected-access
+
+
+# ----- the row stamp -----
+
+
+def _last_row(page) -> str:
+    """The most recently rendered row, separators excluded."""
+    lines = [line for line in page.log_view.document().toPlainText().split("\n")
+             if line.strip()]
+    return lines[-1]
+
+
+def test_the_row_stamp_reads_to_the_second(page):
+    """The seconds are what order two events inside the same minute, so a
+    log view keeps them whichever clock it is on."""
+    page._entries = [_entry(datetime(2026, 8, 17, 14, 32, 5).timestamp(),
+                            "a line")]
+    page._redraw()
+
+    assert _last_row(page).startswith("14:32:05  INFO")
+
+
+def test_the_row_stamp_follows_the_clock_format(page):
+    """This screen is a screen a person reads, not the journal. Leaving it
+    on one clock while the tray tooltip beside it read the other would ship
+    the split the setting exists to close — so it follows, on the next
+    redraw, through the same rebuilt formatter every other surface uses."""
+    page._entries = [_entry(datetime(2026, 8, 17, 14, 32, 5).timestamp(),
+                            "a line")]
+    page._redraw()
+    assert _last_row(page).startswith("14:32:05  INFO")
+
+    page.ctx.fmt = Formatter(dataclasses.replace(
+        page.ctx.fmt.context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
+    page._redraw()
+
+    assert _last_row(page).startswith("2:32:05 PM  INFO")
 
 
 # ----- history window -----
@@ -97,10 +242,10 @@ def test_a_separator_precedes_each_day_group_including_the_oldest(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 5, f"expected 2 separators + 3 rows, got {lines}"
-    assert util.fmt_day_heading(day1_first) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day1_first) in lines[0]
     assert lines[1].endswith("first day, first line")
     assert lines[2].endswith("first day, second line")
-    assert util.fmt_day_heading(day2) in lines[3]
+    assert util.fmt_day_heading(page.ctx.fmt, day2) in lines[3]
     assert lines[4].endswith("second day, first line")
 
 
@@ -113,7 +258,7 @@ def test_a_backlog_within_one_day_draws_exactly_one_separator(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 4, f"expected 1 separator + 3 rows, got {lines}"
-    assert util.fmt_day_heading(day) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day) in lines[0]
 
 
 def test_a_live_entry_on_a_new_day_gets_its_own_separator(page):
@@ -126,9 +271,9 @@ def test_a_live_entry_on_a_new_day_gets_its_own_separator(page):
 
     lines = page.log_view.document().toPlainText().split("\n")
     assert len(lines) == 4, f"expected sep, row, sep, row, got {lines}"
-    assert util.fmt_day_heading(day1) in lines[0]
+    assert util.fmt_day_heading(page.ctx.fmt, day1) in lines[0]
     assert lines[1].endswith("first day")
-    assert util.fmt_day_heading(day2) in lines[2]
+    assert util.fmt_day_heading(page.ctx.fmt, day2) in lines[2]
     assert lines[3].endswith("second day")
 
 
@@ -157,7 +302,7 @@ def test_a_full_backlog_still_hits_the_cap_and_starts_with_a_separator(page):
     document = page.log_view.document()
     assert document.blockCount() == cap
     first_block_text = document.firstBlock().text()
-    assert util.fmt_day_heading(day) in first_block_text
+    assert util.fmt_day_heading(page.ctx.fmt, day) in first_block_text
     assert "line" not in first_block_text, (
         "the first block should be the day separator, not a row")
 
@@ -313,7 +458,7 @@ def test_the_day_separator_is_ruled_out_to_the_view_width(page, qapp):
     page._redraw()
 
     wide = _separator_line(page)
-    assert util.fmt_day_heading(day) in wide
+    assert util.fmt_day_heading(page.ctx.fmt, day) in wide
     # It reaches the measured width, give or take the odd cell that centring
     # leaves when the remainder doesn't divide evenly between the two rules.
     assert len(wide) >= page._separator_width - 2
@@ -332,7 +477,7 @@ def test_a_narrower_view_gets_a_shorter_rule(page, qapp):
     narrow = len(_separator_line(page))
 
     assert narrow < wide, f"rule did not shrink with the view ({narrow} vs {wide})"
-    assert util.fmt_day_heading(day) in _separator_line(page)
+    assert util.fmt_day_heading(page.ctx.fmt, day) in _separator_line(page)
 
 
 def test_the_separator_never_outgrows_the_view_at_any_width(page, qapp):

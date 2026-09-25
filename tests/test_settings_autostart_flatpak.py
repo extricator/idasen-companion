@@ -177,8 +177,7 @@ def _run_main(monkeypatch, qapp, *, run_at_login, flatpak):
     monkeypatch.setattr(gui_main.appearance_portal, "read_appearance_preferences",
                         lambda: None)
     monkeypatch.setattr(gui_main, "load_config", lambda _path: cfg)
-    monkeypatch.setattr(gui_main, "install_translators", lambda *a: None)
-    monkeypatch.setattr(gui_main.util, "set_height_unit", lambda _u: None)
+    monkeypatch.setattr(gui_main, "apply_language", lambda *a: None)
     monkeypatch.setattr(gui_main.QDBusConnection, "sessionBus",
                         staticmethod(lambda: bus))
     monkeypatch.setattr(gui_main, "DaemonClient", lambda: client)

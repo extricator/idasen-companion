@@ -1,9 +1,9 @@
-"""Locale-aware number formatting in ``gui.util``.
+"""Locale-aware number formatting in ``gui.util`` and the shared ``Formatter``.
 
 Covers the scope decision recorded in the quick task: ``QLocale`` governs
 the fractional centimetre values (where a locale actually changes the
-glyphs), while the small integers in ``fmt_hm``/``fmt_duration`` keep Python
-formatting — only their unit letters are translated.
+glyphs), while the small integers in ``Formatter.duration``/``duration_hm``
+keep Python formatting — only their unit letters are translated.
 
 Skipped where PySide6 is missing, and forces the offscreen platform before
 any ``QtWidgets`` import — see ``test_settings_form.py`` for why both
@@ -23,10 +23,30 @@ from datetime import datetime  # noqa: E402
 from PySide6.QtCore import QLocale  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox  # noqa: E402
 
-from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
-from idasen_companion.gui.util import (  # noqa: E402
-    fmt_day_heading, fmt_duration, fmt_height, fmt_hm, fmt_number,
+from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.i18n import (  # noqa: E402
+    GettextTranslator,
 )
+from idasen_companion.core.presentation import (  # noqa: E402
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.locale_profile import (  # noqa: E402
+    LocaleProfile,
+)
+from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
+from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
+from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
+from idasen_companion.gui.util import fmt_day_heading  # noqa: E402
+
+
+def _plain_formatter(unit: HeightUnit = HeightUnit.CENTIMETRES) -> Formatter:
+    # English backend, not the Qt catalog -- these two assertions are about
+    # the number/padding policy, not translation.
+    return Formatter(PresentationContext(
+        locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
+        unit=unit,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 @pytest.fixture(scope="session")
@@ -47,28 +67,50 @@ def locale(request):
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_english_locale_output_is_unchanged(locale):
-    assert fmt_height(1.105) == "110.5 cm"
-    assert fmt_hm(3900) == "1h 05m"
-    assert fmt_hm(240) == "4m"
-    assert fmt_duration(45) == "45s"
+    fmt = _plain_formatter()
+    assert fmt.height(1.105) == "110.5 cm"
+    assert fmt.duration_hm(3900) == "1h 05m"
+    assert fmt.duration_hm(240) == "4m"
+    assert fmt.duration(45) == "45s"
 
 
 @pytest.mark.parametrize("locale", ["es_ES"], indirect=True)
 def test_spanish_locale_uses_a_comma(locale):
-    assert "," in fmt_number(110.5)
-    assert fmt_height(1.105).startswith("110,5")
+    formatter = LocaleProfile(QLocale().name())
+    assert "," in formatter.number(110.5, decimals=1)
+    fmt = Formatter(PresentationContext(
+        locale=formatter, translator=EnglishTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
+    assert fmt.height(1.105).startswith("110,5")
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_trim_drops_a_trailing_zero_decimal(locale):
-    assert fmt_number(60.0, 1, trim=True) == "60"
-    assert fmt_number(60.5, 1, trim=True) == "60.5"
+    formatter = LocaleProfile(QLocale().name())
+    assert formatter.number(
+        60.0, decimals=1, trim_trailing_zeroes=True) == "60"
+    assert formatter.number(
+        60.5, decimals=1, trim_trailing_zeroes=True) == "60.5"
+
+
+def _ambient_formatter() -> Formatter:
+    """The window pairing on whatever QLocale the `locale` fixture set.
+
+    fmt_day_heading takes a Formatter now rather than reading the process
+    default itself, so these tests build one over the ambient locale — the
+    thing the fixture is actually varying.
+    """
+    return Formatter(PresentationContext(
+        locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)
 def test_day_heading_renders_english_weekday_and_month_names(locale):
     when = datetime(2026, 8, 17)
-    heading = fmt_day_heading(when)
+    heading = fmt_day_heading(_ambient_formatter(), when)
     assert QLocale().dayName(when.isoweekday(),
                              QLocale.FormatType.ShortFormat) in heading
     assert QLocale().monthName(when.month,
@@ -81,7 +123,7 @@ def test_day_heading_renders_spanish_weekday_and_month_names(locale):
     """Assert on the locale's own supplied names, not an exact string --
     QLocale governs the words, this only checks they made it in."""
     when = datetime(2026, 8, 17)
-    heading = fmt_day_heading(when)
+    heading = fmt_day_heading(_ambient_formatter(), when)
     assert QLocale().dayName(when.isoweekday(),
                              QLocale.FormatType.ShortFormat) in heading
     assert QLocale().monthName(when.month,

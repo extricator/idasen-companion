@@ -26,6 +26,7 @@ DEBIAN_RULES = ROOT / "debian" / "rules"
 DEBIAN_CHANGELOG = ROOT / "debian" / "changelog"
 FLATPAK_MANIFEST = (ROOT / "packaging" / "flatpak"
                     / "io.github.extricator.IdasenCompanion.yaml")
+FLATPAK_DEPS = ROOT / "packaging" / "flatpak" / "python3-deps.json"
 METAINFO = ROOT / "data" / "io.github.extricator.IdasenCompanion.metainfo.xml"
 CHANGELOG = ROOT / "CHANGELOG.md"
 README = ROOT / "README.md"
@@ -39,13 +40,119 @@ STRIP_PASS = ROOT / "scripts" / "strip-bundled-tree.sh"
 BYTECODE_VERIFIER = ROOT / "scripts" / "verify-bundled-bytecode.sh"
 METADATA_VERIFIER = ROOT / "scripts" / "verify-rpm-metadata.sh"
 PORTABILITY_VERIFIER = ROOT / "scripts" / "verify-rpm-portability.sh"
+RELEASE_BUILDER = ROOT / "scripts" / "build-release-variants.sh"
+RELEASE_VERIFIER = ROOT / "scripts" / "verify-release-artifacts.sh"
 RPM_WORKFLOW = ROOT / ".github" / "workflows" / "rpm.yml"
+DEB_WORKFLOW = ROOT / ".github" / "workflows" / "deb.yml"
+FLATPAK_WORKFLOW = ROOT / ".github" / "workflows" / "flatpak.yml"
 SRC = ROOT / "src" / "idasen_companion"
 STATS = SRC / "daemon" / "stats.py"
 
 
 def read(p: Path) -> str:
     return p.read_text()
+
+
+def test_project_exposes_daemon_gui_and_qt_free_cli_entry_points():
+    scripts = tomllib.loads(read(ROOT / "pyproject.toml"))["project"]["scripts"]
+    assert scripts == {
+        "idasen-companiond": "idasen_companion.daemon.main:main",
+        "idasen-companion": "idasen_companion.gui.main:main",
+        "idasen-companion-cli": "idasen_companion.cli:main",
+    }
+
+    bundled = read(BUNDLED)
+    assert "%{_bindir}/idasen-companion-cli" in bundled
+    assert "s/@ENTRY@/idasen_companion.cli/" in bundled
+
+
+def test_release_builder_and_verifier_define_the_five_asset_contract():
+    builder = read(RELEASE_BUILDER)
+    verifier = read(RELEASE_VERIFIER)
+    for selector in ("--all", "--rpm", "--deb", "--flatpak", "--output"):
+        assert selector in builder
+    for stem in (
+        "idasen-companion-[0-9]*.rpm",
+        "idasen-companion-headless-*.rpm",
+        "idasen-companion_[0-9]*.deb",
+        "idasen-companion-headless_*.deb",
+        "idasen-companion-[0-9]*.flatpak",
+    ):
+        assert stem in verifier
+
+
+def test_native_variants_are_standalone_and_mutually_exclusive():
+    spec = read(BUNDLED)
+    assert "%global package_name idasen-companion-headless" in spec
+    assert "Conflicts:      idasen-companion-headless" in spec
+    assert "Conflicts:      idasen-companion" in spec
+    assert "release_flavor headless" in read(RELEASE_BUILDER)
+
+    control = read(DEBIAN_CONTROL)
+    assert "Package: idasen-companion\n" in control
+    assert "Package: idasen-companion-headless\n" in control
+    assert "Conflicts: idasen-companion-headless" in control
+    assert "Conflicts: idasen-companion\n" in control
+
+
+def test_headless_debian_payload_clones_common_tree_then_removes_gui():
+    install = read(ROOT / "debian" / "idasen-companion.install")
+    for full_only in (".desktop", "icons/", "metainfo"):
+        assert full_only in install
+    rules = read(DEBIAN_RULES)
+    headless = read(ROOT / "debian" / "idasen-companion-headless.install")
+    assert "usr/bin/idasen-companion-cli" in headless
+    assert "usr/bin/idasen-companiond" in headless
+    assert "export PYBUILD_DESTDIR=debian/tmp" in rules
+    assert "idasen-companion-headless/usr/lib/python3*/dist-packages/idasen_companion/gui" in rules
+    assert "idasen-companion-headless/usr/bin/idasen-companion" in rules
+
+
+def test_every_existing_artifact_path_carries_babel():
+    """Babel is a base runtime dependency, not a GUI-only convenience."""
+    pyproject = tomllib.loads(read(ROOT / "pyproject.toml"))
+    assert any(requirement.startswith("Babel>=")
+               for requirement in pyproject["project"]["dependencies"])
+
+    split = read(SPLIT)
+    assert "BuildRequires:  python3-babel" in split
+    assert "Requires:       python3-babel" in split
+
+    debian = read(DEBIAN_CONTROL)
+    # One build dependency plus one runtime dependency in each standalone
+    # Debian flavor.
+    assert debian.count("python3-babel") == 3
+
+    assert '"Babel==2.18.0"' in read(RUNTIME_FETCHER)
+    assert "bundled(python3dist(babel)) = 2.18.0" in read(BUNDLED)
+    assert "LICENSE.babel" in read(BUNDLED)
+
+    flatpak = read(FLATPAK_DEPS)
+    assert "babel==2.18.0" in flatpak
+    assert "babel-2.18.0-py3-none-any.whl" in flatpak
+
+
+def test_debian_ci_installs_babel_before_checking_build_dependencies():
+    """The CI image installs a deliberate package list instead of build-dep."""
+    if not DEB_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
+    assert "python3-babel" in read(DEB_WORKFLOW)
+
+
+def test_flatpak_ci_installs_the_manifest_base_app_branch():
+    if not FLATPAK_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
+    manifest = read(FLATPAK_MANIFEST)
+    base = re.search(r"^base: (\S+)$", manifest, re.M)
+    branch = re.search(r"^base-version: ['\"]?([^'\"\n]+)", manifest, re.M)
+    assert base is not None
+    assert branch is not None
+    expected_ref = f"{base.group(1)}//{branch.group(1)}"
+
+    workflow = read(FLATPAK_WORKFLOW)
+    assert "flatpak install --noninteractive --assumeyes flathub" in workflow
+    assert expected_ref in workflow
+    assert "--disable-rofiles-fuse" in read(RELEASE_BUILDER)
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=lambda p: p.name)
@@ -82,7 +189,13 @@ def spec_section(spec_text: str, name: str) -> str:
     """
     _, _, body = spec_text.partition(f"\n%{name}\n")
     assert body, f"the spec has no %{name} section"
-    return re.split(r"\n%[a-z]", body, maxsplit=1)[0]
+    # Conditionals such as %if/%else are part of a section, not new sections.
+    # Stop only at RPM's actual top-level script/file/changelog sections.
+    return re.split(
+        r"\n%(?:prep|build|install|check|post|preun|postun|files|changelog)\b",
+        body,
+        maxsplit=1,
+    )[0]
 
 
 def spec_commands(section: str) -> list[str]:
@@ -156,9 +269,10 @@ def test_the_bundled_spec_cannot_silently_skip_the_gui_tests():
     commands = spec_commands(spec_section(read(BUNDLED), "check"))
     shipped = "%{buildroot}%{bundled_interpreter}"
 
-    suite = [c for c in commands if "pytest" in c and shipped in c]
+    suites = [c for c in commands if "pytest" in c and shipped in c]
+    suite = [c for c in suites if "QT_QPA_PLATFORM=offscreen" in c]
     assert len(suite) == 1, (
-        f"%check runs the suite on the interpreter the package ships "
+        f"%check runs the full GUI suite on the interpreter the package ships "
         f"{len(suite)} times; it runs it once, and not on the build host's")
     assert " -I " in suite[0], (
         "%check runs the suite without isolation, so the build host's own "
@@ -404,7 +518,8 @@ def test_the_check_runs_the_daemon_the_way_the_package_will():
     availability rather than on this package.
     """
     commands = spec_commands(spec_section(read(BUNDLED), "check"))
-    starts = [c for c in commands if "idasen_companion.daemon.main" in c]
+    starts = [c for c in commands
+              if "-m idasen_companion.daemon.main" in c]
     assert len(starts) == 1, (
         f"%check starts the daemon {len(starts)} times; it starts it once, "
         f"out of the tree the build is about to package")
@@ -414,6 +529,75 @@ def test_the_check_runs_the_daemon_the_way_the_package_will():
     assert "--mock-desk" in starts[0], (
         "%check starts the daemon against a real desk over Bluetooth, from a "
         "package build")
+
+
+#: The two places that start the smoke daemon behind ``dbus-run-session``.
+#: Both had the same defect and both carry the same fix, so both are checked
+#: by one test rather than by one test each that could drift apart.
+SMOKE_DAEMON_STARTERS = (
+    ("packaging/idasen-companion-bundled.spec", "%check"),
+    ("scripts/verify-rpm-portability.sh", None),
+)
+
+#: A kill aimed at a process *group* — the minus before the id is the whole
+#: point, so the pattern insists on it. ``kill "$daemon"`` and
+#: ``kill -- -"$daemon"`` differ by two characters and by whether a machine
+#: is left with an orphaned daemon on it.
+GROUP_KILL = re.compile(r'kill\s+--\s+-"?\$\{?\w+')
+
+
+def shell_commands(text: str) -> list[str]:
+    """A shell script's commands, comments dropped and continuations joined.
+
+    The same shape as :func:`spec_commands`, and for the same reason: this
+    module's checks must never be satisfiable by a sentence that happens to
+    recite the thing being checked for.
+    """
+    uncommented = "\n".join(line for line in text.splitlines()
+                            if not line.lstrip().startswith("#"))
+    joined = re.sub(r"\\\n\s*", " ", uncommented)
+    return [line.strip() for line in joined.splitlines() if line.strip()]
+
+
+@pytest.mark.parametrize(
+    "relative_path,section", SMOKE_DAEMON_STARTERS,
+    ids=lambda value: value.split("/")[-1] if isinstance(value, str) else "")
+def test_the_smoke_daemon_is_started_and_killed_as_a_process_group(
+        relative_path, section):
+    """A daemon started behind ``dbus-run-session`` outlives a kill aimed at
+    ``$!``, because ``$!`` is the wrapper and the daemon is its child.
+
+    This is not hypothetical and it is not a style point. Both of these files
+    shipped with the naive form, so every package build orphaned exactly one
+    mock daemon; three were found alive on one workstation, the oldest three
+    days old, each holding memory and a name on the session bus. The fix is
+    ``setsid`` at the start — which makes the wrapper a process-group leader,
+    so its pid doubles as the group id — and a negative kill at the end, which
+    reaches the daemon and the bus with it.
+
+    Both halves are asserted, because either one alone is inert: ``setsid``
+    without the group kill still orphans, and a group kill without ``setsid``
+    aims at the *build's own* process group, which is worse than the bug.
+    """
+    text = read(ROOT / relative_path)
+    commands = (spec_commands(spec_section(text, section.lstrip("%")))
+                if section else shell_commands(text))
+
+    starts = [c for c in commands
+              if "dbus-run-session" in c and "daemon.main" in c
+              or "dbus-run-session" in c and "idasen-companiond" in c]
+    assert len(starts) == 1, (
+        f"{relative_path} starts the smoke daemon {len(starts)} times; it "
+        f"starts it once")
+    assert "setsid" in starts[0], (
+        f"{relative_path} starts the smoke daemon without setsid, so the "
+        f"wrapper is not a process-group leader and the kill below cannot "
+        f"reach the daemon it spawns — every run leaks one")
+
+    group_kills = [c for c in commands if GROUP_KILL.search(c)]
+    assert group_kills, (
+        f"{relative_path} never kills the smoke daemon's process group, so "
+        f"the daemon behind dbus-run-session survives the run")
 
 
 # The enterprise 9 line's glibc, and so the oldest one this package reaches.
@@ -542,7 +726,7 @@ def test_the_workflow_asks_the_package_its_questions_before_publishing_it():
         "offers and is written as")
     built = re.search(rf"^.*{re.escape(METADATA_VERIFIER.name)}.*$",
                       workflow, re.M).group(0)
-    assert "rpmbuild/RPMS" in built, (
+    assert "dist-rpm/" in built and ".rpm" in built, (
         f"the workflow runs those checks against something other than the "
         f"package this job built: {built.strip()!r}")
     upload = workflow.find("actions/upload-artifact")
@@ -1190,9 +1374,11 @@ def test_the_user_unit_ships_under_the_filename_the_helper_resolves():
     there either, so its presence is what this test uses to tell the two
     situations apart.
     """
-    if not (ROOT / "debian" / "install").exists():
+    if not (ROOT / "debian" / "idasen-companion.install").exists():
         pytest.skip("full debian/ tree not present (running from the sdist)")
     user_unit = ROOT / "debian" / "idasen-companion.user.service"
+    headless_unit = (ROOT / "debian"
+                     / "idasen-companion-headless.idasen-companion.user.service")
     system_unit_misspelling = ROOT / "debian" / "idasen-companion.service"
     assert user_unit.exists(), "debian/idasen-companion.user.service is missing"
     assert not system_unit_misspelling.exists(), (
@@ -1200,6 +1386,7 @@ def test_the_user_unit_ships_under_the_filename_the_helper_resolves():
         "does not look for this filename and would install nothing"
     )
     assert user_unit.read_text() == (ROOT / "data" / "idasen-companion.service").read_text()
+    assert headless_unit.read_text() == user_unit.read_text()
 
 
 def test_the_contributor_guide_lists_every_build_requirement():
@@ -1645,23 +1832,18 @@ def test_build_dist_allowlist_is_exactly_three_patterns():
 
 
 def test_build_dist_wheel_check_matches_package_data():
-    """The wheel check's asserted catalog paths and pyproject's
-    package-data patterns must describe the same two files, or one could
-    silently drift from the other."""
+    """The wheel check and package-data must name the same app catalog."""
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
     package_data = pyproject["tool"]["setuptools"]["package-data"]["idasen_companion"]
 
     s = read(BUILD_DIST)
-    required_qm = re.search(r'required_qm = "([^"]+)"', s)
     mo_pattern = re.search(r'mo_pattern = "([^"]+)"', s)
-    assert required_qm, "no required_qm found in build-dist.sh"
     assert mo_pattern, "no mo_pattern found in build-dist.sh"
 
-    for asserted in (required_qm.group(1), mo_pattern.group(1)):
-        rel = asserted.removeprefix("idasen_companion/")
-        assert any(fnmatch.fnmatch(rel, pattern) for pattern in package_data), (
-            f"{asserted} matches none of pyproject.toml's package-data patterns"
-        )
+    asserted = mo_pattern.group(1)
+    rel = asserted.removeprefix("idasen_companion/")
+    assert any(fnmatch.fnmatch(rel, pattern) for pattern in package_data), (
+        f"{asserted} matches none of pyproject.toml's package-data patterns")
 
 
 def load_trimmer():

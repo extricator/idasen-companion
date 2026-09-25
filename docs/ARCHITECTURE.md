@@ -113,10 +113,17 @@ D-Bus service; the control loop calls `machine.tick()` every `check_interval`.
 `ringlog.py` is the in-memory activity log the GUI reads; `stats.py` is the
 SQLite store.
 
+`cli.py` is the Qt-free terminal reader and controller. It connects with
+`dbus-fast`, reads the same scalar properties and JSON tables as the GUI, and
+constructs the shared Babel/gettext `Formatter` directly from `AppConfig`.
+Structured Activity Log rendering lives in `core/activity_log.py` so both the
+GUI and CLI translate known message ids in the reader's language while keeping
+the daemon's English wire text as the mixed-version fallback.
+
 ### The D-Bus surface is public, including the parts the GUI doesn't use
 
 `service.py` is an API, not an internal seam: the interfaces are on the
-session bus under a well-known name, and `idasen-companion --toggle` is not
+session bus under a well-known name, and `idasen-companion-cli toggle` is not
 the only thing entitled to call them. A few members therefore exist with no
 in-tree reader, deliberately:
 
@@ -153,10 +160,10 @@ user, which `debug` used to stand in for.
 
 Activity lines are **catalogued** in `core/logmsg.py` as an id plus raw
 parameters (seconds, metres, state names — never pre-formatted strings, which
-can't be localized). The daemon renders English for the journal; the GUI renders
-its own translated sentence from `gui/log_catalog.py`, which repeats the same
-English inside `QT_TRANSLATE_NOOP` because `lupdate` can't read it out of
-`core/`. `tests/test_log_catalog.py` fails the build if the two drift.
+can't be localized). The canonical English and structure live once in
+`core/logmsg.py`. The daemon renders stable English for the journal; the reader
+passes the same `Message` through its selected gettext catalog and Babel-backed
+value formatters. Unknown ids use the English text carried on the wire.
 Diagnostic lines stay free-form English — never translated, since they exist to
 be pasted into a bug report.
 
@@ -190,6 +197,14 @@ comments and formatting survive** the round trip. This matters because a
 user's config file is theirs — hand-edited comments and layout included — and
 a writer that silently eats them on the next save is a bug, not a
 simplification.
+
+`load_config()` returns `AppConfig` with immutable, typed `ConfigWarning`
+metadata for unknown sections and keys. Warning metadata is not part of config
+equality and is never serialized. The daemon writes each newly observed
+warning to journald and the structured Activity Log; the GUI shows the same
+Qt-free warning text at startup and when a settings page reloads. Recognized
+keys still take the strict type/value validation path. Explicitly removed or
+renamed keys go through migrations instead of being mislabeled as unknown.
 
 Each page under `gui/pages/` is an independent `Page` (see `pages/base.py`) that
 owns its widgets, subscribes to the client signals it needs, and reloads lazily
@@ -259,32 +274,76 @@ module docstring carries the full reasoning, including why Qt's DBusMenu
 survives the takeover untouched. Any failure falls back to the plain
 `QSystemTrayIcon`.
 
-## Internationalization: two catalogs, because the daemon is Qt-free
+## Internationalization: one contextual app catalog
 
 Compiled by `scripts/build-translations.sh`; see `docs/TRANSLATING.md`.
 
-* **GUI** uses Qt Linguist. Strings are wrapped in `self.tr(...)` /
-  `QCoreApplication.translate(...)`; `gui/i18n.py` installs the `QTranslator` at
-  startup (before any widget is built) for the `[ui] language` config value
-  (default `"system"` = `QLocale.system()`). Sources: `translations/*.ts` →
-  shipped `gui/translations/*.qm`. The language is chosen in **Settings →
-  General**; because strings bake at construction it applies on relaunch.
-* **Daemon notifications** use stdlib `gettext` (`daemon/i18n.py` `_()` /
-  `ngettext`), since the daemon can't depend on Qt. Sources: `po/*.po` → shipped
-  `locale/<lang>/LC_MESSAGES/*.mo`.
-* **The Activity Log** takes a third route, because the daemon composes it and
-  can't use Qt: the wire carries a message id plus raw parameters, and the GUI
-  renders from `gui/log_catalog.py`. **journald stays English on purpose**
-  (stable and greppable for bug reports) — same event, two renderings.
+* GUI, daemon, shared presentation and Activity Log messages use stdlib
+  gettext through `core/i18n.py`. English source plus a literal semantic
+  context is the key; plurals use `npgettext` or deferred `NP_` keys.
+* `scripts/build-translations.sh` scans every package Python file into one POT,
+  merges every discovered `po/*.po`, and compiles the shipped `.mo` catalogs.
+* `gui/i18n.py` also sets `QLocale` for native widget behavior and installs
+  only Qt's prebuilt `qtbase` translator for standard dialog/widget text.
+* The Activity Log wire continues to carry id, raw parameters and an English
+  fallback. **journald stays English on purpose** (stable and greppable for bug
+  reports), while a recognized Activity Log id renders in the reader's
+  language.
 
 Compiled catalogs are committed, and ship via `MANIFEST.in` +
 `[tool.setuptools.package-data]`.
+
+## One locale value engine, independent display preferences
+
+Every app-owned number, integer, percentage, date, time and unit is rendered by
+`core/locale_profile.py` through Babel 2.18. GUI, daemon and future CLI code
+therefore receive the same CLDR answer for the same explicit app locale.
+`QLocale` remains in the GUI only for native widget input/display behavior,
+layout direction, locale selection and Qtbase translations; it does not render
+application labels.
+
+`LocaleProfile` is immutable and Qt-free. Consumers ask it for operations
+(`number`, `integer`, `percent`, `date`, `time`, `unit` and plural
+category) with explicit precision/grouping/style arguments. They do not read
+CLDR fields and assemble localized output themselves. The existing
+`Formatter` facade owns product policy such as height conversion, duration
+thresholds and whole-message composition, and delegates each atomic value to
+the profile.
+
+Three settings are intentionally independent:
+
+- `[ui] language` selects the gettext app catalog, QLocale and Babel profile,
+  so it controls words, number symbols, date names and localized meridiem text.
+- `[ui] units` answers directly for `cm`/`in`; `system` follows
+  `LC_ALL`, `LC_MEASUREMENT`, then `LANG`. US and Liberia default to
+  inches; every other territory, including the UK, defaults to centimetres.
+- `[ui] clock_format` answers directly for 12/24 hours; `system` follows
+  `LC_ALL`, `LC_TIME`, then `LANG`, and asks Babel's short-time pattern.
+  A missing, POSIX/C or unsupported time locale falls back to 24 hours.
+
+Changing the app language never changes the resolved measurement system or
+hour cycle. Both GUI and daemon resolve those preferences once from the same
+explicit environment inputs and carry the result in `PresentationContext`.
+
+Babel 2.18's observed `ar_EG` behavior is pinned in tests: it emits Arabic
+decimal/group separators and localized date, meridiem and unit text, while the
+digit glyphs remain Latin. The tests record that actual behavior rather than
+claiming that every Arabic locale automatically substitutes native digits.
+
+Fresh-process tests prove the daemon/shared path imports no PySide6 or
+shiboken.
 
 ## Config
 
 `~/.config/idasen-companion/config.toml`, overridable with the
 `IDASEN_COMPANION_CONFIG` env var (used by tests and dev). Read with stdlib
 `tomllib`; **written with `tomlkit` so user comments and formatting survive**.
+Unknown top-level sections and keys inside known sections are accepted with a
+`ConfigWarning`; because `save_config()` edits the existing `tomlkit` document
+in place, their values, tables, comments and ordering survive a known-setting
+edit. Invalid values of recognized keys still raise `ConfigError`. There is no
+schema-version field: the format remains additive until a concrete one-way
+migration makes a version boundary necessary.
 
 Durations are stored as compact strings (`"45m"`, `"1h30m"`) and held in memory
 as integer **seconds**. The daemon polls the file mtime and **hot-reloads** — no
@@ -293,7 +352,7 @@ restart needed. On first run it imports MAC + presets from the `idasen` CLI's
 
 ## Renaming anything
 
-Two identifiers here are load-bearing beyond their own file, and both fail
+Identifiers here can be load-bearing beyond their own file and fail
 **silently** — green build, shipped artifact, wrong behaviour:
 
 - **Config dataclass attribute names *are* the TOML keys.** `core/config.py`
@@ -301,16 +360,15 @@ Two identifiers here are load-bearing beyond their own file, and both fail
   from `tomllib`. Renaming a config *field* changes the user-facing config
   file format and breaks existing user configs. Renaming a *local* named
   `cfg` is fine; renaming an attribute is not.
-- **Qt translation contexts *are* class names.** Rename a GUI class and every
-  `<message>` under its `<name>` context in `translations/*.ts` orphans — the
-  strings fall back to English with nothing failing.
+- **Gettext semantic contexts are public translation keys.** Rename a literal
+  context only as an intentional catalog migration; class renames themselves
+  are safe because contexts describe roles rather than Python class names.
 
 So: never `sed` an identifier — it also renames same-named attributes on
 unrelated objects. Use a scope-aware rename tool with a preview instead. After
 any rename, run the suite **and**
-`PATH="$PWD/.venv/bin:$PATH" bash scripts/build-translations.sh`, then diff
-for new `type="unfinished"` entries — that diff is the only signal a rename
-broke a catalog.
+`bash scripts/build-translations.sh`, then inspect the PO/POT diff for orphaned
+or untranslated entries.
 
 ## Presets are special-cased today
 

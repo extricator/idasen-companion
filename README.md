@@ -1,6 +1,7 @@
 # Idasen Companion
 
-Automatic sit/stand companion for the IKEA Idåsen desk on Linux.
+A Linux desktop app that automatically alternates an IKEA Idåsen desk between
+sitting and standing.
 
 <p align="center">
   <a href="data/screenshots/1-overview.png" target="_blank"><img src="data/screenshots/1-overview.png" width="150" alt="Overview"></a>
@@ -12,13 +13,12 @@ Automatic sit/stand companion for the IKEA Idåsen desk on Linux.
 
 <p align="center"><sub>Overview · Automation · Statistics · Activity log · Settings — click to enlarge</sub></p>
 
-Idasen Companion moves your desk between sitting and standing. It counts only
-the time you spend active at the computer. It does not count the time you are
-idle, or the time the session is locked.
+Idasen Companion bases each cycle on the time you are actually active at the
+computer. Time spent idle or at the lock screen does not count.
 
-A background daemon holds the Bluetooth connection and runs the automation. A
-Qt 6 app gives you a tray icon, live status, manual control, presets,
-schedules, statistics and desktop notifications.
+A background service manages the Bluetooth connection and automation. The Qt
+6 desktop app provides a tray icon, live status, manual controls, presets,
+schedules, statistics, an activity log and desktop notifications.
 
 > This is an independent, unofficial project. It is not affiliated with,
 > endorsed by, or sponsored by Inter IKEA Systems B.V. IKEA and Idåsen are
@@ -44,47 +44,63 @@ schedules, statistics and desktop notifications.
 - **Schedules.** Set the days and the hours when the automation is active.
 - **Notifications.** A warning before each move, with Snooze and Skip.
 - **Statistics.** Sit and stand time for each day, with a transition history.
+- **English and Spanish.** The desktop app, daemon notifications, activity log
+  and command-line output all follow the selected language.
 
 ## Requirements
 
-Linux with systemd, a session D-Bus and BlueZ. The app runs on GNOME and KDE
-Plasma, on X11 and Wayland.
+You need Linux with systemd, a session D-Bus and BlueZ. The app supports GNOME
+and KDE Plasma on both X11 and Wayland.
 
-CAUTION: On wlroots compositors (sway, Hyprland, river) the app cannot read
-your idle time. It moves the desk on schedule even when you are away. The
-Overview tab reports the idle backend as `none`.
+> [!CAUTION]
+> On wlroots compositors such as sway, Hyprland and river, the app cannot read
+> idle time. It will move the desk on schedule even when you are away. The
+> Overview page reports the idle backend as `none` in this case.
 
 ## Install
 
-Download the artifact for your system from the [releases page][releases].
-Updates are manual: download the new release, then install it again.
+Download the package for your system from the [latest release][releases]. To
+update, download the newer package and install it over the existing version.
 
-**RPM, on x86_64**
+The RPM and Debian packages come in two flavors:
+
+- `idasen-companion` includes the desktop app, CLI and daemon.
+- `idasen-companion-headless` includes only the Qt-free CLI and daemon.
+
+The two flavors cannot be installed together.
+
+**RPM, on x86_64 (full)**
 
 ```
-sudo dnf install ./idasen-companion-*.x86_64.rpm
+sudo dnf install ./idasen-companion-[0-9]*.x86_64.rpm
 ```
 
-One package, self-contained. It carries its own Python — the interpreter and
-every library the app imports, Qt included — in a private directory of its
-own, and runs that one rather than anything on your machine. So what your
-distribution ships, and whether it ships a Python at all, does not come into
-it. What the package does ask for is Bluetooth and the ordinary desktop
-libraries Qt draws with, which any desktop already has.
+The RPM is self-contained: it carries its own Python interpreter and
+application libraries, including Qt in the full package. It only relies on the
+host for Bluetooth and the desktop libraries used by Qt.
 
-About 37 MB to download, and about 133 MB on disk once installed. That is what
-carrying the runtime costs, and it buys a package that is correct on the
-system you have rather than on the one it was built against.
+For a smaller installation without the desktop app or Qt, use the headless
+package:
 
-**Debian 13 (trixie) or newer, and Ubuntu 25.10 (questing) or newer**
+```
+sudo dnf install ./idasen-companion-headless-*.x86_64.rpm
+```
+
+**Debian 13 (trixie) or newer, and Ubuntu 25.10 (questing) or newer (full)**
 
 ```
 sudo apt install ./idasen-companion_*_all.deb
 ```
 
-Use `apt` and not `dpkg -i`, because `apt` installs the dependencies. This
-package contains no bundled libraries. Older releases have no PySide6
-packages, so this package cannot install there. Use the Flatpak instead.
+Use `apt` rather than `dpkg -i` so dependencies are installed automatically.
+The Debian package uses libraries supplied by the operating system. Older
+releases do not provide the required PySide6 packages; use the Flatpak there.
+
+The headless Debian package does not depend on PySide6 or Qt:
+
+```
+sudo apt install ./idasen-companion-headless_*_all.deb
+```
 
 **Any distribution, with Flatpak**
 
@@ -92,8 +108,14 @@ packages, so this package cannot install there. Use the Flatpak instead.
 flatpak install --user ./idasen-companion-*.flatpak
 ```
 
-The Flathub remote supplies the KDE runtime for the bundle. It does not
-supply the app. The app is not on Flathub.
+The Flatpak is a full desktop installation; there is no headless Flatpak. The
+app itself is not yet published on Flathub, but the Flathub remote supplies
+its KDE runtime. The CLI is available inside the sandbox rather than as a
+host command:
+
+```
+flatpak run --command=idasen-companion-cli io.github.extricator.IdasenCompanion status
+```
 
 ### Verify a download
 
@@ -104,72 +126,100 @@ directory as the artifact, then run:
 sha256sum --ignore-missing -c SHA256SUMS
 ```
 
-The `--ignore-missing` flag matters when you downloaded only one of the three
-artifacts. Without it, the other two are reported as failures.
+The `--ignore-missing` flag prevents files you did not download from being
+reported as failures.
 
 This check catches a corrupted or substituted download. It is not a signature,
 and it does not prove who built the file.
 
 ## First run
 
-Installing the package does not start the daemon. Launch the app and let it
-set up your account:
+Installing a package does not start the daemon. Launch the desktop app to set
+up your account:
 
 ```
 idasen-companion
 ```
 
-The setup wizard opens on the first start. It starts the background service,
-then lists your desk. If your desk does not appear, put it in pairing mode:
-hold the button on the control box until the light flashes. Then scan again.
+The setup wizard opens on first launch and lists nearby desks. If yours does
+not appear, put it in pairing mode by holding the button on the control box
+until its light flashes, then scan again.
 
-The wizard connects to the desk and reads its height before it saves
-anything. It then enables the service, so the daemon starts at every
-graphical login.
+Before saving anything, the wizard connects to the desk and reads its current
+height. With a native package, it then enables the systemd user service so the
+daemon starts at each graphical login. The Flatpak uses the desktop Background
+portal instead and may show a permission prompt.
+
+The headless package has no setup wizard. Configure the desk first with the
+desktop app or the `idasen` CLI, then enable the user service and use
+`idasen-companion-cli` for status and control.
 
 To change this later, use **Settings → General → Start automatically at
-login**. From a terminal, run one of these commands:
+login**. For a native installation, the equivalent terminal commands are:
 
 ```
 systemctl --user enable --now idasen-companion.service
 systemctl --user disable idasen-companion.service
 ```
 
-If you use the `idasen` CLI, the wizard is not necessary. The daemon imports
-the address of your desk and your saved positions from
-`~/.config/idasen/idasen.yaml`.
+If you already use the `idasen` CLI, the daemon can import the desk address and
+saved positions from `~/.config/idasen/idasen.yaml`, so the wizard is optional.
 
-GNOME has no built-in support for tray icons. To get one, install the
-[AppIndicator extension][appindicator]. Without it the app still works, and
-the main window opens instead.
+GNOME does not provide tray-icon support by default. Install the
+[AppIndicator extension][appindicator] to add it. The app still works without
+the extension and opens its main window instead.
 
 ## Usage
 
-The main window shows the desk height, the progress of the cycle and the
-controls. The tray icon offers the same actions. **Settings → Window & tray**
-decides what a left click and a middle click do.
+The main window shows the desk height, cycle progress and movement controls.
+The tray menu offers the same actions. Use **Settings → Window & tray** to
+choose what left- and middle-clicking the icon do.
 
-The app also works as a remote control. Each command below sends a single
-instruction to the daemon and then exits:
+The command-line client reports status and recent activity and can control the
+desk through the daemon:
 
 ```
-idasen-companion --toggle       # move to the other position
-idasen-companion --sit
-idasen-companion --stand
-idasen-companion --preset NAME
-idasen-companion --stop
+idasen-companion-cli status
+idasen-companion-cli toggle       # move to the other position
+idasen-companion-cli sit
+idasen-companion-cli stand
+idasen-companion-cli preset NAME
+idasen-companion-cli stop
+idasen-companion-cli log --limit 20
 ```
 
-Bind these commands to keys in your desktop's own keyboard settings.
+`status` uses the configured language, units and clock format. `log` translates
+recognized activity messages and falls back to the daemon's English text for
+entries written by a newer version. Successful output goes to stdout;
+configuration warnings and actionable errors go to stderr. Commands exit 0 on
+success, 1 for D-Bus or configuration failures, and 2 for invalid syntax.
 
-Note: a screen locker takes an exclusive input grab, so no desktop shortcut
-fires while the session is locked. The automation itself carries on.
+Bind the move commands to keys in your desktop's own keyboard settings. The
+`idasen-companion` executable is GUI-only; scripts and shortcuts use
+`idasen-companion-cli`.
+
+Desktop shortcuts do not fire while the session is locked because the screen
+locker has an exclusive input grab. Automation continues in the background.
 
 ## Configuration
 
 The configuration file is `~/.config/idasen-companion/config.toml`. Every
 duration accepts a value like `45m`, `1h30m` or `90s`. The Settings tab
 offers the same options, each with an explanation.
+
+Language, measurement units and hour cycle are independent. `[ui] language`
+selects translated text, number symbols and date/time language. Explicit
+`units = "cm"` / `"in"` and `clock_format = "12"` / `"24"` values always win;
+`"system"` follows the operating system's measurement and time locales, not
+the selected app language.
+
+A config written by a newer Idasen Companion may contain sections or options
+this version does not know. They produce a visible warning but do not prevent
+the GUI or daemon from starting, and they remain in the file through later
+Settings edits. A recognized option with a wrong type or invalid value is
+still an error. There is intentionally no config schema-version key: additive
+options stay downgrade-compatible, and an actual one-way migration will add
+versioning only when it is needed.
 
 The daemon writes its log to journald:
 
@@ -208,11 +258,12 @@ app works without hardware:
 IDASEN_COMPANION_CONFIG=/tmp/ic-test.toml .venv/bin/idasen-companion
 ```
 
-`docs/MANUAL-TESTING.md` covers the behavior that needs real hardware.
+[`docs/MANUAL-TESTING.md`](docs/MANUAL-TESTING.md) covers the behavior that
+needs real hardware.
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before you open a pull request. It
-covers the checks to run, the naming rule, the translation workflow, the
-package builds and the release procedure.
+Bug reports and patches are welcome. Read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request; it covers
+the checks to run, translation workflow, package builds and release process.
 
 ## License
 
@@ -221,22 +272,13 @@ Copyright © 2026 extricator
 Idasen Companion is free software under the GNU General Public License,
 version 3 or later. The full text is in [`LICENSE`](LICENSE).
 
-The app uses Qt 6 through [PySide6][pyside6], which is licensed under the LGPL
-version 3. The daemon does not link Qt at all, so it can run headless.
+The desktop app uses Qt 6 through [PySide6][pyside6]. The daemon and CLI do not
+import or link Qt, which is why the headless packages can remain Qt-free.
 
-The released RPM carries the whole runtime, so its licence describes what the
-package contains and not only the app. It bundles `PySide6-Essentials` and
-`shiboken6` — and with them Qt 6 — under `LGPL-3.0-only OR GPL-2.0-only OR
-GPL-3.0-only`, used here under the LGPL arm; `bleak`, `idasen`, `dbus-fast`,
-`PyYAML` and `tomlkit` under MIT; `voluptuous` under BSD-3-Clause; and
-`typing-extensions` under `PSF-2.0`. The package therefore declares:
-
-```
-GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
-```
-
-Every one of those texts installs with the package, under
-`/usr/share/licenses/idasen-companion/`.
+The self-contained RPMs bundle their Python interpreter and application
+dependencies; the full RPM also bundles PySide6 and Qt. Their package metadata
+declares the combined license expression, and the license text for every
+bundled component is installed under `/usr/share/licenses/<package-name>/`.
 
 [releases]: https://github.com/extricator/idasen-companion/releases
 [appindicator]: https://extensions.gnome.org/extension/615/appindicator-support/

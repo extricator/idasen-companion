@@ -1,15 +1,4 @@
-"""Strings that `lupdate` cannot see ship untranslated, silently.
-
-`gui/util.py` is imported before `main()` installs the QTranslator, so it
-cannot call `tr()` at import time. Its strings are marked with
-QT_TRANSLATE_NOOP and translated at each call through the module-private
-`_tr()` — and a bare `_tr("literal")` hides that literal from `lupdate`
-completely. Nothing fails: the build succeeds, the catalog ships, and the
-string is simply never translated. `fmt_days`' empty case shipped that way.
-
-This walks the source rather than the catalog, so it catches the mistake at
-the point it is made instead of after a translator notices.
-"""
+"""Deferred gettext wrappers remain extractable and whole-message safe."""
 
 import ast
 from pathlib import Path
@@ -19,7 +8,7 @@ import pytest
 SRC = Path(__file__).resolve().parent.parent / "src" / "idasen_companion"
 
 #: Modules whose user-facing strings must be marked, not passed as literals.
-#: Both wrap QCoreApplication.translate in a helper for the reason above.
+#: Both translate deferred ``P_`` keys through a small helper.
 MARKED_MODULES = [
     (SRC / "gui" / "util.py", "_tr"),
     (SRC / "gui" / "log_catalog.py", "_tr"),
@@ -46,15 +35,12 @@ def test_translation_wrappers_are_never_handed_a_bare_literal(path, wrapper):
         and isinstance(call.args[0].value, str)
     ]
     assert not offenders, (
-        "these strings are invisible to lupdate and will ship untranslated; "
-        "mark them with QT_TRANSLATE_NOOP: " + "; ".join(offenders))
+        "these deferred literals bypass P_ and will ship untranslated: "
+        + "; ".join(offenders))
 
 
-def test_qt_translate_noop_contexts_are_string_literals():
-    """`QT_TRANSLATE_NOOP(_CONTEXT, "...")` extracts *nothing*, even with
-    `_CONTEXT = "LogMessage"` on the line above — lupdate reads source text and
-    does not resolve names. It once hid 64 of 67 new strings in log_catalog.py.
-    """
+def test_no_qt_app_translation_markers_remain():
+    """Qtbase is runtime-only; every app-owned marker belongs to gettext."""
     offenders = []
     for path in sorted(SRC.rglob("*.py")):
         tree = ast.parse(path.read_text())
@@ -64,12 +50,25 @@ def test_qt_translate_noop_contexts_are_string_literals():
                     and node.func.id == "QT_TRANSLATE_NOOP"
                     and node.args):
                 continue
-            context = node.args[0]
-            if not (isinstance(context, ast.Constant)
-                    and isinstance(context.value, str)):
+            offenders.append(f"{path.name}:{node.lineno}")
+    assert not offenders, "Qt app translation markers remain: " + "; ".join(offenders)
+
+
+def test_no_qobject_or_qcore_app_lookup_remains():
+    offenders = []
+    for path in sorted(SRC.rglob("*.py")):
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "tr":
+                offenders.append(f"{path.name}:{node.lineno}: QObject.tr")
+            if (isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "QCoreApplication"
+                    and node.func.attr == "translate"):
                 offenders.append(
-                    f"{path.name}:{node.lineno}: context is "
-                    f"{ast.unparse(context)}, not a literal")
+                    f"{path.name}:{node.lineno}: QCoreApplication.translate")
     assert not offenders, "; ".join(offenders)
 
 
@@ -120,9 +119,38 @@ def _lambda_definitions(tree):
             if isinstance(node, ast.Lambda)}
 
 
+#: The calls that count as reaching a translator directly. `gui/util.py` has
+#: three ways to ask for translated text: the module-private wrapper; the
+#: shared presentation layer's Qt-free translator backend, which a forwarder
+#: constructs on the spot and hands to `core/presentation.py`; and a
+#: `Formatter` the *caller* supplies, whose message-rendering methods reach
+#: that same backend. Each such forwarder's return value is still translated
+#: text -- it is simply looked up one layer further down -- so it must keep
+#: its mark, and this seed set is what lets it. Deleting the mark to make the
+#: check agree is forbidden; widening the seed is the correction.
+#:
+#: The `Formatter` entries are the message-rendering methods `gui/util.py`
+#: actually reaches. They resolve by attribute name alone, so an unrelated
+#: method of the same name would over-reach and ask for a mark that was not
+#: needed -- a loud failure at the definition, which is the trade this whole
+#: rule already documents.
+#: Attribute names that *are* a translator when read, rather than names that
+#: return one when called. A helper taking `fmt` and passing
+#: `fmt.context.translator` down constructs nothing, so the call-name walk
+#: sees no seed and would call the helper's mark spurious -- which is exactly
+#: what happened when gui/util.py's fmt_countdown stopped building its own
+#: backend. Structural rather than a second hand-list.
+_TRANSLATOR_ATTRIBUTES = frozenset({"translator"})
+
+_TRANSLATOR_SEEDS = frozenset({
+    "_tr", "GettextTranslator",
+    "day_and_clock", "snooze_line", "later_label",
+})
+
+
 def _reaches_tr(tree):
     """Names in `tree` that can carry the mark and whose body reaches
-    `_tr()`, directly or through another such name.
+    a translator, directly or through another such name.
 
     Walks each definition's whole body with `ast.walk`, so a call made from
     inside a nested `FunctionDef` or `Lambda` counts too -- a future helper
@@ -137,17 +165,28 @@ def _reaches_tr(tree):
 
     def _called_names(node):
         names = set()
-        for call in ast.walk(node):
-            if not isinstance(call, ast.Call):
-                continue
-            if isinstance(call.func, ast.Name):
-                names.add(call.func.id)
-            elif isinstance(call.func, ast.Attribute):
-                names.add(call.func.attr)
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call):
+                if isinstance(child.func, ast.Name):
+                    names.add(child.func.id)
+                elif isinstance(child.func, ast.Attribute):
+                    names.add(child.func.attr)
+            # A translator handed *in* rather than constructed. Reading
+            # `fmt.context.translator` and passing it on is the same reach as
+            # calling GettextTranslator(), and it is a call to nothing, so the
+            # call-name walk above cannot see it. This is structural -- any
+            # attribute named `translator`, from any object -- so a helper
+            # that switches to the injected form stays caught without anyone
+            # remembering to add its name to the seed set.
+            elif (isinstance(child, ast.Attribute)
+                    and child.attr in _TRANSLATOR_ATTRIBUTES):
+                names.add(child.attr)
         return names
 
     calls = {name: _called_names(node) for name, node in definitions.items()}
-    reached = {name for name, called in calls.items() if "_tr" in called}
+    seeds = _TRANSLATOR_SEEDS | _TRANSLATOR_ATTRIBUTES
+    reached = {name for name, called in calls.items()
+               if called & seeds}
     changed = True
     while changed:
         changed = False
@@ -162,6 +201,32 @@ def _reaches_tr(tree):
 # Synthetic snippets, so the rule is provable independently of what
 # gui/util.py happens to contain today.
 
+def test_an_injected_translator_reaches_tr():
+    """A helper handed a translator reaches one as surely as a helper that
+    builds one.
+
+    This is the shape gui/util.py's fmt_countdown moved to when it stopped
+    constructing its own backend: it calls no translator factory, so a
+    call-name-only walk saw nothing and called its mark spurious. Nothing
+    was mis-translated -- but the concatenation check had quietly stopped
+    following its result.
+    """
+    tree = ast.parse(
+        "def f(fmt, x):\n"
+        "    return words.thing(fmt.context.translator, x)\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_locale_only_helper_does_not_reach_tr():
+    """The other half of the rule: reading `.locale` off the same object is
+    not reaching a translator, and marking such a helper would make the
+    concatenation check flag legitimate composition."""
+    tree = ast.parse(
+        "def f(fmt, x):\n"
+        "    return dates.day_short(fmt.context.locale, x)\n")
+    assert _reaches_tr(tree) == set()
+
+
 def test_a_direct_tr_call_reaches_tr():
     tree = ast.parse("def f():\n    return _tr('x')\n")
     assert _reaches_tr(tree) == {"f"}
@@ -172,6 +237,30 @@ def test_a_call_through_a_second_function_reaches_tr():
         "def f():\n    return _tr('x')\n"
         "def g():\n    return f()\n")
     assert _reaches_tr(tree) == {"f", "g"}
+
+
+def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
+    """A `gui/util.py` forwarder that delegates the word itself to
+    `core/presentation.py` no longer calls the module-private wrapper -- it
+    builds the Qt-free translator backend and hands it over. Its result is
+    still translated text, so it must still be seen to reach a translator.
+    """
+    tree = ast.parse(
+        "def f(key):\n"
+        "    return words.connection_phrases(GettextTranslator(), key)\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
+def test_a_forwarder_delegating_to_a_supplied_formatter_reaches_tr():
+    """A `gui/util.py` forwarder that takes a `Formatter` and asks it for a
+    whole message reaches a translator through it -- the caller supplied the
+    translator instead of the forwarder constructing one, and the result is
+    translated text either way.
+    """
+    tree = ast.parse(
+        "def f(fmt, when):\n"
+        "    return fmt.day_and_clock(when)\n")
+    assert _reaches_tr(tree) == {"f"}
 
 
 def test_a_call_made_inside_a_nested_closure_reaches_tr():

@@ -90,6 +90,17 @@ design](https://systemd.io/CATALOG/), adopted for the same stated reason:
 1500}`, not `{"next_target": "25.0 minutes"}` — the second cannot be
 localized, which defeats the point.
 
+### The journal's duration wording changed
+
+Before this note existed, a `Param.DURATION` value rendered two different
+ways for the same log event: journald read `"45.0 minutes"` (or
+`"30 seconds"` under a minute), while the GUI's Activity Log — reading the
+same id and the same raw seconds — showed `"45m"`. That split is now closed:
+the journal renders the same compact shape the Activity Log always has,
+`"30s"` / `"45m"` / `"1h 05m"`. **If a grep or a log-parsing script matches
+the old `"45.0 minutes"` / `"30 seconds"` shape, it needs to match the
+compact one instead.**
+
 Diagnostic lines may stay free-form English. They are never translated (they
 exist to be pasted into a bug report), so requiring a catalog entry for each
 one would be pure overhead.

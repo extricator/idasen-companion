@@ -1,3 +1,8 @@
+usr/bin/idasen-companion
+usr/bin/idasen-companion-cli
+usr/bin/idasen-companiond
+usr/lib/python3*/dist-packages/idasen_companion/
+usr/lib/python3*/dist-packages/idasen_companion-*.dist-info/
 data/io.github.extricator.IdasenCompanion.desktop usr/share/applications/
 data/icons/io.github.extricator.IdasenCompanion.svg usr/share/icons/hicolor/scalable/apps/
 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg usr/share/icons/hicolor/scalable/apps/

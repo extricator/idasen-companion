@@ -21,11 +21,14 @@ import os
 # can't reach that display. Tests must not depend on an ambient one.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.gui import context as context_mod  # noqa: E402
+from idasen_companion.gui import context as context_mod, service_ctl  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
+from idasen_companion.gui.main_window import MainWindow  # noqa: E402
 from idasen_companion.gui.pages.automation import AutomationPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
 
@@ -39,6 +42,28 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
+
+
+class WindowClient(QObject):
+    """Every signal the real main window and its preloaded pages consume."""
+
+    availableChanged = Signal(bool)
+    heightChanged = Signal(float)
+    positionChanged = Signal(str)
+    connectedChanged = Signal(bool)
+    movingChanged = Signal(bool)
+    statusChanged = Signal(str)
+    progressChanged = Signal(float, float)
+    transitionCompleted = Signal(str, str, bool)
+    snoozeUntilChanged = Signal(float)
+    presetsChanged = Signal(dict)
+    logEntry = Signal(float, str, str, str, dict, str)
+    commandFailed = Signal(str, str)
+
+    available = False
+
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
 
 
 @pytest.fixture(scope="session")
@@ -74,6 +99,81 @@ def test_a_freshly_loaded_page_is_clean(page):
     assert not page.is_dirty()
     assert not page._apply_btn.isEnabled()
     assert not page._reset_btn.isEnabled()
+
+
+def test_settings_page_never_owns_unknown_config_dialogs(
+        ctx, monkeypatch):
+    path = context_mod.DEFAULT_CONFIG_PATH
+    with path.open("a") as stream:
+        stream.write('\n[ui.future_palette]\naccent = "violet"\n')
+    shown = []
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        staticmethod(lambda *args: shown.append(args)))
+
+    page = SettingsPage(ctx)
+    page.load()
+
+    assert shown == []
+
+
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_main_window_aggregates_and_remembers_unknown_config_warnings(
+        qapp, tmp_path, monkeypatch, language):
+    path = tmp_path / "config.toml"
+    initial = (
+        'future_root = "kept"\n'
+        '[ui]\n'
+        f'language = "{language}"\n'
+        'future_theme = "violet"\n'
+    )
+    path.write_text(initial)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
+    monkeypatch.setattr(
+        service_ctl, "autostart_state",
+        lambda: service_ctl.AutostartState("enabled", True, ""))
+
+    shown = []
+    from PySide6.QtWidgets import QMessageBox
+    monkeypatch.setattr(
+        QMessageBox, "warning",
+        staticmethod(lambda *args: shown.append(args)))
+
+    with _language(language):
+        window = MainWindow(WindowClient(), tray_available=True)
+        try:
+            assert len(shown) == 1
+            body = shown[0][2]
+            assert body.count("future_root") == 1
+            assert body.count("future_theme") == 1
+            assert body.index("future_root") < body.index("future_theme")
+
+            # Both pages were preloaded by MainWindow. Navigating to each
+            # reloads the same file and must not create another modal.
+            window._nav.setCurrentRow(1)  # pylint: disable=protected-access
+            window._nav.setCurrentRow(5)  # pylint: disable=protected-access
+            assert len(shown) == 1
+
+            path.write_text(initial + '\n[future]\nvalue = 7\n')
+            window.settings.load()
+            assert len(shown) == 2
+            assert "[future]" in shown[1][2]
+            assert "future_root" not in shown[1][2]
+            assert "future_theme" not in shown[1][2]
+
+            window.settings.load()
+            assert len(shown) == 2
+
+            # Seen fingerprints remain remembered even if one disappears and
+            # is later reintroduced during this GUI process.
+            path.write_text(initial)
+            window.settings.load()
+            path.write_text(initial + '\n[future]\nvalue = 7\n')
+            window.settings.load()
+            assert len(shown) == 2
+        finally:
+            window.close()
 
 
 def test_editing_a_field_enables_apply_and_reset(page):
@@ -227,6 +327,82 @@ def test_a_failed_save_keeps_the_page_dirty(page, ctx, monkeypatch,
     assert page.is_dirty()
     assert page._apply_btn.isEnabled()
     assert page._reset_btn.isEnabled()
+
+
+# ---- the Clock format row ---------------------------------------------------
+#
+# Asserted on the combo's *data* values throughout, never its visible labels:
+# the labels are catalog entries, already covered by the catalog tests, and
+# pinning them here would go red on a translation change that broke nothing.
+
+
+def test_the_clock_format_row_offers_the_three_config_values_in_order(ctx):
+    page = SettingsPage(ctx)
+    page.load()
+    combo = page.clock_format_combo
+    assert [combo.itemData(i) for i in range(combo.count())] == [
+        "system", "12", "24"]
+
+
+def _store_clock_format(value: str) -> None:
+    """Put a value in the config *file*: `load()` re-reads from disk, so a
+    field set on the in-memory config would be discarded before the page
+    ever saw it."""
+    from idasen_companion.core.config import load_config
+
+    path = context_mod.DEFAULT_CONFIG_PATH
+    config = load_config(path)
+    config.ui.clock_format = value
+    save_config(config, path)
+
+
+@pytest.mark.parametrize(("stored", "index"), [
+    ("system", 0), ("12", 1), ("24", 2),
+])
+def test_loading_selects_the_clock_entry_the_config_names(ctx, stored, index):
+    _store_clock_format(stored)
+    page = SettingsPage(ctx)
+    page.load()
+    assert page.clock_format_combo.currentIndex() == index
+
+
+def test_an_unknown_clock_format_selects_the_first_entry(ctx):
+    """Not "whatever the combo happened to show": a config written by a
+    later version has to land somewhere defined. The loader rejects such a
+    value, so this exercises the widget's own fallback directly."""
+    page = SettingsPage(ctx)
+    page.load()
+    page._select_data(page.clock_format_combo, "swatch-beats")
+    assert page.clock_format_combo.currentIndex() == 0
+
+
+def test_the_clock_format_round_trips_through_apply(ctx):
+    page = SettingsPage(ctx)
+    page.load()
+    assert page.clock_format_combo.currentData() == "system", "shipped default"
+    before = context_mod.DEFAULT_CONFIG_PATH.read_text()
+
+    page.clock_format_combo.setCurrentIndex(1)
+    assert page.is_dirty()
+    assert context_mod.DEFAULT_CONFIG_PATH.read_text() == before, (
+        "staging must not touch the file")
+
+    page._apply_settings()
+    assert ctx.cfg.ui.clock_format == "12"
+    page.load()
+    assert page.clock_format_combo.currentData() == "12"
+
+
+def test_reset_throws_a_staged_clock_format_away(ctx):
+    page = SettingsPage(ctx)
+    page.load()
+    page.clock_format_combo.setCurrentIndex(2)
+    assert page.is_dirty()
+
+    page._reset_btn.click()
+
+    assert page.clock_format_combo.currentData() == "system"
+    assert ctx.cfg.ui.clock_format == "system"
 
 
 # ---- the Notifications card's two peer checkboxes ---------------------------

@@ -50,7 +50,10 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a full automation cycle against the desk from inside the sandbox.
 
 ## Features / enhancements (deferred)
-- [ ] **A `status` command, so the desk can be read from a terminal** — the
+- [x] **A `status` command, so the desk can be read from a terminal** — delivered
+      by `idasen-companion-cli status`, with Desk / Automation / Today sections,
+      localized values and explicit exit/stdout/stderr behavior. The original
+      design record follows: the
       command line can only *write* today: `--toggle`, `--sit`, `--stand`,
       `--stop` and `--preset` (`gui/main.py:39`) each fire one method and exit,
       and every readable fact — height, sit/stand word, connection, cycle
@@ -63,13 +66,17 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       carrying the Overview page's content in the *tray tooltip's* wording,
       since the tooltip is the one place already tuned for a glance and its
       "Standing for 42 min" and "sitting down in 17 min" both say things
-      Overview does not. **The reuse of `gui/util.py` is nearly free but not
-      free**: its formatters translate at call time and read a module-global
-      unit and `QLocale`, all set at `gui/main.py:178-183` — *after* the
-      one-shot short-circuit at `gui/main.py:150` — so a naive implementation
-      prints English on a Spanish desktop and centimetres to a user configured
-      for inches, with nothing failing. Full design, traps and open decisions
-      (what it exits with when the daemon is down) in
+      Overview does not. **The height and duration vocabulary is no longer
+      the obstacle it was.** It now lives under `core/presentation/`,
+      unit-explicit and Qt-free, reached through a `Formatter` built onto an
+      explicit `PresentationContext` a caller constructs — no module global,
+      no argument-less `QLocale()` read, nothing that only resolves correctly
+      after a GUI-specific startup sequence has run. What a status command
+      needs from the shared vocabulary is fully available now: the status,
+      position, preset and trigger words (Phase 14) and the four date/time
+      helpers (Phase 15) all render through `core/presentation/`, reachable
+      with no `gui/util.py` involvement. Full design, traps and open
+      decisions (what it exits with when the daemon is down) in
       `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
 - [ ] **Clear statistics / history button** — a control on the Statistics page to
       wipe the recorded sit/stand history (the daily-totals data and the recent
@@ -102,14 +109,29 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
-- [ ] **Non-Latin digit sets aren't handled by `fmt_hm`/`fmt_countdown`** — the
-      locale-aware formatting task deliberately routed only the fractional
-      centimetre values through `QLocale`; the small integers in
-      `fmt_hm`/`fmt_duration`/`fmt_countdown` keep native Python formatting
-      because `QLocale.toString` has no padded-integer overload (breaking
-      `fmt_hm`'s `"1h 05m"` zero-padding and `fmt_countdown`'s `"2:05"`), and
-      padding a native-digit string with an ASCII `0` would be wrong. Only
-      worth revisiting once a language with non-Latin digits actually ships.
+- [ ] **The date shape has no user override, now that the clock does** —
+      `[ui] clock_format` lets a user pin 12- or 24-hour, and the app resolves
+      it once in `core/clock_format.py` and hands a `TimeStyle` to both
+      backends. `DateStyle` has no equivalent: the window still renders
+      whatever `QLocale` says and the Qt-free backend still renders ISO,
+      with nothing the user can say about either. Nobody has asked for it,
+      and it was left out of the clock work deliberately rather than
+      overlooked — widening into it without deciding out loud is what that
+      restraint was protecting. Recorded so the asymmetry is a decision on
+      the record rather than something the next reader discovers.
+- [ ] **Non-Latin digit sets aren't handled by any locale backend's `integer()`
+      implementation** — the routing half of this item is now fully solved:
+      both `Formatter.duration_hm`'s zero-padded minutes (`"1h 05m"`) and
+      `fmt_countdown`'s `"2:05"` (via `core/presentation/words.py`'s
+      `countdown`, converted in Phase 14) go through the locale backend's own
+      `integer(IntegerSpec(min_digits=2))` operation rather than a Python
+      f-string at the call site. What is left is inside that operation
+      itself: `QtLocaleFormatter.integer`'s non-grouping path still renders
+      with `f"{value:d}"`, plain ASCII digits, so a backend for a language
+      with its own digit set would need to override this method — the shared
+      layer no longer stands in the way, but nothing implements it yet. The
+      standing judgement is unchanged: only worth revisiting once a language
+      with non-Latin digits actually ships.
 - [ ] **Proactive BLE warm-up** — connect *before* the user asks, so a tray
       click lands on a warm link. Measured cold connect is 2.2–2.6s in the good
       case and ~12.3s in the bad one (a discrete ~10.2s penalty inside BlueZ's
@@ -127,7 +149,10 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
-- [ ] **Decide whether the command line becomes a first-class front end** — it
+- [x] **Decide whether the command line becomes a first-class front end** — yes:
+      `idasen-companion-cli` now owns status, log and all one-shot moves without
+      importing Qt; full/headless artifact publication remains packaging work.
+      The original analysis follows: it
       is not one now: five flags living inside the GUI, declared at
       `gui/main.py:135` and short-circuiting at `gui/main.py:150` before any
       `QApplication` exists. That was right for what they are, and stops being
@@ -139,17 +164,17 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       `idasen-companion` entry point runs `gui.main:main`, which imports
       `QtWidgets` at module scope, so the flags need the GUI extra to fire one
       D-Bus method. **The code separation is nearly free and the vocabulary
-      separation is the whole job.** `dbus-fast` is already a base dependency,
-      so a Qt-free client needs no new package, and the wire format is
-      deliberately flat-and-JSON already. But every string such a client needs
-      lives in `gui/util.py`, translated at call time through
-      `QCoreApplication.translate("util", …)` (`gui/util.py:48`) against the Qt
-      catalog, while the daemon translates through gettext against `po/*.po` —
-      so ~30 strings would cross catalogs and need re-translating into `es`,
-      in the exact area where an orphaned entry falls back to English with
-      nothing failing. Several of the helpers are also impure (`QLocale`, a
-      module-global display unit), so relocating them means deciding what
-      supplies locale and units outside Qt. **The prize is a headless
+      separation is most of the way done already.** `dbus-fast` is already a
+      base dependency, so a Qt-free client needs no new package, and the wire
+      format is deliberately flat-and-JSON already. The height and duration
+      words such a client would need are no longer the obstacle: they live
+      under `core/presentation/`, unit-explicit and Qt-free, reached through
+      a `Formatter` built onto an explicit context rather than through
+      `gui/util.py`'s `QCoreApplication.translate("util", …)` (`gui/util.py:27`)
+      against the Qt catalog. The status, position, preset and trigger words
+      (Phase 14) and the four date/time helpers (Phase 15) have since moved
+      to `core/presentation/` too, so nothing left in `gui/util.py` would
+      cross catalogs for a Qt-free client to reach. **The prize is a headless
       package** — daemon plus command line, no PySide6 anywhere. Measured
       untrimmed, Qt is 648 MB against ~7.9 MB for the whole rest of the
       closure, so it is not a component of this app's weight, it is nearly all
@@ -318,7 +343,37 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
         `tests/test_dbus_contract.py`'s coverage, which scans for calls naming
         them — so it has to land together with a widened scan, the same way the
         `_iface(...).call()` gap was closed.
-
+- [ ] **ID-keyed translation (scheme C), deferred on sequencing rather than
+      merit** — settled during the Phase 12 discussion. Today's catalogs key on
+      the English source string; this reworks that to key on a stable id, e.g.
+      `Msg("status_standing", "Standing")` in a register, with the id reaching
+      the lookup and the register's own English serving as the runtime fallback
+      on a miss. It buys three things: rewording the English no longer orphans
+      the translation (today it does, silently); collisions between two
+      concepts that want the same English word stop being possible, since each
+      keeps its own id; and it deletes the class-rename trap `CLAUDE.md`
+      documents, because the Qt key stops being `(context, source)` with the
+      context a class name — renaming a GUI class today orphans every
+      `<message>` under its old context with nothing failing.
+      Not done now because re-keying while roughly twenty formatters are
+      simultaneously being merged into one shared vocabulary (Phases 13-15)
+      would put two changes in every diff — when a Spanish string lands wrong,
+      nothing says whether the move or the re-key did it. Doing it afterwards
+      instead means re-keying a settled target with the baseline harness this
+      milestone built already in place, the instrument that can prove a re-key
+      changed no rendered string. Whether it is worth doing at all is itself
+      evidence Phases 13-15 are expected to produce: reword-driven orphaning
+      and source-string collisions are being logged as they happen (see the
+      collision log in `docs/TRANSLATING.md`), and whether either actually
+      bites is the case for or against this.
+      Two obstacles are already verified on the Qt side rather than assumed:
+      PySide6's `QtCore` exposes `qtTrId` but not `QT_TRID_NOOP` (confirmed by
+      import — `QT_TRID_NOOP` is absent from `dir(QtCore)`), so the register
+      marker this shape needs is not available out of the box; and
+      `tests/test_catalog_contexts.py` is built entirely around Qt contexts,
+      which id-keying makes vestigial, so it needs substantial rework rather
+      than a small edit. `pyside6-lupdate` itself does already recognise
+      `qtTrId`, `QT_TRID_NOOP`, `QT_TRID_N_NOOP` and `qsTrId` as keywords.
 ## UI polish
 - [ ] **The setup wizard opens off-centre** — reported on the maintainer's
       Fedora/KDE machine, 2026-08-13. Two facts, both confirmed by reading the
@@ -435,6 +490,84 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       shared helpers in `pages/settings_form.py` (`_minutes_spin`,
       `_themed_combo`), which is where both pages get these controls from.
 ## Known issues / cleanups
+- [ ] **`_TRANSLATOR_SEEDS` hand-lists `Formatter` method names, so the
+      concatenation check can quietly narrow** — the seed set in
+      `tests/test_translation_markers.py` began as two structurally complete
+      names (`_tr`, `GettextTranslator`), which caught *any* value reaching a
+      translator. It now also names `day_and_clock`, `snooze_line` and
+      `later_label` by hand. A new message-rendering `Formatter` method
+      reached from `gui/util.py` would not be seeded, the mark it should have
+      demanded would never be asked for, and the suite would stay green.
+
+      **Two approaches were tried and both were wrong — do not repeat them.**
+      Deriving the expected set with the module's own `_reaches_tr` is
+      *circular*: that helper is seeded by `_TRANSLATOR_SEEDS`, so removing a
+      seed removes it from both sides and the check can never fail (verified
+      by mutation). Deriving it by intersecting "methods in `formatter.py`
+      that mention a translator" with "attribute names called in
+      `gui/util.py`" *over-reaches*: names are matched bare, so `util`'s own
+      `preset_label` collides with a same-named `Formatter` method and eleven
+      false positives are reported. A correct guard has to resolve the
+      receiver, not just the attribute name. Fragility only — nothing is
+      mis-translated today.
+- [ ] **`gui/util.py`'s `fmt_clock` is a forwarder with no production
+      callers** — it earned its place before Phase 19, when it built a
+      `QtLocaleFormatter(QLocale())` its callers could not. It is now
+      `return fmt.clock(when)`. Five test modules still import it, so
+      deleting it is a test-only change of moderate churn; `fmt_day_and_clock`
+      beside it is still a real whole-message renderer and stays.
+- [ ] **The tray tooltip's refresh on Apply is incidental, and its test fakes
+      the trigger** — `tests/test_tray_tooltip.py` forces the redraw with
+      `snoozeUntilChanged`, while the tray's own `ctx.configChanged`
+      subscription only rebuilds the presets submenu. So a clock-format change
+      reaches the tooltip via the daemon echoing `StatusChanged`, not via
+      Apply. Narrow in practice — the tooltip carries a clock only while
+      snoozed — but the test claims to pin a mechanism it does not exercise.
+- [ ] **CI generates no POSIX locale for any shipped language, so a
+      locale-sensitive gate only ever runs on a developer machine** — two
+      different things are called a language here and CI has only one of them.
+      The *catalog code* (`es`, from a compiled catalog) is committed and
+      ships, so the runner has it. The *POSIX locale* (`es_ES.UTF-8`,
+      generated in the operating system) is absent from both the GitHub runner
+      and the RPM buildroot. Any check needing the second kind skips there.
+      Today that is
+      `tests/test_golden_presentation_contract.py`'s
+      `test_the_qt_free_backend_ignores_the_posix_locale_too`, which renders
+      every shared formatter under a non-English numeric and time locale and
+      requires the output to match the `C` baseline — `BACK-04` as a
+      behavioural check rather than a promise, and the leg that caught the real
+      hole in Phase 17 when a mutant using a C-library number and date
+      conversion passed everything else. The proof that does run everywhere is
+      the structural gate in `tests/test_plain_locale.py`, which parses every
+      module under `core/presentation/`, so the gap is narrow rather than open:
+      a source-level reintroduction is still caught, a behavioural one is not.
+      Closing it is one step in the test workflow, no new runtime dependency —
+      but generate the list **from the shipped catalogs** rather than naming a
+      language, and fix the test's own hardcoded candidate locales the same
+      way, or language three lands in exactly this position again. The catalog
+      code to locale name mapping is not mechanical (`pt` has two territories)
+      and wants an explicit answer in committed source. The RPM buildroot is a
+      separate decision — no workflow step reaches it, and closing it means a
+      langpack build dependency per language.
+- [ ] **The window's minimum size is a pixel constant chosen against English,
+      and Spanish page content clips below it** — `gui/main_window.py` declares
+      a fixed minimum size, but the width the layout actually needs is a
+      function of the translated strings inside it. Measured offscreen through
+      `tests/test_baseline_window.py`'s own harness,
+      `window.minimumSizeHint().width()` is 658 for English and 779 for
+      Spanish, so the app permits a Spanish window narrow enough to cut its own
+      Settings content off — which is exactly what a maintainer hit, at the
+      window size English had trained them to use. Pre-existing: Spanish
+      already needed 770 before Phase 16's sidebar work, ten over the declared
+      minimum; that phase's nine-pixel sidebar growth moved it to 779, making
+      it a contributor rather than the cause. Same root-cause family as both
+      defects Phase 16 fixed — a pixel constant measured against English with
+      nothing checking whether a translation fits — which is the argument for
+      fixing it by measuring rather than by raising the number. Measurements,
+      four options and the shape of the test that would catch it are written up
+      in `2026-08-24-window-minimum-width-clips-translated-pages.md`, with its
+      reproduction script beside it; read that rather than re-deriving any of
+      it. Found during the Phase 16 bilingual walk.
 - [ ] **Six translated messages carry unnamed format slots a translator
       cannot reorder** — each is a single whole catalog entry, so the
       concatenation gate correctly reports no offender and no v1.1.1
@@ -582,6 +715,24 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a mode and has three callers (the pre-commit hook, the `secrets` CI job
       and this one-time pre-flip scan), so thinning it is no longer the
       single-caller change the source note assumed.
+- [ ] **A `git commit` given a trailing pathspec can trip the pre-commit
+      hook's canary into a false refusal** — found and root-caused during
+      Phase 15, unrelated to that phase's own changes. `git commit -- <paths>`
+      makes git export a temporary lock-index path via `GIT_INDEX_FILE`; the
+      hook's nested canary `git -C $CANARY_DIR init`/`add` calls inherit that
+      variable because `-C` does not clear it, so the canary's synthetic
+      secret gets written into the *outer* repository's temp lock-index
+      instead of the canary's own fresh index. The containerized scanner never
+      sees `GIT_INDEX_FILE` and falls back to the canary's untouched real
+      index, finds nothing, and the hook correctly refuses on "canary reported
+      no findings" — its designed response to a broken scan, working exactly
+      as intended against a corrupted setup it didn't cause. Reproduced
+      deterministically: the same staged content commits cleanly with a plain
+      `git commit -m "..."` (no trailing pathspec) every time. Fix is to clear
+      `GIT_INDEX_FILE` (and `GIT_DIR`/`GIT_WORK_TREE`) before the nested canary
+      `git` calls in `scripts/scan-secrets.sh`; not fixed here since the
+      workaround (omit the trailing pathspec) is reliable for as long as a
+      caller stages exactly what it intends to commit.
 - [ ] **Fedora 42 cannot *build* this project's RPM: `setuptools>=77` unmet** —
       `pyproject.toml`'s `[build-system] requires` floors `setuptools` at 77,
       needed for PEP 639's SPDX `license`/`license-files` metadata. Fedora 42

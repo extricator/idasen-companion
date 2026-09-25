@@ -65,12 +65,12 @@ Whoever does the tidying — this session or a later one — is bound by two rul
   Phase D pushes with a plain `git push`, and branch protection will forbid the
   alternative outright once the repository is public.
 - **Carry any `!` or `BREAKING CHANGE` marker onto the squashed message.** A1
-  computes the bump from subject lines, so a marker dropped in a squash turns a
-  major release into a patch. Nothing downstream catches it: the version tests
-  compare the seven manifests against `__version__`, never against what the
-  commits said.
+  computes the bump from complete commit messages, so a marker dropped in a
+  squash turns a major release into a patch. Nothing downstream catches it:
+  the version tests compare the seven manifests against `__version__`, never
+  against what the commits said.
 
-Either way the tidying happens before A1, because A1 reads the subject lines it
+Either way the tidying happens before A1, because A1 reads the commit messages it
 would rewrite.
 
 ---
@@ -81,17 +81,22 @@ would rewrite.
 
 ```bash
 LAST=$(git describe --tags --abbrev=0)
-git log --format='%h %s' "$LAST..HEAD"
+git log --format='%n@@ %h%n%B' "$LAST..HEAD"
 ```
 
-Classify each subject by its conventional-commit type.
+The `@@` line separates commits. Classify each complete message by its
+conventional-commit type and breaking-change markers.
 
 | Types present | Bump |
 |---|---|
-| any `!` or `BREAKING CHANGE` | major |
+| any `!` after the type/scope, or a `BREAKING CHANGE` footer | major |
 | any `feat` | minor |
-| any `fix` | patch |
+| any `fix` or `perf` | patch |
 | only `docs`, `chore`, `test`, `ci`, `refactor`, `style` | none |
+
+If another type or an unconventional message appears, inspect its compatibility
+and user-visible impact. Do not silently treat it as no release; ask the user
+when its intended bump is ambiguous.
 
 ### A2. Propose the version
 
@@ -102,15 +107,27 @@ When the table gives **none**, say so plainly. Do not invent a `fix:` to
 force a bump. A documentation release is a legitimate override. Record the
 reason in the changelog section.
 
+After the user confirms the target, check that exact tag again:
+
+```bash
+git ls-remote --tags origin "refs/tags/vX.Y.Z"
+git rev-parse --verify --quiet "refs/tags/vX.Y.Z"
+```
+
+Any output from the first command or a successful second command means the
+version is already spent. Stop; never move or rebuild that tag.
+
 ### A3. Draft three pieces of prose
 
 Write all three before you edit anything. Show them to the user together.
 Match the voice of the existing entries. Do not concatenate commit subjects.
 
-1. **The `CHANGELOG.md` section.** This becomes the release body verbatim —
-   `scripts/extract-changelog.sh` extracts exactly it. Follow Keep a
-   Changelog: `### Added`, `### Changed`, `### Fixed`, `### Removed`,
-   `### Security`. Documentation work goes under `### Changed`.
+1. **The `CHANGELOG.md` section.** Reconcile the existing `[Unreleased]`
+   content with every commit since the last tag; do not duplicate or omit
+   already-drafted entries. This becomes the release body verbatim —
+   `scripts/extract-changelog.sh` extracts exactly it. Follow Keep a Changelog:
+   `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Security`.
+   Documentation work goes under `### Changed`.
 2. **The metainfo description.** One or two short `<p>` blocks. GNOME
    Software and KDE Discover show this text to end users, so write for a
    reader who has never seen the repository.
@@ -204,15 +221,18 @@ newest one. Keep the older elements. Software centres show release history.
 
 ### B9. `CHANGELOG.md`
 
-Add the section from A3 directly under the introductory paragraph, above the
-current newest heading:
+Keep `## [Unreleased]` directly under the introductory paragraph. Move its
+release-ready content into the section approved in A3, reconcile that content
+with the commits being released, and put the new version directly below the
+now-clean `[Unreleased]` heading:
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
 ```
 
 The section must have content. An empty section passes the version check and
-then becomes an empty release page.
+then becomes an empty release page. Do not leave released entries under
+`[Unreleased]`, and do not duplicate them in both sections.
 
 ---
 
@@ -220,7 +240,7 @@ then becomes an empty release page.
 
 ```bash
 .venv/bin/python -m pytest -q
-bash scripts/build-dist.sh
+PYTHON=.venv/bin/python bash scripts/build-dist.sh
 ```
 
 `pytest` is the proof that you missed no file. `test_every_manifest_agrees_with_the_package_version`
@@ -258,9 +278,14 @@ Never `git add -f` anything under `.planning/`. That directory and
 Then wait for the aggregate check to go green:
 
 ```bash
-gh run list --workflow=ci.yml --commit="$(git rev-parse HEAD)" --limit 1
-gh run watch <run-id> --exit-status
+RELEASE_SHA=$(git rev-parse HEAD)
+gh run list --workflow=ci.yml --commit="$RELEASE_SHA" --limit 1 \
+  --json databaseId,headSha,status,conclusion,url
+gh run watch <database-id> --exit-status
 ```
+
+If the exact-SHA query is empty, wait for Actions to register the run and query
+again. Never substitute the merely latest CI run.
 
 The aggregate check is named `CI OK`, verbatim. It fails when any job is
 `failure`, `cancelled` **or `skipped`**.
@@ -273,30 +298,53 @@ Stop here if CI is red. Report what failed.
 
 **Ask the user before this phase. Every time.**
 
-This is the only irreversible step. It creates a public tag and a public
-release. Show the user the version and the release notes, then wait for an
-explicit go-ahead.
+This is the only irreversible step. It creates a remote tag and a published
+GitHub Release, visible to everyone with access to the repository. Show the
+user the version and the release notes, then wait for an explicit go-ahead.
 
 Offer a dry run first when the release machinery itself changed. A dry run
-builds all three packages and writes the checksums, and creates no tag and no
-release:
+builds all five release artifacts and writes their checksums, and creates no
+tag and no release. Before either kind of dispatch, record every existing
+release-workflow run ID for this commit:
 
 ```bash
-gh workflow run release.yml -f version=X.Y.Z -f dry_run=true
+RELEASE_SHA=$(git rev-parse HEAD)
+BEFORE_RUN_IDS=$(gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
+  --event workflow_dispatch --limit 100 --json databaseId \
+  --jq '.[].databaseId')
 ```
 
-The real release:
+Then dispatch either the dry run:
 
 ```bash
-gh workflow run release.yml -f version=X.Y.Z
-gh run list --workflow=release.yml --limit 1
-gh run watch <run-id> --exit-status
+gh workflow run release.yml --ref main -f version=X.Y.Z -f dry_run=true
 ```
+
+or, after the required explicit approval, the real release:
+
+```bash
+gh workflow run release.yml --ref main -f version=X.Y.Z
+```
+
+Poll for the dispatched run:
+
+```bash
+gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
+  --event workflow_dispatch --limit 100 \
+  --json databaseId,headSha,status,conclusion,url
+```
+
+Select a `databaseId` absent from `BEFORE_RUN_IDS`. If none is present yet,
+wait for Actions to register the dispatch and query again. Watch that exact new
+ID with `gh run watch <database-id> --exit-status`. Never watch an older run,
+including a dry run for the same commit. A successful dry run does not approve
+or dispatch the real release; ask again before the real dispatch.
 
 The workflow re-checks the version against `__version__`, refuses a tag that
-already exists, builds the RPM, the `.deb` and the Flatpak bundle, writes
-`SHA256SUMS` over the three, creates the `vX.Y.Z` tag pointing at the commit
-the artifacts came from, and publishes.
+already exists, builds the full and headless RPMs, the full and headless
+`.deb` packages, and the Flatpak bundle, writes `SHA256SUMS` over all five,
+creates the `vX.Y.Z` tag pointing at the commit the artifacts came from, and
+publishes.
 
 Report the release URL:
 

@@ -1,9 +1,9 @@
 """Configuration model, loading, validation, and saving.
 
 The config lives at ``~/.config/idasen-companion/config.toml``. Reading
-uses stdlib ``tomllib``; writing uses ``tomlkit`` so user comments and
-formatting survive round-trips. Durations are stored in the file as
-compact strings ("45m") and held in memory as integer seconds.
+uses stdlib ``tomllib``; writing uses ``tomlkit`` so user comments, unknown
+options, and formatting survive round-trips. Durations are stored in the file
+as compact strings ("45m") and held in memory as integer seconds.
 """
 
 from __future__ import annotations
@@ -13,7 +13,9 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .display_prefs import ClockSetting
 from .durations import format_duration_compact, parse_duration
+from .display_prefs import UnitSetting
 
 DEFAULT_CONFIG_DIR = Path(
     os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -53,8 +55,18 @@ VALID_CLOSE_ACTIONS = ("tray", "quit")
 # units: how the GUI shows heights. A display setting only — heights are
 # metres in this config, in the state machine, in the stats DB and on the
 # D-Bus wire, whatever this says. "system" derives the unit from the desktop
-# locale (see gui/util.resolve_height_unit); "cm" and "in" pin it.
-VALID_UNITS = ("system", "cm", "in")
+# locale (see core/units.resolve_height_unit); "cm" and "in" pin it.
+# Derived from UnitSetting rather than restated as three strings, so the
+# validator and the type cannot drift apart; its value and order are the
+# same three strings this held before ("system", "cm", "in") and reach the
+# validation message _require_choice below builds.
+VALID_UNITS = tuple(member.value for member in UnitSetting)
+
+# See UiConfig.clock_format. "system" reads the POSIX time locale and, failing
+# that, the territory of the language in play (see core/display_prefs.py);
+# "12" and "24" pin the clock outright. Derived from ClockSetting rather than
+# restated, for the same reason the units tuple above is.
+VALID_CLOCK_FORMATS = tuple(member.value for member in ClockSetting)
 
 # Physical limits of the Idåsen desk (from the Linak controller).
 MIN_HEIGHT = 0.62
@@ -63,6 +75,56 @@ MAX_HEIGHT = 1.27
 
 class ConfigError(Exception):
     """Raised when the configuration file is invalid."""
+
+
+@dataclass(frozen=True)
+class ConfigWarning:
+    """Forward-compatible config data this version does not understand.
+
+    The structured fields let every front end choose its own presentation.
+    ``str(warning)`` is the Qt-free, stable-English form used by the daemon's
+    journal and, from Phase 4, the CLI's stderr.
+    """
+
+    source: Path
+    section: str | None
+    key: str | None = None
+
+    def __str__(self) -> str:
+        if self.section is None:
+            return f"{self.source}: unknown top-level key {self.key!r}; preserving it"
+        if self.key is None:
+            return f"{self.source}: unknown section [{self.section}]; preserving it"
+        return f"{self.source}: unknown option [{self.section}] {self.key}; preserving it"
+
+
+def format_config_warning(warning: ConfigWarning) -> str:
+    """Render ``warning`` through the selected app gettext catalog.
+
+    Kept in this Qt-free module so GUI and the Phase 4 CLI cannot acquire
+    different wording for the same loader result. ``str(warning)`` remains the
+    stable-English diagnostic form for journals.
+    """
+    from .i18n import pgettext
+
+    values = {
+        "path": str(warning.source),
+        "section": warning.section or "",
+        "key": warning.key or "",
+    }
+    if warning.section is None:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown top-level key %(key)s; preserving it")
+    elif warning.key is None:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown section [%(section)s]; preserving it")
+    else:
+        template = pgettext(
+            "config-warning.detail",
+            "%(path)s: unknown option [%(section)s] %(key)s; preserving it")
+    return template % values
 
 
 @dataclass
@@ -133,7 +195,26 @@ class UiConfig:
     # is a first guess rather than an answer — plenty of people in metric
     # countries think about a desk in inches, and the reverse — so the two
     # explicit values exist to override it for good.
+    #
+    # Stays str, not UnitSetting: this attribute name is the TOML key
+    # (_apply_section resolves it with hasattr/getattr straight from
+    # tomllib), and the tomlkit write path in save_config below writes
+    # whatever this holds verbatim, so a StrEnum instance must never reach
+    # it. Coercion to UnitSetting happens at the point of use instead — the
+    # boundary core/display_prefs.py's resolve_height_unit sits behind.
     units: str = "system"
+    # See VALID_CLOCK_FORMATS. Which clock every wall-clock time the app shows
+    # is read on. "system" is a first guess from the environment rather than
+    # an answer, so the two explicit values exist to override it for good.
+    # Applied on Apply, not at startup: no string is baked at construction for
+    # it, and the surfaces that render a time redraw from the rebuilt
+    # formatter.
+    #
+    # Stays str, not ClockSetting, for the reason the units field above gives:
+    # this attribute name is the TOML key, and the tomlkit write path must
+    # never be handed a StrEnum instance. Coercion happens at the point of
+    # use, behind core/display_prefs.py's resolver.
+    clock_format: str = "system"
     # Window/tray behaviour. All of these only bite when a system tray exists;
     # with no tray the window always shows and closing it exits (see gui/main).
     # What each tray-icon gesture does (see VALID_TRAY_ACTIONS). Left-click
@@ -169,6 +250,11 @@ class AppConfig:
     advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
     ui: UiConfig = field(default_factory=UiConfig)
     presets: dict[str, float] = field(default_factory=lambda: dict(FALLBACK_PRESETS))
+    # Loader diagnostics, not configuration. Excluding them from equality
+    # keeps a warning-only reload from looking like a preference change; the
+    # saver writes only the fields above, so they never enter TOML either.
+    warnings: tuple[ConfigWarning, ...] = field(
+        default=(), compare=False, repr=False)
 
 
 _DURATION_FIELDS = {
@@ -185,10 +271,12 @@ _DURATION_FIELDS = {
 }
 
 
-def _apply_section(target, section_name: str, data: dict) -> None:
+def _apply_section(target, section_name: str, data: dict, *, source: Path,
+                   warnings: list[ConfigWarning]) -> None:
     for toml_key, value in data.items():
         if not hasattr(target, toml_key):
-            raise ConfigError(f"unknown option [{section_name}] {toml_key}")
+            warnings.append(ConfigWarning(source, section_name, toml_key))
+            continue
         if (section_name, toml_key) in _DURATION_FIELDS:
             if isinstance(value, str):
                 try:
@@ -240,6 +328,8 @@ def _validate(config: AppConfig) -> None:
     _require_choice("ui", "tray_repeat_move",
                     config.ui.tray_repeat_move, VALID_TRAY_REPEAT)
     _require_choice("ui", "units", config.ui.units, VALID_UNITS)
+    _require_choice("ui", "clock_format",
+                    config.ui.clock_format, VALID_CLOCK_FORMATS)
     _require_choice("ui", "close_action",
                     config.ui.close_action, VALID_CLOSE_ACTIONS)
     for day in config.schedule.days:
@@ -285,6 +375,7 @@ def load_config(path: Path | None = None) -> AppConfig:
     yields pure defaults; a malformed file raises ConfigError."""
     path = path or DEFAULT_CONFIG_PATH
     config = AppConfig()
+    warnings: list[ConfigWarning] = []
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
@@ -294,10 +385,26 @@ def load_config(path: Path | None = None) -> AppConfig:
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as error:
         raise ConfigError(f"{path}: {error}") from error
 
-    for section_name in ("desk", "automation", "schedule", "notifications",
-                         "advanced", "ui"):
-        section_data = data.pop(section_name, None)
-        if section_data is None:
+    known_sections = {"desk", "automation", "schedule", "notifications",
+                      "advanced", "ui"}
+    presets = None
+    # Walk the parsed document in its insertion order. Besides applying known
+    # values, this makes warnings from known sections, unknown sections and
+    # unknown top-level keys share the source order the user sees in the file.
+    # The previous fixed schema-order pass grouped known-section warnings ahead
+    # of top-level warnings even when the latter appeared first in the source.
+    for section_name, section_data in list(data.items()):
+        if section_name == "presets":
+            presets = section_data
+            continue
+        if section_name == "hotkeys":
+            # Back-compat: the old in-app global-shortcuts portal wrote this
+            # table. The portal is gone, so retain the established silent drop.
+            continue
+        if section_name not in known_sections:
+            warnings.append(ConfigWarning(
+                path, section_name if isinstance(section_data, dict) else None,
+                None if isinstance(section_data, dict) else section_name))
             continue
         if not isinstance(section_data, dict):
             raise ConfigError(f"[{section_name}] must be a table")
@@ -327,9 +434,9 @@ def load_config(path: Path | None = None) -> AppConfig:
             # from a config written by an older version rather than failing the
             # unknown-option check.
             section_data.pop("tray_double_click", None)
-        _apply_section(getattr(config, section_name), section_name, section_data)
+        _apply_section(getattr(config, section_name), section_name, section_data,
+                       source=path, warnings=warnings)
 
-    presets = data.pop("presets", None)
     if presets is not None:
         if not isinstance(presets, dict):
             raise ConfigError("[presets] must be a table of name = height")
@@ -343,15 +450,11 @@ def load_config(path: Path | None = None) -> AppConfig:
     for name, height in FALLBACK_PRESETS.items():
         config.presets.setdefault(name, height)
 
-    # Back-compat: the old in-app global-shortcuts portal wrote a [hotkeys]
-    # table. The portal is gone, but an existing config still carries the
-    # section — drop it silently rather than failing the unknown-section check.
-    data.pop("hotkeys", None)
-
-    if data:
-        raise ConfigError(f"unknown config section(s): {', '.join(sorted(data))}")
-
     _validate(config)
+    # A tuple makes the loader result immutable at the boundary and preserves
+    # source order. dict.fromkeys prevents one parser node from producing the
+    # same warning twice if migration handling grows more complex later.
+    config.warnings = tuple(dict.fromkeys(warnings))
     return config
 
 
@@ -412,9 +515,9 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
     # midpoint).
     drop("advanced", "sitting_height_threshold")
 
-    for toml_key in ("language", "units", "tray_left_click", "tray_middle_click",
-                "tray_repeat_move", "close_action", "minimize_to_tray",
-                "start_minimized", "run_at_login"):
+    for toml_key in ("language", "units", "clock_format", "tray_left_click",
+                "tray_middle_click", "tray_repeat_move", "close_action",
+                "minimize_to_tray", "start_minimized", "run_at_login"):
         put("ui", toml_key, getattr(config.ui, toml_key))
     # The removed double-click action (SNI trays never delivered it).
     drop("ui", "tray_double_click")

@@ -1,165 +1,169 @@
 # Translating Idasen Companion
 
-Thanks for helping translate! Adding a language needs **no Python changes** —
-you add a language code, translate two text files, and recompile.
+All app-owned messages use one contextual GNU gettext catalog. GUI, daemon,
+Activity Log and future CLI strings are extracted into
+`po/idasen_companion.pot`; each language edits `po/<lang>.po`; compiled `.mo`
+files ship under `src/idasen_companion/locale/`.
 
-## What is (and isn't) translated
+Qt remains responsible only for standard widget text such as dialog buttons.
+`gui/i18n.py` installs Qt's prebuilt `qtbase` translator, not an app-owned Qt
+catalog.
 
-The app is two programs, so there are **two catalogs**:
+## What is translated
 
-| Surface | Mechanism | Source file | Compiled |
-|---|---|---|---|
-| **GUI** (windows, tray, dialogs) | Qt Linguist | `translations/idasen_companion_<lang>.ts` | `src/idasen_companion/gui/translations/*.qm` |
-| **Daemon desktop notifications** | GNU gettext | `po/<lang>.po` | `src/idasen_companion/locale/<lang>/LC_MESSAGES/*.mo` |
+The shared catalog covers:
 
-The GUI can't share the daemon's mechanism: the daemon is intentionally
-Qt-free, so it uses `gettext` instead of Qt's `tr()`.
+- windows, pages, tray menus and app-owned dialogs;
+- daemon desktop notifications;
+- shared presentation vocabulary and plurals;
+- Activity Log messages, rendered in the reader's selected language;
+- CLI messages when the CLI is added.
 
-**Deliberately left in English** (not a translation gap):
+Journald and free-form diagnostic lines deliberately remain stable English.
+Activity Log entries are different: the daemon sends a stable message id,
+English fallback and raw parameters, and the reader renders a recognized id
+through its own catalog. An older reader therefore still shows a newer
+daemon's English fallback instead of failing.
 
-- The daemon's **journald** output. Kept stable and greppable because that is
-  what a bug report needs.
-- Free-form **diagnostic** lines (`RingLog.diag`), which exist to be pasted
-  into a bug report.
+`[ui] language` binds the app gettext catalog in every process. `system`
+follows the process environment; another value names a catalog such as `es`.
+Missing catalogs and missing individual entries fall back to the English source
+string. The GUI applies a changed language after restart; the daemon rebinds on
+config reload.
 
-The **Activity Log is translated**, and its strings live in
-`gui/log_catalog.py` under the `LogMessage` context — that is a real catalog
-context with real work in it, so do not skip it. The daemon sends a stable
-message id plus raw parameters over the wire (`Log1.Entry`) and the GUI
-composes the sentence itself; see `docs/LOGGING.md`.
+## Semantic contexts
 
-At runtime the language comes from the **`[ui] language`** config setting
-(**Settings → General → Language** in the app). Its default, `"system"`,
-follows the desktop locale (`QLocale.system()` for the GUI; `LANGUAGE`/`LC_*`/
-`LANG` for the daemon); any other value is a catalog code like `es`. A missing
-catalog just falls back to English, so a partial translation is fine. The GUI
-bakes strings at construction, so changing the language applies after a
-restart; the daemon re-binds its catalog on config reload.
+Messages are keyed by English source plus a literal semantic context. Contexts
+describe the role—`overview`, `settings`, `activity-log.entry`—rather than a
+Python class name. This lets identical English words translate differently
+when they mean different things and avoids class renames orphaning messages.
+
+Use whole sentences and named placeholders whenever a translator may need to
+reorder values:
+
+```python
+text = pgettext(
+    "tray",
+    "%(position)s for %(duration)s",
+) % {"position": position, "duration": duration}
+```
+
+Source and translation must preserve the same placeholder names and conversion
+types. Escape a literal percent as `%%`.
+
+For real counts, use the catalog's plural rule rather than `(s)` or a Python
+`count == 1` branch:
+
+```python
+text = npgettext(
+    "activity-log.entry",
+    "%(count)s device found.",
+    "%(count)s devices found.",
+    count,
+) % {"count": formatted_count}
+```
+
+Spanish currently has two forms, but the code must remain valid for languages
+with more.
+
+## Translator comments
+
+Put a comment immediately before the extraction call and begin it with
+`Translators:`. The build passes that prefix to `xgettext`:
+
+```python
+# Translators: Text shown by the desktop's permission dialog.
+reason = pgettext("background-permission", "Start automatically at login")
+```
+
+Keep the comment about meaning, grammar or placeholder content. Do not restate
+the English sentence.
 
 ## Glossary
 
-One English concept gets one Spanish word, and one Spanish word must not
-cover two English concepts. On 2026-08-01, "preset" shipped as two different
-Spanish words in the same session, and one of those words was *also* the
-translation of the desk's physical position -- a translator picking a word
-mid-sentence had no way to know it collided with an established term
-elsewhere in the catalog.
-
-The terms are declared in `tests/test_terminology.py`, not restated here --
-a second copy is a second thing to keep in sync, and a document nobody
-re-reads while writing a string is exactly what let the 2026-08-01 drift
-through. Adding a term means adding it to that file's `TERMS` mapping. The
-suite fails a translation that uses a different word for a term the file
-already declares, so a colliding word choice is caught before it ships
-rather than found later.
+Established terminology is enforced in `tests/test_terminology.py`. Add a term
+to its `TERMS` mapping when the project needs a stable cross-screen word. The
+check ignores named placeholder identifiers, which are code and remain
+byte-identical in every translation.
 
 ## Prerequisites
 
-- PySide6 tools on `PATH`: `pyside6-lupdate`, `pyside6-lrelease`, and
-  optionally `pyside6-linguist` for the Qt Linguist GUI. They live in the
-  project venv, not the system `PATH` — run
-  `PATH="$PWD/.venv/bin:$PATH" ./scripts/build-translations.sh` rather than
-  invoking them directly.
-- GNU gettext: `xgettext`, `msginit`, `msgmerge`, `msgfmt`.
+Install GNU gettext tools: `xgettext`, `msginit`, `msgmerge` and `msgfmt`.
+PySide or Qt Linguist tools are not part of the app-catalog workflow.
 
-**Renaming a GUI class is a translation trap.** Qt translation contexts *are*
-class names, so renaming one orphans every `<message>` under its old `<name>`
-context in `translations/*.ts` — the strings fall back to English with
-nothing failing. See `docs/ARCHITECTURE.md` § "Renaming anything" for the
-recovery procedure.
-
-## Add a new language
+## Add a language
 
 Example: French (`fr`).
 
-1. Add the code to `LANGS` in `scripts/build-translations.sh`:
+1. Refresh the template:
 
    ```bash
-   LANGS=(es fr)
+   bash scripts/build-translations.sh
    ```
 
-2. Generate the empty catalogs (extracts current strings, creates the files):
+2. Create the PO file:
 
    ```bash
-   PATH="$PWD/.venv/bin:$PATH" ./scripts/build-translations.sh
+   msginit --no-translator --locale=fr \
+     -i po/idasen_companion.pot -o po/fr.po
    ```
 
-   This creates `translations/idasen_companion_fr.ts` and `po/fr.po`.
+3. Translate `po/fr.po`. Preserve every `msgctxt`, placeholder and plural form.
+4. Re-run `bash scripts/build-translations.sh`. Languages are discovered from
+   `po/*.po`, so no source-code list needs editing.
+5. Commit the `.po` and compiled `.mo` together.
 
-3. Translate the two files:
-   - **GUI:** open the `.ts` in Qt Linguist (`pyside6-linguist
-     translations/idasen_companion_fr.ts`) and fill in translations, or edit
-     the XML directly (set each `<translation>` and drop its
-     `type="unfinished"`).
+English is the source language and needs no catalog.
 
-     The catalog stores no source file/line references, so Linguist cannot
-     jump to the code a string came from. That is deliberate: a line number
-     moves whenever anything above the string moves, and the resulting churn
-     is indistinguishable — to the CI check that regenerates the catalogs and
-     diffs them — from a string shipped untranslated. Use the [Glossary](#glossary)
-     for the context those references used to supply; the `<name>` context on
-     each message also tells you which screen it belongs to.
-   - **Notifications:** edit `po/fr.po`, filling each `msgstr`. Make sure the
-     header says `charset=UTF-8` if you use accents.
+### First right-to-left catalog
 
-4. Recompile (produces the shipped `.qm` and `.mo`):
+The GUI already maps its known asymmetric layouts and custom painting through
+Qt's selected layout direction, but that is structural readiness rather than a
+claim that an RTL language is supported. Before the first Arabic, Hebrew or
+other right-to-left catalog is released, it requires both a native-speaker
+linguistic review and the installed-GUI visual walk in
+`docs/MANUAL-TESTING.md`. Do not add the language to a release based only on
+the offscreen geometry suite or machine-generated translations.
 
-   ```bash
-   PATH="$PWD/.venv/bin:$PATH" ./scripts/build-translations.sh
-   ```
+## Update catalogs after a string change
 
-5. Commit **both** the sources (`.ts`, `.po`) **and** the compiled catalogs
-   (`.qm`, `.mo`) — the compiled files ship inside the package (sdist/wheel/RPM
-   include them via `MANIFEST.in` + `[tool.setuptools.package-data]`).
+Run:
 
-## Update an existing language after strings change
+```bash
+bash scripts/build-translations.sh
+git diff --check
+```
 
-Just re-run the build script: `lupdate` and `msgmerge` merge new/changed
-strings into the existing files (keeping your translations, flagging changed
-ones as unfinished), then `lrelease`/`msgfmt` recompile. Fill in the new
-entries and re-run.
+The build scans every Python file under `src/idasen_companion`, records
+filename-only locations, pins the POT creation date, merges each discovered PO
+and compiles its MO. Running it twice without source or translation edits must
+produce no diff.
+
+## Developer API
+
+Import runtime lookups from `core.i18n`:
+
+- `_`, `pgettext` for immediate singular messages;
+- `ngettext`, `npgettext` for immediate plurals.
+
+Calls intended for extraction must pass literal contexts and source strings.
+The extraction-freshness tests catch markers outside the configured keyword
+positions.
+
+For a message stored at module import and translated later, use `P_` or `NP_`
+from `core.i18n`. They return string-compatible keys carrying
+their semantic context; `GettextTranslator` performs the lookup at render time,
+so a later language rebind remains visible.
+
+Do not use `QObject.tr`, `QCoreApplication.translate`, `QT_TRANSLATE_NOOP`,
+opaque gettext source ids, sentence fragments, or hand-written plural
+selection for app-owned messages.
 
 ## Try it
 
-Pick the language in **Settings → General → Language** (relaunch to apply), or
-force it via the environment for a quick check:
+Choose **Settings → General → Language** and relaunch, or test from the
+environment:
 
 ```bash
 LANGUAGE=es LANG=es_ES.UTF-8 .venv/bin/idasen-companion
 ```
-
-## For developers: wrapping new strings
-
-- **GUI:** wrap user-facing literals in `self.tr("...")` (inside a `QObject`
-  subclass) or `QCoreApplication.translate("<Context>", "...")`. Use `%s`/`%d`
-  Python formatting *after* `tr()` — PySide6's `tr()` returns a plain `str`, so
-  **`.arg()` does not exist** (`self.tr("x=%s") % v`, not `.arg(v)`). Escape a
-  literal `%` as `%%`. Plurals: `self.tr("%n item(s)", "", n)`.
-- **`lupdate` only extracts literals inside recognized calls** (`.tr(`,
-  `QCoreApplication.translate(`, `QT_TRANSLATE_NOOP(`). A `tr(variable)` or a
-  custom wrapper hides the string. For module-level constants (evaluated before
-  the translator is installed), mark them with `QT_TRANSLATE_NOOP("<Context>",
-  "...")` and translate at the use-site — see `gui/util.py` and
-  `gui/main_window.py`'s `NAV_ITEMS`.
-- **Daemon:** wrap notification strings in `_("...")` / `ngettext(...)` from
-  `daemon/i18n.py`. Keep journald/Activity-Log strings in English.
-- **Numbers and units:** render a height (or any other locale-sensitive
-  decimal) with `gui/util.py`'s `fmt_number()`, not an f-string — it reads the
-  default `QLocale` so `110.5` becomes `110,5` under `es`. Get a spin box's
-  unit suffix from `suffix_cm()`/`suffix_minutes()`/`suffix_seconds()` rather
-  than a literal `setSuffix(" cm")`, which is invisible to `lupdate` and to
-  every non-English user. Both live in the `util` catalog context, so a new
-  call site adds no new translation entry.
-- **A translatable unit is a whole message with its substitutions named, not
-  a translated fragment joined to something else** with `+`, `+=`, an
-  f-string, or `.join()` — a translator can't reorder pieces the code has
-  already stuck together, and a broken one still ships looking fine in
-  English. The three
-  spin-box suffix helpers above are the only exception, because
-  `QAbstractSpinBox`'s suffix API takes a plain string and adds no space of
-  its own. `tests/test_translation_markers.py` enforces this in every scope
-  of every file under `src/idasen_companion` — module and class bodies
-  included, which is where a string that has to exist before the translator
-  loads lives; see `CLAUDE.md` § "Adding user-facing strings" for the full
-  rule.
-- After adding strings, run `scripts/build-translations.sh` and commit.

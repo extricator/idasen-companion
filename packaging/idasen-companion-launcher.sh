@@ -1,5 +1,5 @@
 #!/bin/sh
-# Start one of the app's two entry points on the interpreter this package
+# Start one of the app's three entry points on the interpreter this package
 # carries.
 #
 # The package ships a complete Python of its own — the interpreter and every

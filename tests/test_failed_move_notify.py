@@ -18,6 +18,15 @@ from unittest.mock import AsyncMock, MagicMock
 from idasen_companion.core.machine import (
     DeskState, HeldOffCycle, MoveFailed, SyncFailed,
 )
+from idasen_companion.core.presentation import (
+    Formatter, PresentationContext,
+)
+from idasen_companion.core.locale_profile import TimeStyle
+from idasen_companion.core.i18n import (
+    GettextTranslator,
+)
+from idasen_companion.core.locale_profile import LocaleProfile
+from idasen_companion.core.display_prefs import HeightUnit
 from idasen_companion.daemon.main import Daemon
 
 TARGET = 45 * 60
@@ -36,6 +45,15 @@ def _daemon(*, problems: bool = True, enabled: bool = False):
     d._ifaces = {"automation": MagicMock()}
     d.machine = MagicMock(held=False, target_duration=TARGET)
     d.machine.cycle_target.return_value = TARGET
+    # A real Formatter, not a MagicMock: these tests assert on the rendered
+    # summary and body handed to the notifier. Built directly rather than
+    # through Daemon._build_formatter because `config` above is a MagicMock,
+    # which has no resolvable [ui] units — the pair is the same one the
+    # daemon builds for itself (D-06).
+    d.fmt = Formatter(PresentationContext(
+        locale=LocaleProfile("en_US"), translator=GettextTranslator(),
+        unit=HeightUnit.CENTIMETRES,
+        time_style=TimeStyle.HOUR_AND_MINUTE_24))
     d._notifier = MagicMock(send=AsyncMock())
     d.manual_move_to_preset = AsyncMock()
     return d

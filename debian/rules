@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=idasen_companion
+# With more than one binary package pybuild no longer guesses a destination.
+# Stage the common wheel once, then let the two .install manifests copy it.
+export PYBUILD_DESTDIR=debian/tmp
 
 %:
 	# dh-python Provides dh-sequence-python3, but that's a virtual name --
@@ -11,7 +13,19 @@ export PYBUILD_NAME=idasen_companion
 	dh $@ --buildsystem=pybuild --with python3
 
 override_dh_installsystemduser:
-	dh_installsystemduser --no-enable
+	dh_installsystemduser --no-enable -p idasen-companion
+	dh_installsystemduser --no-enable -p idasen-companion-headless --name=idasen-companion
+
+override_dh_install:
+	dh_install
+	# Both standalone packages receive the common Python package from the same
+	# pybuild output. The headless flavor then drops the GUI boundary and its
+	# console script; assertions turn future path/name drift into a failed build.
+	rm -rf debian/idasen-companion-headless/usr/lib/python3*/dist-packages/idasen_companion/gui
+	rm -f debian/idasen-companion-headless/usr/bin/idasen-companion
+	test -x debian/idasen-companion-headless/usr/bin/idasen-companion-cli
+	test -x debian/idasen-companion-headless/usr/bin/idasen-companiond
+	test -z "$$(find debian/idasen-companion-headless/usr/lib/python3*/dist-packages/idasen_companion -maxdepth 1 -type d -name gui -print -quit)"
 
 override_dh_auto_test:
 	python3 -c "import PySide6.QtWidgets"

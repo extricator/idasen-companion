@@ -6,6 +6,8 @@ the Automation page. Both are forms over config.toml (SettingsFormPage).
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
     QCheckBox, QHBoxLayout, QLineEdit, QMessageBox, QPushButton,
@@ -23,27 +25,39 @@ class SettingsPage(SettingsFormPage):
     def _build_cards(self, outer) -> None:
         # ----- GENERAL -----
         general = Card()
-        general.body.addWidget(section_label(self.tr("General")))
+        general.body.addWidget(section_label(pgettext('settings', "General")))
         self.language_combo = self._themed_combo()
         # "System default" + a forced "English" (the source language, no
         # catalog needed) + every shipped catalog, self-named.
-        self.language_combo.addItem(self.tr("System default"), SYSTEM)
+        self.language_combo.addItem(pgettext('settings', "System default"), SYSTEM)
         self.language_combo.addItem("English", "en")
         for code in available_languages():
             self.language_combo.addItem(language_display_name(code), code)
         general.body.addWidget(self._settings_row(
-            self.tr("Language"), self.language_combo,
-            self.tr("Applies after you restart the app")))
+            pgettext('settings', "Language"), self.language_combo,
+            pgettext('settings', "Applies after you restart the app")))
         # Unlike Language, this one applies on Apply: no string is baked at
         # construction for it, so the pages just redraw (see gui/context.py).
         self.units_combo = self._themed_combo()
-        self.units_combo.addItem(self.tr("System default"), "system")
-        self.units_combo.addItem(self.tr("Centimetres"), "cm")
-        self.units_combo.addItem(self.tr("Inches"), "in")
+        self.units_combo.addItem(pgettext('settings', "System default"), "system")
+        self.units_combo.addItem(pgettext('settings', "Centimetres"), "cm")
+        self.units_combo.addItem(pgettext('settings', "Inches"), "in")
         general.body.addWidget(self._settings_row(
-            self.tr("Height units"), self.units_combo,
-            self.tr("How heights are shown. The default follows your "
+            pgettext('settings', "Height units"), self.units_combo,
+            pgettext('settings', "How heights are shown. The default follows your "
                     "region — the desk itself is unaffected")))
+        # Applies on Apply, on the Height units precedent directly above:
+        # nothing here bakes a string at construction, so the surfaces that
+        # render a time simply redraw from the rebuilt formatter. The
+        # example inside each option says what you get before you apply it.
+        self.clock_format_combo = self._themed_combo()
+        self.clock_format_combo.addItem(pgettext('settings', "System default"), "system")
+        self.clock_format_combo.addItem(pgettext('settings', "12-hour (2:32 PM)"), "12")
+        self.clock_format_combo.addItem(pgettext('settings', "24-hour (14:32)"), "24")
+        general.body.addWidget(self._settings_row(
+            pgettext('settings', "Clock format"), self.clock_format_combo,
+            pgettext('settings', "How times of day are shown. The default follows your "
+                    "region")))
         # Autostart is systemd state, not config, so it is the one control on
         # this page that the footer does not govern — it acts on click. The
         # help line says so, because a staged-looking checkbox that Reset
@@ -51,8 +65,8 @@ class SettingsPage(SettingsFormPage):
         self.autostart_check = QCheckBox()
         self.autostart_check.toggled.connect(self._toggle_autostart)
         self._autostart_row = self._settings_row(
-            self.tr("Start automatically at login"), self.autostart_check,
-            self.tr("Runs the background service when you log in. Applies "
+            pgettext('settings', "Start automatically at login"), self.autostart_check,
+            pgettext('settings', "Runs the background service when you log in. Applies "
                     "immediately, not on Apply"))
         general.body.addWidget(self._autostart_row)
         # Only shown when the unit can't be managed from here (masked, not
@@ -64,14 +78,14 @@ class SettingsPage(SettingsFormPage):
 
         # ----- WINDOW & TRAY -----
         self._tray_card = Card()
-        self._tray_card.body.addWidget(section_label(self.tr("Window & tray")))
+        self._tray_card.body.addWidget(section_label(pgettext('settings', "Window & tray")))
         # One action per tray-icon gesture. "none" lets a gesture do nothing.
         self._tray_actions = [
-            ("window", self.tr("Open window")),
-            ("toggle", self.tr("Toggle sit / stand")),
+            ("window", pgettext('settings', "Open window")),
+            ("toggle", pgettext('settings', "Toggle sit / stand")),
             ("sit", preset_label("sit")),
             ("stand", preset_label("stand")),
-            ("none", self.tr("Do nothing")),
+            ("none", pgettext('settings', "Do nothing")),
         ]
         self.tray_left_combo = self._action_combo()
         self.tray_middle_combo = self._action_combo()
@@ -80,11 +94,11 @@ class SettingsPage(SettingsFormPage):
             "tray_middle_click": self.tray_middle_combo,
         }
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Left click"), self.tray_left_combo))
+            pgettext('settings', "Left click"), self.tray_left_combo))
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Middle click"), self.tray_middle_combo))
+            pgettext('settings', "Middle click"), self.tray_middle_combo))
         self.repeat_move = SegmentedControl(
-            [self.tr("Nothing"), self.tr("Stop"), self.tr("Return")])
+            [pgettext('settings', "Nothing"), pgettext('settings', "Stop"), pgettext('settings', "Return")])
         # This row sets the whole page's minimum width, so both halves of it
         # are kept short. A SegmentedControl pins each button to its bold text
         # advance and cannot elide, so its labels are a hard floor; and the row
@@ -92,64 +106,63 @@ class SettingsPage(SettingsFormPage):
         # the two rows above it. What each segment does is on the help line
         # below, which wraps and therefore costs nothing.
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Repeat click"), self.repeat_move,
+            pgettext('settings', "Repeat click"), self.repeat_move,
             segment_help=[
-                self.tr("A repeat click during a move is ignored"),
-                self.tr("Stops the desk where it is"),
-                self.tr("Sends the desk back to where the move began"),
+                pgettext('settings', "A repeat click during a move is ignored"),
+                pgettext('settings', "Stops the desk where it is"),
+                pgettext('settings', "Sends the desk back to where the move began"),
             ]))
         self._tray_card.body.addWidget(separator())
         self.close_action = SegmentedControl(
-            [self.tr("Hide"), self.tr("Quit")])
+            [pgettext('settings', "Hide"), pgettext('settings', "Quit")])
         # "Hide" and "Quit" alone drop the "to tray" and "the app" that made
         # the old labels unambiguous. The help line carries them back, and it
         # wraps, so unlike the segments it costs no width.
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Close button"), self.close_action,
+            pgettext('settings', "Close button"), self.close_action,
             segment_help=[
-                self.tr("Closing the window hides it to the tray"),
-                self.tr("Closing the window quits the app"),
+                pgettext('settings', "Closing the window hides it to the tray"),
+                pgettext('settings', "Closing the window quits the app"),
             ]))
         self.minimize_tray_check = QCheckBox()
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Minimize to the tray"), self.minimize_tray_check,
-            self.tr("Hide to the tray on minimize, not only on close")))
+            pgettext('settings', "Minimize to the tray"), self.minimize_tray_check,
+            pgettext('settings', "Hide to the tray on minimize, not only on close")))
         self.start_min_check = QCheckBox()
         self._tray_card.body.addWidget(self._settings_row(
-            self.tr("Start hidden in the tray"), self.start_min_check,
-            self.tr("Launch to the tray without opening the window")))
-        self._no_tray_note = self._muted_label(self.tr(
-            "No system tray detected, so these have no effect this session."))
+            pgettext('settings', "Start hidden in the tray"), self.start_min_check,
+            pgettext('settings', "Launch to the tray without opening the window")))
+        self._no_tray_note = self._muted_label(pgettext('settings', "No system tray detected, so these have no effect this session."))
         self._no_tray_note.setVisible(not self.ctx.tray_available)
         self._tray_card.body.addWidget(self._no_tray_note)
         outer.addWidget(self._tray_card)
 
         # ----- DESK CONNECTION -----
         desk = Card()
-        desk.body.addWidget(section_label(self.tr("Desk connection")))
+        desk.body.addWidget(section_label(pgettext('settings', "Desk connection")))
         self.mac_edit = QLineEdit()
         # Input mask: type hex only, the colons are drawn and stepped over
         # automatically, each pair auto-advances. '>' forces upper case.
         self.mac_edit.setInputMask(">HH:HH:HH:HH:HH:HH;_")
         self.mac_edit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        wizard_btn = QPushButton(self.tr("Find my desk…"))
+        wizard_btn = QPushButton(pgettext('settings', "Find my desk…"))
         wizard_btn.clicked.connect(self._run_wizard)
         mac_row = QHBoxLayout()
         mac_row.setSpacing(8)
         mac_row.addWidget(self.mac_edit, 1)
         mac_row.addWidget(wizard_btn)
         desk.body.addWidget(self._settings_row(
-            self.tr("Bluetooth address"), mac_row, stretch_control=True))
+            pgettext('settings', "Bluetooth address"), mac_row, stretch_control=True))
         desk.body.addWidget(separator())
         self.connection_mode = SegmentedControl(
-            [self.tr("On demand"), self.tr("Persistent")])
+            [pgettext('settings', "On demand"), pgettext('settings', "Persistent")])
         self.connection_mode.currentChanged.connect(self._update_dimming)
         desk.body.addWidget(self._settings_row(
-            self.tr("Connection mode"), self.connection_mode,
-            self.tr("On demand connects only while moving the desk")))
+            pgettext('settings', "Connection mode"), self.connection_mode,
+            pgettext('settings', "On demand connects only while moving the desk")))
         self.linger_spin = self._seconds_spin(0, 300)
         self._linger_row = self._settings_row(
-            self.tr("Linger after moving"), self.linger_spin)
+            pgettext('settings', "Linger after moving"), self.linger_spin)
         desk.body.addWidget(self._linger_row)
         outer.addWidget(desk)
 
@@ -192,22 +205,18 @@ class SettingsPage(SettingsFormPage):
         # normal contrast so it's still readable.
         self._autostart_row.setEnabled(state.manageable)
         notes = {
-            "unavailable": self.tr(
-                "systemd isn't managing this session, so this can't be "
+            "unavailable": pgettext('settings', "systemd isn't managing this session, so this can't be "
                 "changed here."),
-            "not-found": self.tr(
-                "The background service isn't installed, so this can't be "
+            "not-found": pgettext('settings', "The background service isn't installed, so this can't be "
                 "changed here."),
-            "masked": self.tr(
-                "The service is masked. Allow it again with:\n"
+            "masked": pgettext('settings', "The service is masked. Allow it again with:\n"
                 "  systemctl --user unmask %s") % service_ctl.UNIT,
-            "no-install": self.tr(
-                "This copy of the service can't be enabled (systemd reports "
+            "no-install": pgettext('settings', "This copy of the service can't be enabled (systemd reports "
                 "it as \"%s\").") % state.state,
         }
         note = notes.get(state.problem, "")
         if state.problem and not note:  # e.g. "bad" — still say something
-            note = self.tr("systemd reports the service as \"%s\".") % state.state
+            note = pgettext('settings', "systemd reports the service as \"%s\".") % state.state
         self._autostart_note.setText(note)
         self._autostart_note.setVisible(bool(note))
 
@@ -231,8 +240,7 @@ class SettingsPage(SettingsFormPage):
         finally:
             self.autostart_check.blockSignals(False)
         self._autostart_row.setEnabled(True)
-        self._autostart_note.setText(self.tr(
-            "Managed by your desktop's permission dialog, not by systemd."))
+        self._autostart_note.setText(pgettext('settings', "Managed by your desktop's permission dialog, not by systemd."))
         self._autostart_note.setVisible(True)
 
     def _set_autostart(self, enable_autostart: bool) -> tuple[bool, str]:
@@ -257,17 +265,17 @@ class SettingsPage(SettingsFormPage):
         succeeded, err = self._set_autostart(enable_autostart)
         if not succeeded:
             QMessageBox.warning(
-                self, self.tr("Idasen Companion"),
-                self.tr("Could not change whether the service starts at "
+                self, pgettext('settings', "Idasen Companion"),
+                pgettext('settings', "Could not change whether the service starts at "
                         "login:\n%s") % err)
         elif enable_autostart:
             self._status_message(
-                self.tr("The service will start automatically at login."), 4000)
+                pgettext('settings', "The service will start automatically at login."), 4000)
         else:
             # Disabling doesn't stop the running daemon (see service_ctl);
             # say so rather than let the user assume automation just stopped.
             self._status_message(
-                self.tr("Autostart off. The service keeps running until you "
+                pgettext('settings', "Autostart off. The service keeps running until you "
                         "log out."), 6000)
         # Re-read either way: on failure this snaps the box back to the truth
         # — a denied grant must never leave the box ticked — and on success it
@@ -283,6 +291,7 @@ class SettingsPage(SettingsFormPage):
     def _load(self, cfg: AppConfig) -> None:
         self._select_data(self.language_combo, cfg.ui.language)
         self._select_data(self.units_combo, cfg.ui.units)
+        self._select_data(self.clock_format_combo, cfg.ui.clock_format)
         for key, combo in self._tray_combos.items():
             self._select_data(combo, getattr(cfg.ui, key))
         self.repeat_move.setCurrentIndex(
@@ -311,13 +320,14 @@ class SettingsPage(SettingsFormPage):
         if (not self.mac_edit.hasAcceptableInput()
                 and any(c in "0123456789abcdefABCDEF"
                         for c in self.mac_edit.text())):
-            return self.tr("The Bluetooth address is incomplete. Finish it "
+            return pgettext('settings', "The Bluetooth address is incomplete. Finish it "
                            "or clear it before applying.")
         return None
 
     def _apply(self, cfg: AppConfig) -> None:
         cfg.ui.language = self.language_combo.currentData()
         cfg.ui.units = self.units_combo.currentData()
+        cfg.ui.clock_format = self.clock_format_combo.currentData()
         for key, combo in self._tray_combos.items():
             setattr(cfg.ui, key, combo.currentData())
         cfg.ui.tray_repeat_move = ("off", "stop", "reverse")[
@@ -345,6 +355,6 @@ class SettingsPage(SettingsFormPage):
         confirm = getattr(self.window(), "confirm_unapplied_edits", None)
         if confirm is not None and not confirm():
             return
-        wizard = SetupWizard(self.client, self)
+        wizard = SetupWizard(self.client, self, ctx=self.ctx)
         if wizard.exec():
             self.load()

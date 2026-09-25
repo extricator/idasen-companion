@@ -17,6 +17,8 @@ daemon was down.
 
 from __future__ import annotations
 
+from ...core.i18n import pgettext
+
 import html
 from datetime import date, datetime
 
@@ -120,21 +122,20 @@ class ActivityLogPage(Page):
 
         filter_row = QHBoxLayout()
         filter_row.setSpacing(8)
-        filter_row.addWidget(QLabel(self.tr("Show")))
-        self.channel = SegmentedControl([self.tr("Activity"), self.tr("All")])
+        filter_row.addWidget(QLabel(pgettext('activity-log.controls', "Show")))
+        self.channel = SegmentedControl([pgettext('activity-log.controls', "Activity"), pgettext('activity-log.controls', "All")])
         self.channel.setCurrentIndex(0)
-        self.channel.setToolTip(self.tr(
-            "Activity explains what the desk did. All adds the diagnostic "
+        self.channel.setToolTip(pgettext('activity-log.controls', "Activity explains what the desk did. All adds the diagnostic "
             "detail you'd attach to a bug report."))
         self.channel.currentChanged.connect(lambda _: self._redraw())
         filter_row.addWidget(self.channel)
         self.log_level = SegmentedControl(
-            [self.tr("Debug"), self.tr("Info"), self.tr("Warn"),
-             self.tr("Error")])
+            [pgettext('activity-log.controls', "Debug"), pgettext('activity-log.controls', "Info"), pgettext('activity-log.controls', "Warn"),
+             pgettext('activity-log.controls', "Error")])
         self.log_level.setCurrentIndex(1)
         self.log_level.currentChanged.connect(lambda _: self._redraw())
         filter_row.addWidget(self.log_level)
-        filter_row.addWidget(QLabel(self.tr("and above")))
+        filter_row.addWidget(QLabel(pgettext('activity-log.controls', "and above")))
         filter_row.addStretch()
         layout.addLayout(filter_row)
 
@@ -143,7 +144,7 @@ class ActivityLogPage(Page):
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setFrameShape(QTextEdit.Shape.NoFrame)
-        self.log_view.setPlaceholderText(self.tr("Nothing at this level yet."))
+        self.log_view.setPlaceholderText(pgettext('activity-log.controls', "Nothing at this level yet."))
         mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         mono.setPointSizeF(mono.pointSizeF() * 0.9)
         self.log_view.setFont(mono)
@@ -153,7 +154,7 @@ class ActivityLogPage(Page):
 
         footer = QHBoxLayout()
         footer.setSpacing(8)
-        full_log = QLabel(self.tr("Full log:"))
+        full_log = QLabel(pgettext('activity-log.controls', "Full log:"))
 
         def _restyle_full_log(target: QLabel = full_log) -> None:
             target.setStyleSheet(f"color: {css(theme().muted)};")
@@ -162,9 +163,8 @@ class ActivityLogPage(Page):
         self._journal_chip = SpacedLabelButton(self._JOURNAL_CMD)
         self._journal_chip.setFont(mono)
         self._journal_chip.setIconSize(QSize(16, 16))
-        self._journal_chip.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # icon at right
         self._journal_chip.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._journal_chip.setToolTip(self.tr("Copy command"))
+        self._journal_chip.setToolTip(pgettext('activity-log.controls', "Copy command"))
         restyle.register(self._journal_chip, self._restyle_journal_chip)
         self._journal_chip.clicked.connect(self._copy_journal_cmd)
         footer.addWidget(full_log)
@@ -186,7 +186,7 @@ class ActivityLogPage(Page):
             # Icon theme lacks a checkmark (e.g. Adwaita). The mark is part
             # of this one message, not glued onto a translated word, so a
             # translator can move it, replace it, or drop it.
-            self._journal_chip.setText(self.tr("✓ copied"))
+            self._journal_chip.setText(pgettext('activity-log.controls', "✓ copied"))
         else:
             self._chip_copied = True
             self._apply_journal_chip_icon()
@@ -427,7 +427,7 @@ class ActivityLogPage(Page):
         ``margin-top`` rather than a blank line above it; a blank line would
         spend a block from the document's own cap for nothing.
         """
-        heading = util.fmt_day_heading(
+        heading = util.fmt_day_heading(self.ctx.fmt, 
             datetime(separator_day.year, separator_day.month, separator_day.day))
         # The two spaces flanking the heading are part of what has to fit.
         fill = max(0, (self._separator_width - len(heading) - 2) // 2)
@@ -593,17 +593,27 @@ class ActivityLogPage(Page):
         coming out of `log_catalog` is invisible to it -- this site is
         silent there because the check does not look, not because it looked
         and passed, and a future author owes the same reasoning by hand.
+
+        The stamp goes through the shared formatter rather than through a
+        fixed format string of its own, so it reads on whichever clock the
+        user chose. This screen is a screen a person reads, and leaving it
+        on one clock while the tray tooltip beside it reads the other would
+        ship the exact split the setting exists to close. It is not the
+        journal, whose own lines stay stable and greppable whatever the
+        session is set to; it is the window's view of them. The seconds
+        stay: they are what orders two events inside the same minute.
         """
         tokens = theme()
         level = entry["level"]
         color = {"debug": tokens.muted, "info": tokens.accent_text,
                  "warning": tokens.warning_text, "error": tokens.error}.get(
                      level, tokens.secondary)
-        stamp = datetime.fromtimestamp(entry["ts"]).strftime("%H:%M:%S")
+        stamp = self.ctx.fmt.clock_with_seconds(
+            datetime.fromtimestamp(entry["ts"]))
         label = "WARN" if level == "warning" else level.upper()
         pad = "&nbsp;" * (6 - len(label))
         message = log_catalog.render(entry["msg_id"], entry["params"],
-                                     entry["text"])
+                                     entry["text"], fmt=self.ctx.fmt)
         return (
             f'<span style="color:{css(tokens.muted)}">{stamp}</span>&nbsp;&nbsp;'
             f'<span style="color:{css(color)};font-weight:600">{label}</span>'

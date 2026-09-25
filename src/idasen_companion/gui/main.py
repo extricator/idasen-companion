@@ -12,89 +12,20 @@ import argparse
 import sys
 
 from PySide6.QtCore import QEvent, QObject, Slot
-from PySide6.QtDBus import QDBus, QDBusConnection, QDBusInterface, QDBusMessage
+from PySide6.QtDBus import QDBusConnection, QDBusInterface
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from .. import APP_ID, DBUS_NAME, DBUS_PATH, __version__
-from ..core.config import (
-    AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config,
-)
-from . import appearance_portal, background_portal, restyle, util
-from .dbus_client import IFACE_DESK, DaemonClient
-from .i18n import install_translators
+from .. import APP_ID, DBUS_NAME, __version__
+from ..core.config import AppConfig, ConfigError, DEFAULT_CONFIG_PATH, load_config
+from . import appearance_portal, background_portal, restyle
+from .dbus_client import DaemonClient
+from .i18n import apply_language
 from .main_window import MainWindow
 from .style import ControlStyle
 
 GUI_DBUS_NAME = f"{DBUS_NAME}.GUI"
 GUI_DBUS_PATH = "/io/github/extricator/IdasenCompanion/GUI"
-
-# One-shot command flags: fire a Desk1 method at the running daemon and exit,
-# without building the GUI. These are what global keyboard shortcuts and
-# scripts bind to (e.g. `idasen-companion --toggle`). The move flags go through
-# GestureMove, so pressing the same shortcut again mid-move stops or reverses it
-# (per [ui] tray_repeat_move) — the same behaviour as the tray gestures.
-# --window is handled separately (it *shows* the GUI) and is deliberately not in
-# this map. `--preset NAME` (or `--preset=NAME`) takes an argument.
-_COMMAND_FLAGS = {
-    "--toggle": ("GestureMove", ["toggle"]),
-    "--sit": ("GestureMove", ["sit"]),
-    "--stand": ("GestureMove", ["stand"]),
-    "--stop": ("Stop", []),
-}
-
-
-def _command_from_argv(argv: list[str]) -> tuple[str, list] | None:
-    """Map command-line flags to a (Desk1 method, args) pair, or None when no
-    command flag is present (so the GUI launches as usual)."""
-    args = argv[1:]
-    for i, arg in enumerate(args):
-        if arg in _COMMAND_FLAGS:
-            member, cmd_args = _COMMAND_FLAGS[arg]
-            return member, list(cmd_args)
-        if arg == "--preset":
-            return "MoveToPreset", [args[i + 1] if i + 1 < len(args) else ""]
-        if arg.startswith("--preset="):
-            return "MoveToPreset", [arg.split("=", 1)[1]]
-    return None
-
-
-def _send_command(member: str, args: list) -> int:
-    """Send one Desk1.<member> call to the daemon and return an exit code.
-    Blocks until the daemon replies (a move finishes) so the exit status is
-    meaningful; the shortcut/script that launched us runs detached, so the
-    wait is invisible."""
-    from PySide6.QtCore import QCoreApplication
-
-    if member == "MoveToPreset" and not args[0]:
-        print("idasen-companion: --preset needs a preset name, "
-              "e.g. --preset stand", file=sys.stderr)
-        return 2
-
-    QCoreApplication(sys.argv)  # QtDBus needs an application/event dispatcher
-    session_bus = QDBusConnection.sessionBus()
-    if not session_bus.isConnected():
-        print("idasen-companion: cannot connect to the session bus",
-              file=sys.stderr)
-        return 1
-    message = QDBusMessage.createMethodCall(
-        DBUS_NAME, DBUS_PATH, IFACE_DESK, member)
-    if args:
-        message.setArguments(list(args))
-    # The daemon only replies once the move finishes, and a full-range move
-    # (plus an on-demand BLE connect, or a retry after an interruption) can
-    # run well past QtDBus's default 25 s timeout — which would return a
-    # spurious error even though the desk is moving. Allow two minutes.
-    reply = session_bus.call(message, QDBus.CallMode.Block, 120000)
-    if reply.type() == QDBusMessage.MessageType.ErrorMessage:
-        print(f"idasen-companion: {member} failed: "
-              f"{reply.errorMessage() or 'no reply from daemon'}\n"
-              f"Is the daemon running? "
-              f"(systemctl --user start idasen-companion.service)",
-              file=sys.stderr)
-        return 1
-    return 0
-
 
 class SingleInstance(QObject):
     """Exports Activate() so a second launch can raise the first window."""
@@ -112,18 +43,7 @@ class SingleInstance(QObject):
 
 
 def _parse_argv(argv: list[str]) -> None:
-    """Handle --help/--version and reject unknown flags, then return.
-
-    Only these two: the command flags below still short-circuit before any Qt
-    object exists, which is what keeps `--toggle` a fast one-shot. Without
-    this, `--help` and `--version` fell through the flag scan and *launched
-    the window* — as did any typo, so `--sitt` silently opened the GUI instead
-    of saying it was not a flag. The daemon has had proper argparse all along;
-    this is the binary the README documents as a keyboard-shortcut target.
-
-    argparse exits the process for --help/--version/unknown, which is what we
-    want here.
-    """
+    """Handle GUI options and reject command flags owned by the CLI."""
     parser = argparse.ArgumentParser(
         prog="idasen-companion",
         description="Idasen Companion — sit/stand desk automation.",
@@ -132,25 +52,12 @@ def _parse_argv(argv: list[str]) -> None:
     parser.add_argument("--window", action="store_true",
                         help="show the window even if it would start hidden "
                              "to the tray")
-    group = parser.add_argument_group("one-shot commands (sent to the daemon)")
-    group.add_argument("--toggle", action="store_true",
-                       help="sit <-> stand (the opposite of where it is)")
-    group.add_argument("--sit", action="store_true", help="move to the sit preset")
-    group.add_argument("--stand", action="store_true", help="move to the stand preset")
-    group.add_argument("--stop", action="store_true", help="stop the desk where it is")
-    group.add_argument("--preset", metavar="NAME",
-                       help="move to a named preset (e.g. sit, stand, focus)")
     parser.parse_args(argv[1:])
 
 
 def main() -> int:
     # Validates the flags and handles --help/--version; exits for those.
     _parse_argv(sys.argv)
-    # One-shot command flags short-circuit before any GUI is built.
-    command = _command_from_argv(sys.argv)
-    if command is not None:
-        return _send_command(*command)
-
     application = QApplication(sys.argv)
     # Before any widget exists, so the connection is live for the very
     # first palette change whenever it arrives.
@@ -175,12 +82,7 @@ def main() -> int:
         print(f"idasen-companion: {error}", file=sys.stderr)
         startup_cfg = AppConfig()
         config_ok = False
-    install_translators(application, startup_cfg.ui.language)
-    # After the translators, which set the default QLocale that "system"
-    # units resolve against; before any widget, since the height spin box is
-    # shaped for its unit at construction. Kept current from here on by
-    # AppContext (see gui/context.py).
-    util.set_height_unit(startup_cfg.ui.units)
+    apply_language(application, startup_cfg.ui.language)
     application.setApplicationDisplayName("Idasen Companion")
     application.setDesktopFileName(APP_ID)
 
@@ -211,6 +113,7 @@ def main() -> int:
     background_portal.reconcile_autostart(startup_cfg.ui.run_at_login)
 
     window = MainWindow(client, tray_available)
+    window.show_config_warnings(startup_cfg.warnings)
     instance = SingleInstance(window)
     session_bus.registerObject(GUI_DBUS_PATH, instance,
                                QDBusConnection.RegisterOption.ExportAllSlots)
@@ -262,7 +165,7 @@ def main() -> int:
     if first_run:
         from .setup_wizard import SetupWizard
 
-        wizard = SetupWizard(client, window)
+        wizard = SetupWizard(client, window, ctx=window.ctx)
         wizard.accepted.connect(window.settings.load)
         wizard.open()
 

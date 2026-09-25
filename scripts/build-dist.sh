@@ -92,18 +92,18 @@ PYEOF
 
 echo ">> Checking the sdist stays under the size ceiling..."
 SDIST_SIZE=$("$PYTHON" -c "import os,sys;print(os.path.getsize(sys.argv[1]))" "$SDIST")
-# 800000 bytes: comfortably above the ~600 kB sdist measured at 1.1.0, which
-# grew from ~385 kB at 1.0.0 as the GUI and the tests covering it did. Still
-# far below either accident this guards against -- an untracked design-tool
-# export once added ~1.1 MB, and the screenshot directory the metainfo points
-# at would add ~650 kB on its own, so both still land above this line.
-SDIST_SIZE_CEILING=800000
+# 850000 bytes: just above the ~821 kB sdist measured after the five-artifact
+# release scripts, generated Flatpak dependency lock and Debian flavor
+# manifests became required packaged-test inputs. Still far below either
+# accident this guards against -- an untracked design-tool export once added
+# ~1.1 MB, and the screenshot directory would add ~650 kB on its own.
+SDIST_SIZE_CEILING=850000
 if [ "$SDIST_SIZE" -gt "$SDIST_SIZE_CEILING" ]; then
     echo "error: sdist is ${SDIST_SIZE} bytes, over the ${SDIST_SIZE_CEILING}-byte ceiling" >&2
     exit 1
 fi
 
-echo ">> Checking the wheel contains both compiled translation catalogs..."
+echo ">> Checking the wheel contains the compiled app catalogs..."
 "$PYTHON" - "$WHEEL" <<'PYEOF'
 import fnmatch
 import sys
@@ -113,18 +113,14 @@ wheelpath = sys.argv[1]
 
 # Wheel contents come from [tool.setuptools.package-data] in pyproject.toml,
 # not MANIFEST.in, so the risk here inverts: shipping too little rather
-# than too much. Missing either catalog is a silently untranslated app.
-required_qm = "idasen_companion/gui/translations/idasen_companion_es.qm"
+# than too much. A missing catalog is a silently untranslated app.
 mo_pattern = "idasen_companion/locale/*/LC_MESSAGES/idasen_companion.mo"
 
 with zipfile.ZipFile(wheelpath) as wheel:
     names = wheel.namelist()
 
-missing = []
-if required_qm not in names:
-    missing.append(required_qm)
-if not any(fnmatch.fnmatch(name, mo_pattern) for name in names):
-    missing.append(mo_pattern)
+missing = ([] if any(fnmatch.fnmatch(name, mo_pattern) for name in names)
+           else [mo_pattern])
 
 if missing:
     print("error: wheel is missing compiled catalog(s):", file=sys.stderr)

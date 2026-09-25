@@ -46,14 +46,32 @@ schedule:
 - **Live height while moving**, and Stop halting mid-travel.
 - **Transient BlueZ flake** — retries appear in the journal and commands still
   succeed. The July 2026 outage exercised the failure path hard.
-- **Tray gestures and the CLI** — middle-click toggle, `--toggle` / `--sit` /
-  `--stand` / `--stop` / `--preset`, including the unknown-preset and
-  missing-name exits.
+- **Tray gestures and the CLI** — middle-click toggle plus
+  `idasen-companion-cli status`, `toggle`, `sit`, `stand`, `stop`, `preset`
+  and `log`, including the unknown-preset, missing-name and daemon-down exits.
 - **Single instance**, both halves: a second GUI activates the existing
   window; a second daemon exits rather than running a rival loop.
 - **Daemon down** — the red banner and "Start daemon" button in the window.
 - **KDE session paths** — tray icon and tooltip, the freedesktop ScreenSaver
   idle provider, lock and idle detection, suspend/resume, notifications.
+- **Clock-format environments, window against daemon** — measured 2026-08-29,
+  before the `[ui] clock_format` setting was designed, because the design
+  hangs on whether the two processes see the same locale environment. The
+  session carries `LANG=en_US.UTF-8`, `LC_TIME=C`, and neither `LC_ALL` nor
+  `LANGUAGE` is set. The systemd user manager — the authoritative statement of
+  what a freshly started `idasen-companiond.service` inherits — holds exactly
+  the same two: `LANG=en_US.UTF-8` and `LC_TIME=C`. (No daemon was running at
+  the time, so `/proc/<pid>/environ` had nothing to add; the manager's own
+  block is the half that answers the question.) The two therefore agree. Under
+  the precedence the setting's `system` value implements, `LC_TIME` is
+  consulted before any language, `C` names no territory, and the answer is
+  24-hour for both — which is what the window already showed, so a user who
+  sets nothing sees no change. Note that **no shipped daemon code path renders
+  a wall-clock time today**: the notifications speak in relative durations
+  ("in about 5 minutes"), and the tray's snoozed-until line is rendered
+  GUI-side from a raw timestamp the daemon exports. There is no notification
+  clock to compare against the window's, and a later reader should not go
+  looking for one.
 - **Install and upgrade** — `systemctl --user enable --now` starting clean,
   the desktop entry appearing, and `dnf reinstall` restarting the user
   service. Never chain `systemctl --user restart` onto the install: the RPM's
@@ -84,7 +102,7 @@ design has never met a GNOME session.
       lock and idle flip the status within one check interval.
 - [ ] **[GNOME]** Pre-move notification appears, and its Snooze / Skip
       buttons snooze and skip.
-- [ ] **[GNOME]** `idasen-companion --toggle` bound to a key in the DE's
+- [ ] **[GNOME]** `idasen-companion-cli toggle` bound to a key in the DE's
       keyboard settings works, on X11 and Wayland.
 - [ ] Whichever of KDE X11 / KDE Wayland is *not* the daily driver: idle
       provider, lock, and the global shortcut still behave.
@@ -140,6 +158,26 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       — the desk must not shift. The unit is display-only: `[presets]` in
       `config.toml` stays in metres, and the journal keeps logging metres.
       Rail tick labels must not overlap or clip at either unit.
+- [ ] **[sweep]** Clock format — walk the three values of Settings ▸ Clock
+      format and confirm every wall-clock time follows without a restart:
+      the Statistics page's Recent transitions list, and the Activity Log's
+      row stamps, which keep their seconds on either clock. **The tray
+      tooltip carries a clock in exactly one state — snoozed.** Every other
+      line in it is a duration ("Sitting for 40m", "Standing up in 17m"), so
+      snooze from the tray before looking or there is nothing there to read;
+      and for a moment after snoozing it says "…until later" rather than a
+      time, because the deadline is fetched asynchronously. A walker told to
+      check "the tooltip's snoozed-until line" without that reported it
+      missing, which it was not. At **System default** nothing changes from whatever the
+      environment already produced; at **12-hour** the times read with AM/PM;
+      at **24-hour** they read 14:32 whatever the environment says. Repeat
+      the walk with the display language set to Spanish, where the window
+      renders Spanish's own designator, in the case Spanish writes it —
+      `2:32 p. m.`, lower case, with a no-break space inside the designator
+      — at the 12-hour setting. English stays `2:32 PM`. A capitalised
+      `P. M.` there is the defect this sweep is watching for.
+      The `journalctl` output is *not* part of this sweep: it stays 24-hour by
+      design, whatever the setting says.
 - [ ] **[sweep]** Manual-only mode — turn off "Automate sit / stand", then:
       Overview reads "Automation off" with no countdown and offers "Turn on
       automation" in place of Pause / Skip / Snooze, while the tray keeps
@@ -156,9 +194,9 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
 
 ## Packaging variant
 
-The bundled single RPM is what ships and is rebuilt constantly. The split is
-documented in `CONTRIBUTING.md`, honestly, as unverified between releases —
-nothing in CI builds it. All three specs have been built with `rpmbuild -bb`
+The standalone full and headless bundled RPMs ship and are rebuilt constantly
+from one spec. The distro-integrated split is documented in `CONTRIBUTING.md`,
+honestly, as unverified between releases — nothing in CI builds it. All three specs have been built with `rpmbuild -bb`
 in a fresh Fedora 43 container: the two library specs during this phase's
 research, and the app spec by the fix that landed alongside this checklist
 update. What remains genuinely manual:
@@ -214,10 +252,27 @@ every automated check there is. And the tests switch schemes by calling
 `setPalette()` themselves, which is a plausible stand-in for what the desktop
 does to a running app and not the same event.
 
+`tests/test_sidebar_width.py` measures the navigation labels at the offscreen
+platform's own font, Sans Serif 9pt, and asserts each shipped language's
+`sizeHintForColumn(0)` fits inside the computed sidebar width, floor 176px and
+ceiling 260px. That catches the offscreen regression — a wrong chrome constant,
+a new label that no longer fits at that font. It cannot catch a real desktop
+running a larger interface font, which widens every label the same test
+measured narrower, so a real Spanish desktop still needs a human to confirm
+`Registro de actividad` renders whole rather than eliding.
+
 So, from the **installed package**, with the window already open — no restart
 between the switch and the walk, and no navigating away and back to make a page
 redraw:
 
+- [ ] With the display language set to Spanish, walk the sidebar at the
+      desktop's own interface font (not the offscreen suite's Sans Serif 9pt)
+      and confirm `Registro de activi…` never shows: the fifth item reads
+      `Registro de actividad` whole. Right: no navigation label elides. A
+      desktop running a larger font than the offscreen test's is exactly the
+      case the automated fit test above cannot see — it fits at the ceiling,
+      260px, but a font large enough to widen the label past that is a human
+      check, not an automated one.
 - [ ] Switch the desktop from light to dark, then walk all seven pages:
       Overview, Automation, Presets, Statistics, Activity Log, Settings,
       About. Then switch back to light and walk them again. Right: on every
@@ -242,6 +297,28 @@ redraw:
       and stepper buttons intact. Right: all four hold in light and in dark.
       Looking only at the scheme you just switched to is how the failure this
       guards against survives.
+
+### First right-to-left catalog release gate
+
+Structural RTL tests mirror the known asymmetric controls, but they cannot
+validate language quality or reveal every interaction between real text,
+desktop fonts and widget geometry. Run this block before releasing the first
+right-to-left catalog; it is not required while no such catalog ships.
+
+- [ ] A native speaker reviews every translated message in context, including
+      plurals, units, clock text, punctuation and mixed-direction values. Right:
+      the catalog is linguistically owned, not machine-generated guesswork.
+- [ ] From the installed full package, walk all seven pages and every dialog in
+      that language. Right: the sidebar moves to the right, its divider stays
+      beside the content, forward/action icons face the reading direction,
+      joined controls keep one shared seam, and no label overlaps or elides.
+- [ ] Exercise the Overview height rail by clicking and dragging both ends,
+      inspect the Presets vertical rail, and inspect Statistics with non-empty
+      daily bars. Right: painting, labels, fills, targets and pointer hit-testing
+      mirror together rather than only looking mirrored.
+- [ ] Inspect Activity Log rows containing Latin command text, numbers and
+      timestamps. Right: mixed-direction content remains readable and the copy
+      icon follows the selected layout direction without reversing the command.
 
 ### Flatpak Background portal autostart
 
