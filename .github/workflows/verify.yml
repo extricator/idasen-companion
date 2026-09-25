@@ -15,6 +15,7 @@ jobs:
   tests:
     name: Tests / Python ${{ matrix.python-version }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -52,6 +53,7 @@ jobs:
   code:
     name: Quality / Code
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       # Every third-party action reference below names a commit rather than a
       # release: a release tag can be moved by whoever owns it after the fact,
@@ -100,6 +102,7 @@ jobs:
   distribution:
     name: Quality / Distribution and supply chain
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

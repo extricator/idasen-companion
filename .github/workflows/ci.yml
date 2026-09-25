@@ -25,6 +25,7 @@ jobs:
   plan:
     name: Plan package proofs
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       rpm: ${{ steps.select.outputs.rpm }}
       deb: ${{ steps.select.outputs.deb }}
@@ -121,10 +122,14 @@ jobs:
 
   verify:
     uses: ./.github/workflows/verify.yml
+    permissions:
+      contents: read
 
   packages:
     needs: plan
     uses: ./.github/workflows/packages.yml
+    permissions:
+      contents: read
     with:
       rpm: ${{ needs.plan.outputs.rpm == 'true' }}
       deb: ${{ needs.plan.outputs.deb == 'true' }}
@@ -136,6 +141,7 @@ jobs:
     if: ${{ always() && github.event_name == 'pull_request' }}
     needs: [plan, verify, packages]
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Require every selected caller to succeed
         env:
@@ -144,3 +150,24 @@ jobs:
           PACKAGES_RESULT: ${{ needs.packages.result }}
         run: |
           [[ "$PLAN_RESULT" == success && "$VERIFY_RESULT" == success && "$PACKAGES_RESULT" == success ]]
+
+  cleanup:
+    name: Retire ordinary CI package artifacts
+    needs: [plan, verify, packages]
+    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Delete only this run's package artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "idasen-companion-rpm" or .name == "idasen-companion-deb" or .name == "idasen-companion-flatpak") | .id' \
+            | while read -r id; do
+                [[ "$id" =~ ^[0-9]+$ ]] || exit 1
+                gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+              done

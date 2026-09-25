@@ -114,6 +114,31 @@ def test_reusable_topology_and_release_keep_all_package_proofs():
         "rpm": "true", "deb": "true", "flatpak": "true", "rpm_portability": "true"
     }
     assert "packages" in release["jobs"]["package"]["needs"]
+    assert "verify" in release["jobs"]["package"]["needs"]
+    assert release["jobs"]["verify"]["uses"] == "./.github/workflows/verify.yml"
+
+
+def test_release_modes_are_explicit_and_publishing_requires_proofs():
+    release = workflow("release.yml")
+    gate = release["jobs"]["gate"]
+    resolve = next(step for step in gate["steps"] if step.get("id") == "resolve")["run"]
+    assert "MODE=promote" in resolve and "MODE=rebuild" in resolve
+    assert "Select exactly one real-release mode" in resolve
+    publish = release["jobs"]["publish"]
+    assert "needs.promote.result == 'success'" in publish["if"]
+    for job in ("verify", "packages", "package"):
+        assert f"needs.{job}.result == 'success'" in publish["if"]
+    assert publish["permissions"] == {"contents": "write"}
+    assert release["jobs"]["promote"]["permissions"] == {
+        "contents": "read", "actions": "read"}
+    assert release["jobs"]["cleanup"]["permissions"]["actions"] == "write"
+
+
+def test_every_runnable_job_has_a_timeout():
+    for name in ("ci.yml", "full-ci.yml", "verify.yml", "packages.yml", "release.yml"):
+        for job in workflow(name)["jobs"].values():
+            if "runs-on" in job:
+                assert int(job["timeout-minutes"]) > 0
 
 
 def test_ci_ok_requires_approval_or_label_and_successful_callers():

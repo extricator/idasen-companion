@@ -4,7 +4,7 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **Phase 2 implemented and locally verified; Phase 3 not started**
+Status: **Phase 3 implemented and locally verified; Phase 4 not started**
 
 Branch: `ci-workflow-rebuild`
 
@@ -576,3 +576,47 @@ required check names, observe the PR check list and SHA association of both
 families as eligible for PR status evaluation, but local validation cannot
 prove the live check association. Keep the repository private and leave
 approval enforcement disabled until the contributor policy is decided.
+
+## Phase 3 handoff (2026-09-25)
+
+`release.yml` now has three explicit dispatch modes: `dry_run: true` builds,
+fully verifies, and keeps the assembled set for one day; a real release with
+`promotion_run_id` checks that successful dry run on the exact current `main`
+SHA and republishes its checked bytes; a real release with `full_rebuild: true`
+reruns Python, quality, all package proofs, and assembly. A tag push always
+takes the full-rebuild path. An ordinary real dispatch with neither selection
+fails at the gate. Promotion checks the run's workflow, event, branch, attempt,
+SHA, required job conclusions, single live assembled artifact, recorded
+dry-run provenance, exact five versioned package names, release notes, and all
+checksums. Publication downloads and hashes the actual GitHub Release assets,
+checks the tag target and release body, and only then retires the selected
+source artifact. Failed publication leaves it for retry until expiry.
+
+The release preparation path is a PR for version, changelog, package metadata,
+and release changes. After merge, run full `main` CI and a dry run **on the
+merged commit**, then promote that dry-run ID while `main` still names that
+commit. An expired or invalid source requires a new dry run or explicit full
+rebuild. Do not use a PR-head dry run as release evidence. The one-contributor
+approval hold remains: no branch protection, required review, or required
+`CI OK` has been configured.
+
+All runnable jobs have timeouts, package and assembled artifacts retain one
+day, and cleanup uses artifact IDs scoped to the originating run. Ordinary PR
+cleanup skips fork PRs because their token is read-only; retention bounds that
+storage. Release runs share a version/tag concurrency group and never cancel
+one another. Action references remain pinned to full SHAs. Container images
+remain the existing mutable Fedora 43, Debian 13, and Flatpak KDE 6.10 tags;
+pinning their digests needs a separate image-update policy and live build
+evidence before changing the distribution toolchains.
+
+Local verification: PyYAML loaded all five workflows, actionlint v1.7.12
+accepted them, focused release/workflow/packaging tests passed (105), and the
+complete suite passed (1,588 passed, one skipped). No remote workflow, release
+dry run, or publication was started. **Phase 4 still needs live evidence** for
+both promotion and full rebuild, PR check association, cleanup, timings, and
+the source-run job names used by the promotion validator. The explicit
+`full_rebuild` input is a deliberate deviation from implicit fallback: an
+invalid promotion fails closed so the operator must choose the rebuild path.
+Read-only inspection of the existing 1.2.0 dry run confirmed that GitHub's
+run API reports the workflow path as `.github/workflows/release.yml` (without
+an `@ref` suffix); the validator uses that observed format.

@@ -17,6 +17,7 @@ jobs:
   gate:
     name: Authorize full verification
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -66,12 +67,16 @@ jobs:
   verify:
     needs: gate
     uses: ./.github/workflows/verify.yml
+    permissions:
+      contents: read
     with:
       ref: ${{ needs.gate.outputs.head }}
 
   packages:
     needs: gate
     uses: ./.github/workflows/packages.yml
+    permissions:
+      contents: read
     with:
       ref: ${{ needs.gate.outputs.head }}
       rpm: true
@@ -84,6 +89,7 @@ jobs:
     if: always()
     needs: [gate, verify, packages]
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Require authorization and every proof to succeed
         env:
@@ -92,3 +98,24 @@ jobs:
           PACKAGES_RESULT: ${{ needs.packages.result }}
         run: |
           [[ "$GATE_RESULT" == success && "$VERIFY_RESULT" == success && "$PACKAGES_RESULT" == success ]]
+
+  cleanup:
+    name: Retire full CI package artifacts
+    needs: [gate, verify, packages]
+    if: ${{ always() && needs.gate.result == 'success' && needs.packages.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Delete only this run's package artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "idasen-companion-rpm" or .name == "idasen-companion-deb" or .name == "idasen-companion-flatpak") | .id' \
+            | while read -r id; do
+                [[ "$id" =~ ^[0-9]+$ ]] || exit 1
+                gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+              done
