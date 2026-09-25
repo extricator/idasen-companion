@@ -1,3 +1,18 @@
+idasen-companion (1.2.0-1) unstable; urgency=medium
+
+  * Add a localized Qt-free command-line client for status, activity and desk
+    control.
+  * Ship full and headless RPM and Debian variants, and verify all five release
+    artifacts including the Flatpak bundle.
+  * Unify application formatting and translations on Babel and contextual
+    gettext across the GUI, daemon and CLI.
+  * Add a system/12-hour/24-hour clock preference and correct every displayed
+    clock to follow it.
+  * Preserve unknown configuration across versions, improve translated and
+    right-to-left layouts, and harden package-build cleanup.
+
+ -- extricator <extricator@users.noreply.github.com>  Fri, 25 Sep 2026 00:00:00 +0000
+
 idasen-companion (1.1.1-1) unstable; urgency=medium
 
   * Label the Statistics range slider's preset ticks through the shared

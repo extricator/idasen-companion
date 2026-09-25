@@ -79,3 +79,4 @@ jobs:
           name: idasen-companion-flatpak
           path: dist-flatpak/*.flatpak
           if-no-files-found: error
+          retention-days: 1

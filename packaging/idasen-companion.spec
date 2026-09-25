@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.1.1
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -103,6 +103,18 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Fri Sep 25 2026 extricator <extricator@users.noreply.github.com> - 1.2.0-1
+- Add a localized Qt-free command-line client for status, activity and desk
+  control.
+- Ship full and headless RPM and Debian variants, and verify all five release
+  artifacts including the Flatpak bundle.
+- Unify application formatting and translations on Babel and contextual
+  gettext across the GUI, daemon and CLI.
+- Add a system/12-hour/24-hour clock preference and correct every displayed
+  clock to follow it.
+- Preserve unknown configuration across versions, improve translated and
+  right-to-left layouts, and harden package-build cleanup.
+
 * Thu Aug 20 2026 extricator <extricator@users.noreply.github.com> - 1.1.1-1
 - Label the Statistics range slider's preset ticks through the shared
   vocabulary, so they no longer print the raw lowercase preset key

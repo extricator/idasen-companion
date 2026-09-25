@@ -96,6 +96,22 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.2.0" date="2026-09-25">
+      <description>
+        <p>
+          Adds a localized, Qt-free command-line client for status, recent
+          activity and desk control, plus smaller headless RPM and Debian
+          packages containing only the client and daemon.
+        </p>
+        <p>
+          Number, date, time and unit formatting is now consistent across the
+          desktop, daemon and command line. A new clock-format setting controls
+          every displayed time, newer configuration options survive edits by
+          older versions, and translated or right-to-left layouts adapt more
+          reliably.
+        </p>
+      </description>
+    </release>
     <release version="1.1.1" date="2026-08-20">
       <description>
         <p>

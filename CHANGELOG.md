@@ -6,18 +6,56 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-25
+
+### Added
+
+- **A first-class command-line client can inspect and control the desk without
+  Qt.** It reports status and recent activity, and provides toggle, sit, stand,
+  preset and stop commands through the daemon. Its output follows the selected
+  language, measurement units and clock format.
+- **RPM and Debian downloads now come in full and headless variants.** The full
+  packages contain the desktop app, command-line client and daemon; the
+  smaller headless packages contain only the Qt-free client and daemon.
+- **The clock format can be selected independently of the app language.**
+  Settings offers system, 12-hour and 24-hour choices, applied immediately
+  across status text, schedules, activity timestamps and tray content.
+
 ### Changed
 
 - App-owned numbers, percentages, dates, times and units now use one
-  Babel-backed locale engine in the GUI and daemon. Language, measurement
-  units and 12/24-hour preference remain independent: choosing another app
-  language changes its words and symbols without silently changing inches or
-  the hour cycle selected by the system measurement/time locales.
+  Babel-backed locale engine in the GUI, daemon and command-line client.
+  Language, measurement units and 12/24-hour preference remain independent:
+  choosing another app language changes its words and symbols without silently
+  changing inches or the hour cycle selected by the system measurement/time
+  locales.
+- GUI, daemon and command-line messages now share one contextual gettext
+  catalog, keeping the same concepts and translations consistent across every
+  interface.
 - Configuration from a newer build no longer prevents an older GUI or daemon
   from starting merely because it contains an unknown section or option. The
   app warns visibly and preserves the unknown data, comments and ordering when
   it saves known settings; malformed values for settings it does understand
   remain errors.
+- The sidebar measures its translated labels instead of assuming an English
+  width, and asymmetric controls now follow the interface direction in
+  preparation for future right-to-left translations.
+- Release builds now produce and verify five artifacts: full and headless RPMs,
+  full and headless Debian packages, and the Flatpak bundle.
+
+### Fixed
+
+- **Clock output now agrees with the selected format throughout the app.**
+  Schedule summaries and out-of-schedule status text no longer remain in
+  24-hour form after choosing 12-hour time; Spanish meridiem text uses its
+  language-appropriate case, and system-format detection handles territory
+  priority lists and non-ASCII digits correctly.
+- **Overview status notes are clearer and translated labels fit the sidebar.**
+  Each note presents one fact without the old separator, and longer labels no
+  longer get clipped.
+- Package smoke tests no longer leave daemon processes behind, and the staged
+  secret-scan canary no longer risks marking a linked worktree's repository as
+  bare.
 
 ## [1.1.1] - 2026-08-20
 

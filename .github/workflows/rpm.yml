@@ -114,6 +114,7 @@ jobs:
           name: idasen-companion-rpm
           path: dist-rpm/*.rpm
           if-no-files-found: error
+          retention-days: 1
 
   # Deliberately a job on the runner rather than a step in the one above: the
   # build runs inside a container already, and starting containers from in
