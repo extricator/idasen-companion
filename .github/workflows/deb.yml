@@ -104,6 +104,7 @@ jobs:
           name: idasen-companion-deb
           path: dist-deb/*.deb
           if-no-files-found: error
+          retention-days: 1
 
   # The RPM has a proof of its own that installs the package and starts the
   # daemon, but it never asks systemd anything. A systemd user unit's

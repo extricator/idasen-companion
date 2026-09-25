@@ -131,6 +131,17 @@ run_native debian:13 deb full "$full_deb"
 echo "===== flatpak full: $(basename "$flatpak_bundle") ====="
 flatpak_dir="$work/flatpak-user"
 mkdir -p "$flatpak_dir"
+flatpak_manifest=packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
+flatpak_runtime=$(sed -n 's/^runtime: *//p' "$flatpak_manifest")
+flatpak_runtime_version=$(sed -n "s/^runtime-version: *['\"]\{0,1\}\([^'\"]*\)['\"]\{0,1\}$/\1/p" "$flatpak_manifest")
+[ -n "$flatpak_runtime" ] && [ -n "$flatpak_runtime_version" ] || {
+    echo "error: could not resolve the Flatpak runtime from $flatpak_manifest" >&2
+    exit 7
+}
+XDG_DATA_HOME="$flatpak_dir" flatpak --user remote-add --if-not-exists \
+    flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+XDG_DATA_HOME="$flatpak_dir" flatpak --user install --noninteractive --assumeyes \
+    flathub "$flatpak_runtime//$flatpak_runtime_version"
 XDG_DATA_HOME="$flatpak_dir" flatpak --user install --noninteractive --bundle "$flatpak_bundle"
 XDG_DATA_HOME="$flatpak_dir" flatpak --user info io.github.extricator.IdasenCompanion \
     | grep -F "Version: $version"

@@ -45,6 +45,7 @@ RELEASE_VERIFIER = ROOT / "scripts" / "verify-release-artifacts.sh"
 RPM_WORKFLOW = ROOT / ".github" / "workflows" / "rpm.yml"
 DEB_WORKFLOW = ROOT / ".github" / "workflows" / "deb.yml"
 FLATPAK_WORKFLOW = ROOT / ".github" / "workflows" / "flatpak.yml"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 SRC = ROOT / "src" / "idasen_companion"
 STATS = SRC / "daemon" / "stats.py"
 
@@ -79,6 +80,31 @@ def test_release_builder_and_verifier_define_the_five_asset_contract():
         "idasen-companion-[0-9]*.flatpak",
     ):
         assert stem in verifier
+
+
+def test_release_verifier_installs_flatpak_runtime_in_its_isolated_home():
+    verifier = read(RELEASE_VERIFIER)
+    manifest = read(FLATPAK_MANIFEST)
+    runtime = re.search(r"^runtime: (\S+)$", manifest, re.M)
+    branch = re.search(r"^runtime-version: ['\"]?([^'\"\n]+)", manifest, re.M)
+    assert runtime is not None
+    assert branch is not None
+
+    assert "flatpak_runtime=$(sed" in verifier
+    assert "flatpak_runtime_version=$(sed" in verifier
+    assert 'XDG_DATA_HOME="$flatpak_dir" flatpak --user remote-add' in verifier
+    assert 'flathub "$flatpak_runtime//$flatpak_runtime_version"' in verifier
+
+
+def test_workflow_package_artifacts_expire_after_one_day():
+    if not RELEASE_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
+    for workflow_path in (RPM_WORKFLOW, DEB_WORKFLOW, FLATPAK_WORKFLOW,
+                          RELEASE_WORKFLOW):
+        workflow = read(workflow_path)
+        assert workflow.count("retention-days: 1") == workflow.count(
+            "actions/upload-artifact"
+        )
 
 
 def test_native_variants_are_standalone_and_mutually_exclusive():
