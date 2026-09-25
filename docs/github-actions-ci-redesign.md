@@ -4,13 +4,14 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **design complete; implementation not approved or started**
+Status: **design amended after the 1.2.0 release; implementation not approved or started**
 
 Branch: `ci-workflow-rebuild`
 
-Baseline: `eb829e2` (`main` when this phase began)
+Baseline: `eb829e2` (`main` when this phase began). `main` has since advanced
+to `a20f559` (`v1.2.0`); synchronize it before implementation.
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 ## Goal and constraints
 
@@ -18,9 +19,11 @@ Replace the current seven-workflow layout with a smaller orchestration model
 that gives every merge candidate one dependable `CI OK` conclusion, makes
 expensive package work intentional, and still proves packaging changes before
 merge.
-The release path must continue to rebuild and verify all five deliverables:
+The release path must continue to fully verify all five deliverables:
 desktop and headless RPMs, desktop and headless Debian packages, and the
-Flatpak bundle.
+Flatpak bundle. A real release may publish the exact assets from a successful
+dry run when their provenance and hashes are proved; otherwise it must build
+and verify the complete set itself.
 
 The repository is private and its current plan has no branch protection, so
 the design must be useful as a visible maintainer signal today without
@@ -42,8 +45,10 @@ when branch protection becomes available later.
 - `flatpak.yml`: one build job.
 
 `release.yml` independently calls the three package workflows with `force:
-true`, assembles and verifies exactly five assets, and publishes them. The
-release design deliberately rebuilds at the release ref and is sound.
+true`, assembles and verifies exactly five assets, and publishes them. Today a
+real release rebuilds at its ref even after a successful dry run. That is
+trustworthy but duplicates the most expensive work and consumes another set
+of temporary artifacts.
 
 A full CI run can therefore expose sixteen job conclusions before counting
 release-only work. Names explain individual operations, but the check list
@@ -70,6 +75,10 @@ hard to state one policy for shared versus format-specific inputs.
 - The same packaging test module protects the semantics implemented by the
   package and portability verification scripts. Those are product/distribution
   tests, not merely workflow glue.
+- Since `a20f559` on `main`, `tests/test_packaging.py` also protects the
+  isolated Flatpak runtime setup in the five-asset verifier and requires
+  one-day retention on all package/release artifact uploads. This branch has
+  not yet incorporated that release fix.
 
 Implementation must update these tests when job boundaries move while
 preserving what they prove. Tests should assert behavior or ordering, not old
@@ -77,14 +86,53 @@ filenames that no longer own the behavior.
 
 ### Timing evidence
 
-The supplied latest full-run observation is approximately 14 minutes, with
-RPM portability alone taking about 8m34s and therefore determining the
-critical path. An attempt to retrieve recent runs and per-job durations with
-`gh` could not authenticate: `GH_TOKEN` is invalid and there is no stored
-GitHub CLI login. Because this is a private repository, no anonymous fallback
-exists. Before choosing final timeout values in implementation, capture at
-least the latest five representative successful CI runs once `gh` access is
-available; do not infer percentiles from the single observation above.
+The earlier supplied full-run observation was approximately 14 minutes, with
+RPM portability taking about 8m34s. `gh` access now works. The latest five
+successful `main` push runs available on 2026-09-25 provide more evidence
+(wall time from the run's start to its last update; job times from each job's
+own start/end timestamps):
+
+| CI run | Overall | RPM build | RPM portability | Notes |
+|---|---:|---:|---:|---|
+| [36129311751](https://github.com/extricator/idasen-companion/actions/runs/36129311751) | 13m38s | 4m41s | 7m32s | 1.2.0 release-path fix |
+| [36093456592](https://github.com/extricator/idasen-companion/actions/runs/36093456592) | 13m48s | 4m27s | 7m55s | 1.2.0 version bump |
+| [36090895626](https://github.com/extricator/idasen-companion/actions/runs/36090895626) | 5m57s | 32s | skipped | Docs-only commit; package jobs skipped their expensive steps |
+| [36090212371](https://github.com/extricator/idasen-companion/actions/runs/36090212371) | 11m52s | 4m31s | 5m52s | Distribution architecture change |
+| [32441271276](https://github.com/extricator/idasen-companion/actions/runs/32441271276) | 7m44s | 2m45s | 3m28s | Earlier release-era baseline |
+
+The release-path evidence is separate: successful 1.2.0 dry run
+[36130614315](https://github.com/extricator/idasen-companion/actions/runs/36130614315)
+took 17m04s, including 3m35s of five-asset assembly; the real release
+[36132268056](https://github.com/extricator/idasen-companion/actions/runs/36132268056)
+took 20m55s, including 3m05s of assembly and 14s of publication. Use these
+observations to set initial timeouts with setup/network headroom; do not infer
+a percentile or a performance promise from five heterogeneous runs.
+
+The local `GH_TOKEN` issue that blocked the first audit no longer blocks
+run listing, dispatch, or status queries. `gh run watch` still receives 403
+when requesting check annotations with this token, so annotation access needs
+separate diagnosis. Run status and job logs remain available.
+
+### Lessons from the 1.2.0 release
+
+The first 1.2.0 dry run
+[36096469530](https://github.com/extricator/idasen-companion/actions/runs/36096469530)
+built all five artifacts and passed RPM portability and Debian smoke, then
+failed assembly because the verifier installed `org.kde.Platform//6.10` into
+the runner's normal Flatpak home but installed the bundle into an isolated
+home. Commit `a20f559` made runtime installation part of that isolated
+verifier and passed full CI, the repeat dry run, and the real release. Keep
+the five-asset verifier as an executable release contract, and preserve a dry
+run that reaches assembly before creating a tag.
+
+The repository's Actions storage warning reached 90% of the plan's 0.5 GB
+allowance. An inventory found 79 retained workflow artifacts totaling
+1,295,219,946 bytes; they were deleted by exact artifact ID, and the
+repository artifact list then reported zero. This cleanup did not affect
+published GitHub Release assets. Commit `a20f559` also set
+`retention-days: 1` on the RPM, Debian, Flatpak, and assembled-release
+uploads on `main`. Those changes must be retained when this branch is
+synchronized. The original 3/7-day retention proposal is superseded.
 
 ## Proposed architecture
 
@@ -191,7 +239,9 @@ the same regex in Python.
 | Manual `core` | yes | yes | no | no | no | no |
 | Manual `full` | yes | yes | yes | yes | yes | yes |
 | Push to `main` | yes | yes | yes | yes | yes | yes |
-| Release/dry run | yes | yes | yes | yes | yes | yes |
+| Release dry run | yes | yes | yes | yes | yes | yes |
+| Real release using a verified dry run | reuse that run's successful verification | reuse | publish its verified RPMs | publish its verified Debian packages | publish its verified Flatpak | reuse its passed portability proof |
+| Real release without a valid dry run, including a tag-push path | yes | yes | yes | yes | yes | yes |
 
 Draft PRs still get useful, inexpensive feedback. Automatic package work is
 suppressed until `ready_for_review`; that event evaluates the complete PR diff
@@ -202,7 +252,8 @@ proof of the installed systemd user unit and archive PySide resolution. RPM
 metadata checks remain coupled to every RPM build and must run before upload.
 The roughly 8.5-minute RPM portability proof runs only when its own code
 changes, after approval, when explicitly requested with the `full-ci` fallback,
-on `main`, and during every release/dry run.
+on `main`, and during every release dry run or full-rebuild release. Promotion
+reuses the successful proof for the exact published bytes.
 
 ### Expensive-job gate decision
 
@@ -214,7 +265,7 @@ on `main`, and during every release/dry run.
 | `full-ci` label | Visible, deliberate, and usable before branch protection is available | A second manual ceremony; a persistent label must not rebuild on later synchronize events | Interim and diagnostic fallback only; trigger only on the label event itself |
 | Manual dispatch | Good recovery and targeted diagnostics | Easy to forget and not naturally represented as a PR-head policy | Provide `core`, `full`, and individual format modes as an escape hatch |
 | Push to `main` | Tests the integrated tree and catches bypasses | Feedback is post-merge | Always run full verification |
-| Release/tag | Protects published bytes | Too late to be the only package proof | Always run full verification and rebuild all five assets |
+| Release/tag | Protects published bytes | Too late to be the only package proof; rebuilding after a successful dry run repeats costly work | Publish a precisely identified, fully verified dry-run asset set when safe; otherwise run full verification and rebuild all five |
 
 `full-ci.yml` starts from an approving `pull_request_review`. If multiple
 approvals later become required, its gate must confirm that the PR's aggregate
@@ -266,6 +317,15 @@ head. Reapproval triggers `full-ci.yml` again, and merge remains blocked until
 that run proves the new head. Before protection is available the same checks
 remain visible and trustworthy, but enforcement is necessarily social.
 
+The 1.2.0 preparation commit went straight to `main` because this private
+repository currently cannot protect that branch. Once protection is enabled,
+cutting a release should use a normal release-preparation PR for the version,
+changelog, package metadata, and any release-path fix. Review and `CI OK`
+apply to that PR. After merge, run full `main` CI and a release dry run on
+the **merged commit**; only then publish/tag that exact commit. A PR-head dry
+run cannot be promoted if merging produced a different SHA. The release
+operator must not need a routine protection bypass or direct push to `main`.
+
 Configure `CI OK` as a required **status check**, not as an organization-level
 required-workflow rule. GitHub's required-workflow mechanism supports
 `pull_request`, `pull_request_target`, and `merge_group`, not
@@ -281,18 +341,29 @@ merge candidate as well as the approved PR head.
   head instead makes the old result unusable. Do not cancel `main` runs. Give
   release runs a separate version/tag group with `cancel-in-progress: false`;
   never cancel a publishing run because another trigger arrived.
-- **Timeouts:** add an explicit `timeout-minutes` to every job. Set initial
-  values only after retrieving recent timings; use observed high-water marks
-  plus reasonable setup/network headroom. The known 8m34s portability step
-  should not inherit GitHub's multi-hour default.
-- **Artifacts:** set explicit short retention for CI package artifacts (start
-  with 3 days for PR runs and 7 days for `main`/manual/release diagnostics).
-  Published release assets remain attached to the GitHub release. Continue
-  using `if-no-files-found: error`.
+- **Timeouts:** add an explicit `timeout-minutes` to every job. Use the five
+  measured `main` runs and the successful release/dry-run durations above,
+  including the earlier 8m34s portability observation, with reasonable
+  setup/network headroom. Recheck after the job topology changes.
+- **Artifacts:** preserve the one-day upload retention now on `main`; do not
+  regress to the original 90-day default or the superseded 3/7-day proposal.
+  Delete ordinary-CI package artifacts after their last consumer finishes;
+  in a release dry run, delete the three intermediate package artifacts after
+  assembly produces the verified asset set. Keep a promotable dry-run
+  `release-assets` artifact until it is
+  published or expires; it cannot be deleted immediately after verification
+  and still be reused. After publication and asset verification, delete that
+  exact source artifact. A dry run not selected for publication should be
+  cleaned when known obsolete, with one-day expiry as the fallback. Limit
+  cleanup to artifact IDs from the current, verified run. Published GitHub
+  Release assets remain attached to the release. Continue using
+  `if-no-files-found: error`.
 - **Permissions:** default to `contents: read`; grant `pull-requests: read`
-  only where the approval gate must query aggregate review state, and grant
-  `contents: write` only on the final release publish job. No package or PR
-  job needs repository write access or secrets.
+  only where the approval gate queries review state. Cross-run artifact
+  download requires `actions: read`; deleting an artifact through GitHub's
+  REST API requires `actions: write`. Confine these to the promotion/cleanup
+  jobs. Grant `contents: write` only to the final release publish job. No PR
+  code or package-build job gets write access or repository secrets.
 - **Forks:** use `pull_request`, never `pull_request_target`, and never execute
   untrusted PR code with write permission or repository secrets. The design
   works with the read-only fork token documented by GitHub.
@@ -304,10 +375,52 @@ merge candidate as well as the approved PR head.
   RPM/Flatpak artifacts and native package databases are high-churn and can
   obscure reproducibility. Measure the simplified runs before adding a
   narrowly keyed cache.
-- **Release:** both real releases and dry runs call full verification and the
-  package workflow with all inputs true before assembly. The existing unique
-  filename checks, five-asset verifier, checksums, and publish-only write
-  permission remain intact.
+- **Release:** the dry run calls full verification and all package proofs,
+  then assembles one checked set. A real release either promotes those exact
+  bytes under the checks below or performs the same full build and proof when
+  promotion is unavailable. Preserve unique filename checks, the five-asset
+  verifier, checksums, and the publish-only write boundary.
+
+### Promoting a verified dry run
+
+Prefer a real release that names one successful, trusted dry-run **run ID**
+and promotes its already-checked `release-assets` artifact. This removes the
+second 17–21-minute build and avoids temporarily storing another set of large
+RPMs. Cross-run download is supported by `actions/download-artifact` with
+`run-id` and a token that has `actions: read`; GitHub's artifact API exposes
+the source run ID, head SHA, size, and expiry. Current documentation also
+provides a per-artifact delete endpoint requiring `actions: write`.
+
+Promotion must fail closed unless all of the following hold:
+
+- the named run belongs to this repository and the trusted release dry-run
+  workflow, completed successfully on `main`, and its version equals the
+  requested release version;
+- the source run's head SHA equals the current `main` commit and the SHA the
+  release will tag; no moving `latest successful run` lookup is sufficient;
+- its single assembled artifact is unexpired, contains exactly the five
+  expected package files, `SHA256SUMS`, and release notes, and its bytes match
+  the checksums; the names, embedded versions, and release body are checked
+  again before publication;
+- the dry run included successful Python/quality checks, both native smoke
+  proofs, RPM portability, and five-asset assembly; a skipped or failed
+  required job disqualifies it;
+- the published tag and GitHub Release assets are verified before the source
+  artifact is deleted. If publication fails, keep the source for a controlled
+  retry until its one-day expiry.
+
+Do not promote PR artifacts or files from a caller-supplied repository. Keep
+the tag-push path, if retained, on the full rebuild-and-verify route because
+it lacks an explicitly selected dry run. Decide the exact workflow input and
+cleanup job wiring in Phase 3, then dry-run both the promotion and fallback
+paths before replacing the current proven publisher. The published release
+must remain possible if a dry-run artifact expires: require another dry run
+or an explicit full-rebuild release mode, never silently publish stale bytes.
+
+Context7 and the current official [cross-run artifact example](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows),
+[artifact retention guidance](https://docs.github.com/en/actions/tutorials/store-and-share-data),
+and [artifact REST API](https://docs.github.com/en/rest/actions/artifacts)
+were checked on 2026-09-25 for this proposal.
 
 ## Script disposition
 
@@ -370,6 +483,9 @@ and run the existing workflow-pin and packaging contract tests.
 
 ### Phase 2 — planner and reusable topology
 
+- Synchronize `ci-workflow-rebuild` with `main` at or after `a20f559` before
+  changing workflows, preserving the release verifier fix and one-day
+  artifact-retention contracts.
 - Add the central planner and its path/event contract tests.
 - Consolidate tests/quality into `verify.yml` and packages into
   input-driven `packages.yml`.
@@ -388,6 +504,13 @@ and manual inspection of computed plans for representative event fixtures.
 
 - Make release and dry-run paths call full verification plus all package
   proofs, preserving the five-asset assembly and publish boundary.
+- Implement and test explicit promotion from a trusted successful dry run,
+  including SHA/version/run-ID checks, exact asset/checksum revalidation,
+  post-publication verification, scoped artifact cleanup, and an explicit
+  full-rebuild fallback. Do not let the current tag-push path silently reuse
+  a different run's bytes.
+- Document the protected-`main` release-preparation PR path, with a post-merge
+  dry run of the actual commit to be tagged.
 - Add measured timeouts, explicit retention, final concurrency rules, and
   least-privilege permissions.
 - Audit SHA pins and container-image policy.
@@ -403,6 +526,10 @@ authorizes external execution.
   updates; observe one `main` or equivalent full run.
 - Compare durations and check-list shape with the baseline; tune timeouts only
   from evidence.
+- Confirm intermediate artifacts are removed after their consumers finish,
+  dry-run promotion keeps only the verified set until publication, and
+  published GitHub Release assets remain available. Investigate the local
+  token's check-annotation 403 without making CI depend on that token.
 - Decide the optional `scan-secrets.sh` simplification separately.
 - Move lasting maintainer instructions to maintained documentation and delete
   this temporary file before merge.
@@ -428,8 +555,18 @@ choices:
 6. full tests, checks, all five package builds, Debian smoke, and RPM
    portability on both `main` and release;
 7. no whole-script deletion in the topology phase, with `scan-secrets.sh` as
-   a separately proven simplification candidate.
+   a separately proven simplification candidate;
+8. one-day retention plus scoped deletion after the final consumer, with a
+   verified dry-run asset set retained only until promotion or expiry;
+9. explicit, provenance-checked promotion of a successful dry run's five
+   artifacts as the preferred manual release path, with full rebuild when
+   promotion is unavailable;
+10. a normal release-preparation PR once `main` is protected, followed by
+    full CI and a dry run of the merged commit before tagging.
 
 On approval, resume at **Phase 2**. Re-read this file and the current branch
-status first, then implement only the planner/topology phase, verify it, commit
-it logically, and update this handoff before stopping.
+status first. Synchronize with `main` so the 1.2.0 release fixes are present;
+then implement only the planner/topology phase, verify it, commit it logically,
+and update this handoff before stopping. The local `gh` token's annotation 403
+is a separate diagnostic and does not block run-status collection. No
+workflow implementation is authorized by this design update.
