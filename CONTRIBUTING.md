@@ -207,6 +207,13 @@ left to memory.
 Building and attaching the artifacts is automated; the *order* is not, and
 getting it wrong costs a version number. Follow this top to bottom.
 
+Ordinary PR merges to `main` always build and test the packages. While the
+source still names an already tagged version, CI removes those temporary
+packages after testing; it creates no release candidate or GitHub Release.
+The first merge that carries a new, unreleased version and its release notes
+also assembles a one-day candidate from that same `main` CI run. Publishing
+always remains a separate, explicitly authorized action.
+
 **Every release.**
 
 1. **Move the version.** It lives in `src/idasen_companion/__init__.py`, and

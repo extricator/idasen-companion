@@ -580,7 +580,9 @@ maintained documentation and the branch is otherwise ready to merge.
 - On a `main` push with an unreleased version, assemble a `release-assets`
   candidate from that run's five package outputs, run the complete five-asset
   verifier, and retain only the checked bundle for one day. Keep ordinary
-  `main` CI and artifact cleanup for already released versions.
+  `main` CI and artifact cleanup for already released versions. Ordinary PR
+  merges under an already tagged version build and test packages but produce
+  no releasable asset set and no release.
 - Run the same assembly verifier on full PR checks, using the exact PR head,
   so `CI OK` proves the candidate path before the release-preparation PR
   merges. Do not retain or promote a PR artifact.
