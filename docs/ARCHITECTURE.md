@@ -62,7 +62,11 @@ startup read, adapter scan, or manual D-Bus/CLI move) and releases the BLE
 link. A manual request checks the seat on arrival and again after waiting for
 the desk lock; requests that wait too long expire instead of replaying later.
 Height reads have a deadline so a stuck BlueZ call cannot hold that lock for
-the life of the daemon.
+the life of the daemon. On handoff, a link this daemon held is checked against
+BlueZ after Bleak disconnects; if BlueZ still reports it connected and no
+other companion daemon is running, the daemon requests a direct disconnect.
+Manual move connects also have a deadline, and Stop during a pending connect
+prevents that move from starting after the connection eventually completes.
 Returning to the seat reconciles unconditionally, since the desk may have moved
 however brief the switch. Every uncertainty degrades to "foreground", so a
 single-user machine is unaffected.

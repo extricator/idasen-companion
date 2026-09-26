@@ -22,10 +22,18 @@ the record of what was done.
       does no desk I/O, and responds to a command after return without an
       adapter reset or replaying a backlog of old commands. Do not stop or
       restart the installed daemon just to collect evidence.
-      Candidate fix on this branch bounds BLE height reads and queued manual
-      requests, rejects requests from a background session, and passes the
-      hanging-fake tests. A live switch with the updated daemon is still
-      required before calling this done.
+      Several local switches exposed an orphaned BlueZ link while Bleak
+      reported disconnected. The first also replayed a Sit command after Stop
+      during shutdown. Height reads and move connects now have deadlines;
+      Stop invalidates a pending move. The revised handoff keeps the session's
+      connection claim until handoff and directly clears the desk's BlueZ link
+      when no other companion daemon is running. A short KDE Xorg switch passed:
+      BlueZ stayed disconnected in the background, return-side height sync
+      succeeded, a fresh Sit command completed, and the link released after
+      linger. The roughly 20-minute switch and post-return command remain for
+      full acceptance. See
+      `docs/handoff-2026-09-26-session-switch-release-validation.md` for the
+      trace and test state. Do not prepare the release PR before acceptance.
 - [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
       normal version-and-notes PR after the session-switch fix, require its
       automatic exact-head release-preparation proof, then merge. Confirm that

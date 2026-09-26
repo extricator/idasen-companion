@@ -52,6 +52,7 @@ DISCONNECT_TIMEOUT = 12.0
 # retries. A stalled BlueZ call must not hold the daemon's control-loop lock
 # indefinitely, especially across a session switch.
 READ_TIMEOUT = 30.0
+CONNECT_TIMEOUT = 30.0
 
 
 def _decode_height(data: bytes) -> float:
@@ -80,9 +81,11 @@ class BleDesk:
         wakeup_grace: float = 2.0,
         disconnect_timeout: float = DISCONNECT_TIMEOUT,
         read_timeout: float = READ_TIMEOUT,
+        connect_timeout: float = CONNECT_TIMEOUT,
         desk_factory: Callable = _default_desk_factory,
         on_height: Callable[[float], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
+        on_connect_attempt: Callable[[], None] | None = None,
         on_error: Callable[[str], None] | None = None,
         on_connect_exhausted: Callable[[], "asyncio.Future"] | None = None,
     ):
@@ -93,9 +96,11 @@ class BleDesk:
         self._wakeup_grace = wakeup_grace
         self._disconnect_timeout = disconnect_timeout
         self._read_timeout = read_timeout
+        self._connect_timeout = connect_timeout
         self._desk_factory = desk_factory
         self._on_height = on_height
         self._on_connection_change = on_connection_change
+        self._on_connect_attempt = on_connect_attempt
         self._on_error = on_error
         # Called when every connect attempt has failed, to record what the
         # Bluetooth stack looked like at that moment and optionally clear a
@@ -116,6 +121,7 @@ class BleDesk:
         # True only while a move_to_target is actively driving the desk, so a
         # second move can preempt it (rather than queue behind the lock).
         self._move_in_flight = False
+        self._stop_generation = 0
         self.last_error: str | None = None
 
     # ----- connection management -----
@@ -192,6 +198,8 @@ class BleDesk:
         # invocation stays fast. Starting clean each time closes that gap. The
         # old object is already disconnected here, so dropping it just lets it
         # be collected.
+        if self._on_connect_attempt:
+            self._on_connect_attempt()
         self._desk = self._desk_factory(self.mac, self._handle_disconnect)
         self._forget_link_state()
 
@@ -307,22 +315,36 @@ class BleDesk:
         desk = self._desk
         if desk is None:
             return
+        task = asyncio.create_task(desk.disconnect())
         try:
-            await asyncio.wait_for(desk.disconnect(), self._disconnect_timeout)
-        except asyncio.TimeoutError:
-            # Nothing here can be negotiated with: the call is stuck inside a
-            # bus that is not answering. Let the handle go rather than keep
-            # the lock — and every later desk operation — waiting on it. The
-            # link itself may well still be up; dropping that is BlueZ's job,
-            # and the daemon's resume-side reconciliation asks it directly.
-            self.forget_handle()
-            self._report_error(
-                "disconnect",
-                TimeoutError(f"no reply within {self._disconnect_timeout:g}s"))
-            return
+            done, _ = await asyncio.wait({task}, timeout=self._disconnect_timeout)
+            if not done:
+                task.cancel()
+                # Do not await a cancellation-resistant BlueZ call here: the
+                # whole purpose of this deadline is to free the desk lock.
+                task.add_done_callback(self._finish_stalled_disconnect)
+                self.forget_handle()
+                self._report_error(
+                    "disconnect",
+                    TimeoutError(f"no reply within {self._disconnect_timeout:g}s"))
+                return
+            await task
+        except asyncio.CancelledError:
+            task.cancel()
+            task.add_done_callback(self._finish_stalled_disconnect)
+            raise
         except Exception as exc:
             self._report_error("disconnect", exc)
         self._forget_link_state()
+
+    @staticmethod
+    def _finish_stalled_disconnect(task: asyncio.Task) -> None:
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.debug("late BLE disconnect failed", exc_info=True)
 
     async def disconnect(self) -> None:
         """Disconnect immediately (shutdown, or config switch)."""
@@ -368,9 +390,24 @@ class BleDesk:
         # cooperatively, which lets the current holder release the lock below.
         if self._move_in_flight:
             await self.stop()
+        stop_generation = self._stop_generation
         async with self._lock:
             try:
-                if not await self._ensure_connected():
+                try:
+                    connected = await asyncio.wait_for(
+                        self._ensure_connected(), self._connect_timeout)
+                except asyncio.TimeoutError:
+                    self._report_error(
+                        "move_to connect",
+                        TimeoutError(
+                            f"no reply within {self._connect_timeout:g}s"))
+                    await self._disconnect_locked()
+                    self.forget_handle()
+                    return False
+                if not connected:
+                    return False
+                if stop_generation != self._stop_generation:
+                    await self._disconnect_locked()
                     return False
                 # A controller woken moments ago (by idasen's connect(), or by
                 # the read that a tray gesture does first) needs no second
@@ -379,6 +416,9 @@ class BleDesk:
                 # three GATT writes from the move path.
                 if not self._controller_awake:
                     await self._wakeup()
+                if stop_generation != self._stop_generation:
+                    await self._disconnect_locked()
+                    return False
                 self._move_in_flight = True
                 try:
                     await self._handle.move_to_target(height)
@@ -392,6 +432,7 @@ class BleDesk:
                 self._schedule_release()
 
     async def stop(self) -> None:
+        self._stop_generation += 1
         # Deliberately no _ensure_connected: stop only matters if a move is
         # in flight, which implies we're connected.
         if not self.connected:

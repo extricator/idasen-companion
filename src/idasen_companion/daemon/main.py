@@ -136,6 +136,10 @@ class Daemon:
         self._desk_lock = asyncio.Lock()
         self.moving = False
         self.desk_connected = False
+        # A disconnect can appear complete in Bleak and BlueZ, then the desk
+        # link can reappear during a session switch. Remember that this
+        # foreground session used the desk until its handoff is complete.
+        self._had_foreground_connect = False
         # Repeat-gesture tracking (tray/CLI): the gesture action that started
         # the move currently in flight, and the height it began at (so a repeat
         # can reverse back to it). Authoritative here, not in the client, so the
@@ -374,6 +378,7 @@ class Daemon:
             linger=self.config.desk.linger,
             on_height=self._on_live_height,
             on_connection_change=self._on_connection_change,
+            on_connect_attempt=self._on_connect_attempt,
             # A per-attempt BLE failure is genuinely a warning, and genuinely
             # not for the person wondering why their desk moved — most are
             # retried successfully. The diagnostic channel is what keeps it out
@@ -386,10 +391,15 @@ class Daemon:
 
     def _on_connection_change(self, connected: bool) -> None:
         self.desk_connected = connected
+        if connected:
+            self._had_foreground_connect = True
         desk1 = self._ifaces.get("desk")
         if desk1:
             desk1.emit_properties_changed({"Connected": connected})
             desk1.ConnectedChanged(connected)
+
+    def _on_connect_attempt(self) -> None:
+        self._had_foreground_connect = True
 
     def _on_live_height(self, height: float) -> None:
         self.machine.last_height = height
@@ -417,7 +427,29 @@ class Daemon:
         holds, so it waits for a move in flight rather than cutting one short
         (severing a live BLE link is what wedges the controller).
         """
+        may_own_link = self._had_foreground_connect
         await self.desk.disconnect()
+        if self.mock_mode or not may_own_link or not self.config.desk.mac:
+            return
+        # Bleak can report its handle disconnected while BlueZ still owns the
+        # physical link. Check the authority after the handoff, not the cached
+        # handle. A link that briefly vanished before the switch can return;
+        # the foreground connect is the evidence that it may still be ours.
+        path = self._bluez_device_path()
+        if not await self._bluez_property(path, "org.bluez.Device1", "Connected"):
+            self._had_foreground_connect = False
+            return
+        if self._other_companion_daemons():
+            self.activity_log.diag(
+                "warning", "The desk link remained connected after this "
+                "session released it; another companion daemon is running, "
+                "so leaving the link alone.")
+            return
+        self.activity_log.diag(
+            "warning", "BlueZ kept the desk connected after the session "
+            "handoff; requesting a direct disconnect.")
+        if await self._drop_bluez_link(path):
+            self._had_foreground_connect = False
 
     async def _setup_dbus(self) -> bool:
         """Set up the session-bus service. Returns False — having set nothing
@@ -1652,7 +1684,8 @@ class Daemon:
                 argv = (entry / "cmdline").read_bytes().split(b"\0")
             except OSError:
                 continue  # exited, or another user's process we can't read
-            if any(arg.rsplit(b"/", 1)[-1] == b"idasen-companiond"
+            if any(arg == b"idasen_companion.daemon.main"
+                   or arg.rsplit(b"/", 1)[-1] == b"idasen-companiond"
                    for arg in argv if arg):
                 found.append(int(entry.name))
         return found
