@@ -14,21 +14,34 @@ on:
         required: false
         default: false
         type: boolean
+      promotion_run_id:
+        description: 'Successful main-branch dry-run ID to promote (real dispatch only)'
+        required: false
+        type: string
+      full_rebuild:
+        description: 'Explicitly rebuild and verify all assets for a real release'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  # Both triggers converge here, on one resolved version, so everything
-  # downstream is a single path. Two triggers with two code paths would leave
-  # the rarely-used one to rot unnoticed.
+  # Resolve the version and one explicit route before any expensive work.
   gate:
     name: The requested version agrees with __version__
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       tag: ${{ steps.resolve.outputs.tag }}
       release: ${{ steps.resolve.outputs.release }}
+      mode: ${{ steps.resolve.outputs.mode }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -36,8 +49,11 @@ jobs:
       - name: Resolve the version and refuse one that disagrees with the source
         id: resolve
         env:
+          GH_TOKEN: ${{ github.token }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
+          FULL_REBUILD: ${{ inputs.full_rebuild }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           SOURCE=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
@@ -46,10 +62,23 @@ jobs:
             REQUESTED="${GITHUB_REF_NAME#v}"
             ORIGIN="tag $GITHUB_REF_NAME"
             RELEASE=true
+            MODE=rebuild
           else
             REQUESTED="${INPUT_VERSION#v}"
             ORIGIN="the version entered on the Actions form"
             if [ "$INPUT_DRY_RUN" = "true" ]; then RELEASE=false; else RELEASE=true; fi
+            if [ "$RELEASE" = "false" ]; then
+              [ -z "$PROMOTION_RUN_ID" ] && [ "$FULL_REBUILD" != true ] || exit 1
+              MODE=dry-run
+            elif [ -n "$PROMOTION_RUN_ID" ] && [ "$FULL_REBUILD" != true ]; then
+              [[ "$PROMOTION_RUN_ID" =~ ^[1-9][0-9]*$ ]] || exit 1
+              MODE=promote
+            elif [ -z "$PROMOTION_RUN_ID" ] && [ "$FULL_REBUILD" = true ]; then
+              MODE=rebuild
+            else
+              echo 'Select exactly one real-release mode: promotion run ID or full rebuild.' >&2
+              exit 1
+            fi
 
             # A release cut from a side branch would carry that branch's code
             # under a version number the default branch also claims. A dry run
@@ -68,11 +97,20 @@ jobs:
             exit 1
           fi
 
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$RELEASE" = true ]; then
+            current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$DEFAULT_BRANCH" --jq '.object.sha')
+            [ "$current" = "$GITHUB_SHA" ] || {
+              echo "The default branch moved; start a new dry run on its current commit." >&2
+              exit 1
+            }
+          fi
+
           echo "$ORIGIN agrees with the source version $SOURCE"
           {
             echo "version=$SOURCE"
             echo "tag=v$SOURCE"
             echo "release=$RELEASE"
+            echo "mode=$MODE"
           } >> "$GITHUB_OUTPUT"
 
       # Only meaningful for a dispatch, where the tag does not exist yet. On a
@@ -90,38 +128,32 @@ jobs:
           fi
           echo "$TAG is free"
 
-  # Rebuilding at the tag, rather than reusing whatever the tagged commit's CI
-  # run happened to produce, keeps one source of truth per format: a docs-only
-  # tagged commit legitimately skips those builds in CI, leaving nothing to
-  # attach.
-  rpm:
+  verify:
+    if: needs.gate.outputs.mode != 'promote'
     needs: gate
-    uses: ./.github/workflows/rpm.yml
-    with:
-      force: true
+    uses: ./.github/workflows/verify.yml
+    permissions:
+      contents: read
 
-  deb:
+  packages:
+    if: needs.gate.outputs.mode != 'promote'
     needs: gate
-    uses: ./.github/workflows/deb.yml
+    uses: ./.github/workflows/packages.yml
+    permissions:
+      contents: read
     with:
-      force: true
+      rpm: true
+      deb: true
+      flatpak: true
+      rpm_portability: true
 
-  flatpak:
-    needs: gate
-    uses: ./.github/workflows/flatpak.yml
-    with:
-      force: true
-
-  # Assembling is deliberately a separate job from publishing, and runs on every
-  # trigger. A manual run is meant to exercise the whole path before the tag is
-  # spent, and the parts most worth exercising are here: resolving each built
-  # filename, refusing an ambiguous match, renaming the bundle and checksumming
-  # the set. Folding these into the publish job would have left a manual run
-  # doing nothing the ordinary CI build does not already do.
+  # Both dry runs and full rebuilds assemble and verify before publication.
   package:
     name: Assemble and checksum the release assets
-    needs: [gate, rpm, deb, flatpak]
+    needs: [gate, verify, packages]
+    if: needs.gate.outputs.mode != 'promote'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     outputs:
       rpm: ${{ steps.assets.outputs.rpm }}
       rpm_headless: ${{ steps.assets.outputs.rpm_headless }}
@@ -284,6 +316,19 @@ jobs:
           fi
           cat release-notes.md
 
+      - name: Record the assembled set's source
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open('provenance.json', 'w') as output:
+              json.dump({'run_id': int(os.environ['GITHUB_RUN_ID']),
+                         'sha': os.environ['GITHUB_SHA'],
+                         'version': os.environ['VERSION'],
+                         'candidate': True}, output)
+          PY
+
       - name: Hand the assembled assets to the publish job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
@@ -291,23 +336,57 @@ jobs:
           path: |
             artifacts/
             release-notes.md
+            provenance.json
+          if-no-files-found: error
+          retention-days: 1
+
+  promote:
+    name: Validate a selected dry run
+    needs: gate
+    if: needs.gate.outputs.mode == 'promote'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Verify source run and required proof jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.promotion_run_id }}
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: python3 scripts/release-assets.py provenance "$RUN_ID" "$GITHUB_SHA" "$VERSION"
+      - name: Download the selected assembled set
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: release-assets
+          run-id: ${{ inputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Revalidate names, version, provenance, and every checksum
+        env:
+          RUN_ID: ${{ inputs.promotion_run_id }}
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: python3 scripts/release-assets.py assets . "$VERSION" "$GITHUB_SHA" "$RUN_ID"
+      - name: Hand the validated set to the publish job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: release-assets
+          path: |
+            artifacts/
+            release-notes.md
+            provenance.json
           if-no-files-found: error
           retention-days: 1
 
   publish:
     name: Publish the release
-    needs: [gate, package]
-    # A dry run stops here, and only here. Everything above it has already run,
-    # so a dry run still proves the builds and the assembly; what it does not do
-    # is create a tag or a release. This is also the only job allowed to write
-    # to the repository, and leaving it unreachable from a dry run keeps that
-    # reach off every run that is only rehearsing.
-    #
-    # The cost of that gate, stated plainly because it bit once: no dry run can
-    # exercise this job, so anything below is first proved by a real release.
-    # Keep it to as few moving parts as possible for that reason.
-    if: needs.gate.outputs.release == 'true'
+    needs: [gate, verify, packages, package, promote]
+    # Only the final publisher has contents:write. A dry run cannot reach it.
+    if: ${{ always() && needs.gate.result == 'success' && needs.gate.outputs.release == 'true' && ((needs.gate.outputs.mode == 'promote' && needs.promote.result == 'success') || (needs.gate.outputs.mode == 'rebuild' && needs.verify.result == 'success' && needs.packages.result == 'success' && needs.package.result == 'success')) }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -319,13 +398,26 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-          RPM: ${{ needs.package.outputs.rpm }}
-          RPM_HEADLESS: ${{ needs.package.outputs.rpm_headless }}
-          DEB: ${{ needs.package.outputs.deb }}
-          DEB_HEADLESS: ${{ needs.package.outputs.deb_headless }}
-          FLATPAK: ${{ needs.package.outputs.flatpak }}
           TAG: ${{ needs.gate.outputs.tag }}
         run: |
+          set -euo pipefail
+          shopt -s nullglob
+          RPM=(artifacts/idasen-companion-[0-9]*.rpm)
+          RPM_HEADLESS=(artifacts/idasen-companion-headless-*.rpm)
+          DEB=(artifacts/idasen-companion_[0-9]*.deb)
+          DEB_HEADLESS=(artifacts/idasen-companion-headless_*.deb)
+          FLATPAK=(artifacts/idasen-companion-[0-9]*.flatpak)
+          for count in "${#RPM[@]}" "${#RPM_HEADLESS[@]}" "${#DEB[@]}" "${#DEB_HEADLESS[@]}" "${#FLATPAK[@]}"; do
+            [ "$count" -eq 1 ] || exit 1
+          done
+          (cd artifacts && sha256sum --check SHA256SUMS)
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+            [ "$current" = "$GITHUB_SHA" ] || {
+              echo 'main moved after release preparation; refusing publication.' >&2
+              exit 1
+            }
+          fi
           # Published outright rather than as a draft. The draft existed so the
           # one-time 1.0 verification gate could check the real bytes before
           # anyone saw them; that gate retired with 1.0, leaving a manual step
@@ -350,9 +442,60 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             "${TARGET[@]}" \
             --notes-file release-notes.md \
-            "artifacts/$RPM" \
-            "artifacts/$RPM_HEADLESS" \
-            "artifacts/$DEB" \
-            "artifacts/$DEB_HEADLESS" \
-            "artifacts/$FLATPAK" \
+            "${RPM[0]}" \
+            "${RPM_HEADLESS[0]}" \
+            "${DEB[0]}" \
+            "${DEB_HEADLESS[0]}" \
+            "${FLATPAK[0]}" \
             artifacts/SHA256SUMS
+
+      - name: Verify published bytes and tag target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          object=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          type=$(jq -r '.object.type' <<< "$object")
+          target=$(jq -r '.object.sha' <<< "$object")
+          for _ in 1 2 3; do
+            [ "$type" = tag ] || break
+            object=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$target")
+            type=$(jq -r '.object.type' <<< "$object")
+            target=$(jq -r '.object.sha' <<< "$object")
+          done
+          [ "$type" = commit ] || { echo 'Published tag does not resolve to a commit.' >&2; exit 1; }
+          [ "$target" = "$GITHUB_SHA" ] || { echo 'Published tag points at another commit.' >&2; exit 1; }
+          mkdir published
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir published
+          (cd published && sha256sum --check ../artifacts/SHA256SUMS)
+          [ "$(find published -maxdepth 1 -type f | wc -l)" -eq 6 ]
+          body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          [ "$body" = "$(cat release-notes.md)" ] || { echo 'Published release notes differ.' >&2; exit 1; }
+
+  cleanup:
+    name: Retire consumed release artifacts
+    needs: [gate, package, promote, publish]
+    if: ${{ always() && (needs.gate.outputs.mode == 'dry-run' && needs.package.result == 'success' || needs.gate.outputs.release == 'true' && needs.publish.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Check out cleanup script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Delete intermediate artifacts by verified run and ID
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ needs.gate.outputs.mode }}
+          SOURCE_RUN_ID: ${{ inputs.promotion_run_id }}
+        run: |
+          python3 scripts/release-assets.py cleanup "$GITHUB_RUN_ID" \
+            idasen-companion-rpm idasen-companion-deb idasen-companion-flatpak
+          if [ "$MODE" != dry-run ]; then
+            python3 scripts/release-assets.py cleanup "$GITHUB_RUN_ID" release-assets
+          fi
+          if [ "$MODE" = promote ]; then
+            python3 scripts/release-assets.py cleanup "$SOURCE_RUN_ID" release-assets
+          fi

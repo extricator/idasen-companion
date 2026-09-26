@@ -1,75 +1,84 @@
-name: Deb
+name: Packages
 
 on:
   workflow_call:
     inputs:
-      force:
-        description: Build regardless of which paths the change touches
+      ref:
+        type: string
+        required: false
+        default: ''
+      rpm:
         type: boolean
-        default: false
-  workflow_dispatch:
+        required: true
+      deb:
+        type: boolean
+        required: true
+      flatpak:
+        type: boolean
+        required: true
+      rpm_portability:
+        type: boolean
+        required: true
 
 permissions:
   contents: read
 
 jobs:
-  deb:
-    name: Build the .deb
+  rpm:
+    name: Packages / RPM
+    if: inputs.rpm
     runs-on: ubuntu-24.04
-    container: debian:13
-    env:
-      DEBIAN_FRONTEND: noninteractive
-    outputs:
-      relevant: ${{ steps.changed.outputs.relevant }}
+    timeout-minutes: 45
     steps:
-      - name: Install git
-        run: |
-          apt-get update
-          apt-get install -y git
-
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          fetch-depth: 0
-
-      - name: Trust the checkout directory
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Determine whether this change touches packaging-relevant paths
-        id: changed
+          ref: ${{ inputs.ref }}
+      - name: Build both RPM release variants in Fedora 43
         run: |
-          # A caller that asks for a build has already decided it must happen:
-          # a release rebuilds at its own tag, where a diff of touched paths
-          # says nothing about whether the artifact is wanted.
-          if [ "${{ inputs.force }}" = "true" ]; then
-            echo "relevant=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="${{ github.event.before }}"
-            # First push of a new branch (or a workflow_dispatch run, which has
-            # neither event field): diff against the empty tree so everything
-            # counts as changed rather than erroring.
-            case "$BASE" in
-              0000000000000000000000000000000000000000|"") BASE=$(git hash-object -t tree /dev/null) ;;
-            esac
-          fi
-          CHANGED=$(git diff --name-only "$BASE" "${{ github.sha }}")
-          echo "Changed files:"
-          echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(packaging/|data/|pyproject\.toml|MANIFEST\.in|src/|tests/|scripts/|debian/|\.github/workflows/deb\.yml)'; then
-            echo "relevant=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "relevant=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install build dependencies
-        if: steps.changed.outputs.relevant == 'true'
+          docker run --rm -i --volume "$PWD:/workspace" --workdir /workspace fedora:43 bash -e -s <<'BUILD'
+          dnf install -y git rpm-build rpmdevtools python3-devel python3-pip python3-build \
+            python3-setuptools systemd-rpm-macros desktop-file-utils \
+            python3-pytest python3-pytest-asyncio \
+            /usr/bin/strip /usr/bin/objdump /usr/bin/dbus-run-session \
+            'libGL.so.1()(64bit)' 'libEGL.so.1()(64bit)' \
+            'libxkbcommon.so.0()(64bit)' 'libfontconfig.so.1()(64bit)' \
+            'libfreetype.so.6()(64bit)' 'libdbus-1.so.3()(64bit)'
+          git config --global --add safe.directory /workspace
+          bash scripts/build-release-variants.sh --rpm --output dist-rpm
+          scripts/verify-rpm-metadata.sh dist-rpm/idasen-companion-[0-9]*.rpm
+          scripts/verify-rpm-metadata.sh dist-rpm/idasen-companion-headless-*.rpm
+          BUILD
+      - name: Install each flavor and start its daemon in containers
+        if: inputs.rpm_portability
         run: |
+          for artifact in dist-rpm/*.rpm; do
+            scripts/verify-rpm-portability.sh "$artifact"
+          done
+      - name: Upload the built RPM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-rpm
+          path: dist-rpm/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  deb:
+    name: Packages / Debian
+    if: inputs.deb
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Build both Debian release variants in Debian 13
+        run: |
+          docker run --rm -i --volume "$PWD:/workspace" --workdir /workspace \
+            -e DEBIAN_FRONTEND=noninteractive debian:13 bash -e -s <<'BUILD'
           apt-get update
-          apt-get install -y --no-install-recommends \
+          apt-get install -y --no-install-recommends git \
             build-essential debhelper dh-python python3-all pybuild-plugin-pyproject \
             devscripts lintian debhelper-compat python3-setuptools \
             python3-pytest python3-pytest-asyncio \
@@ -78,51 +87,15 @@ jobs:
             qt6-translations-l10n \
             python3-babel python3-tomlkit python3-yaml python3-dbus-fast \
             python3-idasen python3-bleak
-
-      - name: Build both Debian release variants
-        if: steps.changed.outputs.relevant == 'true'
-        run: bash scripts/build-release-variants.sh --deb --output dist-deb
-
-      - name: Lint the built package
-        if: steps.changed.outputs.relevant == 'true'
-        run: |
-          # no-manual-page: this app is GUI/systemd-only, with no CLI usage
-          # a man page would document. initial-upload-closes-no-bugs: this
-          # package is never uploaded through the Debian NEW queue, so there
-          # is no ITP bug for a first upload to close.
+          git config --global --add safe.directory /workspace
+          bash scripts/build-release-variants.sh --deb --output dist-deb
           for package in dist-deb/*.deb; do
             lintian --fail-on error,warning \
               --suppress-tags no-manual-page \
               --suppress-tags initial-upload-closes-no-bugs \
               "$package"
           done
-
-      - name: Upload the built .deb
-        if: steps.changed.outputs.relevant == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: idasen-companion-deb
-          path: dist-deb/*.deb
-          if-no-files-found: error
-          retention-days: 1
-
-  # The RPM has a proof of its own that installs the package and starts the
-  # daemon, but it never asks systemd anything. A systemd user unit's
-  # enabled/disabled state is a fact about a running systemd user manager,
-  # which a bare `container:` job does not have (see deb-smoke's own steps
-  # below), so this half runs on a real VM and drives Docker itself.
-  deb-smoke:
-    name: Install the .deb in a clean container
-    needs: [deb]
-    if: needs.deb.outputs.relevant == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download the built .deb
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
-        with:
-          name: idasen-companion-deb
-          path: dist-deb
-
+          BUILD
       - name: Start a systemd-booted Debian 13 container
         run: |
           docker run -d --name deb-smoke \
@@ -205,4 +178,45 @@ jobs:
 
       - name: Tear down the container
         if: always()
-        run: docker rm -f deb-smoke
+        run: docker rm -f deb-smoke || true
+      - name: Upload the built .deb
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-deb
+          path: dist-deb/*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  flatpak:
+    name: Packages / Flatpak
+    if: inputs.flatpak
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      options: --privileged
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Trust the checkout directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Ensure the Python build tooling is available
+        run: python3 -m pip install --quiet build
+
+      - name: Install the PySide BaseApp used by the manifest
+        run: >-
+          flatpak install --noninteractive --assumeyes flathub
+          io.qt.PySide.BaseApp//6.10
+
+      - name: Build the full Flatpak release bundle
+        run: bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: idasen-companion-flatpak
+          path: dist-flatpak/*.flatpak
+          if-no-files-found: error
+          retention-days: 1

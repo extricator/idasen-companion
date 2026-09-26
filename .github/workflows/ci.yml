@@ -2,48 +2,293 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Verification to run
+        required: true
+        default: core
+        type: choice
+        options: [core, full, rpm, deb, flatpak, rpm-portability]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ordinary-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
-    uses: ./.github/workflows/test.yml
-
-  checks:
-    uses: ./.github/workflows/checks.yml
-
-  rpm:
-    needs: [test, checks]
-    uses: ./.github/workflows/rpm.yml
-
-  deb:
-    needs: [test, checks]
-    uses: ./.github/workflows/deb.yml
-
-  flatpak:
-    needs: [test, checks]
-    uses: ./.github/workflows/flatpak.yml
-
-  # rpm.needs above means a red test or checks skips it, so ci-ok must treat
-  # skipped the same as failed -- otherwise a pull request whose RPM build
-  # never ran could still show green. This is the one check branch
-  # protection will name, so its result has to be trustworthy on its own.
-  ci-ok:
-    name: CI OK
-    if: always()
-    needs: [test, checks, rpm, deb, flatpak]
+  plan:
+    name: Plan package proofs
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      rpm: ${{ steps.select.outputs.rpm }}
+      deb: ${{ steps.select.outputs.deb }}
+      flatpak: ${{ steps.select.outputs.flatpak }}
+      rpm_portability: ${{ steps.select.outputs.rpm_portability }}
+      release_preparation: ${{ steps.select.outputs.release_preparation }}
     steps:
-      - name: Fail if any required job did not succeed
-        if: >-
-          contains(needs.*.result, 'failure') ||
-          contains(needs.*.result, 'cancelled') ||
-          contains(needs.*.result, 'skipped')
-        run: exit 1
+      - name: Check out the repository with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Select package proofs
+        id: select
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          UPDATE_BEFORE: ${{ github.event.before }}
+          UPDATE_AFTER: ${{ github.event.after }}
+          MODE: ${{ inputs.mode }}
+          # Keep these path classes in YAML so tests can read the same data.
+          # Source changes get Python/quality checks; a version change against
+          # the PR base selects complete release preparation proof.
+          SHARED_PATHS: '^(pyproject\.toml|MANIFEST\.in|scripts/build-release-variants\.sh|\.github/workflows/packages\.yml|data/(io\.github\.extricator\.IdasenCompanion\.(desktop|metainfo\.xml)|icons/.*))$'
+          RPM_PATHS: '^(packaging/[^/]+\.(spec|sh)|packaging/licenses/|scripts/(fetch-bundled-runtime|strip-bundled-tree|verify-bundled-bytecode|verify-bundled-elf|verify-rpm-metadata|trim-cpython|trim-pyside6)\.(sh|py)$|data/idasen-companion\.service$)'
+          DEB_PATHS: '^debian/'
+          FLATPAK_PATHS: '^(packaging/flatpak/|data/io\.github\.extricator\.IdasenCompanion\.service$)'
+          PORTABILITY_PATHS: '^scripts/verify-rpm-portability\.sh$'
+        run: |
+          set -euo pipefail
+          rpm=false deb=false flatpak=false rpm_portability=false release_preparation=false
+          reason='No package paths in this update'
+          if [[ "$EVENT_NAME" == push || "$MODE" == full ]]; then
+            rpm=true deb=true flatpak=true rpm_portability=true
+            reason='Full run'
+          elif [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            case "$MODE" in
+              core) reason='Core-only manual run' ;;
+              rpm) rpm=true ;;
+              deb) deb=true ;;
+              flatpak) flatpak=true ;;
+              rpm-portability) rpm=true rpm_portability=true ;;
+              *) echo "Unknown mode: $MODE" >&2; exit 1 ;;
+            esac
+          elif [[ "$PR_DRAFT" == true ]]; then
+            reason='Draft PR: package proofs deferred'
+          else
+            base="$PR_BASE"
+            head="$PR_HEAD"
+            # Release preparation is cumulative across PR updates. Never use
+            # the synchronize delta to decide whether the version changed.
+            git fetch --no-tags origin "$PR_BASE" "$PR_HEAD" >/dev/null 2>&1 || true
+            if ! git cat-file -e "$PR_BASE^{commit}" 2>/dev/null ||
+               ! git cat-file -e "$PR_HEAD^{commit}" 2>/dev/null; then
+              echo 'Cannot inspect the PR version diff; selecting full proof.' >&2
+              release_preparation=true
+              rpm=true deb=true flatpak=true rpm_portability=true
+              reason='Full proof because PR version diff could not be inspected'
+            else
+              if git diff --quiet "$PR_BASE" "$PR_HEAD" -- src/idasen_companion/__init__.py; then
+                :
+              else
+                diff_status=$?
+                if [[ "$diff_status" -eq 1 ]]; then
+                  release_preparation=true
+                  rpm=true deb=true flatpak=true rpm_portability=true
+                  reason='Release preparation version change against PR base'
+                else
+                  echo 'Cannot inspect the PR version diff; selecting full proof.' >&2
+                  release_preparation=true
+                  rpm=true deb=true flatpak=true rpm_portability=true
+                  reason='Full proof because PR version diff failed'
+                fi
+              fi
+            fi
+            if [[ "$release_preparation" == true ]]; then
+              :
+            elif [[ "$reason" == Full\ proof* ]]; then
+              :
+            else
+            if [[ "$EVENT_ACTION" == synchronize && -n "$UPDATE_BEFORE" && -n "$UPDATE_AFTER" ]]; then
+              # A force push can remove the old head. Fetch it if possible;
+              # otherwise inspect the full PR diff, never an empty diff.
+              git fetch --no-tags origin "$UPDATE_BEFORE" >/dev/null 2>&1 || true
+              git fetch --no-tags origin "$UPDATE_AFTER" >/dev/null 2>&1 || true
+              if git cat-file -e "$UPDATE_BEFORE^{commit}" 2>/dev/null &&
+                 git cat-file -e "$UPDATE_AFTER^{commit}" 2>/dev/null &&
+                 git merge-base --is-ancestor "$UPDATE_BEFORE" "$UPDATE_AFTER"; then
+                base="$UPDATE_BEFORE"
+                head="$UPDATE_AFTER"
+                reason='New PR update'
+              else
+                reason='Full PR diff after unavailable or rewritten update'
+              fi
+            else
+              reason='Full PR diff'
+            fi
+            git fetch --no-tags origin "$PR_BASE" "$PR_HEAD" >/dev/null 2>&1 || true
+            if ! git cat-file -e "$base^{commit}" 2>/dev/null ||
+               ! git cat-file -e "$head^{commit}" 2>/dev/null; then
+              echo 'Cannot inspect required diff; selecting every package proof.' >&2
+              rpm=true deb=true flatpak=true rpm_portability=true
+              reason='Full proof because diff could not be inspected'
+            else
+              while IFS= read -r path; do
+                [[ -n "$path" ]] || continue
+                if [[ "$path" =~ $SHARED_PATHS ]]; then rpm=true deb=true flatpak=true; fi
+                if [[ "$path" =~ $RPM_PATHS ]]; then rpm=true; fi
+                if [[ "$path" =~ $DEB_PATHS ]]; then deb=true; fi
+                if [[ "$path" =~ $FLATPAK_PATHS ]]; then flatpak=true; fi
+                if [[ "$path" =~ $PORTABILITY_PATHS ]]; then rpm=true rpm_portability=true; fi
+              done < <(git diff --name-only "$base" "$head")
+            fi
+            fi
+          fi
+          {
+            echo "rpm=$rpm"
+            echo "deb=$deb"
+            echo "flatpak=$flatpak"
+            echo "rpm_portability=$rpm_portability"
+            echo "release_preparation=$release_preparation"
+          } >> "$GITHUB_OUTPUT"
+          echo "### Package plan" >> "$GITHUB_STEP_SUMMARY"
+          echo "$reason: RPM=$rpm, Debian=$deb, Flatpak=$flatpak, RPM portability=$rpm_portability, release preparation=$release_preparation" >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    uses: ./.github/workflows/verify.yml
+    permissions:
+      contents: read
+
+  packages:
+    needs: plan
+    uses: ./.github/workflows/packages.yml
+    permissions:
+      contents: read
+    with:
+      rpm: ${{ needs.plan.outputs.rpm == 'true' }}
+      deb: ${{ needs.plan.outputs.deb == 'true' }}
+      flatpak: ${{ needs.plan.outputs.flatpak == 'true' }}
+      rpm_portability: ${{ needs.plan.outputs.rpm_portability == 'true' }}
+
+  pr-ci:
+    name: PR CI
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs: [plan, verify, packages, candidate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected caller to succeed
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          PACKAGES_RESULT: ${{ needs.packages.result }}
+          PACKAGE_REQUIRED: ${{ needs.plan.outputs.rpm == 'true' || needs.plan.outputs.deb == 'true' || needs.plan.outputs.flatpak == 'true' }}
+          RELEASE_PREPARATION: ${{ needs.plan.outputs.release_preparation }}
+          CANDIDATE_RESULT: ${{ needs.candidate.result }}
+        run: |
+          [[ "$PLAN_RESULT" == success && "$VERIFY_RESULT" == success ]]
+          if [[ "$PACKAGE_REQUIRED" == true ]]; then
+            [[ "$PACKAGES_RESULT" == success ]]
+          else
+            # A reusable caller reports skipped when every format job skips.
+            [[ "$PACKAGES_RESULT" == skipped || "$PACKAGES_RESULT" == success ]]
+          fi
+          if [[ "$RELEASE_PREPARATION" == true ]]; then
+            [[ "$CANDIDATE_RESULT" == success ]]
+          else
+            [[ "$CANDIDATE_RESULT" == skipped ]]
+          fi
+
+  candidate:
+    name: Assemble and checksum the release assets
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && needs.plan.outputs.release_preparation == 'true') }}
+    needs: [plan, verify, packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the proven commit with tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Select only an unreleased version
+        if: github.event_name == 'push'
+        id: select
+        run: |
+          set -euo pipefail
+          git fetch --tags origin
+          version=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git show-ref --verify --quiet "refs/tags/v$version"; then
+            echo "Version $version is already tagged; no release candidate needed."
+            echo 'build=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'build=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download the built RPM
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-rpm
+          path: artifacts
+      - name: Download the built Debian packages
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-deb
+          path: artifacts
+      - name: Download the built Flatpak bundle
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-flatpak
+          path: artifacts
+      - name: Install five-asset verifier tools
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman flatpak
+      - name: Verify and assemble the main CI candidate
+        if: steps.select.outputs.build == 'true'
+        env:
+          VERSION: ${{ steps.select.outputs.version }}
+        run: python3 scripts/release-assets.py assemble . "$VERSION" "$GITHUB_SHA" "$GITHUB_RUN_ID"
+      - name: Verify assembly on the exact PR head
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          version=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          python3 scripts/release-assets.py assemble . "$version" "$PR_HEAD" "$GITHUB_RUN_ID"
+      - name: Retain the verified release candidate for one day
+        if: steps.select.outputs.build == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: release-assets
+          path: |
+            artifacts/
+            release-notes.md
+            provenance.json
+          if-no-files-found: error
+          retention-days: 1
+
+  cleanup:
+    name: Retire ordinary CI package artifacts
+    needs: [plan, verify, packages, candidate]
+    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'push' || needs.candidate.result == 'success') && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (needs.plan.outputs.release_preparation != 'true' || needs.candidate.result == 'success'))) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Delete only this run's package artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "idasen-companion-rpm" or .name == "idasen-companion-deb" or .name == "idasen-companion-flatpak") | .id' \
+            | while read -r id; do
+                [[ "$id" =~ ^[0-9]+$ ]] || exit 1
+                gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+              done

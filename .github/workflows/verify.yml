@@ -1,22 +1,67 @@
-name: Checks
+name: Verify
 
 on:
   workflow_call:
-  workflow_dispatch:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
-  types:
-    name: Type-check with mypy
+  tests:
+    name: Tests / Python ${{ matrix.python-version }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install Qt system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libglib2.0-0 libdbus-1-3 libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install the package with its gui and test extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[gui,test]'
+
+      - name: Fail if the GUI extra did not install
+        run: python -c "import PySide6.QtWidgets"
+
+      - name: Run the test suite with the coverage gate
+        run: python -m pytest -q --cov=idasen_companion --cov-fail-under=77 --cov-report=term-missing
+  code:
+    name: Quality / Code
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       # Every third-party action reference below names a commit rather than a
       # release: a release tag can be moved by whoever owns it after the fact,
       # while the commit it named at review time cannot change under us.
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -42,45 +87,6 @@ jobs:
       - name: Run mypy against the throwaway venv's interpreter
         run: python -m mypy --python-executable .mypy-target/bin/python src/
 
-  artifacts:
-    name: Audit sdist and wheel contents
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install build
-        run: python -m pip install --upgrade pip build
-
-      # The build script carries all four artifact checks and its own
-      # failure messages; running it here rather than duplicating the checks
-      # in YAML keeps the gate in one place, the same command a developer
-      # runs locally.
-      - name: Run the artifact content audit
-        run: bash scripts/build-dist.sh
-
-  naming:
-    name: Enforce the naming rule
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      # pylint is deliberately not a project dependency, pinned separately
-      # from the code it checks, and never runs in the RPM's %check -- a
-      # naming nit must not fail a package build.
       - name: Install pylint at its pinned version
         run: python -m pip install --upgrade pip pylint==4.0.6
 
@@ -93,18 +99,50 @@ jobs:
       - name: Run the naming scope-span check
         run: python scripts/check_naming_span.py src
 
-  catalogs:
-    name: Check translation catalogs are current and complete
+  distribution:
+    name: Quality / Distribution and supply chain
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.11"
           cache: pip
+
+      - name: Fetch the refs a checkout leaves behind
+        run: git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
+
+      - name: Scan the full commit history
+        run: bash scripts/scan-secrets.sh history
+
+      # History and working-tree scans answer different questions. Only the
+      # working-tree scan sees a file present in the checkout but in no
+      # commit -- the class of finding that sat in an untracked, gitignored
+      # file in this repository on 2026-08-10.
+      - name: Scan the working tree
+        run: bash scripts/scan-secrets.sh worktree
+
+      # No separate assertion on either step's output is needed or wanted: a
+      # green step already means its canary fired, because the shared script
+      # refuses to reach its real scan otherwise. That is the strongest
+      # available proof, and this project gates on exit codes alone.
+
+      - name: Install build
+        run: python -m pip install --upgrade pip build
+
+      # The build script carries all four artifact checks and its own
+      # failure messages; running it here rather than duplicating the checks
+      # in YAML keeps the gate in one place, the same command a developer
+      # runs locally.
+      - name: Run the artifact content audit
+        run: bash scripts/build-dist.sh
 
       - name: Install gettext
         run: |
@@ -142,13 +180,6 @@ jobs:
             fi
           done
 
-  metainfo:
-    name: Validate the AppStream metainfo
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
       - name: Install appstream (ships appstreamcli)
         run: |
           sudo apt-get update
@@ -159,43 +190,3 @@ jobs:
       # project documentation). No grep of appstreamcli's own output either.
       - name: Validate the AppStream metainfo
         run: appstreamcli validate --no-net --explain data/io.github.extricator.IdasenCompanion.metainfo.xml
-
-  secrets:
-    name: Scan for committed secrets
-    runs-on: ubuntu-24.04
-    steps:
-      # A shallow checkout hands the history scan a single commit: it would
-      # succeed, find nothing, and look identical in the log to a scan that
-      # covered everything. rpm.yml, deb.yml and flatpak.yml already override
-      # the default for unrelated tooling reasons, so this is established
-      # practice in this repository, not a new one.
-      - name: Check out the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          fetch-depth: 0
-
-      # A full-depth checkout still stops at branches and tags. The forge
-      # keeps a permanent ref per proposed change, holding every intermediate
-      # commit of it -- including ones a squash-merge collapsed, whose content
-      # never reached the default branch and which no scan of the branches can
-      # see. They outlive the branch and become fetchable by anyone once the
-      # repository is public, so they belong in scope here. The scan refuses to
-      # report clean without them, which is what keeps this step honest rather
-      # than merely present.
-      - name: Fetch the refs a checkout leaves behind
-        run: git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
-
-      - name: Scan the full commit history
-        run: bash scripts/scan-secrets.sh history
-
-      # History and working-tree scans answer different questions. Only the
-      # working-tree scan sees a file present in the checkout but in no
-      # commit -- the class of finding that sat in an untracked, gitignored
-      # file in this repository on 2026-08-10.
-      - name: Scan the working tree
-        run: bash scripts/scan-secrets.sh worktree
-
-      # No separate assertion on either step's output is needed or wanted: a
-      # green step already means its canary fired, because the shared script
-      # refuses to reach its real scan otherwise. That is the strongest
-      # available proof, and this project gates on exit codes alone.

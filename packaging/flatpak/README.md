@@ -60,6 +60,11 @@ sandbox, for example with `flatpak run --command=idasen-companion-cli
 io.github.extricator.IdasenCompanion status`; it is not a host-level headless
 installation.
 
+On a ready pull request, an update under `packaging/flatpak/` selects the
+Flatpak package proof in ordinary CI. Draft pull requests defer package builds.
+A ready release-preparation PR with a source version change automatically runs
+all package proofs and verifies the complete five-asset assembly on its head.
+
 ## Size
 
 The `io.qt.PySide.BaseApp` ships the *whole* of Qt/PySide6 — including

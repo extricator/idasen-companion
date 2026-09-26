@@ -1,6 +1,6 @@
 ---
 name: idasen-companion-release
-description: Cut a release of Idasen Companion end to end — pick the version, write the release notes, update the seven files that carry the version, land the bump on main, and dispatch the Release workflow. Use when the user asks to cut, publish or ship a release, or names a version to release (for example "release 1.0.1"). Do not use to change the version for any other reason, to rebuild a package at the current version, or to re-point an existing tag.
+description: Cut a release of Idasen Companion end to end — pick the version, write the release notes, update the version files on a preparation branch, merge its verified PR, and dispatch the Release workflow on the merged main commit. Use when the user asks to cut, publish or ship a release, or names a version to release (for example "release 1.0.1"). Do not use to change the version for any other reason, to rebuild a package at the current version, or to re-point an existing tag.
 ---
 
 # Cut a release
@@ -25,53 +25,45 @@ existing-tag check below reads the remote for the same reason.
 
 Stop and tell the user when any of these is true:
 
-- The working tree is dirty. Run `git status --porcelain`.
-- The current branch is not `main`.
+- A new release starts with a dirty working tree. Run `git status --porcelain`.
+  If resuming an existing preparation branch, inspect its changes and continue
+  safely instead of discarding them.
+- The current branch is neither `main` for a new release nor the matching
+  `release/vX.Y.Z` branch for an in-progress preparation PR. On the latter,
+  inspect the existing PR and resume its actual phase; do not create another
+  branch or repeat completed release actions.
 - The tag for the target version already exists. Run
   `git ls-remote --tags origin`.
+
+For a new release, fetch `origin` and fast-forward local `main` before
+classifying commits. If local `main` is ahead of or diverged from
+`origin/main`, stop and resolve that history separately; do not push it
+directly to `main` as part of a release.
+
+```bash
+git fetch origin
+git merge --ff-only origin/main
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+```
 
 A released version is spent. Never move an existing tag. A defect found after
 a release ships as the next patch version.
 
 ---
 
-## Phase 0 — offer to tidy the history
+## Phase 0 — review the history
 
 ```bash
 LAST=$(git describe --tags --abbrev=0)
 git log --oneline "$LAST..HEAD"
 git rev-list --count "$LAST..HEAD"
-git rev-list --count origin/main..HEAD
 ```
 
-Report three things: how many commits stand between the last release and
-`HEAD`, how many of those are unpushed, and whether they read as finished
-changes or as steps toward one. Then ask the user to choose.
-
-- **Release as it stands.** Go straight to A1. A long history is not a defect
-  and this needs no justification. Take this as the answer to silence only if
-  the user has already said so in this session; otherwise ask.
-- **Tidy first.** Stop here and hand over to the `idasen-companion-tidy-history`
-  skill, which carries its own backup and its own verification. The user
-  re-enters this skill when that is done.
-
-Never tidy anything yourself inside this skill, and never refuse a release over
-an untidy history.
-
-Whoever does the tidying — this session or a later one — is bound by two rules:
-
-- **Never rewrite a commit already on `origin/main`.** Rewriting changes a
-  commit's id, so the remote's copy can only be reconciled by overwriting it.
-  Phase D pushes with a plain `git push`, and branch protection will forbid the
-  alternative outright once the repository is public.
-- **Carry any `!` or `BREAKING CHANGE` marker onto the squashed message.** A1
-  computes the bump from complete commit messages, so a marker dropped in a
-  squash turns a major release into a patch. Nothing downstream catches it:
-  the version tests compare the seven manifests against `__version__`, never
-  against what the commits said.
-
-Either way the tidying happens before A1, because A1 reads the commit messages it
-would rewrite.
+Report how many commits stand between the last release and `origin/main`, and
+whether they represent finished changes. Do not rewrite commits already on
+`origin/main`. If the history raises a release-scope question, resolve it before
+choosing the version. The separate history-tidying skill applies only to
+unpushed local history and is not part of this PR-based release path.
 
 ---
 
@@ -135,6 +127,15 @@ Match the voice of the existing entries. Do not concatenate commit subjects.
    entries and the Debian stanza share this text.
 
 Wait for the user to approve or rewrite the draft. Do not proceed on silence.
+
+Before changing the version files, record the base commit and create a fresh
+preparation branch. If the branch name already exists locally or remotely,
+inspect it rather than overwriting it. Keep `main` at the fetched remote SHA.
+
+```bash
+BASE_SHA=$(git rev-parse origin/main)
+git switch -c "release/vX.Y.Z"
+```
 
 ---
 
@@ -260,14 +261,19 @@ Fix any failure and re-run before you continue.
 
 ---
 
-## Phase D — land the bump
+## Phase D — verify and land the preparation PR
 
-Commit everything from Phase B as one commit:
+Commit the release preparation on its branch as one commit. Stage the seven
+specified files, including both specs, instead of adding unrelated files:
 
 ```bash
-git add -A
+git add -- src/idasen_companion/__init__.py \
+  packaging/idasen-companion-bundled.spec packaging/idasen-companion.spec \
+  debian/changelog packaging/flatpak/io.github.extricator.IdasenCompanion.yaml \
+  data/io.github.extricator.IdasenCompanion.metainfo.xml CHANGELOG.md
 git commit -m "chore(release): X.Y.Z"
-git push origin main
+PREP_SHA=$(git rev-parse HEAD)
+git push -u origin HEAD
 ```
 
 Never add a `Co-Authored-By: Claude` trailer.
@@ -275,76 +281,96 @@ Never add a `Co-Authored-By: Claude` trailer.
 Never `git add -f` anything under `.planning/`. That directory and
 `CLAUDE.md` are gitignored on purpose.
 
-Then wait for the aggregate check to go green:
+Open a PR from `release/vX.Y.Z` into `main` with the version, approved notes,
+and exact verification commands in its body. Use a body file with `gh pr create
+--base main --head "release/vX.Y.Z" --title "chore(release): X.Y.Z"
+--body-file <path>`. Record its number and URL. Wait for ordinary PR CI on
+`PREP_SHA`:
 
 ```bash
-RELEASE_SHA=$(git rev-parse HEAD)
-gh run list --workflow=ci.yml --commit="$RELEASE_SHA" --limit 1 \
+gh run list --workflow=ci.yml --commit="$PREP_SHA" --limit 20 \
   --json databaseId,headSha,status,conclusion,url
 gh run watch <database-id> --exit-status
 ```
 
-If the exact-SHA query is empty, wait for Actions to register the run and query
-again. Never substitute the merely latest CI run.
+Select the PR run for the exact preparation SHA. If it is not registered yet,
+wait and query again. Never substitute a merely latest CI run. The automatic
+version-change plan must select RPM with portability, Debian with smoke, and
+Flatpak. Require Python 3.11–3.14, both quality groups, all three package
+jobs, exact-head five-asset assembly, and the `PR CI` aggregate to succeed in
+that single run. A failed, cancelled, or skipped required proof is a stop.
 
-The aggregate check is named `CI OK`, verbatim. It fails when any job is
-`failure`, `cancelled` **or `skipped`**.
+Before merging, fetch `origin` and require both the PR head and `origin/main`
+to match `PREP_SHA` and `BASE_SHA` respectively. If either changed, update the
+preparation branch, rerun local verification as needed, and obtain fresh
+automatic release-preparation `PR CI` on the new exact head. If a future review policy blocks the
+PR, wait for an authorized reviewer; do not bypass it. Merge the verified PR
+through GitHub, then fetch `origin/main` and record its new SHA:
+
+```bash
+gh pr merge <pr-number> --merge
+git fetch origin main
+git switch main
+git merge --ff-only origin/main
+RELEASE_SHA=$(git rev-parse HEAD)
+```
+
+Confirm the PR is merged, `RELEASE_SHA` is the current `origin/main`, and its
+version files and notes match the chosen version. A merge commit may differ
+from `PREP_SHA`; all following checks and release dispatches use `RELEASE_SHA`.
+Wait for the full `main` `ci.yml` run associated with that exact SHA to pass.
+Check the plan, Python/quality, all three package formats, RPM portability,
+release candidate assembly, and artifact cleanup. Record its run ID and
+verify that it retains exactly one unexpired `release-assets` artifact, with
+the five packages, release notes, checksums, and matching provenance. The
+three intermediate package artifacts should be gone. The `PR CI` aggregate
+applies to pull requests; inspect each required proof on the merged SHA.
+Stop on any red or missing required proof.
 
 Stop here if CI is red. Report what failed.
 
 ---
 
-## Phase E — publish
+## Phase E — publish the verified main CI candidate
 
-**Ask the user before this phase. Every time.**
+Confirm `origin/main` still equals `RELEASE_SHA` before dispatch. A later
+merge changes the release target and requires a new full `main` CI candidate.
 
-This is the only irreversible step. It creates a remote tag and a published
-GitHub Release, visible to everyone with access to the repository. Show the
-user the version and the release notes, then wait for an explicit go-ahead.
-
-Offer a dry run first when the release machinery itself changed. A dry run
-builds all five release artifacts and writes their checksums, and creates no
-tag and no release. Before either kind of dispatch, record every existing
-release-workflow run ID for this commit:
+**Ask the user before publication every time.** Show the version, approved
+notes, merged SHA, successful `main` CI URL and run ID, and exact promotion
+choice. Publishing creates a remote tag and GitHub Release. After explicit
+approval, record the existing release-workflow dispatch IDs for this commit:
 
 ```bash
-RELEASE_SHA=$(git rev-parse HEAD)
 BEFORE_RUN_IDS=$(gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
   --event workflow_dispatch --limit 100 --json databaseId \
   --jq '.[].databaseId')
+gh workflow run release.yml --ref main -f version=X.Y.Z \
+  -f promotion_run_id=<successful-main-ci-run-id>
 ```
 
-Then dispatch either the dry run:
+Poll for a new workflow-dispatch run on the exact `RELEASE_SHA`, absent from
+`BEFORE_RUN_IDS`, and watch that exact ID. The promotion validator accepts
+only a successful `main` CI release candidate or successful `main` release
+dry run from the same current SHA. It rechecks all proof jobs, asset names,
+release notes, provenance, and checksums. The workflow then publishes and
+verifies the tag, release body, and six downloadable files before retiring
+the source artifact. Independently inspect the release URL and asset list.
+
+If the candidate artifact has expired or promotion fails closed, stop and
+explain why. With user authorization, choose the explicit full-rebuild path;
+never silently switch modes:
 
 ```bash
-gh workflow run release.yml --ref main -f version=X.Y.Z -f dry_run=true
+gh workflow run release.yml --ref main -f version=X.Y.Z \
+  -f full_rebuild=true
 ```
 
-or, after the required explicit approval, the real release:
-
-```bash
-gh workflow run release.yml --ref main -f version=X.Y.Z
-```
-
-Poll for the dispatched run:
-
-```bash
-gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
-  --event workflow_dispatch --limit 100 \
-  --json databaseId,headSha,status,conclusion,url
-```
-
-Select a `databaseId` absent from `BEFORE_RUN_IDS`. If none is present yet,
-wait for Actions to register the dispatch and query again. Watch that exact new
-ID with `gh run watch <database-id> --exit-status`. Never watch an older run,
-including a dry run for the same commit. A successful dry run does not approve
-or dispatch the real release; ask again before the real dispatch.
-
-The workflow re-checks the version against `__version__`, refuses a tag that
-already exists, builds the full and headless RPMs, the full and headless
-`.deb` packages, and the Flatpak bundle, writes `SHA256SUMS` over all five,
-creates the `vX.Y.Z` tag pointing at the commit the artifacts came from, and
-publishes.
+A remote release dry run is optional for testing workflow changes, requires
+separate explicit authorization, and creates no tag or publication. It builds
+the five assets and retains a promotable bundle for one day. The routine
+release path uses the already verified `main` CI candidate without rebuilding.
+The workflow refuses an existing tag and a version that differs from source.
 
 Report the release URL:
 
@@ -356,9 +382,10 @@ gh release view "vX.Y.Z" --json url --jq .url
 
 ## Known limits
 
-**Direct push to `main` works today only because the repository is private
-on a free plan.** Branch protection is unavailable there. When the repository
-goes public and protection lands, Phase D must open a pull request instead.
+The repository currently has one contributor and no enforced review or
+required-check policy. Use the preparation PR and its exact-head automatic proof anyway;
+if a future policy adds a reviewer, honor it before merge. Never bypass the
+policy or push a release preparation commit directly to `main`.
 
 **The Actions form remains the documented route.** `CONTRIBUTING.md` § "Cutting
 a release" describes the manual procedure for a maintainer without Claude

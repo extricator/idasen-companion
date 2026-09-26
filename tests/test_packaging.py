@@ -42,9 +42,10 @@ METADATA_VERIFIER = ROOT / "scripts" / "verify-rpm-metadata.sh"
 PORTABILITY_VERIFIER = ROOT / "scripts" / "verify-rpm-portability.sh"
 RELEASE_BUILDER = ROOT / "scripts" / "build-release-variants.sh"
 RELEASE_VERIFIER = ROOT / "scripts" / "verify-release-artifacts.sh"
-RPM_WORKFLOW = ROOT / ".github" / "workflows" / "rpm.yml"
-DEB_WORKFLOW = ROOT / ".github" / "workflows" / "deb.yml"
-FLATPAK_WORKFLOW = ROOT / ".github" / "workflows" / "flatpak.yml"
+PACKAGES_WORKFLOW = ROOT / ".github" / "workflows" / "packages.yml"
+RPM_WORKFLOW = PACKAGES_WORKFLOW
+DEB_WORKFLOW = PACKAGES_WORKFLOW
+FLATPAK_WORKFLOW = PACKAGES_WORKFLOW
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 SRC = ROOT / "src" / "idasen_companion"
 STATS = SRC / "daemon" / "stats.py"
@@ -99,8 +100,7 @@ def test_release_verifier_installs_flatpak_runtime_in_its_isolated_home():
 def test_workflow_package_artifacts_expire_after_one_day():
     if not RELEASE_WORKFLOW.exists():
         pytest.skip("workflow files are intentionally absent from the sdist")
-    for workflow_path in (RPM_WORKFLOW, DEB_WORKFLOW, FLATPAK_WORKFLOW,
-                          RELEASE_WORKFLOW):
+    for workflow_path in (PACKAGES_WORKFLOW, RELEASE_WORKFLOW):
         workflow = read(workflow_path)
         assert workflow.count("retention-days: 1") == workflow.count(
             "actions/upload-artifact"
