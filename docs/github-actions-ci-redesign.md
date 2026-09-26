@@ -691,5 +691,41 @@ open. Approval/reapproval and remote release execution remain deferred.
   unpacked sdist, but `MANIFEST.in` had not included the script. The aggregate
   correctly failed. `MANIFEST.in` now names it explicitly. A locally built
   sdist contains the script, remains below the size ceiling (722,771 bytes),
-  and its extracted release-asset tests pass (3). The ready-PR rerun must
-  confirm RPM on GitHub.
+  and its extracted release-asset tests pass (3). The following ready-PR run
+  confirmed RPM on GitHub.
+- Ready-PR synchronize run
+  [36205407083](https://github.com/extricator/idasen-companion/actions/runs/36205407083)
+  on `18cf8de` passed the planner, all Python and quality jobs, RPM with
+  portability, Debian smoke, Flatpak, and `PR CI`. Its cleanup job succeeded;
+  the run artifact list is empty.
+- The `full-ci` label was created and applied to PR #2. Full run
+  [36205767441](https://github.com/extricator/idasen-companion/actions/runs/36205767441)
+  on the same `18cf8de` head passed its authorization gate, all Python and
+  quality jobs, every package proof, `CI OK`, and artifact cleanup. Its run
+  artifact list is empty. The Actions run API associates it with PR #2 and
+  reports `18cf8de` as both the run head and the PR head.
+- A subsequent Flatpak README update at `78533f9` started ordinary run
+  [36206638121](https://github.com/extricator/idasen-companion/actions/runs/36206638121):
+  the planner selected Flatpak and skipped RPM and Debian. Python, quality,
+  Flatpak, `PR CI`, and artifact cleanup passed; the artifact list is empty.
+  The persistent `full-ci` label did not start another full run.
+- The local token can list Actions runs, jobs, and artifacts, but GitHub's
+  check-runs REST endpoint returns HTTP 403 with
+  `X-Accepted-Github-Permissions: checks=read`; `gh pr view` check rollup also
+  returns a permission error. The Actions API supplies run/PR/head-SHA
+  association, but the exact PR check-rollup API remains unavailable to this
+  token. CI does not use this local token.
+
+Measured wall time from run creation to last update (not a percentile or a
+performance promise):
+
+| Run | Scenario | Wall time | Longest package job |
+|---|---|---:|---:|
+| [36204916339](https://github.com/extricator/idasen-companion/actions/runs/36204916339) | Draft, core only | 1m19s | none |
+| [36205407083](https://github.com/extricator/idasen-companion/actions/runs/36205407083) | Ready, all formats without portability | 4m58s | RPM 4m40s |
+| [36205767441](https://github.com/extricator/idasen-companion/actions/runs/36205767441) | `full-ci` label, all proofs | 13m18s | RPM 12m57s including portability |
+| [36206638121](https://github.com/extricator/idasen-companion/actions/runs/36206638121) | Flatpak update | 4m13s | Flatpak 3m54s |
+
+The measured full proof fits the original 13–14 minute main-run baseline;
+ordinary all-format validation is materially shorter because it omits RPM
+portability. These few mixed scenarios are insufficient to tighten timeouts.
