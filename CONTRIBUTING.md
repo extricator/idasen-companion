@@ -231,7 +231,13 @@ getting it wrong costs a version number. Follow this top to bottom.
    `CI OK`, or branch-protection requirement is enforced yet. A new PR commit
    needs a new full run before its result can describe the current head. An
    existing `full-ci` label does not rerun on later commits; remove and
-   reapply it when full verification is needed for the new head.
+   reapply it when full verification is needed for the new head. Start the
+   preparation from current `main` on a dedicated release branch, make the
+   version and notes commit there, and merge the PR only after its exact head
+   has passed both checks. If `main` moves before merge, refresh the PR and
+   repeat its checks. Do not push the preparation commit directly to `main`.
+   The resulting `main` push runs all package proofs; it has no separate
+   `CI OK` aggregate, so inspect the complete run on the merge SHA.
 4. **Dry-run the merged commit.** Open **Actions → Release → Run workflow** on
    `main`, enter the version without a leading `v` (for example `1.2.0`), and
    tick **dry run**. It runs Python, quality, all package builds, Debian smoke,

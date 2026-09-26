@@ -4,8 +4,9 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **Phase 3 implemented and locally verified; Phase 4 PR and branch
-release dry-run evidence collected; publication paths remain untested**
+Status: **Phases 1–3 implemented; Phase 4 live PR and branch release dry-run
+evidence collected, with final handoff cleanup pending; Phase 5 release-skill
+migration implemented; publication paths remain untested**
 
 Branch: `ci-workflow-rebuild`
 
@@ -549,6 +550,27 @@ authorizes external execution.
 Verification: recorded run URLs/timings, correct selected/skipped jobs, stable
 `CI OK`, and a clean repository/reference search after temporary cleanup.
 
+### Phase 5 — release skill follows the preparation PR
+
+- Replace the canonical release skill's direct edit and push to `main` with a
+  clean release-preparation branch and PR. Preserve version, notes, package
+  metadata, local checks, and the spent-tag guard.
+- Require ordinary PR CI and a fresh `full-ci` label run with `CI OK` on the
+  exact preparation head before merging. If `main` moves, refresh the PR and
+  repeat the checks. Respect any future review policy without configuring one
+  during this redesign.
+- After merge, identify the actual `main` SHA, wait for its full CI, run a
+  release dry run on that SHA, and use its run ID for the verified-asset
+  promotion path. Retain explicit user authorization before publication and
+  the full-rebuild fallback when promotion is unavailable.
+- Align the skill's instructions with `CONTRIBUTING.md` and remove obsolete
+  statements that depend on an unprotected `main` or direct pushes.
+
+Verification: inspect the skill and maintained release instructions together,
+check for direct-push instructions, and test any executable helper changes.
+Finish Phase 4's temporary-handoff cleanup after this phase is recorded in
+maintained documentation and the branch is otherwise ready to merge.
+
 ## Phase 2 handoff (2026-09-25)
 
 The branch contains the 1.2.0 merge from `main` (`a20f559`), including the
@@ -785,3 +807,24 @@ No release-related branch changes followed the dry run. The PR description
 holds the latest check URLs and head SHA; if this handoff update is pushed,
 ordinary `PR CI` must run on that new documentation-only head. The temporary
 handoff still needs removal before merge, after the remaining merge decision.
+
+## Phase 5 handoff (2026-09-25)
+
+The user identified an omitted part of the redesign: the canonical
+`idasen-companion-release` skill still edited on `main` and ran
+`git push origin main`, even though `CONTRIBUTING.md` and the new workflows
+require a release-preparation PR. The skill now starts from synced `main`,
+creates `release/vX.Y.Z` before version edits, commits and pushes that branch,
+opens a PR, requires ordinary `PR CI` and label-triggered full `CI OK` on the
+exact preparation head, checks that `main` has not moved, and merges the PR.
+It then watches all full `main` CI proof jobs on the merged SHA, which may
+differ from the PR head. `CONTRIBUTING.md` now spells out the same branch and
+exact-SHA checks. The one-contributor approval hold remains unchanged.
+
+For a future release, the skill requires separate authorization for a remote
+dry run on that merged `main` commit and for publication. It records the
+successful dry-run ID, promotes those verified assets when available, and
+offers the explicit full-rebuild path when they cannot be promoted. No new
+release was dispatched or published for this skill update. Final Phase 4
+cleanup still needs to move any lasting guidance from this temporary file and
+remove it before merging PR #2.
