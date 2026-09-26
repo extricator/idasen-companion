@@ -93,6 +93,10 @@ include scripts/build-translations.sh
 include scripts/build-dist.sh
 include scripts/build-release-variants.sh
 include scripts/verify-release-artifacts.sh
+# The release-asset tests import this script from the unpacked sdist in RPM
+# %check, so it must travel with the test suite even though the RPM never runs
+# the release workflow itself.
+include scripts/release-assets.py
 # The suite ships whole (recursive-include tests above) and the RPM's %check
 # runs it from an unpacked sdist, so every script a test reads must ship too.
 # tests/test_naming_span.py imports this one; without it %check dies at

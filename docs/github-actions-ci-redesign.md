@@ -678,6 +678,18 @@ open. Approval/reapproval and remote release execution remain deferred.
 - The aggregate now accepts a skipped package caller only when the plan selects
   no package format. A selected package caller must still succeed. Six
   regression cases cover both sides; focused tests passed (27), and the full
-  suite passed (1,594 passed, one skipped). A live draft rerun remains to prove
-  the correction on GitHub. `actionlint` was unavailable on this machine for
-  this edit; the workflow YAML is loaded by the topology tests.
+  suite passed (1,594 passed, one skipped). Draft rerun
+  [36204916339](https://github.com/extricator/idasen-companion/actions/runs/36204916339)
+  on `71dc534` succeeded with every package format skipped and `PR CI` green.
+  `actionlint` was unavailable on this machine for this edit; the workflow
+  YAML is loaded by the topology tests.
+- Marking PR #2 ready started
+  [36205017971](https://github.com/extricator/idasen-companion/actions/runs/36205017971)
+  on `71dc534`. The full PR diff selected all three formats. Python, quality,
+  Debian smoke, and Flatpak passed; RPM failed in `%check` because
+  `tests/test_release_assets.py` imports `scripts/release-assets.py` from the
+  unpacked sdist, but `MANIFEST.in` had not included the script. The aggregate
+  correctly failed. `MANIFEST.in` now names it explicitly. A locally built
+  sdist contains the script, remains below the size ceiling (722,771 bytes),
+  and its extracted release-asset tests pass (3). The ready-PR rerun must
+  confirm RPM on GitHub.
