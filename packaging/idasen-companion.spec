@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.2.0
+Version:        1.2.1
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -103,6 +103,9 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Sat Sep 26 2026 extricator <extricator@users.noreply.github.com> - 1.2.1-1
+- Exercise automatic release preparation proof in CI.
+
 * Fri Sep 25 2026 extricator <extricator@users.noreply.github.com> - 1.2.0-1
 - Add a localized Qt-free command-line client for status, activity and desk
   control.

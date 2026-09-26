@@ -87,7 +87,7 @@
 %global _rpmformat 4
 
 Name:           %{package_name}
-Version:        1.2.0
+Version:        1.2.1
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
@@ -626,6 +626,9 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 
 %changelog
+* Sat Sep 26 2026 extricator <extricator@users.noreply.github.com> - 1.2.1-1
+- Exercise automatic release preparation proof in CI.
+
 * Fri Sep 25 2026 extricator <extricator@users.noreply.github.com> - 1.2.0-1
 - Add a localized Qt-free command-line client for status, activity and desk
   control.

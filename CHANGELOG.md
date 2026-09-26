@@ -6,6 +6,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-26
+
+### Changed
+
+- Exercise automatic release preparation verification across the five package assets.
+
 ## [1.2.0] - 2026-09-25
 
 ### Added
