@@ -17,7 +17,7 @@ Last updated: 2026-09-25
 ## Goal and constraints
 
 Replace the current seven-workflow layout with a smaller orchestration model
-that gives every merge candidate one dependable `CI OK` conclusion, makes
+that can give a merge candidate one dependable `CI OK` conclusion, makes
 expensive package work intentional, and still proves packaging changes before
 merge.
 The release path must continue to fully verify all five deliverables:
@@ -28,9 +28,13 @@ and verify the complete set itself.
 
 The repository is private and its current plan has no branch protection, so
 the design must be useful as a visible maintainer signal today without
-pretending it is an enforced merge policy. It must also be ready to enforce
-approval plus both the fast `PR CI` check and approval-triggered `CI OK` check
-when branch protection becomes available later.
+pretending it is an enforced merge policy. **Current policy:** use `PR CI` on
+each PR update and the explicit `full-ci` label to request complete `CI OK`
+verification. The branch contains an approval-triggered route for possible
+future use, but approval and reapproval testing, required reviews, required
+checks, and branch protection are postponed until the one-contributor policy
+is resolved. A future approval-based merge gate is only a proposal, not an
+approved requirement.
 
 ## Audit baseline
 
@@ -141,8 +145,8 @@ Use five workflow files:
 
 1. `ci.yml` — the ordinary PR and `main` orchestrator, plus manual CI
    dispatch;
-2. `full-ci.yml` — approval-triggered full PR verification, with a label
-   fallback while branch protection is unavailable;
+2. `full-ci.yml` — label-triggered full PR verification now, with an implemented
+   approval trigger held for a future contributor-policy decision;
 3. `verify.yml` — reusable Python tests and grouped quality checks;
 4. `packages.yml` — reusable, input-driven package builds and package-level
    smoke/portability verification, with no changed-path logic;
@@ -199,10 +203,10 @@ Diff ranges in ordinary `ci.yml` runs are event-aware:
 - push to `main`: ignore paths and select every package proof;
 - manual full run: ignore paths and select every package proof.
 
-`full-ci.yml` does not classify paths. An approving review selects every
-verification and package proof against that PR head. Applying the `full-ci`
-label does the same as an interim or diagnostic fallback, but is not the
-normal merge-gating path.
+`full-ci.yml` does not classify paths. Applying the `full-ci` label selects
+every verification and package proof against the current PR head. The
+approving-review trigger is implemented for possible future use, but its
+policy and live testing are postponed.
 
 For force-pushes, try to fetch the event's `before` SHA. If it is unavailable
 or is not an ancestor that yields a meaningful update diff, fall back to the
@@ -221,8 +225,8 @@ Path classes should be narrow and explained beside the classifier:
 - ordinary tests, documentation, and unrelated scripts do not select a
   package merely because they live in a broad directory;
 - ordinary `src/` changes receive the complete Python and quality gates but
-  do not automatically rebuild three distribution formats. Approval launches
-  the full package integration proof for the reviewed head.
+  do not automatically rebuild three distribution formats. Applying `full-ci`
+  launches the complete package proof for the current head.
 
 The exact path table must be covered by focused unit tests. Put the classifier
 data in a form the tests can read directly; avoid tests that merely duplicate
@@ -235,8 +239,8 @@ the same regex in Python.
 | Draft PR update | yes | yes | no | no | no | no |
 | Ready PR, ordinary update | yes | yes | only if this update selects it | only if this update selects it | only if this update selects it | only if verifier changed |
 | PR becomes ready | yes | yes | if full PR diff selects it | if full PR diff selects it | if full PR diff selects it | if verifier changed |
-| Approving review | yes | yes | yes | yes | yes | yes |
-| `full-ci` label fallback | yes | yes | yes | yes | yes | yes |
+| Approving review (future policy; testing deferred) | yes | yes | yes | yes | yes | yes |
+| `full-ci` label (current full-PR route) | yes | yes | yes | yes | yes | yes |
 | Manual `core` | yes | yes | no | no | no | no |
 | Manual `full` | yes | yes | yes | yes | yes | yes |
 | Push to `main` | yes | yes | yes | yes | yes | yes |
@@ -252,9 +256,10 @@ Debian smoke remains coupled to every Debian build because it is the only
 proof of the installed systemd user unit and archive PySide resolution. RPM
 metadata checks remain coupled to every RPM build and must run before upload.
 The roughly 8.5-minute RPM portability proof runs only when its own code
-changes, after approval, when explicitly requested with the `full-ci` fallback,
-on `main`, and during every release dry run or full-rebuild release. Promotion
-reuses the successful proof for the exact published bytes.
+changes, when explicitly requested with `full-ci`, on `main`, and during every
+release dry run or full-rebuild release. The approval trigger would also select
+it if that policy is adopted. Promotion reuses the successful proof for the
+exact published bytes.
 
 ### Expensive-job gate decision
 
@@ -262,19 +267,19 @@ reuses the successful proof for the exact published bytes.
 |---|---|---|---|
 | Changed paths | Automatic and format-specific | Cumulative PR diffs rerun forever unless event deltas are used; cannot express final confidence alone | Use update deltas for automatic package-definition validation |
 | Draft state | Avoids spending on work explicitly marked unfinished | Not a readiness or trust signal by itself | Suppress package jobs while draft; re-evaluate full diff on ready |
-| Review approval | Already part of the intended merge decision; can trigger full CI for the reviewed head; pairs directly with stale-approval protection | Requires another authorized reviewer; each new head must be approved again | Primary full-CI authorization and future merge gate |
-| `full-ci` label | Visible, deliberate, and usable before branch protection is available | A second manual ceremony; a persistent label must not rebuild on later synchronize events | Interim and diagnostic fallback only; trigger only on the label event itself |
+| Review approval | Can trigger full CI for the reviewed head; pairs with stale-approval protection | Requires another authorized reviewer; each new head must be approved again | Implemented trigger, but policy and live testing deferred |
+| `full-ci` label | Visible, deliberate, and usable with one contributor | A persistent label must not rebuild on later synchronize events | Current full-PR route; trigger only on the label event itself |
 | Manual dispatch | Good recovery and targeted diagnostics | Easy to forget and not naturally represented as a PR-head policy | Provide `core`, `full`, and individual format modes as an escape hatch |
 | Push to `main` | Tests the integrated tree and catches bypasses | Feedback is post-merge | Always run full verification |
 | Release/tag | Protects published bytes | Too late to be the only package proof; rebuilding after a successful dry run repeats costly work | Publish a precisely identified, fully verified dry-run asset set when safe; otherwise run full verification and rebuild all five |
 
-`full-ci.yml` starts from an approving `pull_request_review`. If multiple
-approvals later become required, its gate must confirm that the PR's aggregate
-review decision is approved before launching expensive jobs; the first of
-several approvals must not spend a full run prematurely. A non-approval review
-submission must never create a skipped-success `CI OK`: the gate and final
-aggregate must make it impossible for comments or requested changes to produce
-a false green check.
+`full-ci.yml` also accepts an approving `pull_request_review` for possible
+future use. If multiple approvals later become required, its gate must confirm
+that the PR's aggregate review decision is approved before launching expensive
+jobs; the first of several approvals must not spend a full run prematurely.
+A non-approval review submission must never create a skipped-success `CI OK`:
+the gate and final aggregate must make it impossible for comments or requested
+changes to produce a false green check.
 
 The label fallback must check the event action and the label applied, not
 merely whether the PR currently contains the label. Otherwise the persistent
@@ -293,7 +298,7 @@ push. The reusable package workflow is always called, receiving planner
 booleans; its unselected format jobs skip normally. Selected jobs have no
 second, independent path condition that could accidentally skip them. Its PR
 aggregate is named `PR CI`, clearly distinguishing fast per-update evidence
-from full merge readiness.
+from the separately requested full proof.
 
 Only `full-ci.yml` publishes `CI OK` for a pull request. It calls complete
 verification and every package proof, then uses `if: always()` to succeed only
@@ -301,8 +306,9 @@ when all required caller results are `success`. Failure, cancellation, an
 unexpected skip, or an approval gate that did not pass must fail or withhold
 the aggregate; none may become a green `CI OK`.
 
-When branch protection or an equivalent ruleset becomes available, configure
-`main` with all of the following:
+If the contributor policy later permits approval-based enforcement and branch
+protection or an equivalent ruleset becomes available, first verify the live
+review-triggered check association. Only then consider configuring `main` with:
 
 - require pull requests and at least one approving review;
 - dismiss stale approvals when new commits are pushed, or require approval of
@@ -312,33 +318,35 @@ When branch protection or an equivalent ruleset becomes available, configure
 - optionally require the branch to be current with `main` before merging;
 - do not allow routine bypass of these rules.
 
-That policy couples approval and full verification without a label. A new
-commit makes the old approval stale and has no successful `CI OK` on its new
-head. Reapproval triggers `full-ci.yml` again, and merge remains blocked until
-that run proves the new head. Before protection is available the same checks
-remain visible and trustworthy, but enforcement is necessarily social.
+That proposed policy would couple approval and full verification without a
+label. A new commit makes the old approval stale and has no successful `CI OK`
+on its new head. Reapproval triggers `full-ci.yml` again, and merge remains
+blocked until that run proves the new head. Today the label-triggered full
+result is a visible maintainer signal, and enforcement remains social.
 
 The 1.2.0 preparation commit went straight to `main` because this private
-repository currently cannot protect that branch. Once protection is enabled,
-cutting a release should use a normal release-preparation PR for the version,
-changelog, package metadata, and any release-path fix. Review and `CI OK`
-apply to that PR. After merge, run full `main` CI and a release dry run on
-the **merged commit**; only then publish/tag that exact commit. A PR-head dry
-run cannot be promoted if merging produced a different SHA. The release
-operator must not need a routine protection bypass or direct push to `main`.
+repository currently cannot protect that branch. A release-preparation PR can
+carry the version, changelog, package metadata, and any release-path fix;
+currently `full-ci` supplies its complete PR proof. If an approval policy is
+adopted later, review and `CI OK` would apply as the protected merge gate.
+After merge, run full `main` CI and a release dry run on the **merged commit**;
+only then publish/tag that exact commit. A PR-head dry run cannot be promoted
+if merging produced a different SHA. The release operator must not need a
+routine protection bypass or direct push to `main`.
 
-Configure `CI OK` as a required **status check**, not as an organization-level
-required-workflow rule. GitHub's required-workflow mechanism supports
-`pull_request`, `pull_request_target`, and `merge_group`, not
-`pull_request_review`. If a merge queue becomes available later, add
-`merge_group: checks_requested` and make full verification prove the queued
+If the future approval policy is adopted, configure `CI OK` as a required
+**status check**, not as an organization-level required-workflow rule. GitHub's
+required-workflow mechanism supports `pull_request`, `pull_request_target`,
+and `merge_group`, not `pull_request_review`. If a merge queue becomes
+available later, add `merge_group: checks_requested` and make full verification
+prove the queued
 merge candidate as well as the approved PR head.
 
 ### Reliability, security, and cost controls
 
 - **Concurrency:** give ordinary and full PR workflows distinct groups keyed
   by PR number, cancelling older runs within each tier. Do not let an ordinary
-  update cancel an approval-triggered run through a shared group name; the new
+  update cancel a full run through a shared group name; the new
   head instead makes the old result unusable. Do not cancel `main` runs. Give
   release runs a separate version/tag group with `cancel-in-progress: false`;
   never cancel a publishing run because another trigger arrived.
@@ -360,7 +368,7 @@ merge candidate as well as the approved PR head.
   Release assets remain attached to the release. Continue using
   `if-no-files-found: error`.
 - **Permissions:** default to `contents: read`; grant `pull-requests: read`
-  only where the approval gate queries review state. Cross-run artifact
+  only where the full-run gate queries PR state. Cross-run artifact
   download requires `actions: read`; deleting an artifact through GitHub's
   REST API requires `actions: write`. Confine these to the promotion/cleanup
   jobs. Grant `contents: write` only to the final release publish job. No PR
@@ -492,8 +500,9 @@ and run the existing workflow-pin and packaging contract tests.
   input-driven `packages.yml`.
 - Combine build and downstream proof per package format.
 - Make `ci.yml` the ordinary PR/main/manual entry with stable `PR CI`.
-- Add `full-ci.yml`, triggered by an approving review or the interim label
-  fallback, with complete verification and the only PR `CI OK` aggregate.
+- Add `full-ci.yml` with the current `full-ci` label route and an implemented
+  approving-review route for a possible future policy. It runs complete
+  verification and owns the only PR `CI OK` aggregate.
 - Add contract tests that prevent a non-approval or skipped job from producing
   a successful `CI OK`.
 - Remove obsolete reusable workflow files and duplicated classifiers.
@@ -522,15 +531,17 @@ authorizes external execution.
 
 ### Phase 4 — live evidence and cleanup
 
-- Observe PR runs for ordinary and packaging-specific updates, approval,
-  reapproval after a new commit, the `full-ci` fallback, and superseded
-  updates; observe one `main` or equivalent full run.
+- Observe PR runs for ordinary and packaging-specific updates, the `full-ci`
+  label, and superseded updates; observe one `main` or equivalent full run.
+  Defer approval and reapproval testing until the one-contributor policy is
+  settled and an authorized second reviewer is available.
 - Compare durations and check-list shape with the baseline; tune timeouts only
   from evidence.
-- Confirm intermediate artifacts are removed after their consumers finish,
-  dry-run promotion keeps only the verified set until publication, and
-  published GitHub Release assets remain available. Investigate the local
-  token's check-annotation 403 without making CI depend on that token.
+- Confirm intermediate artifacts are removed after their consumers finish.
+  With separate release authorization, confirm dry-run promotion keeps only
+  the verified set until publication and published GitHub Release assets remain
+  available. Investigate the local token's check-annotation 403 without making
+  CI depend on that token.
 - Decide the optional `scan-secrets.sh` simplification separately.
 - Move lasting maintainer instructions to maintained documentation and delete
   this temporary file before merge.
@@ -572,11 +583,13 @@ when the label is applied, not on later pushes while it remains attached.
 
 Phase 3 should start by re-reading this handoff and checking the branch, then
 finish the release integration and controls specified above. Before choosing
-required check names, observe the PR check list and SHA association of both
-`pull_request_review` and label-triggered runs. GitHub documents both event
-families as eligible for PR status evaluation, but local validation cannot
-prove the live check association. Keep the repository private and leave
-approval enforcement disabled until the contributor policy is decided.
+required check names, observe the PR check list and SHA association of
+label-triggered runs. Review-triggered check association can be tested when
+the approval policy is revisited with another authorized reviewer. GitHub
+documents both event families as eligible for PR status evaluation, but local
+validation cannot prove the live association. Keep the repository private
+and leave approval enforcement disabled until the contributor policy is
+decided.
 
 ## Phase 3 handoff (2026-09-25)
 
@@ -641,8 +654,9 @@ publication still require separate explicit authorization. The contributor
 approval policy remains unresolved; do not enforce reviews or `CI OK`.
 
 Once the branch can be published, collect ordinary PR, packaging update,
-ready-for-review, `full-ci` label, and superseded-update run evidence. An
-approval/reapproval run requires another authorized reviewer. Record run URLs,
-job conclusions, head SHA, timings, and artifact inventory here. Before merge,
-move any remaining lasting guidance into maintained docs and remove this
+ready-for-review, `full-ci` label, and superseded-update run evidence. Do not
+include approval/reapproval in this test pass; its trigger exists in the branch
+for future use, but approval policy and enforcement are postponed. Record run
+URLs, job conclusions, head SHA, timings, and artifact inventory here. Before
+merge, move any remaining lasting guidance into maintained docs and remove this
 temporary handoff.
