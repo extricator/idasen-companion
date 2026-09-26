@@ -75,6 +75,7 @@ HEIGHT_EMIT_INTERVAL = 0.5  # throttle for live height PropertiesChanged
 # How long a BLE scan's results stay good enough to hand back without scanning
 # again — the answer `Discover(0)` gives the setup wizard instantly.
 SCAN_CACHE_SECONDS = 60
+MANUAL_LOCK_TIMEOUT = 30.0
 
 
 class Daemon:
@@ -804,6 +805,14 @@ class Daemon:
         session at all."""
         return await self._session.state() not in (SEAT_BACKGROUND, SEAT_NONE)
 
+    async def _require_manual_entitlement(self) -> None:
+        # Check at request arrival as well as after waiting for the desk lock.
+        # An old D-Bus request from a backgrounded session must not spring to
+        # life when that session returns to the seat.
+        if hasattr(self, "_session") and not await self._entitled_to_desk():
+            raise DBusError(f"{DBUS_NAME}.Error.SessionInactive",
+                            "this session is not in front of the seat")
+
     async def _adopt_initial_state(self) -> None:
         """Read the desk once and adopt its real position, off the critical
         path. ``start`` does this silently — no transition is recorded — and
@@ -1383,6 +1392,7 @@ class Daemon:
         first (the manual pre-decide sync) so an external move — e.g. onto a
         preset — is reflected before the direction is chosen; ``refresh=False``
         skips that read when the caller (``gesture_move``) already did it."""
+        await self._require_manual_entitlement()
         if refresh:
             await self.machine.refresh_height(time.time())
         await self.manual_move_to_preset(self.machine.toggle_target_preset())
@@ -1401,6 +1411,7 @@ class Daemon:
         if action not in ("toggle", "sit", "stand"):
             raise DBusError(f"{DBUS_NAME}.Error.UnknownGesture",
                             f"unknown gesture action {action!r}")
+        await self._require_manual_entitlement()
         repeat = self.config.ui.tray_repeat_move
         if self.moving and action == self._gesture_action and repeat != "off":
             # Bound to a local so the "a successor is coming" decision and the
@@ -1459,8 +1470,18 @@ class Daemon:
         still the current one. Callers that must not bounce back (the slider's
         explicit target, the reverse gesture) also leave ``return_to`` as
         None."""
-        async with self._desk_lock:
+        await self._require_manual_entitlement()
+        try:
+            await asyncio.wait_for(self._desk_lock.acquire(),
+                                   timeout=MANUAL_LOCK_TIMEOUT)
+        except asyncio.TimeoutError as exc:
+            raise DBusError(f"{DBUS_NAME}.Error.DeskBusy",
+                            "desk command waited too long; please retry") from exc
+        try:
+            await self._require_manual_entitlement()
             await self._manual_move_locked(height, label, return_to=return_to)
+        finally:
+            self._desk_lock.release()
 
     async def _manual_move_locked(self, height: float, label: str,
                                   *, return_to: float | None = None) -> None:

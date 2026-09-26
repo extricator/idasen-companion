@@ -48,6 +48,10 @@ MIN_HEIGHT = 0.62
 # hardware, and of bleak's own 10s wait for BlueZ to confirm the drop, so this
 # only ever fires on a genuine stall.
 DISCONNECT_TIMEOUT = 12.0
+# A height read includes a possible cold connect and the idasen library's own
+# retries. A stalled BlueZ call must not hold the daemon's control-loop lock
+# indefinitely, especially across a session switch.
+READ_TIMEOUT = 30.0
 
 
 def _decode_height(data: bytes) -> float:
@@ -75,6 +79,7 @@ class BleDesk:
         retry_delays: tuple[float, ...] = (1.0, 2.0, 4.0),
         wakeup_grace: float = 2.0,
         disconnect_timeout: float = DISCONNECT_TIMEOUT,
+        read_timeout: float = READ_TIMEOUT,
         desk_factory: Callable = _default_desk_factory,
         on_height: Callable[[float], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
@@ -87,6 +92,7 @@ class BleDesk:
         self._retry_delays = retry_delays
         self._wakeup_grace = wakeup_grace
         self._disconnect_timeout = disconnect_timeout
+        self._read_timeout = read_timeout
         self._desk_factory = desk_factory
         self._on_height = on_height
         self._on_connection_change = on_connection_change
@@ -329,9 +335,18 @@ class BleDesk:
     async def get_height(self) -> float | None:
         async with self._lock:
             try:
-                if not await self._ensure_connected():
-                    return None
-                height = await self._handle.get_height()
+                height = await asyncio.wait_for(self._read_height_locked(),
+                                                self._read_timeout)
+            except asyncio.TimeoutError:
+                self._report_error(
+                    "get_height",
+                    TimeoutError(f"no reply within {self._read_timeout:g}s"))
+                # Cancellation stops the Python request, but a connect may
+                # already have reached BlueZ. Try to drop our handle before a
+                # later read can build another client for the same desk.
+                await self._disconnect_locked()
+                self.forget_handle()
+                return None
             except Exception as exc:
                 self._report_error("get_height", exc)
                 return None
@@ -340,6 +355,11 @@ class BleDesk:
         if height is not None and self._on_height:
             self._on_height(height)
         return height
+
+    async def _read_height_locked(self) -> float | None:
+        if not await self._ensure_connected():
+            return None
+        return await self._handle.get_height()
 
     async def move_to(self, height: float) -> bool:
         # If the desk is already being driven to a target, cancel that first so

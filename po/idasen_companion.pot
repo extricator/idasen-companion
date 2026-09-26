@@ -443,6 +443,16 @@ msgstr ""
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
+msgid "Switch back to this session before moving the desk."
+msgstr ""
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
+msgid "The desk is busy. Please try the command again."
+msgstr ""
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
 msgid "The background service could not carry out that request."
 msgstr ""
 

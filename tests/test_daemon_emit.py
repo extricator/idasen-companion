@@ -93,6 +93,18 @@ async def test_toggle_moves_to_machine_chosen_preset():
     d.manual_move_to_preset.assert_awaited_once_with("stand")
 
 
+async def test_toggle_from_background_never_reads_the_desk():
+    from dbus_fast.errors import DBusError
+    from idasen_companion.daemon.idle import SEAT_BACKGROUND
+
+    d = Daemon.__new__(Daemon)
+    d._session = MagicMock(state=AsyncMock(return_value=SEAT_BACKGROUND))
+    d.machine = MagicMock(refresh_height=AsyncMock())
+    with pytest.raises(DBusError):
+        await d.toggle_sit_stand()
+    d.machine.refresh_height.assert_not_awaited()
+
+
 def _gesture_daemon(*, moving=False, active=None, start_height=0.62,
                     repeat="reverse"):
     d = Daemon.__new__(Daemon)

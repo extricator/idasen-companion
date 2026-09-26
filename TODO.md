@@ -22,6 +22,10 @@ the record of what was done.
       does no desk I/O, and responds to a command after return without an
       adapter reset or replaying a backlog of old commands. Do not stop or
       restart the installed daemon just to collect evidence.
+      Candidate fix on this branch bounds BLE height reads and queued manual
+      requests, rejects requests from a background session, and passes the
+      hanging-fake tests. A live switch with the updated daemon is still
+      required before calling this done.
 - [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
       normal version-and-notes PR after the session-switch fix, require its
       automatic exact-head release-preparation proof, then merge. Confirm that

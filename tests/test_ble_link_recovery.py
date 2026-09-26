@@ -420,22 +420,25 @@ async def test_a_logind_hiccup_is_never_grounds_to_stand_down(monkeypatch):
     assert await d._entitled_to_desk() is True
 
 
-async def test_a_move_asked_for_from_the_background_hands_the_desk_back(monkeypatch):
-    """An explicit request is still honoured while another session is in front
-    — you asked for it — but the link it opens is borrowed, not kept."""
+async def test_a_move_asked_for_from_the_background_does_no_desk_io(monkeypatch):
+    """A request from the old session must not borrow the foreground user's desk."""
+    from dbus_fast.errors import DBusError
+
     d = _bare_daemon(monkeypatch)
     d._current_move_id = 0
     d.moving = False
     d._ifaces = {"desk": MagicMock(), "automation": MagicMock()}
     d.desk.move_to = AsyncMock(return_value=True)
+    d._session.state = AsyncMock(return_value=SEAT_BACKGROUND)
     d.machine = MagicMock()
     d.machine.is_away = True
     d.machine.force_sync = AsyncMock(return_value=[])
     monkeypatch.setattr(d, "_emit_periodic_properties", MagicMock())
 
-    await d._manual_move(1.10, "stand")
-    assert d.desk.move_to.await_count == 1, "an explicit move was refused"
-    assert d.desk.disconnect.called, "held the desk after a borrowed move"
+    with pytest.raises(DBusError):
+        await d._manual_move(1.10, "stand")
+    d.desk.move_to.assert_not_awaited()
+    d.desk.disconnect.assert_not_called()
 
 
 async def _async(value):
