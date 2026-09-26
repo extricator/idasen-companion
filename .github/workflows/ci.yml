@@ -148,8 +148,15 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
           VERIFY_RESULT: ${{ needs.verify.result }}
           PACKAGES_RESULT: ${{ needs.packages.result }}
+          PACKAGE_REQUIRED: ${{ needs.plan.outputs.rpm == 'true' || needs.plan.outputs.deb == 'true' || needs.plan.outputs.flatpak == 'true' }}
         run: |
-          [[ "$PLAN_RESULT" == success && "$VERIFY_RESULT" == success && "$PACKAGES_RESULT" == success ]]
+          [[ "$PLAN_RESULT" == success && "$VERIFY_RESULT" == success ]]
+          if [[ "$PACKAGE_REQUIRED" == true ]]; then
+            [[ "$PACKAGES_RESULT" == success ]]
+          else
+            # A reusable caller reports skipped when every format job skips.
+            [[ "$PACKAGES_RESULT" == skipped || "$PACKAGES_RESULT" == success ]]
+          fi
 
   cleanup:
     name: Retire ordinary CI package artifacts

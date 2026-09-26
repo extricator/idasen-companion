@@ -156,3 +156,24 @@ def test_ci_ok_requires_approval_or_label_and_successful_callers():
         assert re.search(rf'"\${result}" == success', run)
     assert workflow("ci.yml")["jobs"]["pr-ci"]["name"] == "PR CI"
     assert "ci-ok" not in workflow("ci.yml")["jobs"]
+
+
+@pytest.mark.parametrize(("required", "packages_result", "should_pass"), [
+    ("false", "skipped", True),
+    ("false", "success", True),
+    ("false", "failure", False),
+    ("true", "success", True),
+    ("true", "skipped", False),
+    ("true", "failure", False),
+])
+def test_pr_ci_accepts_only_expected_package_caller_result(required, packages_result, should_pass):
+    """A draft's empty package caller skips; a selected proof must succeed."""
+    step = workflow("ci.yml")["jobs"]["pr-ci"]["steps"][0]
+    env = os.environ | {
+        "PLAN_RESULT": "success",
+        "VERIFY_RESULT": "success",
+        "PACKAGES_RESULT": packages_result,
+        "PACKAGE_REQUIRED": required,
+    }
+    result = subprocess.run(["bash", "-e", "-c", step["run"]], env=env, check=False)
+    assert (result.returncode == 0) is should_pass

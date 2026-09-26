@@ -4,8 +4,8 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **Phase 3 implemented and locally verified; Phase 4 local documentation
-updated; live evidence pending branch publication**
+Status: **Phase 3 implemented and locally verified; Phase 4 live PR testing in
+progress**
 
 Branch: `ci-workflow-rebuild`
 
@@ -646,17 +646,38 @@ command was removed so it cannot accidentally require an unavailable `CI OK`.
 
 Publishing this branch to start a draft PR was rejected by automatic approval
 review as unapproved data egress to an external GitHub destination. No push or
-PR creation occurred. Continue local verification and document cleanup without
-using another route to publish. To resume live Phase 4, obtain explicit user
-authorization to push `ci-workflow-rebuild` to the existing private
-`extricator/idasen-companion` remote and open a PR. Remote release dry runs and
-publication still require separate explicit authorization. The contributor
-approval policy remains unresolved; do not enforce reviews or `CI OK`.
+PR creation occurred at that point. The user subsequently gave explicit
+authorization to push `ci-workflow-rebuild` and run the PR tests; the branch
+was pushed to the verified private `extricator/idasen-companion` remote and
+draft PR #2 was opened. Remote release dry runs and publication still require
+separate explicit authorization. The contributor approval policy remains
+unresolved; do not enforce reviews or `CI OK`.
 
-Once the branch can be published, collect ordinary PR, packaging update,
-ready-for-review, `full-ci` label, and superseded-update run evidence. Do not
+Collect ordinary PR, packaging update, ready-for-review, `full-ci` label, and
+superseded-update run evidence. Do not
 include approval/reapproval in this test pass; its trigger exists in the branch
 for future use, but approval policy and enforcement are postponed. Record run
 URLs, job conclusions, head SHA, timings, and artifact inventory here. Before
 merge, move any remaining lasting guidance into maintained docs and remove this
 temporary handoff.
+
+### Live PR evidence
+
+User authorization on 2026-09-25 permitted pushing `ci-workflow-rebuild` to the
+verified private `extricator/idasen-companion` remote and running the other PR
+tests. [Draft PR #2](https://github.com/extricator/idasen-companion/pull/2) is
+open. Approval/reapproval and remote release execution remain deferred.
+
+- Draft run [36204672914](https://github.com/extricator/idasen-companion/actions/runs/36204672914)
+  tested `b7acfa4`: the planner, four Python versions, and both quality jobs
+  succeeded; all three package jobs skipped, as intended. `PR CI` failed
+  because GitHub reported the reusable package caller as `skipped` when every
+  format job skipped. The failed step's environment showed
+  `PLAN_RESULT=success`, `VERIFY_RESULT=success`, and
+  `PACKAGES_RESULT=skipped`.
+- The aggregate now accepts a skipped package caller only when the plan selects
+  no package format. A selected package caller must still succeed. Six
+  regression cases cover both sides; focused tests passed (27), and the full
+  suite passed (1,594 passed, one skipped). A live draft rerun remains to prove
+  the correction on GitHub. `actionlint` was unavailable on this machine for
+  this edit; the workflow YAML is loaded by the topology tests.
