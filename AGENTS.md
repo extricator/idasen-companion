@@ -6,8 +6,8 @@ Treat a brief continuation request, such as "keep working," "continue," "pick up
 
 ## GitHub Actions CI redesign
 
-While this redesign is active, use `docs/github-actions-ci-redesign.md` as its handoff and continue its next unfinished phase when the user's continuation request refers to it. A brief continuation request does not override the approval holds below.
+While this redesign is active, use the open CI redesign PR description and `CONTRIBUTING.md` for its current state. A brief continuation request does not override the approval holds below.
 
-Do not use GSD for this redesign. Preserve unrelated files and ignored build outputs. Do not install, stop, or launch the desktop application or daemon. Keep the repository private. Do not configure required reviews, branch protection, or required `CI OK` while the one-contributor approval policy is unresolved. Do not start a remote release dry run or publish a release without the user's explicit authorization.
+Do not use GSD for this redesign. Preserve unrelated files and ignored build outputs. Do not install, stop, or launch the desktop application or daemon. Keep the repository private. Do not configure required reviews, branch protection, or required checks while the one-contributor approval policy is unresolved. Do not start a remote release dry run or publish a release without the user's explicit authorization.
 
 Before changing GitHub Actions workflows, fetch current GitHub Actions documentation with the `ctx7` CLI: resolve `GitHub Actions` with `npx ctx7@latest library` before using `npx ctx7@latest docs` for the relevant topic.

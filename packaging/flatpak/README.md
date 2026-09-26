@@ -61,8 +61,9 @@ io.github.extricator.IdasenCompanion status`; it is not a host-level headless
 installation.
 
 On a ready pull request, an update under `packaging/flatpak/` selects the
-Flatpak package proof in ordinary CI. Draft pull requests defer package builds;
-applying the `full-ci` label runs every package proof for the current PR head.
+Flatpak package proof in ordinary CI. Draft pull requests defer package builds.
+A ready release-preparation PR with a source version change automatically runs
+all package proofs and verifies the complete five-asset assembly on its head.
 
 ## Size
 
