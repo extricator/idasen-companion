@@ -729,3 +729,21 @@ performance promise):
 The measured full proof fits the original 13–14 minute main-run baseline;
 ordinary all-format validation is materially shorter because it omits RPM
 portability. These few mixed scenarios are insufficient to tighten timeouts.
+
+Two documentation-only pushes tested update deltas and concurrency:
+
+- Run [36207034621](https://github.com/extricator/idasen-companion/actions/runs/36207034621)
+  on `15e78a0` selected no packages and was running Python/quality when the
+  next push arrived. GitHub cancelled it as superseded.
+- Run [36207092088](https://github.com/extricator/idasen-companion/actions/runs/36207092088)
+  on `cd4e205` again skipped all package formats and passed Python, quality,
+  and `PR CI`. The existing `full-ci` label did not start a new full run on
+  either synchronize event.
+- Removing and reapplying `full-ci` started a separate full run on `cd4e205`
+  while ordinary CI was active; the ordinary run finished successfully
+  without cancelling the full run. The full run must be repeated on the final
+  head after this handoff update is pushed, so the current run is disposable.
+
+The optional `scan-secrets.sh` simplification remains a separate future
+decision. The existing scan and its canary passed on every new commit; this
+workflow redesign does not change the scanner.
