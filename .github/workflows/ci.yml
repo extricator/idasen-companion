@@ -158,10 +158,74 @@ jobs:
             [[ "$PACKAGES_RESULT" == skipped || "$PACKAGES_RESULT" == success ]]
           fi
 
+  candidate:
+    name: Assemble and checksum the release assets
+    if: github.event_name == 'push'
+    needs: [plan, verify, packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the merged commit with tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Select only an unreleased version
+        id: select
+        run: |
+          set -euo pipefail
+          git fetch --tags origin
+          version=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git show-ref --verify --quiet "refs/tags/v$version"; then
+            echo "Version $version is already tagged; no release candidate needed."
+            echo 'build=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'build=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download the built RPM
+        if: steps.select.outputs.build == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-rpm
+          path: artifacts
+      - name: Download the built Debian packages
+        if: steps.select.outputs.build == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-deb
+          path: artifacts
+      - name: Download the built Flatpak bundle
+        if: steps.select.outputs.build == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: idasen-companion-flatpak
+          path: artifacts
+      - name: Install five-asset verifier tools
+        if: steps.select.outputs.build == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman flatpak
+      - name: Verify and assemble the main CI candidate
+        if: steps.select.outputs.build == 'true'
+        env:
+          VERSION: ${{ steps.select.outputs.version }}
+        run: python3 scripts/release-assets.py assemble . "$VERSION" "$GITHUB_SHA" "$GITHUB_RUN_ID"
+      - name: Retain the verified release candidate for one day
+        if: steps.select.outputs.build == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: release-assets
+          path: |
+            artifacts/
+            release-notes.md
+            provenance.json
+          if-no-files-found: error
+          retention-days: 1
+
   cleanup:
     name: Retire ordinary CI package artifacts
-    needs: [plan, verify, packages]
-    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: [plan, verify, packages, candidate]
+    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'push' || needs.candidate.result == 'success') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

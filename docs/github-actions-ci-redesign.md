@@ -6,7 +6,8 @@
 
 Status: **Phases 1–3 implemented; Phase 4 live PR and branch release dry-run
 evidence collected, with final handoff cleanup pending; Phase 5 release-skill
-migration implemented; publication paths remain untested**
+migration implemented; Phase 6 main-CI release-candidate reuse in progress;
+publication paths remain untested**
 
 Branch: `ci-workflow-rebuild`
 
@@ -24,8 +25,8 @@ merge.
 The release path must continue to fully verify all five deliverables:
 desktop and headless RPMs, desktop and headless Debian packages, and the
 Flatpak bundle. A real release may publish the exact assets from a successful
-dry run when their provenance and hashes are proved; otherwise it must build
-and verify the complete set itself.
+merged-commit main CI candidate or release dry run when their provenance and
+hashes are proved; otherwise it must build and verify the complete set itself.
 
 The repository is private and its current plan has no branch protection, so
 the design must be useful as a visible maintainer signal today without
@@ -246,8 +247,8 @@ the same regex in Python.
 | Manual `full` | yes | yes | yes | yes | yes | yes |
 | Push to `main` | yes | yes | yes | yes | yes | yes |
 | Release dry run | yes | yes | yes | yes | yes | yes |
-| Real release using a verified dry run | reuse that run's successful verification | reuse | publish its verified RPMs | publish its verified Debian packages | publish its verified Flatpak | reuse its passed portability proof |
-| Real release without a valid dry run, including a tag-push path | yes | yes | yes | yes | yes | yes |
+| Real release using a verified main CI candidate or dry run | reuse that run's successful verification | reuse | publish its verified RPMs | publish its verified Debian packages | publish its verified Flatpak | reuse its passed portability proof |
+| Real release without a valid candidate, including a tag-push path | yes | yes | yes | yes | yes | yes |
 
 Draft PRs still get useful, inexpensive feedback. Automatic package work is
 suppressed until `ready_for_review`; that event evaluates the complete PR diff
@@ -330,10 +331,11 @@ repository currently cannot protect that branch. A release-preparation PR can
 carry the version, changelog, package metadata, and any release-path fix;
 currently `full-ci` supplies its complete PR proof. If an approval policy is
 adopted later, review and `CI OK` would apply as the protected merge gate.
-After merge, run full `main` CI and a release dry run on the **merged commit**;
-only then publish/tag that exact commit. A PR-head dry run cannot be promoted
-if merging produced a different SHA. The release operator must not need a
-routine protection bypass or direct push to `main`.
+After merge, full `main` CI builds and assembles the release candidate on the
+**merged commit**. Promote only that exact checked set after explicit
+publication authorization. A PR-head artifact cannot be promoted if merging
+produced a different SHA. The release operator must not need a routine
+protection bypass or direct push to `main`.
 
 If the future approval policy is adopted, configure `CI OK` as a required
 **status check**, not as an organization-level required-workflow rule. GitHub's
@@ -391,28 +393,30 @@ merge candidate as well as the approved PR head.
   promotion is unavailable. Preserve unique filename checks, the five-asset
   verifier, checksums, and the publish-only write boundary.
 
-### Promoting a verified dry run
+### Promoting a verified main CI candidate
 
-Prefer a real release that names one successful, trusted dry-run **run ID**
-and promotes its already-checked `release-assets` artifact. This removes the
-second 17–21-minute build and avoids temporarily storing another set of large
-RPMs. Cross-run download is supported by `actions/download-artifact` with
+Prefer a real release that names the successful merged-commit **main CI run
+ID** and promotes its checked `release-assets` artifact. Main CI already
+builds all five packages; assembling that run's bytes removes a routine
+release dry-run rebuild. A separately authorized release dry run remains
+available to test release-workflow changes. Cross-run download is supported by
+`actions/download-artifact` with
 `run-id` and a token that has `actions: read`; GitHub's artifact API exposes
 the source run ID, head SHA, size, and expiry. Current documentation also
 provides a per-artifact delete endpoint requiring `actions: write`.
 
 Promotion must fail closed unless all of the following hold:
 
-- the named run belongs to this repository and the trusted release dry-run
-  workflow, completed successfully on `main`, and its version equals the
-  requested release version;
+- the named run belongs to this repository and is either successful full
+  `main` CI from a push or a trusted release dry run dispatched on `main`;
+  its version equals the requested release version;
 - the source run's head SHA equals the current `main` commit and the SHA the
   release will tag; no moving `latest successful run` lookup is sufficient;
 - its single assembled artifact is unexpired, contains exactly the five
   expected package files, `SHA256SUMS`, and release notes, and its bytes match
   the checksums; the names, embedded versions, and release body are checked
   again before publication;
-- the dry run included successful Python/quality checks, both native smoke
+- the source run included successful Python/quality checks, both native smoke
   proofs, RPM portability, and five-asset assembly; a skipped or failed
   required job disqualifies it;
 - the published tag and GitHub Release assets are verified before the source
@@ -559,10 +563,10 @@ Verification: recorded run URLs/timings, correct selected/skipped jobs, stable
   exact preparation head before merging. If `main` moves, refresh the PR and
   repeat the checks. Respect any future review policy without configuring one
   during this redesign.
-- After merge, identify the actual `main` SHA, wait for its full CI, run a
-  release dry run on that SHA, and use its run ID for the verified-asset
-  promotion path. Retain explicit user authorization before publication and
-  the full-rebuild fallback when promotion is unavailable.
+- After merge, identify the actual `main` SHA and wait for its full CI. Phase 6
+  makes that run's ID the routine verified-asset promotion source. Retain
+  explicit user authorization before publication and the full-rebuild fallback
+  when promotion is unavailable.
 - Align the skill's instructions with `CONTRIBUTING.md` and remove obsolete
   statements that depend on an unprotected `main` or direct pushes.
 
@@ -570,6 +574,29 @@ Verification: inspect the skill and maintained release instructions together,
 check for direct-push instructions, and test any executable helper changes.
 Finish Phase 4's temporary-handoff cleanup after this phase is recorded in
 maintained documentation and the branch is otherwise ready to merge.
+
+### Phase 6 — promote the merged main CI assets
+
+- On a `main` push with an unreleased version, assemble a `release-assets`
+  candidate from that run's five package outputs, run the complete five-asset
+  verifier, and retain only the checked bundle for one day. Keep ordinary
+  `main` CI and artifact cleanup for already released versions.
+- Run the same assembly verifier on full PR checks, using the exact PR head,
+  so `CI OK` proves the candidate path before the release-preparation PR
+  merges. Do not retain or promote a PR artifact.
+- Allow release promotion to accept a successful, exact-SHA `main` CI run with
+  complete proof jobs and one live candidate artifact. Keep the existing
+  trusted release dry-run and explicit full-rebuild routes.
+- Make the routine release skill use the merged `main` CI run ID. Retain its
+  automatic preparation-PR merge after exact-head checks, and retain explicit
+  authorization before publication. A separate release dry run becomes an
+  optional diagnostic when release machinery changes.
+- Update release operator documentation and tests for both accepted source
+  run types, retained artifacts, and publication fail-closed conditions.
+
+Verification: focused workflow and provenance tests, complete unit suite,
+action syntax validation, branch PR CI and full `CI OK`. The first unreleased
+version merged to `main` must prove candidate assembly before any publication.
 
 ## Phase 2 handoff (2026-09-25)
 
@@ -821,10 +848,27 @@ It then watches all full `main` CI proof jobs on the merged SHA, which may
 differ from the PR head. `CONTRIBUTING.md` now spells out the same branch and
 exact-SHA checks. The one-contributor approval hold remains unchanged.
 
-For a future release, the skill requires separate authorization for a remote
-dry run on that merged `main` commit and for publication. It records the
-successful dry-run ID, promotes those verified assets when available, and
-offers the explicit full-rebuild path when they cannot be promoted. No new
-release was dispatched or published for this skill update. Final Phase 4
+Phase 6 supersedes the initial post-merge dry-run step: the skill now records
+the successful merged-commit `main` CI ID and presents its verified assets for
+separately authorized publication. A release dry run is optional diagnostic
+work and still needs explicit authorization. No new release was dispatched or
+published for this skill update. Final Phase 4
 cleanup still needs to move any lasting guidance from this temporary file and
 remove it before merging PR #2.
+
+## Phase 6 handoff (2026-09-26)
+
+The user accepted automatic merging of a release-preparation PR after exact
+head ordinary and full PR checks pass. To remove the routine third package
+build, `ci.yml` now assembles a one-day `release-assets` candidate from the
+five packages it built on an unreleased-version `main` push. Full PR `CI OK`
+also requires the assembly proof on the exact PR head, without retaining a
+PR artifact. Main CI cleanup waits for candidate assembly and deletes only
+the three intermediate packages.
+`release-assets.py` accepts a successful exact-SHA `main` CI run with all
+proof jobs and one live candidate artifact, while preserving promotion from
+a trusted `main` release dry run. The publisher still revalidates filenames,
+notes, provenance, checksums, tag target, and published bytes. The release
+skill and `CONTRIBUTING.md` now use the main CI run ID for routine promotion;
+publication remains an explicit decision. The first real main candidate and
+publication are not part of this branch test and remain unverified remotely.

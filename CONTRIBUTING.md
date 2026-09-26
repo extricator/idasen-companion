@@ -226,7 +226,8 @@ getting it wrong costs a version number. Follow this top to bottom.
 3. **Land the preparation PR on `main`** and wait for its full `main` CI run to
    pass. The PR's `PR CI` is ordinary per-update verification. Applying the
    `full-ci` label starts complete PR verification and reports `CI OK` for that
-   head. An approving review can start the same full run when another reviewer
+   head, including five-asset release assembly. An approving review can start
+   the same full run when another reviewer
    is available. The repository currently has one contributor, so no review,
    `CI OK`, or branch-protection requirement is enforced yet. A new PR commit
    needs a new full run before its result can describe the current head. An
@@ -238,24 +239,27 @@ getting it wrong costs a version number. Follow this top to bottom.
    repeat its checks. Do not push the preparation commit directly to `main`.
    The resulting `main` push runs all package proofs; it has no separate
    `CI OK` aggregate, so inspect the complete run on the merge SHA.
-4. **Dry-run the merged commit.** Open **Actions → Release → Run workflow** on
-   `main`, enter the version without a leading `v` (for example `1.2.0`), and
-   tick **dry run**. It runs Python, quality, all package builds, Debian smoke,
-   RPM portability, and five-asset assembly without creating a tag or release.
-   Save the successful run ID. A branch dry run can exercise release changes,
-   but only a successful dry run on the current `main` commit can be promoted.
-5. **Publish that verified set.** Run **Actions → Release → Run workflow** again
-   on `main` with the same version and the successful dry run's ID in
-   **promotion run ID**. Leave **dry run** and **full rebuild** unticked. The
-   workflow checks the source run, exact `main` commit, version, required job
-   results, five file names, release notes, and checksums before publishing
-   those bytes. It verifies the published tag and assets before deleting the
-   source artifact. Dry-run artifacts expire after one day.
+4. **Use the merged commit's release candidate.** The full `main` CI run
+   builds and tests all five packages on the merge commit. For an unreleased
+   version, it also verifies the complete set, writes checksums, release notes,
+   and provenance, and retains one `release-assets` bundle for one day. It
+   removes the three intermediate package artifacts after assembly. Save the
+   successful `main` CI run ID and confirm it names the current `main` SHA.
+   A release dry run remains available to test release-workflow changes, but
+   is not required for an ordinary release.
+5. **Publish that verified set.** After explicit publication authorization,
+   open **Actions → Release → Run workflow** on `main`, enter the version
+   without a leading `v` (for example `1.2.0`), and enter the successful
+   `main` CI run ID in **promotion run ID**. Leave **dry run** and **full
+   rebuild** unticked. The workflow checks the source run, exact current
+   `main` commit, version, required job results, five file names, release
+   notes, and checksums before publishing those bytes. It verifies the
+   published tag and assets before deleting the source bundle.
 
-   If the dry run expired or cannot be promoted, run a new dry run or select
-   **full rebuild** for a real release. Full rebuild reruns every verification
-   and package proof. Select exactly one real-release mode: a promotion run ID
-   or full rebuild. A push of a `v*` tag also uses full rebuild. The workflow
+   If the candidate expired or cannot be promoted, select **full rebuild**
+   with authorization. Full rebuild reruns every verification and package
+   proof. Select exactly one real-release mode: a promotion run ID or full
+   rebuild. A push of a `v*` tag also uses full rebuild. The workflow
    refuses a dispatch from a side branch or a version that disagrees with
    `__version__` on `main`.
 

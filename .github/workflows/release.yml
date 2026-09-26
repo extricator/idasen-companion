@@ -319,7 +319,6 @@ jobs:
       - name: Record the assembled set's source
         env:
           VERSION: ${{ needs.gate.outputs.version }}
-          DRY_RUN: ${{ needs.gate.outputs.mode == 'dry-run' }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -327,7 +326,7 @@ jobs:
               json.dump({'run_id': int(os.environ['GITHUB_RUN_ID']),
                          'sha': os.environ['GITHUB_SHA'],
                          'version': os.environ['VERSION'],
-                         'dry_run': os.environ['DRY_RUN'] == 'true'}, output)
+                         'candidate': True}, output)
           PY
 
       - name: Hand the assembled assets to the publish job

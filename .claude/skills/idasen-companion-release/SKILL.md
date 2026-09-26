@@ -297,7 +297,8 @@ Select the PR run for the exact preparation SHA. If it is not registered yet,
 wait and query again. Never substitute a merely latest CI run. Require its
 `PR CI` aggregate to pass. Apply the `full-ci` label to trigger complete PR
 verification and record the new `full-ci.yml` run ID for that exact SHA. Watch
-that run to completion and require its `CI OK` job to pass. If a label already
+that run to completion and require its package and five-asset assembly proof
+plus `CI OK` to pass. If a label already
 exists after a new commit, remove and reapply it; an existing label does not
 start another full run. Do not treat an approving review as available while
 the repository has only one contributor.
@@ -322,9 +323,12 @@ version files and notes match the chosen version. A merge commit may differ
 from `PREP_SHA`; all following checks and release dispatches use `RELEASE_SHA`.
 Wait for the full `main` `ci.yml` run associated with that exact SHA to pass.
 Check the plan, Python/quality, all three package formats, RPM portability,
-and artifact cleanup. `ci.yml` has no `CI OK` aggregate on a `main` push;
-that named aggregate belongs to the full PR run. Stop on any red or missing
-required proof.
+release candidate assembly, and artifact cleanup. Record its run ID and
+verify that it retains exactly one unexpired `release-assets` artifact, with
+the five packages, release notes, checksums, and matching provenance. The
+three intermediate package artifacts should be gone. `ci.yml` has no `CI OK`
+aggregate on a `main` push; that named aggregate belongs to the full PR run.
+Stop on any red or missing required proof.
 
 The complete-run aggregate check is named `CI OK`, verbatim. Required proof
 jobs must succeed; a failed, cancelled, or unexpectedly skipped proof must not
@@ -334,68 +338,46 @@ Stop here if CI is red. Report what failed.
 
 ---
 
-## Phase E — dry-run the merged commit, then publish
+## Phase E — publish the verified main CI candidate
 
-Confirm `origin/main` still equals `RELEASE_SHA` before each dispatch. A later
-merge changes the release target and requires new `main` CI and a new dry run.
-Obtain explicit user authorization before starting a remote release dry run.
-The dry run builds and verifies all five assets and checksums without creating
-a tag or release. Record existing workflow-dispatch run IDs for this commit:
+Confirm `origin/main` still equals `RELEASE_SHA` before dispatch. A later
+merge changes the release target and requires a new full `main` CI candidate.
+
+**Ask the user before publication every time.** Show the version, approved
+notes, merged SHA, successful `main` CI URL and run ID, and exact promotion
+choice. Publishing creates a remote tag and GitHub Release. After explicit
+approval, record the existing release-workflow dispatch IDs for this commit:
 
 ```bash
-RELEASE_SHA=$(git rev-parse HEAD)
 BEFORE_RUN_IDS=$(gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
   --event workflow_dispatch --limit 100 --json databaseId \
   --jq '.[].databaseId')
-```
-
-Dispatch the dry run on `main`:
-
-```bash
-gh workflow run release.yml --ref main -f version=X.Y.Z -f dry_run=true
-```
-
-Poll for the dispatched run:
-
-```bash
-gh run list --workflow=release.yml --commit="$RELEASE_SHA" \
-  --event workflow_dispatch --limit 100 \
-  --json databaseId,headSha,status,conclusion,url
-```
-
-Select a `databaseId` absent from `BEFORE_RUN_IDS`. If none is present yet,
-wait for Actions to register the dispatch and query again. Watch that exact new
-ID with `gh run watch <database-id> --exit-status`. Never watch an older run.
-Record the successful dry-run ID and confirm its retained `release-assets`
-artifact, five package names, release notes, provenance, and checksums.
-
-**Ask the user before publication every time.** Show the version, approved
-notes, merged SHA, successful dry-run URL, and exact promotion choice. A dry
-run's authorization is not publication authorization. Publishing creates a
-remote tag and GitHub Release. After explicit approval, record the existing
-release-workflow run IDs again and dispatch promotion of the verified set:
-
-```bash
 gh workflow run release.yml --ref main -f version=X.Y.Z \
-  -f promotion_run_id=<successful-dry-run-id>
+  -f promotion_run_id=<successful-main-ci-run-id>
 ```
 
-Select the new exact-SHA workflow-dispatch run, watch it, and verify that the
-published tag points to `RELEASE_SHA`, its body matches the changelog, and all
-five published assets match `SHA256SUMS`. The workflow performs these checks
-before retiring the source artifact; independently inspect the release URL
-and asset list. If the dry-run artifact has expired or promotion fails closed,
-stop and explain why. With user authorization, start a new dry run or choose
-the explicit full-rebuild path; never silently switch modes:
+Poll for a new workflow-dispatch run on the exact `RELEASE_SHA`, absent from
+`BEFORE_RUN_IDS`, and watch that exact ID. The promotion validator accepts
+only a successful `main` CI release candidate or successful `main` release
+dry run from the same current SHA. It rechecks all proof jobs, asset names,
+release notes, provenance, and checksums. The workflow then publishes and
+verifies the tag, release body, and six downloadable files before retiring
+the source artifact. Independently inspect the release URL and asset list.
+
+If the candidate artifact has expired or promotion fails closed, stop and
+explain why. With user authorization, choose the explicit full-rebuild path;
+never silently switch modes:
 
 ```bash
 gh workflow run release.yml --ref main -f version=X.Y.Z \
   -f full_rebuild=true
 ```
 
-The workflow re-checks the version against `__version__` and refuses an
-existing tag. Promotion uses the exact verified dry-run assets; full rebuild
-reruns verification and all package proofs before publishing.
+A remote release dry run is optional for testing workflow changes, requires
+separate explicit authorization, and creates no tag or publication. It builds
+the five assets and retains a promotable bundle for one day. The routine
+release path uses the already verified `main` CI candidate without rebuilding.
+The workflow refuses an existing tag and a version that differs from source.
 
 Report the release URL:
 

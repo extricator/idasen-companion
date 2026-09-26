@@ -134,6 +134,23 @@ def test_release_modes_are_explicit_and_publishing_requires_proofs():
     assert release["jobs"]["cleanup"]["permissions"]["actions"] == "write"
 
 
+def test_main_ci_assembles_candidate_before_retiring_package_artifacts():
+    ci = workflow("ci.yml")
+    candidate = ci["jobs"]["candidate"]
+    assert candidate["if"] == "github.event_name == 'push'"
+    assert set(candidate["needs"]) == {"plan", "verify", "packages"}
+    assert candidate["name"] == "Assemble and checksum the release assets"
+    assert any("release-assets.py assemble" in step.get("run", "")
+               for step in candidate["steps"])
+    upload = next(step for step in candidate["steps"] if step.get("with", {}).get("name") ==
+                  "release-assets")
+    assert int(upload["with"]["retention-days"]) == 1
+    cleanup = ci["jobs"]["cleanup"]
+    assert "candidate" in cleanup["needs"]
+    assert "needs.candidate.result == 'success'" in cleanup["if"]
+    assert "release-assets" not in cleanup["steps"][0]["run"]
+
+
 def test_every_runnable_job_has_a_timeout():
     for name in ("ci.yml", "full-ci.yml", "verify.yml", "packages.yml", "release.yml"):
         for job in workflow(name)["jobs"].values():
@@ -150,10 +167,15 @@ def test_ci_ok_requires_approval_or_label_and_successful_callers():
     assert '"$EVENT_ACTION" == labeled && "$LABEL_NAME" == full-ci' in gate
     aggregate = full["jobs"]["ci-ok"]
     assert aggregate["if"] == "always()"
-    assert set(aggregate["needs"]) == {"gate", "verify", "packages"}
+    assert set(aggregate["needs"]) == {"gate", "verify", "packages", "candidate"}
     run = aggregate["steps"][0]["run"]
-    for result in ("GATE_RESULT", "VERIFY_RESULT", "PACKAGES_RESULT"):
+    for result in ("GATE_RESULT", "VERIFY_RESULT", "PACKAGES_RESULT", "CANDIDATE_RESULT"):
         assert re.search(rf'"\${result}" == success', run)
+    candidate = full["jobs"]["candidate"]
+    assert candidate["name"] == "Verify release assembly"
+    assert set(candidate["needs"]) == {"gate", "verify", "packages"}
+    assert any("release-assets.py assemble" in step.get("run", "")
+               for step in candidate["steps"])
     assert workflow("ci.yml")["jobs"]["pr-ci"]["name"] == "PR CI"
     assert "ci-ok" not in workflow("ci.yml")["jobs"]
 
