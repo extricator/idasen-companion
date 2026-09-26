@@ -7,14 +7,14 @@
 Status: **Phases 1–3 implemented; Phase 4 live PR and branch release dry-run
 evidence collected, with final handoff cleanup pending; Phase 5 release-skill
 migration implemented; Phase 6 main-CI release-candidate reuse in progress;
-publication paths remain untested**
+Phase 7 PR check-list reduction planned; publication paths remain untested**
 
 Branch: `ci-workflow-rebuild`
 
 Baseline: `eb829e2` (`main` when this phase began). Phase 2 merged local
 `main` at `a20f559` (`v1.2.0`) before workflow edits.
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 ## Goal and constraints
 
@@ -175,7 +175,10 @@ container and then runs portability from the host; the Debian job builds in
 its Debian container and then runs the systemd smoke test from the host. Both
 can be implemented with Docker/Podman from an Ubuntu runner, avoiding the
 current job boundary without weakening the clean-environment tests. A full
-run should expose ten named checks rather than sixteen.
+run was expected to expose ten named checks rather than sixteen. This was
+an incomplete UI target: GitHub shows the jobs from both the ordinary and
+full workflows on a fully verified PR head. Phase 7 addresses the combined
+check list without dropping any required proof.
 
 The GitHub semantics used by this design were checked through Context7 on
 2026-09-24 against the current official documentation for [workflow
@@ -599,6 +602,41 @@ maintained documentation and the branch is otherwise ready to merge.
 Verification: focused workflow and provenance tests, complete unit suite,
 action syntax validation, branch PR CI and full `CI OK`. The first unreleased
 version merged to `main` must prove candidate assembly before any publication.
+
+### Phase 7 — reduce the visible PR check list
+
+The current PR head produced 13 job checks in [ordinary PR CI](https://github.com/extricator/idasen-companion/actions/runs/36219607177)
+and 13 in [full PR CI](https://github.com/extricator/idasen-companion/actions/runs/36219613265):
+about 26 visible entries, including skipped jobs. The earlier ten-check goal
+counted one full run in isolation and missed this combined PR experience.
+`PR CI` and `CI OK` are aggregate jobs, not a way to hide their component jobs.
+
+- Design the replacement job layout and review the proposed check names and
+  execution tradeoffs before editing workflows. Count **all** checks attached
+  to one fully verified PR head, across ordinary and full runs, including
+  skipped jobs. Target fewer than ten visible entries in total, with a small
+  ordinary per-update check list. Measure the actual GitHub PR list after
+  implementation; workflow-file count alone is not the success measure.
+- Consolidate job boundaries where useful while retaining every current
+  proof: Python 3.11–3.14, code and distribution/supply-chain quality,
+  changed-path package proofs on ordinary PR updates, all five package builds
+  and their smoke/portability checks on full verification, and exact-head
+  release assembly. Keep `PR CI` and `CI OK` as distinct trustworthy results.
+  Document any loss of parallelism or diagnostic detail from grouping jobs.
+- Keep the `full-ci` label as the current explicit full-verification trigger.
+  Do not add required checks, reviews, branch protection, or approval-based
+  enforcement while the one-contributor policy remains unresolved. Preserve
+  the release candidate and publication boundaries from Phase 6.
+- Update workflow contract tests and maintained CI guidance to match the new
+  job names and failure propagation. Revisit Phase 4's temporary-handoff
+  cleanup only after this phase's design and live evidence are recorded.
+
+Verification: fetch current GitHub Actions documentation before workflow
+edits; review the proposed topology; run focused workflow tests, the complete
+unit suite, and action syntax validation; then inspect ordinary and full PR
+runs on the same head. Record the combined visible check count, selected and
+skipped paths, durations, and proof that any failed component prevents a
+successful aggregate. Do not call the phase complete from local tests alone.
 
 ## Phase 2 handoff (2026-09-25)
 
