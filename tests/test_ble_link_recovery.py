@@ -117,7 +117,6 @@ def _bare_daemon(monkeypatch):
     d._ifaces = {}
 
     d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d._had_foreground_connect = False
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.mock_mode = True
@@ -391,66 +390,20 @@ async def test_leaving_the_seat_releases_the_desk(monkeypatch):
     assert d.desk.disconnect.called, "kept the desk after leaving the seat"
 
 
-async def test_handoff_clears_a_link_bluez_kept_after_bleak_disconnect(monkeypatch):
+async def test_handoff_leaves_ambiguous_bluez_link_alone(monkeypatch):
     d = _bare_daemon(monkeypatch)
     d.mock_mode = False
-    d._had_foreground_connect = True
-    d.desk.connected = False  # Bleak's stale cached flag is the real failure
+    d.desk.connected = False
     d.desk.disconnect = AsyncMock()
     d._bluez_property = AsyncMock(return_value=True)
-    d._other_companion_daemons = MagicMock(return_value=[])
-    d._drop_bluez_link = AsyncMock(return_value=True)
+    d._drop_bluez_link = AsyncMock()
 
     await d._release_desk()
     d.desk.disconnect.assert_awaited_once()
-    d._drop_bluez_link.assert_awaited_once_with(d._bluez_device_path())
-    assert d._had_foreground_connect is False
-
-
-async def test_handoff_does_not_drop_link_with_another_daemon_running(monkeypatch):
-    d = _bare_daemon(monkeypatch)
-    d.mock_mode = False
-    d._had_foreground_connect = True
-    d.desk.connected = True
-    d.desk.disconnect = AsyncMock()
-    d._bluez_property = AsyncMock(return_value=True)
-    d._other_companion_daemons = MagicMock(return_value=[12345])
-    d._drop_bluez_link = AsyncMock()
-
-    await d._release_desk()
+    d._bluez_property.assert_awaited_once_with(
+        d._bluez_device_path(), "org.bluez.Device1", "Connected")
     d._drop_bluez_link.assert_not_awaited()
-
-
-async def test_handoff_does_not_drop_link_without_a_foreground_connect(monkeypatch):
-    d = _bare_daemon(monkeypatch)
-    d.mock_mode = False
-    d.desk.connected = False
-    d.desk.disconnect = AsyncMock()
-    d._bluez_property = AsyncMock(return_value=True)
-    d._drop_bluez_link = AsyncMock()
-
-    await d._release_desk()
-    d._bluez_property.assert_not_awaited()
-    d._drop_bluez_link.assert_not_awaited()
-
-
-async def test_handoff_checks_bluez_after_an_earlier_bleak_disconnect(monkeypatch):
-    d = _bare_daemon(monkeypatch)
-    d.mock_mode = False
-    d.desk.connected = False
-    d.desk.disconnect = AsyncMock()
-    d._bluez_property = AsyncMock(return_value=True)
-    d._other_companion_daemons = MagicMock(return_value=[])
-    d._drop_bluez_link = AsyncMock(return_value=True)
-
-    d._on_connect_attempt()
-    d._on_connection_change(False)
-    # The startup link looked gone to Bleak, but BlueZ reported it connected
-    # again by the session switch. The callback must preserve this claim.
-    assert d._had_foreground_connect is True
-    await d._release_desk()
-    d._drop_bluez_link.assert_awaited_once_with(d._bluez_device_path())
-    assert d._had_foreground_connect is False
+    d.activity_log.diag.assert_called_once()
 
 
 async def test_returning_to_the_seat_does_not_drop_the_link(monkeypatch):

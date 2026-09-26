@@ -210,19 +210,6 @@ async def test_hanging_connect_is_bounded_and_next_read_can_try_again():
     await desk.disconnect()
 
 
-async def test_connect_attempt_is_reported_before_a_hanging_connect():
-    class HangingConnect(FakeIdasenDesk):
-        async def connect(self):
-            await asyncio.Event().wait()
-
-    attempts = []
-    desk, _ = make_desk(HangingConnect(), read_timeout=0.02, linger=60,
-                        on_connect_attempt=lambda: attempts.append(True))
-    assert await desk.get_height() is None
-    assert attempts == [True]
-    desk._cancel_linger()
-
-
 async def test_hanging_connect_cannot_leave_a_move_queued_forever():
     class HangingConnect(FakeIdasenDesk):
         async def connect(self):

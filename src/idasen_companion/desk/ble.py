@@ -85,7 +85,6 @@ class BleDesk:
         desk_factory: Callable = _default_desk_factory,
         on_height: Callable[[float], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
-        on_connect_attempt: Callable[[], None] | None = None,
         on_error: Callable[[str], None] | None = None,
         on_connect_exhausted: Callable[[], "asyncio.Future"] | None = None,
     ):
@@ -100,7 +99,6 @@ class BleDesk:
         self._desk_factory = desk_factory
         self._on_height = on_height
         self._on_connection_change = on_connection_change
-        self._on_connect_attempt = on_connect_attempt
         self._on_error = on_error
         # Called when every connect attempt has failed, to record what the
         # Bluetooth stack looked like at that moment and optionally clear a
@@ -198,8 +196,6 @@ class BleDesk:
         # invocation stays fast. Starting clean each time closes that gap. The
         # old object is already disconnected here, so dropping it just lets it
         # be collected.
-        if self._on_connect_attempt:
-            self._on_connect_attempt()
         self._desk = self._desk_factory(self.mac, self._handle_disconnect)
         self._forget_link_state()
 

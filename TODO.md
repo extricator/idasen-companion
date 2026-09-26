@@ -25,13 +25,13 @@ the record of what was done.
       Several local switches exposed an orphaned BlueZ link while Bleak
       reported disconnected. The first also replayed a Sit command after Stop
       during shutdown. Height reads and move connects now have deadlines;
-      Stop invalidates a pending move. The revised handoff keeps the session's
-      connection claim until handoff and directly clears the desk's BlueZ link
-      when no other companion daemon is running. A short KDE Xorg switch passed:
-      BlueZ stayed disconnected in the background, return-side height sync
-      succeeded, a fresh Sit command completed, and the link released after
-      linger. The roughly 20-minute switch and post-return command remain for
-      full acceptance. See
+      Stop invalidates a pending move. A short KDE Xorg switch passed with a
+      direct BlueZ disconnect, but that path was withdrawn: BlueZ cannot prove
+      which app owns the link, and Device1.Disconnect affects the whole device.
+      The handoff now only releases its own Bleak client and records any
+      remaining BlueZ link for diagnosis. Identify why a link reappears around
+      the other KDE session's startup, fix it through the owning client or
+      session, then repeat short and roughly 20-minute switch tests. See
       `docs/handoff-2026-09-26-session-switch-release-validation.md` for the
       trace and test state. Do not prepare the release PR before acceptance.
 - [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
