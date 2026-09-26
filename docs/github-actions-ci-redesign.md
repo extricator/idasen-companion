@@ -6,8 +6,10 @@
 
 Status: **Phases 1–3 implemented; Phase 4 live PR and branch release dry-run
 evidence collected, with final handoff cleanup pending; Phase 5 release-skill
-migration implemented; Phase 6 main-CI release-candidate reuse in progress;
-Phase 7 PR check-list reduction planned; publication paths remain untested**
+migration implemented; Phase 6 main-CI release-candidate reuse implemented
+with its first unreleased-version `main` test pending;
+Phase 7 single-run release-preparation PR redesign planned; publication paths
+remain untested**
 
 Branch: `ci-workflow-rebuild`
 
@@ -18,10 +20,11 @@ Last updated: 2026-09-26
 
 ## Goal and constraints
 
-Replace the current seven-workflow layout with a smaller orchestration model
-that can give a merge candidate one dependable `CI OK` conclusion, makes
+Replace the original seven-workflow layout with a smaller orchestration model
+that gives each PR head a trustworthy automatic `PR CI` result, makes
 expensive package work intentional, and still proves packaging changes before
-merge.
+merge. Phase 7 supersedes the initial separate `CI OK` PR-run goal for release
+preparation; the label-triggered second run duplicates work on the same head.
 The release path must continue to fully verify all five deliverables:
 desktop and headless RPMs, desktop and headless Debian packages, and the
 Flatpak bundle. A real release may publish the exact assets from a successful
@@ -37,6 +40,15 @@ future use, but approval and reapproval testing, required reviews, required
 checks, and branch protection are postponed until the one-contributor policy
 is resolved. A future approval-based merge gate is only a proposal, not an
 approved requirement.
+
+**Agreed Phase 7 direction (not implemented yet):** eliminate the label-based
+release gate and its duplicate full run on the same PR head. An ordinary,
+ready release-preparation PR will automatically include full package,
+portability, and assembly proof in its one PR run. After merge, full `main` CI
+proves the actual merged SHA and retains the candidate. An explicitly
+authorized Release workflow validates and publishes that candidate. The
+historical architecture and Phase 1–6 records below describe the branch as
+implemented before Phase 7; they are not the target release procedure.
 
 ## Audit baseline
 
@@ -141,7 +153,7 @@ published GitHub Release assets. Commit `a20f559` also set
 uploads on `main`. Those changes must be retained when this branch is
 synchronized. The original 3/7-day retention proposal is superseded.
 
-## Proposed architecture
+## Implemented architecture through Phase 6 (superseded where Phase 7 says so)
 
 Use five workflow files:
 
@@ -178,7 +190,9 @@ current job boundary without weakening the clean-environment tests. A full
 run was expected to expose ten named checks rather than sixteen. This was
 an incomplete UI target: GitHub shows the jobs from both the ordinary and
 full workflows on a fully verified PR head. Phase 7 addresses the combined
-check list without dropping any required proof.
+check list without dropping any required proof. Phase 7 now removes the
+duplicate full PR run for release preparation instead of grouping useful jobs
+to meet an arbitrary visible-check count.
 
 The GitHub semantics used by this design were checked through Context7 on
 2026-09-24 against the current official documentation for [workflow
@@ -603,40 +617,67 @@ Verification: focused workflow and provenance tests, complete unit suite,
 action syntax validation, branch PR CI and full `CI OK`. The first unreleased
 version merged to `main` must prove candidate assembly before any publication.
 
-### Phase 7 — reduce the visible PR check list
+### Phase 7 — one automatic PR run for release preparation
 
-The current PR head produced 13 job checks in [ordinary PR CI](https://github.com/extricator/idasen-companion/actions/runs/36219607177)
-and 13 in [full PR CI](https://github.com/extricator/idasen-companion/actions/runs/36219613265):
-about 26 visible entries, including skipped jobs. The earlier ten-check goal
-counted one full run in isolation and missed this combined PR experience.
-`PR CI` and `CI OK` are aggregate jobs, not a way to hide their component jobs.
+The previous plan proposed fewer than ten checks by grouping Python and
+package jobs. Withdraw that numerical target: separate jobs preserve parallel
+execution, clear failures, targeted reruns, and the release validator's
+existing `main` job-name contract. The actual duplication was an ordinary PR
+run and a label-triggered full run on the **same head**: [ordinary](https://github.com/extricator/idasen-companion/actions/runs/36219607177)
+and [full](https://github.com/extricator/idasen-companion/actions/runs/36219613265)
+each reported 13 jobs on `ae66dfd`. A later commit gets its own ordinary
+run; the old full result is not proof of that new head.
 
-- Design the replacement job layout and review the proposed check names and
-  execution tradeoffs before editing workflows. Count **all** checks attached
-  to one fully verified PR head, across ordinary and full runs, including
-  skipped jobs. Target fewer than ten visible entries in total, with a small
-  ordinary per-update check list. Measure the actual GitHub PR list after
-  implementation; workflow-file count alone is not the success measure.
-- Consolidate job boundaries where useful while retaining every current
-  proof: Python 3.11–3.14, code and distribution/supply-chain quality,
-  changed-path package proofs on ordinary PR updates, all five package builds
-  and their smoke/portability checks on full verification, and exact-head
-  release assembly. Keep `PR CI` and `CI OK` as distinct trustworthy results.
-  Document any loss of parallelism or diagnostic detail from grouping jobs.
-- Keep the `full-ci` label as the current explicit full-verification trigger.
-  Do not add required checks, reviews, branch protection, or approval-based
-  enforcement while the one-contributor policy remains unresolved. Preserve
-  the release candidate and publication boundaries from Phase 6.
-- Update workflow contract tests and maintained CI guidance to match the new
-  job names and failure propagation. Revisit Phase 4's temporary-handoff
-  cleanup only after this phase's design and live evidence are recorded.
+**Target flow:**
+
+1. Each PR update runs one automatic `ci.yml` workflow. Draft PRs retain core
+   checks; ready ordinary PRs retain changed-path package selection. A ready
+   release-preparation PR is identified from its version change relative to
+   the PR base, with matching release metadata checked by existing tests. It
+   automatically selects RPM with portability, Debian with smoke, and
+   Flatpak, then verifies assembly of all five assets on the exact PR head.
+   Do not upload a promotable PR release candidate. If the version comparison
+   cannot be trusted, fail closed or select the complete proof; never silently
+   treat a possible release-preparation PR as ordinary.
+2. `PR CI` is the single PR aggregate. For release preparation it succeeds
+   only after Python 3.11–3.14, both quality groups, all three package jobs,
+   RPM portability, and PR-head assembly succeed. Keep those jobs separate
+   and parallel where they are now. Retire the routine `full-ci` label run,
+   `CI OK` PR aggregate, and the unused review-triggered full workflow; do
+   not replace them with a different manual PR gate. Manual targeted CI
+   dispatch can remain diagnostic, not a merge signal.
+3. Update the release skill to prepare and automatically merge its PR only
+   after the current exact-head `PR CI` and release-preparation proof jobs
+   pass. If `main` moves, refresh the PR and repeat its automatic checks.
+   Keep the one-contributor approval/reapproval policy postponed; do not
+   configure required reviews, status checks, rulesets, or branch protection.
+4. After merge, the existing full `main` CI independently verifies the
+   actual merged SHA and retains one checked candidate for one day when the
+   version is unreleased. With separate explicit publication authorization,
+   Release normally **promotes** that candidate: validate source run and job
+   conclusions, version, SHA, five names, notes, provenance, and checksums,
+   publish, then verify the tag and downloaded bytes. Do not routinely
+   rebuild every package in the publish workflow. Retain explicit full
+   rebuild and optional release dry run for their existing exceptional and
+   diagnostic uses. This does not publish a release as part of Phase 7.
+5. Update workflow contract tests, the release skill, `CONTRIBUTING.md`, and
+   other maintained guidance together. Remove obsolete label/`CI OK` paths
+   and assertions. Then finish Phase 4's temporary-handoff cleanup before
+   merging PR #2. The Phase 5–6 descriptions above and handoffs below are
+   historical implementation records; Phase 7 supersedes their label-gate
+   instructions, not their release provenance and publication safeguards.
 
 Verification: fetch current GitHub Actions documentation before workflow
-edits; review the proposed topology; run focused workflow tests, the complete
-unit suite, and action syntax validation; then inspect ordinary and full PR
-runs on the same head. Record the combined visible check count, selected and
-skipped paths, durations, and proof that any failed component prevents a
-successful aggregate. Do not call the phase complete from local tests alone.
+edits; test version-change selection, drafts, ordinary package-path updates,
+unavailable or rewritten diff refs, failed/skipped package or assembly jobs,
+and exact-head aggregate behavior. Run focused workflow/release tests, the
+complete unit suite, and action syntax validation. Observe one ordinary run
+on PR #2 after implementation. Exercise the automatic release-preparation
+path on a controlled version-change PR before relying on automatic merge;
+record its run, SHA, selected jobs, assembly result, cleanup, and timing.
+The first unreleased-version merge to `main` remains the separate live test
+of Phase 6 candidate retention and promotion; neither this phase nor its
+test PR may publish a release without explicit authorization.
 
 ## Phase 2 handoff (2026-09-25)
 
