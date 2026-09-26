@@ -229,7 +229,9 @@ getting it wrong costs a version number. Follow this top to bottom.
    head. An approving review can start the same full run when another reviewer
    is available. The repository currently has one contributor, so no review,
    `CI OK`, or branch-protection requirement is enforced yet. A new PR commit
-   needs a new full run before its result can describe the current head.
+   needs a new full run before its result can describe the current head. An
+   existing `full-ci` label does not rerun on later commits; remove and
+   reapply it when full verification is needed for the new head.
 4. **Dry-run the merged commit.** Open **Actions → Release → Run workflow** on
    `main`, enter the version without a leading `v` (for example `1.2.0`), and
    tick **dry run**. It runs Python, quality, all package builds, Debian smoke,
