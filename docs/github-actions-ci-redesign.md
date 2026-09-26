@@ -4,8 +4,8 @@
 > CI redesign is being reviewed and implemented. Remove it before merge, after
 > moving any lasting operator guidance into maintained documentation.
 
-Status: **Phase 3 implemented and locally verified; Phase 4 live PR testing in
-progress**
+Status: **Phase 3 implemented and locally verified; Phase 4 PR and branch
+release dry-run evidence collected; publication paths remain untested**
 
 Branch: `ci-workflow-rebuild`
 
@@ -649,8 +649,8 @@ review as unapproved data egress to an external GitHub destination. No push or
 PR creation occurred at that point. The user subsequently gave explicit
 authorization to push `ci-workflow-rebuild` and run the PR tests; the branch
 was pushed to the verified private `extricator/idasen-companion` remote and
-draft PR #2 was opened. Remote release dry runs and publication still require
-separate explicit authorization. The contributor approval policy remains
+draft PR #2 was opened. The user later authorized one branch release dry run;
+publication still requires separate explicit authorization. The contributor approval policy remains
 unresolved; do not enforce reviews or `CI OK`.
 
 Collect ordinary PR, packaging update, ready-for-review, `full-ci` label, and
@@ -665,8 +665,9 @@ temporary handoff.
 
 User authorization on 2026-09-25 permitted pushing `ci-workflow-rebuild` to the
 verified private `extricator/idasen-companion` remote and running the other PR
-tests. [Draft PR #2](https://github.com/extricator/idasen-companion/pull/2) is
-open. Approval/reapproval and remote release execution remain deferred.
+tests. [PR #2](https://github.com/extricator/idasen-companion/pull/2) is open.
+Approval/reapproval and publication remain deferred; one branch release dry
+run was separately authorized and is recorded below.
 
 - Draft run [36204672914](https://github.com/extricator/idasen-companion/actions/runs/36204672914)
   tested `b7acfa4`: the planner, four Python versions, and both quality jobs
@@ -741,9 +742,46 @@ Two documentation-only pushes tested update deltas and concurrency:
   either synchronize event.
 - Removing and reapplying `full-ci` started a separate full run on `cd4e205`
   while ordinary CI was active; the ordinary run finished successfully
-  without cancelling the full run. The full run must be repeated on the final
-  head after this handoff update is pushed, so the current run is disposable.
+  without cancelling the full run. The next documentation push superseded
+  that full run, which GitHub cancelled. On the final `d17f561` head, ordinary
+  [36207274387](https://github.com/extricator/idasen-companion/actions/runs/36207274387)
+  and full
+  [36207297956](https://github.com/extricator/idasen-companion/actions/runs/36207297956)
+  both passed; `CI OK` and cleanup were green and the artifact list was empty.
 
 The optional `scan-secrets.sh` simplification remains a separate future
 decision. The existing scan and its canary passed on every new commit; this
 workflow redesign does not change the scanner.
+
+### Release dry-run evidence
+
+The user explicitly authorized a release **dry run** on
+`ci-workflow-rebuild` for the existing version `1.2.0`, with no tag or
+publication. Run
+[36212560081](https://github.com/extricator/idasen-companion/actions/runs/36212560081)
+tested `d17f561` and succeeded in 15m24s. The version gate, Python 3.11–3.14,
+both quality groups, RPM with portability, Debian with smoke, Flatpak,
+five-asset assembly and verification, and cleanup all succeeded. `Publish the
+release` and the promotion-only job were skipped.
+
+After cleanup, the run held exactly one unexpired `release-assets` artifact
+(ID `10896885733`, 91,354,534 compressed bytes, expires 2026-09-27
+02:58 UTC). The three intermediate package artifacts were removed. An
+independent download and `scripts/release-assets.py assets` check found
+exactly the full/headless RPMs, full/headless Debian packages, the Flatpak,
+`SHA256SUMS`, release notes, and matching dry-run provenance; all five
+checksums matched the downloaded files.
+
+The real `provenance` validator rejected this branch run at its required
+`head_branch == main` check, as intended. With only that branch field changed
+in an in-memory copy of the live API records, its workflow path, required job
+names/conclusions, run state, and artifact metadata passed. This validates the
+data shape without weakening the branch restriction or publishing. Promotion
+from an actual `main` dry run, explicit full-rebuild publication, and
+post-publication asset verification remain untested and need a future real
+release on an unreleased version. This branch dry run is not promotable.
+
+No release-related branch changes followed the dry run. The PR description
+holds the latest check URLs and head SHA; if this handoff update is pushed,
+ordinary `PR CI` must run on that new documentation-only head. The temporary
+handoff still needs removal before merge, after the remaining merge decision.
