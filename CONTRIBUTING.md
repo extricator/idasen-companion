@@ -231,21 +231,19 @@ always remains a separate, explicitly authorized action.
    `<release>` prose from step 1 is a second, shorter piece of writing aimed at
    software centres; it is not generated from the changelog.
 3. **Land the preparation PR on `main`** and wait for its full `main` CI run to
-   pass. The PR's `PR CI` is ordinary per-update verification. Applying the
-   `full-ci` label starts complete PR verification and reports `CI OK` for that
-   head, including five-asset release assembly. An approving review can start
-   the same full run when another reviewer
-   is available. The repository currently has one contributor, so no review,
-   `CI OK`, or branch-protection requirement is enforced yet. A new PR commit
-   needs a new full run before its result can describe the current head. An
-   existing `full-ci` label does not rerun on later commits; remove and
-   reapply it when full verification is needed for the new head. Start the
-   preparation from current `main` on a dedicated release branch, make the
-   version and notes commit there, and merge the PR only after its exact head
-   has passed both checks. If `main` moves before merge, refresh the PR and
-   repeat its checks. Do not push the preparation commit directly to `main`.
-   The resulting `main` push runs all package proofs; it has no separate
-   `CI OK` aggregate, so inspect the complete run on the merge SHA.
+   pass. On a ready PR, changing the source version against the PR base
+   automatically selects Python and quality checks, RPM with portability,
+   Debian with smoke, Flatpak, and five-asset assembly on the exact PR head.
+   The single `PR CI` aggregate requires all selected proofs to pass. A new
+   PR commit gets a new run; inspect the checks for that exact head. The
+   repository currently has one contributor, so no review, required check,
+   or branch-protection policy is enforced yet. Start the preparation from
+   current `main` on a dedicated release branch, make the version and notes
+   commit there, and merge the PR only after its exact head has passed the
+   complete automatic PR run. If `main` moves before merge, refresh the PR
+   and repeat its checks. Do not push the preparation commit directly to
+   `main`. The resulting `main` push runs all package proofs; inspect the
+   complete run on the merge SHA.
 4. **Use the merged commit's release candidate.** The full `main` CI run
    builds and tests all five packages on the merge commit. For an unreleased
    version, it also verifies the complete set, writes checksums, release notes,
@@ -387,14 +385,12 @@ Both lines should read `enabled`.
 
 *Decide the `main` approval policy before adding protection.* This private
 repository has one contributor, who cannot approve their own PR. Do not make
-an approving review or `CI OK` required until that contributor policy is
+an approving review or status check required until that contributor policy is
 settled and live PR runs confirm the exact check names and head-SHA association.
-`PR CI` reports ordinary updates; `CI OK` comes only from a full run triggered
-by approval or by applying `full-ci`. Neither check is enforced today. Keep
-force-push and deletion prevention in the eventual protection decision, and
-check the rules available to the account at that time. The old command with a
-required `CI OK` check and zero required reviews must not be reused: it could
-block the sole contributor's PRs because ordinary pushes do not create `CI OK`.
+`PR CI` reports every PR update and includes full release-preparation proof
+automatically when the ready PR changes the source version. It is not enforced
+today. Keep force-push and deletion prevention in the eventual protection
+decision, and check the rules available to the account at that time.
 
 *Enable private vulnerability reporting* the moment the repository is public.
 `SECURITY.md` already tells reporters to use it, and it is unavailable on a

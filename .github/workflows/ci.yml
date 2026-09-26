@@ -31,6 +31,7 @@ jobs:
       deb: ${{ steps.select.outputs.deb }}
       flatpak: ${{ steps.select.outputs.flatpak }}
       rpm_portability: ${{ steps.select.outputs.rpm_portability }}
+      release_preparation: ${{ steps.select.outputs.release_preparation }}
     steps:
       - name: Check out the repository with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -49,8 +50,8 @@ jobs:
           UPDATE_AFTER: ${{ github.event.after }}
           MODE: ${{ inputs.mode }}
           # Keep these path classes in YAML so tests can read the same data.
-          # Source changes get Python/quality checks; complete package proof
-          # follows approval, a full label run, main, or manual full.
+          # Source changes get Python/quality checks; a version change against
+          # the PR base selects complete release preparation proof.
           SHARED_PATHS: '^(pyproject\.toml|MANIFEST\.in|scripts/build-release-variants\.sh|\.github/workflows/packages\.yml|data/(io\.github\.extricator\.IdasenCompanion\.(desktop|metainfo\.xml)|icons/.*))$'
           RPM_PATHS: '^(packaging/[^/]+\.(spec|sh)|packaging/licenses/|scripts/(fetch-bundled-runtime|strip-bundled-tree|verify-bundled-bytecode|verify-bundled-elf|verify-rpm-metadata|trim-cpython|trim-pyside6)\.(sh|py)$|data/idasen-companion\.service$)'
           DEB_PATHS: '^debian/'
@@ -58,7 +59,7 @@ jobs:
           PORTABILITY_PATHS: '^scripts/verify-rpm-portability\.sh$'
         run: |
           set -euo pipefail
-          rpm=false deb=false flatpak=false rpm_portability=false
+          rpm=false deb=false flatpak=false rpm_portability=false release_preparation=false
           reason='No package paths in this update'
           if [[ "$EVENT_NAME" == push || "$MODE" == full ]]; then
             rpm=true deb=true flatpak=true rpm_portability=true
@@ -77,6 +78,37 @@ jobs:
           else
             base="$PR_BASE"
             head="$PR_HEAD"
+            # Release preparation is cumulative across PR updates. Never use
+            # the synchronize delta to decide whether the version changed.
+            git fetch --no-tags origin "$PR_BASE" "$PR_HEAD" >/dev/null 2>&1 || true
+            if ! git cat-file -e "$PR_BASE^{commit}" 2>/dev/null ||
+               ! git cat-file -e "$PR_HEAD^{commit}" 2>/dev/null; then
+              echo 'Cannot inspect the PR version diff; selecting full proof.' >&2
+              release_preparation=true
+              rpm=true deb=true flatpak=true rpm_portability=true
+              reason='Full proof because PR version diff could not be inspected'
+            else
+              if git diff --quiet "$PR_BASE" "$PR_HEAD" -- src/idasen_companion/__init__.py; then
+                :
+              else
+                diff_status=$?
+                if [[ "$diff_status" -eq 1 ]]; then
+                  release_preparation=true
+                  rpm=true deb=true flatpak=true rpm_portability=true
+                  reason='Release preparation version change against PR base'
+                else
+                  echo 'Cannot inspect the PR version diff; selecting full proof.' >&2
+                  release_preparation=true
+                  rpm=true deb=true flatpak=true rpm_portability=true
+                  reason='Full proof because PR version diff failed'
+                fi
+              fi
+            fi
+            if [[ "$release_preparation" == true ]]; then
+              :
+            elif [[ "$reason" == Full\ proof* ]]; then
+              :
+            else
             if [[ "$EVENT_ACTION" == synchronize && -n "$UPDATE_BEFORE" && -n "$UPDATE_AFTER" ]]; then
               # A force push can remove the old head. Fetch it if possible;
               # otherwise inspect the full PR diff, never an empty diff.
@@ -110,15 +142,17 @@ jobs:
                 if [[ "$path" =~ $PORTABILITY_PATHS ]]; then rpm=true rpm_portability=true; fi
               done < <(git diff --name-only "$base" "$head")
             fi
+            fi
           fi
           {
             echo "rpm=$rpm"
             echo "deb=$deb"
             echo "flatpak=$flatpak"
             echo "rpm_portability=$rpm_portability"
+            echo "release_preparation=$release_preparation"
           } >> "$GITHUB_OUTPUT"
           echo "### Package plan" >> "$GITHUB_STEP_SUMMARY"
-          echo "$reason: RPM=$rpm, Debian=$deb, Flatpak=$flatpak, RPM portability=$rpm_portability" >> "$GITHUB_STEP_SUMMARY"
+          echo "$reason: RPM=$rpm, Debian=$deb, Flatpak=$flatpak, RPM portability=$rpm_portability, release preparation=$release_preparation" >> "$GITHUB_STEP_SUMMARY"
 
   verify:
     uses: ./.github/workflows/verify.yml
@@ -139,7 +173,7 @@ jobs:
   pr-ci:
     name: PR CI
     if: ${{ always() && github.event_name == 'pull_request' }}
-    needs: [plan, verify, packages]
+    needs: [plan, verify, packages, candidate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -149,6 +183,8 @@ jobs:
           VERIFY_RESULT: ${{ needs.verify.result }}
           PACKAGES_RESULT: ${{ needs.packages.result }}
           PACKAGE_REQUIRED: ${{ needs.plan.outputs.rpm == 'true' || needs.plan.outputs.deb == 'true' || needs.plan.outputs.flatpak == 'true' }}
+          RELEASE_PREPARATION: ${{ needs.plan.outputs.release_preparation }}
+          CANDIDATE_RESULT: ${{ needs.candidate.result }}
         run: |
           [[ "$PLAN_RESULT" == success && "$VERIFY_RESULT" == success ]]
           if [[ "$PACKAGE_REQUIRED" == true ]]; then
@@ -157,19 +193,26 @@ jobs:
             # A reusable caller reports skipped when every format job skips.
             [[ "$PACKAGES_RESULT" == skipped || "$PACKAGES_RESULT" == success ]]
           fi
+          if [[ "$RELEASE_PREPARATION" == true ]]; then
+            [[ "$CANDIDATE_RESULT" == success ]]
+          else
+            [[ "$CANDIDATE_RESULT" == skipped ]]
+          fi
 
   candidate:
     name: Assemble and checksum the release assets
-    if: github.event_name == 'push'
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && needs.plan.outputs.release_preparation == 'true') }}
     needs: [plan, verify, packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - name: Check out the merged commit with tags
+      - name: Check out the proven commit with tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - name: Select only an unreleased version
+        if: github.event_name == 'push'
         id: select
         run: |
           set -euo pipefail
@@ -183,25 +226,25 @@ jobs:
             echo 'build=true' >> "$GITHUB_OUTPUT"
           fi
       - name: Download the built RPM
-        if: steps.select.outputs.build == 'true'
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: idasen-companion-rpm
           path: artifacts
       - name: Download the built Debian packages
-        if: steps.select.outputs.build == 'true'
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: idasen-companion-deb
           path: artifacts
       - name: Download the built Flatpak bundle
-        if: steps.select.outputs.build == 'true'
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: idasen-companion-flatpak
           path: artifacts
       - name: Install five-asset verifier tools
-        if: steps.select.outputs.build == 'true'
+        if: ${{ github.event_name == 'pull_request' || steps.select.outputs.build == 'true' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y podman flatpak
@@ -210,6 +253,13 @@ jobs:
         env:
           VERSION: ${{ steps.select.outputs.version }}
         run: python3 scripts/release-assets.py assemble . "$VERSION" "$GITHUB_SHA" "$GITHUB_RUN_ID"
+      - name: Verify assembly on the exact PR head
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          version=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
+          python3 scripts/release-assets.py assemble . "$version" "$PR_HEAD" "$GITHUB_RUN_ID"
       - name: Retain the verified release candidate for one day
         if: steps.select.outputs.build == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -225,7 +275,7 @@ jobs:
   cleanup:
     name: Retire ordinary CI package artifacts
     needs: [plan, verify, packages, candidate]
-    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'push' || needs.candidate.result == 'success') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    if: ${{ always() && needs.plan.result == 'success' && needs.packages.result == 'success' && (github.event_name != 'push' || needs.candidate.result == 'success') && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (needs.plan.outputs.release_preparation != 'true' || needs.candidate.result == 'success'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

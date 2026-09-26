@@ -294,19 +294,16 @@ gh run watch <database-id> --exit-status
 ```
 
 Select the PR run for the exact preparation SHA. If it is not registered yet,
-wait and query again. Never substitute a merely latest CI run. Require its
-`PR CI` aggregate to pass. Apply the `full-ci` label to trigger complete PR
-verification and record the new `full-ci.yml` run ID for that exact SHA. Watch
-that run to completion and require its package and five-asset assembly proof
-plus `CI OK` to pass. If a label already
-exists after a new commit, remove and reapply it; an existing label does not
-start another full run. Do not treat an approving review as available while
-the repository has only one contributor.
+wait and query again. Never substitute a merely latest CI run. The automatic
+version-change plan must select RPM with portability, Debian with smoke, and
+Flatpak. Require Python 3.11–3.14, both quality groups, all three package
+jobs, exact-head five-asset assembly, and the `PR CI` aggregate to succeed in
+that single run. A failed, cancelled, or skipped required proof is a stop.
 
 Before merging, fetch `origin` and require both the PR head and `origin/main`
 to match `PREP_SHA` and `BASE_SHA` respectively. If either changed, update the
-preparation branch, rerun local verification as needed, and obtain fresh PR CI
-and full `CI OK` on the new exact head. If a future review policy blocks the
+preparation branch, rerun local verification as needed, and obtain fresh
+automatic release-preparation `PR CI` on the new exact head. If a future review policy blocks the
 PR, wait for an authorized reviewer; do not bypass it. Merge the verified PR
 through GitHub, then fetch `origin/main` and record its new SHA:
 
@@ -326,13 +323,9 @@ Check the plan, Python/quality, all three package formats, RPM portability,
 release candidate assembly, and artifact cleanup. Record its run ID and
 verify that it retains exactly one unexpired `release-assets` artifact, with
 the five packages, release notes, checksums, and matching provenance. The
-three intermediate package artifacts should be gone. `ci.yml` has no `CI OK`
-aggregate on a `main` push; that named aggregate belongs to the full PR run.
+three intermediate package artifacts should be gone. The `PR CI` aggregate
+applies to pull requests; inspect each required proof on the merged SHA.
 Stop on any red or missing required proof.
-
-The complete-run aggregate check is named `CI OK`, verbatim. Required proof
-jobs must succeed; a failed, cancelled, or unexpectedly skipped proof must not
-produce a successful `CI OK`.
 
 Stop here if CI is red. Report what failed.
 
@@ -390,7 +383,7 @@ gh release view "vX.Y.Z" --json url --jq .url
 ## Known limits
 
 The repository currently has one contributor and no enforced review or
-required-check policy. Use the preparation PR and exact-head full CI anyway;
+required-check policy. Use the preparation PR and its exact-head automatic proof anyway;
 if a future policy adds a reviewer, honor it before merge. Never bypass the
 policy or push a release preparation commit directly to `main`.
 
