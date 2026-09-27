@@ -133,10 +133,10 @@ class AboutPage(Page):
         font.setPointSizeF(font.pointSizeF() * 0.88)
         intro.setFont(font)
         shortcuts.body.addWidget(intro)
-        commands = QLabel("idasen-companion-cli toggle\n"
-                          "idasen-companion-cli sit\n"
-                          "idasen-companion-cli stand\n"
-                          "idasen-companion-cli preset NAME")
+        commands = QLabel("idasen-companion toggle\n"
+                          "idasen-companion sit\n"
+                          "idasen-companion stand\n"
+                          "idasen-companion preset NAME")
         commands.setTextFormat(Qt.TextFormat.PlainText)
         commands.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         commands.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
@@ -146,6 +146,13 @@ class AboutPage(Page):
 
         restyle.register(commands, _restyle_commands)
         shortcuts.body.addWidget(commands)
+        repeat = QLabel(pgettext('about',
+            "Repeat toggle, sit, or stand during a move to stop, reverse, or "
+            "reissue it, according to Settings → Window & tray. A different "
+            "movement command redirects to its target. Presets move directly."))
+        repeat.setWordWrap(True)
+        repeat.setStyleSheet("border: none;")
+        shortcuts.body.addWidget(repeat)
         outer.addWidget(shortcuts)
 
         # ----- system -----

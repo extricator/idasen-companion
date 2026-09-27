@@ -46,9 +46,10 @@ schedule:
 - **Live height while moving**, and Stop halting mid-travel.
 - **Transient BlueZ flake** — retries appear in the journal and commands still
   succeed. The July 2026 outage exercised the failure path hard.
-- **Tray gestures and the CLI** — middle-click toggle plus
-  `idasen-companion-cli status`, `toggle`, `sit`, `stand`, `stop`, `preset`
-  and `log`, including the unknown-preset, missing-name and daemon-down exits.
+- **Tray gestures and the CLI** — middle-click toggle plus the status,
+  movement, preset, and log commands, including the unknown-preset,
+  missing-name and daemon-down exits. The shared command changed this path;
+  recheck it on an installed package before treating it as covered again.
 - **Single instance**, both halves: a second GUI activates the existing
   window; a second daemon exits rather than running a rival loop.
 - **Daemon down** — the red banner and "Start daemon" button in the window.
@@ -102,7 +103,7 @@ design has never met a GNOME session.
       lock and idle flip the status within one check interval.
 - [ ] **[GNOME]** Pre-move notification appears, and its Snooze / Skip
       buttons snooze and skip.
-- [ ] **[GNOME]** `idasen-companion-cli toggle` bound to a key in the DE's
+- [ ] **[GNOME]** `idasen-companion toggle` bound to a key in the DE's
       keyboard settings works, on X11 and Wayland.
 - [ ] Whichever of KDE X11 / KDE Wayland is *not* the daily driver: idle
       provider, lock, and the global shortcut still behave.
@@ -144,7 +145,10 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       move; with **Reverse** it returns to the height the move began at; with
       **Off** it re-issues the move. A *different* gesture always redirects to
       its own target instead of stopping. Check both cold (on-demand connect)
-      and already-connected.
+      and already-connected. Run this with `idasen-companion toggle` bound to a
+      key as well as the tray; repeat `sit` and `stand` commands during their
+      moves too. `idasen-companion stop` always stops and `preset NAME` moves
+      directly, regardless of the repeat setting.
 - [ ] **[sweep]** Window and tray options: `close_action` tray vs quit,
       `minimize_to_tray`, `start_minimized`, and reassigning the left and
       middle click actions. (There is no double-click action: `tray_double_click`
@@ -203,6 +207,10 @@ update. What remains genuinely manual:
 
 - [ ] **[split]** `dnf install` of the three RPMs pulls only Fedora-repo
       dependencies.
+- [ ] In installed full and headless packages, run `idasen-companion status`
+      and `idasen-companion --help`. In full, bare `idasen-companion` activates
+      the GUI. In headless, the bare command and `--window` give a usage error
+      (exit 2). Neither package installs `idasen-companion-cli`.
 
 ### What the container proof cannot see
 

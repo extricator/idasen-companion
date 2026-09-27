@@ -1231,6 +1231,14 @@ msgstr ""
 
 #: src/idasen_companion/gui/pages/about.py
 msgctxt "about"
+msgid ""
+"Repeat toggle, sit, or stand during a move to stop, reverse, or reissue it, "
+"according to Settings → Window & tray. A different movement command "
+"redirects to its target. Presets move directly."
+msgstr ""
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
 msgid "System"
 msgstr ""
 

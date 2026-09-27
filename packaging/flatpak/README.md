@@ -1,7 +1,7 @@
 # Flatpak packaging
 
-Builds a single-app Flatpak that bundles both executables — the GUI
-(`idasen-companion`, the app's default `command`) and the headless daemon
+Builds a single-app Flatpak that bundles both executables — the shared GUI/CLI
+command (`idasen-companion`, the app's default `command`) and the headless daemon
 (`idasen-companiond`) — for `io.github.extricator.IdasenCompanion`.
 
 ## How it differs from the RPM
@@ -55,9 +55,18 @@ bash scripts/build-release-variants.sh --flatpak --output dist-release
 ```
 
 This produces the versioned full GUI bundle used by the release workflow. The
-The same `idasen-companion` command runs CLI subcommands inside the sandbox,
-for example with `flatpak run io.github.extricator.IdasenCompanion status`.
-The bundle is a full installation; it is not a host-level headless package.
+same `idasen-companion` command runs CLI subcommands inside the sandbox, for
+example:
+
+```bash
+flatpak run io.github.extricator.IdasenCompanion status
+flatpak run io.github.extricator.IdasenCompanion toggle
+```
+
+The second command is suitable for a desktop shortcut. Repeating it during a
+move follows `[ui] tray_repeat_move` (`stop`, `reverse`, or `off`); the same
+applies to `sit` and `stand`. A bare `flatpak run` opens the GUI. The Flatpak
+has no headless flavor; native headless packages require a subcommand.
 
 On a ready pull request, an update under `packaging/flatpak/` selects the
 Flatpak package proof in ordinary CI. Draft pull requests defer package builds.

@@ -196,7 +196,7 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
-- [ ] **Make `idasen-companion` the single user-facing command** — route GUI
+- [x] **Make `idasen-companion` the single user-facing command** — route GUI
       launches and Qt-free CLI subcommands through one entry point in full and
       headless packages. This is the first public command interface, so remove
       `idasen-companion-cli` and the old movement flags. Make `toggle`, `sit`,

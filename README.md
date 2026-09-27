@@ -114,7 +114,7 @@ its KDE runtime. The CLI is available inside the sandbox rather than as a
 host command:
 
 ```
-flatpak run --command=idasen-companion-cli io.github.extricator.IdasenCompanion status
+flatpak run io.github.extricator.IdasenCompanion status
 ```
 
 ### Verify a download
@@ -152,7 +152,9 @@ portal instead and may show a permission prompt.
 
 The headless package has no setup wizard. Configure the desk first with the
 desktop app or the `idasen` CLI, then enable the user service and use
-`idasen-companion-cli` for status and control.
+`idasen-companion` for status and control. With no subcommand (or with
+`--window`), the headless command exits with a usage error; it cannot open a
+window.
 
 To change this later, use **Settings → General → Start automatically at
 login**. For a native installation, the equivalent terminal commands are:
@@ -179,13 +181,13 @@ The command-line client reports status and recent activity and can control the
 desk through the daemon:
 
 ```
-idasen-companion-cli status
-idasen-companion-cli toggle       # move to the other position
-idasen-companion-cli sit
-idasen-companion-cli stand
-idasen-companion-cli preset NAME
-idasen-companion-cli stop
-idasen-companion-cli log --limit 20
+idasen-companion status
+idasen-companion toggle       # move to the other position
+idasen-companion sit
+idasen-companion stand
+idasen-companion preset NAME
+idasen-companion stop
+idasen-companion log --limit 20
 ```
 
 `status` uses the configured language, units and clock format. `log` translates
@@ -194,9 +196,18 @@ entries written by a newer version. Successful output goes to stdout;
 configuration warnings and actionable errors go to stderr. Commands exit 0 on
 success, 1 for D-Bus or configuration failures, and 2 for invalid syntax.
 
-Bind the move commands to keys in your desktop's own keyboard settings. The
-`idasen-companion` executable is GUI-only; scripts and shortcuts use
-`idasen-companion-cli`.
+Use the same `idasen-companion` command for the GUI, scripts and shortcuts.
+With no arguments it opens or activates the GUI in the full package; `--window`
+shows its window. `--help` and `--version` work in either package without Qt.
+For example, bind `idasen-companion toggle` or `idasen-companion sit` to a key
+in your desktop's keyboard settings.
+
+`toggle`, `sit` and `stand` are movement gestures. Repeating the *same* command
+while its move is in progress follows `[ui] tray_repeat_move`: `stop` halts the
+move, `reverse` returns to its starting height, and `off` reissues the move.
+The default is `stop`. A different gesture redirects to its own target. This
+behavior applies to scripts and shortcuts as well as the tray. `stop` always
+stops, and `preset NAME` moves directly to that preset without repeat behavior.
 
 Desktop shortcuts do not fire while the session is locked because the screen
 locker has an exclusive input grab. Automation continues in the background.
