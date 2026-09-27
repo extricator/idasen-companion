@@ -1622,9 +1622,8 @@ class Daemon:
         One desk, one machine, several accounts is the *expected* arrangement,
         not an anomaly — each logged-in user's session runs its own daemon and
         they all want the same desk. Ownership is settled by the seat lease
-        (see ``_release_desk``), not by this scan; what this is for is the case
-        where the lease has evidently not been honoured, so the recovery below
-        can decline to drop a link that may still belong to someone else.
+        (see ``_release_desk``), not by this scan. The PID list gives useful
+        context in a failed-connect diagnostic; it cannot prove link ownership.
         """
         own_pid = os.getpid()
         found = []
@@ -1652,18 +1651,17 @@ class Daemon:
             return None
         return body[0].value if body else None
 
-    async def _handle_connect_exhausted(self) -> bool:
+    async def _handle_connect_exhausted(self) -> None:
         """Every connect attempt failed. Record the Bluetooth stack state.
 
         The snapshot is the primary job. A desk that went unreachable for 45
         minutes could not be explained afterwards because nothing recorded what
         BlueZ thought at the time; this makes a repeat diagnose itself.
 
-        A BlueZ link has no discoverable client owner, so this diagnostic hook
-        never clears it or requests another retry.
+        A BlueZ link has no discoverable client owner, so this hook only logs.
         """
         if not self.config.desk.mac:
-            return False
+            return
         path = self._bluez_device_path()
         connected = await self._bluez_property(path, "org.bluez.Device1",
                                                "Connected")
@@ -1686,7 +1684,7 @@ class Daemon:
             f"{others or 'none'}.")
 
         if not connected:
-            return False  # nothing in the way; the failure is something else
+            return  # nothing in the way; the failure is something else
 
         if others:
             # Shared desk: another account's daemon is running and BlueZ holds
@@ -1699,13 +1697,12 @@ class Daemon:
             # and what to do about it is a real-world action.
             self.activity_log.emit(logmsg.DESK_HELD_BY_OTHER,
                            pids=", ".join(map(str, others)))
-            return False
+            return
 
         self.activity_log.diag(
             "warning",
             "The desk is connected but unreachable from here. BlueZ cannot "
             "identify the link's owner, so it was left alone.")
-        return False
 
     async def _bluez_known_desks(self) -> list[tuple[str, str]]:
         """Desks already paired via the system Bluetooth settings."""

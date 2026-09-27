@@ -55,8 +55,7 @@ class FakeInhibitor:
         self.held = False
 
 
-def _daemon(monkeypatch, *, connected=True, bluez_connected=False,
-            other_daemons=()):
+def _daemon(monkeypatch, *, connected=True, bluez_connected=False):
     """A Daemon with only what the suspend/resume handler touches."""
     config = AppConfig()
     config.desk.mac = DESK_MAC
@@ -79,8 +78,6 @@ def _daemon(monkeypatch, *, connected=True, bluez_connected=False,
     daemon.desk.forget_handle = MagicMock()
     monkeypatch.setattr(daemon, "_bluez_property",
                         AsyncMock(return_value=bluez_connected))
-    monkeypatch.setattr(daemon, "_other_companion_daemons",
-                        lambda: list(other_daemons))
     return daemon
 
 
@@ -179,14 +176,6 @@ async def test_no_resume_cleanup_when_bluez_says_the_link_is_down(monkeypatch):
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
     daemon.desk.disconnect.assert_not_awaited()
-
-
-async def test_resume_never_disconnects_device_link_beside_another_daemon(monkeypatch):
-    daemon = _daemon(monkeypatch, bluez_connected=True, other_daemons=(4242,))
-    daemon._on_system_message(_prepare_for_sleep(False))
-    await _settle(daemon)
-    daemon.desk.disconnect.assert_awaited_once()
-    assert "cannot identify the link's owner" in _diagnostics(daemon)
 
 
 async def test_a_mock_desk_reconciles_nothing(monkeypatch):

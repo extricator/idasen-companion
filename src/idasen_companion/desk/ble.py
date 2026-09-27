@@ -86,7 +86,7 @@ class BleDesk:
         on_height: Callable[[float], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
         on_error: Callable[[str], None] | None = None,
-        on_connect_exhausted: Callable[[], "asyncio.Future"] | None = None,
+        on_connect_exhausted: Callable[[], Awaitable[None]] | None = None,
     ):
         self.mac = mac
         self.connection_mode = connection_mode
@@ -100,10 +100,8 @@ class BleDesk:
         self._on_height = on_height
         self._on_connection_change = on_connection_change
         self._on_error = on_error
-        # Called when every connect attempt has failed, to record what the
-        # Bluetooth stack looked like at that moment and optionally clear a
-        # link that is in the way. Returns whether it changed anything worth
-        # retrying for. Lives in the daemon, which owns a system-bus handle.
+        # Called when every connect attempt has failed so the daemon can
+        # record the Bluetooth stack state through its system-bus handle.
         self._on_connect_exhausted = on_connect_exhausted
 
         # None until the first connect builds one.
@@ -202,14 +200,10 @@ class BleDesk:
         if await self._connect_with_retries():
             return True
 
-        # Every attempt failed. Let the daemon snapshot the Bluetooth stack
-        # for diagnosis. The hook can request a retry if it safely changes
-        # something, but the daemon never drops an ambiguous BlueZ device link.
-        if (self._on_connect_exhausted is not None
-                and await self._on_connect_exhausted()):
-            self._desk = self._desk_factory(self.mac, self._handle_disconnect)
-            if await self._connect_with_retries():
-                return True
+        # Every attempt failed. Record the Bluetooth stack for diagnosis;
+        # there is no safe device-wide link to clear and retry here.
+        if self._on_connect_exhausted is not None:
+            await self._on_connect_exhausted()
         return False
 
     async def _connect_with_retries(self) -> bool:
