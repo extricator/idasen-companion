@@ -149,8 +149,14 @@ def test_release_smoke_checks_the_shared_command_in_both_flavors():
     assert "subcommand is required" in verifier
     assert "--command=idasen-companion-cli" not in verifier
     assert "command: idasen-companion\n" in read(FLATPAK_MANIFEST)
+
+
+def test_flatpak_docs_show_the_shared_command():
+    flatpak_readme = ROOT / "packaging" / "flatpak" / "README.md"
+    if not flatpak_readme.exists():
+        pytest.skip("Flatpak documentation is intentionally absent from the sdist")
     assert "flatpak run io.github.extricator.IdasenCompanion status" in read(
-        ROOT / "packaging" / "flatpak" / "README.md"
+        flatpak_readme
     )
 
 
