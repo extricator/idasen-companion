@@ -29,6 +29,17 @@ def test_headless_gui_routes_return_usage_error(monkeypatch, capsys, arguments):
     assert "subcommand is required" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("arguments", [[], ["--window"]])
+def test_headless_routes_error_when_system_qt_is_present(monkeypatch, capsys,
+                                                          arguments):
+    monkeypatch.setattr(
+        command.importlib.util, "find_spec",
+        lambda name: None if name == "idasen_companion.gui" else object(),
+    )
+    assert command.main(arguments) == 2
+    assert "subcommand is required" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("arguments", [
     ["sit"], ["--config", "/tmp/example", "stand"], ["--help"],
     ["--version"], ["--sitt"], ["--window", "sit"],

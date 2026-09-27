@@ -55,10 +55,9 @@ bash scripts/build-release-variants.sh --flatpak --output dist-release
 ```
 
 This produces the versioned full GUI bundle used by the release workflow. The
-installed `idasen-companion-cli` entry point is available only inside its
-sandbox, for example with `flatpak run --command=idasen-companion-cli
-io.github.extricator.IdasenCompanion status`; it is not a host-level headless
-installation.
+The same `idasen-companion` command runs CLI subcommands inside the sandbox,
+for example with `flatpak run io.github.extricator.IdasenCompanion status`.
+The bundle is a full installation; it is not a host-level headless package.
 
 On a ready pull request, an update under `packaging/flatpak/` selects the
 Flatpak package proof in ordinary CI. Draft pull requests defer package builds.

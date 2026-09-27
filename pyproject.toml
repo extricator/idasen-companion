@@ -38,7 +38,6 @@ test = ["pytest>=7", "pytest-asyncio>=0.23", "types-PyYAML", "pytest-cov>=7"]
 [project.scripts]
 idasen-companiond = "idasen_companion.daemon.main:main"
 idasen-companion = "idasen_companion.command:main"
-idasen-companion-cli = "idasen_companion.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/extricator/idasen-companion"

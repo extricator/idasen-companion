@@ -12,7 +12,8 @@ def main(argv: list[str] | None = None) -> int:
     """Route GUI launches only after recognizing their complete argument list."""
     arguments = list(sys.argv[1:] if argv is None else argv)
     if not arguments or arguments == ["--window"]:
-        if importlib.util.find_spec("PySide6") is None:
+        if (importlib.util.find_spec("idasen_companion.gui") is None
+                or importlib.util.find_spec("PySide6") is None):
             print("idasen-companion: GUI unavailable; a subcommand is required "
                   "in the headless package", file=sys.stderr)
             return 2
