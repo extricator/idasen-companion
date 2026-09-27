@@ -98,7 +98,7 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
 
 ## Features / enhancements (deferred)
 - [x] **A `status` command, so the desk can be read from a terminal** — delivered
-      by `idasen-companion-cli status`, with Desk / Automation / Today sections,
+      by `idasen-companion status`, with Desk / Automation / Today sections,
       localized values and explicit exit/stdout/stderr behavior. The original
       design record follows: the
       command line can only *write* today: `--toggle`, `--sit`, `--stand`,
@@ -201,10 +201,8 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       headless packages. This is the first public command interface, so remove
       `idasen-companion-cli` and the old movement flags. Make `toggle`, `sit`,
       and `stand` use the daemon's repeat-aware gesture method for shortcuts.
-      The design, staged implementation, acceptance checks, and cross-session
-      handoff are in `docs/plans/shared-command.md`.
 - [x] **Decide whether the command line becomes a first-class front end** — yes:
-      `idasen-companion-cli` now owns status, log and all one-shot moves without
+      `idasen-companion` now owns status, log and movement subcommands without
       importing Qt; full/headless artifact publication remains packaging work.
       The original analysis follows: it
       is not one now: five flags living inside the GUI, declared at
