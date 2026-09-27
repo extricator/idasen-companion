@@ -89,9 +89,9 @@ async def test_status_uses_the_selected_spanish_catalog():
 @pytest.mark.parametrize(
     ("argv", "member", "values"),
     [
-        (["sit"], "Sit", ()),
-        (["stand"], "Stand", ()),
-        (["toggle"], "Toggle", ()),
+        (["sit"], "GestureMove", ("sit",)),
+        (["stand"], "GestureMove", ("stand",)),
+        (["toggle"], "GestureMove", ("toggle",)),
         (["stop"], "Stop", ()),
         (["preset", "focus"], "MoveToPreset", ("focus",)),
     ],

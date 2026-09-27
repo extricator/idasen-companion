@@ -1345,6 +1345,18 @@ msgstr ""
 
 #: src/idasen_companion/gui/pages/about.py
 msgctxt "about"
+msgid ""
+"Repeat toggle, sit, or stand during a move to stop, reverse, or reissue it, "
+"according to Settings → Window & tray. A different movement command "
+"redirects to its target. Presets move directly."
+msgstr ""
+"Repite toggle, sit o stand durante un movimiento para detenerlo, volver a "
+"la altura inicial o repetirlo, según Configuración → Ventana y bandeja. "
+"Un comando de movimiento diferente redirige al escritorio a su destino. "
+"Los preajustes mueven el escritorio directamente."
+
+#: src/idasen_companion/gui/pages/about.py
+msgctxt "about"
 msgid "System"
 msgstr "Sistema"
 

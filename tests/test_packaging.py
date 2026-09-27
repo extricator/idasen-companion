@@ -55,17 +55,21 @@ def read(p: Path) -> str:
     return p.read_text()
 
 
-def test_project_exposes_daemon_gui_and_qt_free_cli_entry_points():
+def test_project_exposes_daemon_and_shared_command_entry_points():
     scripts = tomllib.loads(read(ROOT / "pyproject.toml"))["project"]["scripts"]
     assert scripts == {
         "idasen-companiond": "idasen_companion.daemon.main:main",
-        "idasen-companion": "idasen_companion.gui.main:main",
-        "idasen-companion-cli": "idasen_companion.cli:main",
+        "idasen-companion": "idasen_companion.command:main",
     }
 
     bundled = read(BUNDLED)
-    assert "%{_bindir}/idasen-companion-cli" in bundled
-    assert "s/@ENTRY@/idasen_companion.cli/" in bundled
+    install = spec_section(bundled, "install")
+    files = spec_section(bundled, "files")
+    assert "s/@ENTRY@/idasen_companion.command/" in install
+    assert "s/@ENTRY@/idasen_companion.gui.main/" not in install
+    assert "%{_bindir}/idasen-companion\n" in files
+    assert "%{_bindir}/idasen-companiond\n" in files
+    assert "idasen-companion-cli" not in install + files
 
 
 def test_release_builder_and_verifier_define_the_five_asset_contract():
@@ -123,15 +127,37 @@ def test_native_variants_are_standalone_and_mutually_exclusive():
 
 def test_headless_debian_payload_clones_common_tree_then_removes_gui():
     install = read(ROOT / "debian" / "idasen-companion.install")
+    assert "usr/bin/idasen-companion\n" in install
+    assert "idasen-companion-cli" not in install
     for full_only in (".desktop", "icons/", "metainfo"):
         assert full_only in install
     rules = read(DEBIAN_RULES)
     headless = read(ROOT / "debian" / "idasen-companion-headless.install")
-    assert "usr/bin/idasen-companion-cli" in headless
+    assert "usr/bin/idasen-companion\n" in headless
     assert "usr/bin/idasen-companiond" in headless
+    assert "idasen-companion-cli" not in headless
     assert "export PYBUILD_DESTDIR=debian/tmp" in rules
     assert "idasen-companion-headless/usr/lib/python3*/dist-packages/idasen_companion/gui" in rules
-    assert "idasen-companion-headless/usr/bin/idasen-companion" in rules
+    assert "test -x debian/idasen-companion-headless/usr/bin/idasen-companion" in rules
+    assert "rm -f debian/idasen-companion-headless/usr/bin/idasen-companion" not in rules
+
+
+def test_release_smoke_checks_the_shared_command_in_both_flavors():
+    verifier = read(RELEASE_VERIFIER)
+    assert "idasen-companion --help" in verifier
+    assert "idasen-companion status" in verifier
+    assert "subcommand is required" in verifier
+    assert "--command=idasen-companion-cli" not in verifier
+    assert "command: idasen-companion\n" in read(FLATPAK_MANIFEST)
+
+
+def test_flatpak_docs_show_the_shared_command():
+    flatpak_readme = ROOT / "packaging" / "flatpak" / "README.md"
+    if not flatpak_readme.exists():
+        pytest.skip("Flatpak documentation is intentionally absent from the sdist")
+    assert "flatpak run io.github.extricator.IdasenCompanion status" in read(
+        flatpak_readme
+    )
 
 
 def test_every_existing_artifact_path_carries_babel():

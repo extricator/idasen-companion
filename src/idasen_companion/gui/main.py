@@ -55,10 +55,11 @@ def _parse_argv(argv: list[str]) -> None:
     parser.parse_args(argv[1:])
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    arguments = [sys.argv[0], *(sys.argv[1:] if argv is None else argv)]
     # Validates the flags and handles --help/--version; exits for those.
-    _parse_argv(sys.argv)
-    application = QApplication(sys.argv)
+    _parse_argv(arguments)
+    application = QApplication(arguments)
     # Before any widget exists, so the connection is live for the very
     # first palette change whenever it arrives.
     restyle.follow_palette(application)
@@ -151,7 +152,7 @@ def main() -> int:
     # (default). First run, no tray, or an explicit --window always show, so
     # the window is never unreachable.
     start_hidden = (tray_available and startup_cfg.ui.start_minimized
-                    and not first_run and "--window" not in sys.argv)
+                    and not first_run and "--window" not in arguments)
     if not start_hidden:
         window.show()
     # Deliberately not gated on client.available. A fresh RPM install ships

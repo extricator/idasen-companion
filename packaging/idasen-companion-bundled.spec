@@ -322,7 +322,7 @@ fi
 %if ! %{with_gui}
 # The common offline wheel input contains the GUI closure so one fetched asset
 # feeds both builds. The headless payload removes that closure, the GUI source
-# package, and the GUI console script before bytecode compilation and ELF
+# package before bytecode compilation and ELF
 # inspection. The negative assertions make a renamed Qt wheel fail closed.
 find %{buildroot}%{bundled_libraries} -maxdepth 1 \
     \( -iname 'pyside6*' -o -iname 'shiboken6*' \) -exec rm -rf {} +
@@ -380,18 +380,11 @@ install -Dm755 packaging/idasen-companion-launcher.sh \
 sed -i -e 's/@ENTRY@/idasen_companion.daemon.main/' \
        -e 's|@PYTHON@|%{bundled_interpreter}|' \
     %{buildroot}%{_bindir}/idasen-companiond
-%if %{with_gui}
 install -Dm755 packaging/idasen-companion-launcher.sh \
     %{buildroot}%{_bindir}/idasen-companion
-sed -i -e 's/@ENTRY@/idasen_companion.gui.main/' \
+sed -i -e 's/@ENTRY@/idasen_companion.command/' \
        -e 's|@PYTHON@|%{bundled_interpreter}|' \
     %{buildroot}%{_bindir}/idasen-companion
-%endif
-install -Dm755 packaging/idasen-companion-launcher.sh \
-    %{buildroot}%{_bindir}/idasen-companion-cli
-sed -i -e 's/@ENTRY@/idasen_companion.cli/' \
-       -e 's|@PYTHON@|%{bundled_interpreter}|' \
-    %{buildroot}%{_bindir}/idasen-companion-cli
 
 # Bundling obliges us to ship the bundled code's license texts too. Most
 # wheels carry theirs under one of two conventional names, so copy each out
@@ -611,10 +604,7 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt
 %doc README.md
-%if %{with_gui}
 %{_bindir}/idasen-companion
-%endif
-%{_bindir}/idasen-companion-cli
 %{_bindir}/idasen-companiond
 %{appdir}/
 %{_userunitdir}/idasen-companion.service

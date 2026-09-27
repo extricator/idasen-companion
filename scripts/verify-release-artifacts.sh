@@ -76,7 +76,7 @@ if [ "$flavor" = full ]; then
 else
     [ "$package_name" = idasen-companion-headless ]
     grep -Fw idasen-companion <<<"$conflict" >/dev/null
-    ! command -v idasen-companion >/dev/null
+    command -v idasen-companion >/dev/null
     ! grep -Eiq '(/gui/|pyside|shiboken|/qt6|\.desktop|/icons/|metainfo)' <<<"$files"
     ! grep -Eiq '(pyside|shiboken|libqt6|qt6-)' <<<"$requirements"
     python_command=python3
@@ -84,13 +84,23 @@ else
         python_command=$(sed -n 's/^PYTHON=//p' "$(command -v idasen-companiond)")
     fi
     "$python_command" -I -B -c \
-        "import idasen_companion.cli, idasen_companion.daemon.main, sys; assert not any(n.startswith(('PySide6', 'shiboken6')) or n == 'idasen_companion.gui' for n in sys.modules)"
+        "import idasen_companion.command, idasen_companion.daemon.main, sys; assert not any(n.startswith(('PySide6', 'shiboken6')) or n == 'idasen_companion.gui' for n in sys.modules)"
+    no_args_log=$(mktemp)
+    if idasen-companion >"$no_args_log" 2>&1; then
+        echo "error: headless command without subcommand succeeded" >&2
+        exit 1
+    else
+        [ "$?" -eq 2 ]
+    fi
+    grep -F 'subcommand is required' "$no_args_log" >/dev/null
+    rm -f "$no_args_log"
 fi
 
 grep -F '/idasen_companion.mo' <<<"$files" >/dev/null
 grep -F '/usr/lib/systemd/user/idasen-companion.service' <<<"$files" >/dev/null
-idasen-companion-cli --version | grep -F "$expected_version"
-idasen-companion-cli --help >/dev/null
+! command -v idasen-companion-cli >/dev/null
+idasen-companion --version | grep -F "$expected_version"
+idasen-companion --help >/dev/null
 idasen-companiond --help >/dev/null
 
 smoke=$(mktemp -d)
@@ -100,7 +110,7 @@ dbus-run-session -- bash -c '
     daemon=$!
     trap "kill $daemon 2>/dev/null || true; wait $daemon 2>/dev/null || true" EXIT
     for _ in $(seq 1 20); do
-        if idasen-companion-cli status >"$1/status.log" 2>&1; then
+        if idasen-companion status >"$1/status.log" 2>&1; then
             cat "$1/status.log"
             exit 0
         fi
@@ -146,7 +156,7 @@ XDG_DATA_HOME="$flatpak_dir" flatpak --user install --noninteractive --bundle "$
 XDG_DATA_HOME="$flatpak_dir" flatpak --user info io.github.extricator.IdasenCompanion \
     | grep -F "Version: $version"
 XDG_DATA_HOME="$flatpak_dir" flatpak --user run \
-    --command=idasen-companion-cli io.github.extricator.IdasenCompanion --help >/dev/null
+    io.github.extricator.IdasenCompanion --help >/dev/null
 XDG_DATA_HOME="$flatpak_dir" QT_QPA_PLATFORM=offscreen flatpak --user run \
     io.github.extricator.IdasenCompanion --version | grep -F "$version"
 

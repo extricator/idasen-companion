@@ -40,6 +40,13 @@ config so your real one is untouched:
 IDASEN_COMPANION_CONFIG=/tmp/ic-test.toml .venv/bin/idasen-companion
 ```
 
+`idasen-companion` also accepts Qt-free subcommands in both package flavors:
+`status`, `log`, `toggle`, `sit`, `stand`, `stop`, and `preset NAME`. For example,
+use `idasen-companion toggle` in a desktop keyboard shortcut. Repeating the
+same movement gesture during a move follows `[ui] tray_repeat_move` (`stop`,
+`reverse`, or `off`); `stop` and named presets are direct requests. In the
+headless package, a bare command or `--window` exits with a usage error.
+
 **Please default to `--mock-desk`.** The desk's controller accepts exactly one
 BLE connection, and a client killed mid-connection leaves a half-open link that
 the desk will not replace until the Bluetooth stack is reset. `docs/` has the
@@ -120,7 +127,8 @@ which `python3-build` pulls in what it needs.
 
 The release ships two standalone self-contained RPMs from the same spec. Both
 carry the app's Python runtime and common dependencies; the full flavor also
-carries Qt, while the headless flavor contains only the CLI and daemon:
+carries Qt, while the headless flavor contains only the CLI and daemon. Both
+install `idasen-companion` for CLI subcommands; only full opens the GUI:
 
 ```bash
 bash scripts/build-release-variants.sh --rpm --output dist-release

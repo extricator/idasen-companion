@@ -80,7 +80,7 @@ class Desk1(ServiceInterface):
         """A tray/keyboard gesture move (``toggle``/``sit``/``stand``) with
         repeat-to-cancel semantics per ``[ui] tray_repeat_move``: repeating the
         same gesture mid-move stops or reverses it. Used by the tray gestures
-        and the CLI shortcut flags."""
+        and the shared command's movement subcommands."""
         await self.d.gesture_move(action)
 
     @method()

@@ -133,7 +133,7 @@ the daemon's English wire text as the mixed-version fallback.
 ### The D-Bus surface is public, including the parts the GUI doesn't use
 
 `service.py` is an API, not an internal seam: the interfaces are on the
-session bus under a well-known name, and `idasen-companion-cli toggle` is not
+session bus under a well-known name, and `idasen-companion toggle` is not
 the only thing entitled to call them. A few members therefore exist with no
 in-tree reader, deliberately:
 

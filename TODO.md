@@ -98,7 +98,7 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
 
 ## Features / enhancements (deferred)
 - [x] **A `status` command, so the desk can be read from a terminal** — delivered
-      by `idasen-companion-cli status`, with Desk / Automation / Today sections,
+      by `idasen-companion status`, with Desk / Automation / Today sections,
       localized values and explicit exit/stdout/stderr behavior. The original
       design record follows: the
       command line can only *write* today: `--toggle`, `--sit`, `--stand`,
@@ -196,20 +196,13 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
-- [ ] **Make `idasen-companion` the shared user-facing command** — the 1.2
-      split moved desk commands from GUI flags such as `idasen-companion
-      --toggle` to `idasen-companion-cli toggle`, breaking existing shortcuts.
-      Route subcommands (`status`, `log`, `toggle`, `sit`, `stand`, `stop`,
-      `preset`) through the Qt-free CLI before importing PySide6; with no
-      command, the full package still opens the GUI. The headless package
-      should expose the same `idasen-companion` name for CLI commands. Keep
-      `idasen-companion-cli` as a compatibility alias while callers migrate,
-      and decide how legacy one-shot flags remain supported. Preserve the
-      old `--toggle` gesture's repeat-to-stop/reverse behavior rather than
-      silently routing it to the CLI's unconditional `Toggle`. Cover both
-      package flavors and shortcut invocation in tests and documentation.
+- [x] **Make `idasen-companion` the single user-facing command** — route GUI
+      launches and Qt-free CLI subcommands through one entry point in full and
+      headless packages. This is the first public command interface, so remove
+      `idasen-companion-cli` and the old movement flags. Make `toggle`, `sit`,
+      and `stand` use the daemon's repeat-aware gesture method for shortcuts.
 - [x] **Decide whether the command line becomes a first-class front end** — yes:
-      `idasen-companion-cli` now owns status, log and all one-shot moves without
+      `idasen-companion` now owns status, log and movement subcommands without
       importing Qt; full/headless artifact publication remains packaging work.
       The original analysis follows: it
       is not one now: five flags living inside the GUI, declared at

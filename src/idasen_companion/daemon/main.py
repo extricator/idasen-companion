@@ -1370,7 +1370,7 @@ class Daemon:
 
     async def toggle_sit_stand(self, *, refresh: bool = True) -> None:
         """Move to whichever of sit/stand the desk is *not* at. Backs the tray
-        toggle gesture and the ``--toggle`` CLI, so the decision lives here
+        toggle gesture and the ``toggle`` subcommand, so the decision lives here
         (authoritative height) rather than in each caller. Reads the real height
         first (the manual pre-decide sync) so an external move — e.g. onto a
         preset — is reflected before the direction is chosen; ``refresh=False``
