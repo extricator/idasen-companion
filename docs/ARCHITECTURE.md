@@ -65,6 +65,9 @@ Height reads have a deadline so a stuck BlueZ call cannot hold that lock for
 the life of the daemon. On handoff, the daemon disconnects its Bleak client
 and checks BlueZ for diagnostic purposes. BlueZ does not identify a link's
 client owner, so a remaining device-wide connection is left alone.
+The same rule applies after suspend and failed connection retries: release
+this daemon's Bleak client, retain the BlueZ state for diagnosis, and leave
+an ambiguous device link alone.
 Manual move connects also have a deadline, and Stop during a pending connect
 prevents that move from starting after the connection eventually completes.
 Returning to the seat reconciles unconditionally, since the desk may have moved

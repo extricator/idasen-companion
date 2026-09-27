@@ -34,6 +34,13 @@ the record of what was done.
       session, then repeat short and roughly 20-minute switch tests. See
       `docs/handoff-2026-09-26-session-switch-release-validation.md` for the
       trace and test state. Do not prepare the release PR before acceptance.
+      The latest instrumented run stayed disconnected for about 15 minutes
+      awake in the background, then the machine suspended for about 24 minutes.
+      It resumed and accepted one fresh Stand command without a reset or stale
+      replay. Because the awake interval was short of 20 minutes and the
+      original orphan was intermittent, this is promising but not final
+      acceptance. The older resume and connect-failure device-wide BlueZ
+      disconnect fallbacks were removed; no caller can prove link ownership.
 - [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
       normal version-and-notes PR after the session-switch fix, require its
       automatic exact-head release-preparation proof, then merge. Confirm that
