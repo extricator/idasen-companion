@@ -143,6 +143,9 @@ and the source TODO is closed.
 **Current stage:** 1 — Route one command. Nothing in this plan has been
 implemented yet.
 
+**Working branch:** `ft/shared-command`. Keep this work and its stage commits
+on that branch; local `main` tracks `origin/main` and should remain untouched.
+
 **Next action:** Inspect the current entry points and tests, then implement
 Stage 1. Keep the GUI import behind the no-argument/`--window` branch. Use
 `GestureMove` for all three movement gestures.
@@ -164,12 +167,14 @@ decision and later stages in the same commit as that change.
 
 **Give the maintainer a continuation prompt:** At the end of every work part,
 include a copy-ready message they can paste into a new conversation. It must
-name this document, the current stage or next unfinished task, and tell the
-next agent to read the handoff, git status, and recent commits before acting.
+name the working branch, this document, the current stage or next unfinished
+task, and tell the next agent to read the handoff, git status, and recent
+commits before acting.
 Write the prompt from the handoff as it stands *after* the part; do not point
 back to a stage that was just completed. For this initial planning-only part,
 the prompt is:
 
-> Continue the shared-command work from `docs/plans/shared-command.md`. Read
-> its handoff, `git status`, and recent commits, then complete Stage 1. Update
-> the document with results and give me the prompt for the next conversation.
+> Continue the shared-command work on `ft/shared-command` from
+> `docs/plans/shared-command.md`. Read its handoff, `git status`, and recent
+> commits, then complete Stage 1. Update the document with results and give me
+> the prompt for the next conversation.
