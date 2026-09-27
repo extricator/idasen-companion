@@ -22,26 +22,17 @@ the record of what was done.
       does no desk I/O, and responds to a command after return without an
       adapter reset or replaying a backlog of old commands. Do not stop or
       restart the installed daemon just to collect evidence.
-      Several local switches exposed an orphaned BlueZ link while Bleak
-      reported disconnected. The first also replayed a Sit command after Stop
-      during shutdown. Height reads and move connects now have deadlines;
-      Stop invalidates a pending move. A short KDE Xorg switch passed with a
-      direct BlueZ disconnect, but that path was withdrawn: BlueZ cannot prove
-      which app owns the link, and Device1.Disconnect affects the whole device.
-      The handoff now only releases its own Bleak client and records any
-      remaining BlueZ link for diagnosis. Identify why a link reappears around
-      the other KDE session's startup using the captured traces, then fix it
-      through the owning client or session. Do not prepare the release PR
-      before acceptance.
-      The latest instrumented run stayed disconnected for about 15 minutes
-      awake in the background (within the stated 15–20-minute window), then
-      the machine suspended for about 24 minutes. It resumed and accepted one
-      fresh Stand command without a reset or stale replay. This satisfies the
-      duration check; do not ask for the same switch again solely to reach
-      exactly 20 uninterrupted minutes. The original orphan was intermittent
-      and its source remains unproven. The older resume and connect-failure
-      device-wide BlueZ disconnect fallbacks were removed; no caller can
-      prove link ownership.
+      Failed switches showed BlueZ connected while Bleak reported disconnected;
+      one also replayed a Sit request after Stop. Reads and move connections
+      now have deadlines, and Stop invalidates a pending move. Session handoff
+      releases this app's Bleak client and logs a remaining BlueZ link; it
+      cannot safely disconnect a device-wide link with no known owner.
+      Instrumented short and roughly 15-minute awake background switches
+      passed, including a suspend and one fresh Stand command after return.
+      Do not repeat the duration check solely to reach exactly 20 minutes.
+      The intermittent orphan's source remains unproven; use the captured
+      traces to diagnose it before calling the stall fixed or preparing the
+      release PR.
 - [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
       normal version-and-notes PR after the session-switch fix, require its
       automatic exact-head release-preparation proof, then merge. Confirm that
