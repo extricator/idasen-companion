@@ -161,3 +161,15 @@ tracking source for this work.
 commands with pass/fail results, open decisions, and the next concrete action
 here before ending the conversation. If a stage changes the design, update the
 decision and later stages in the same commit as that change.
+
+**Give the maintainer a continuation prompt:** At the end of every work part,
+include a copy-ready message they can paste into a new conversation. It must
+name this document, the current stage or next unfinished task, and tell the
+next agent to read the handoff, git status, and recent commits before acting.
+Write the prompt from the handoff as it stands *after* the part; do not point
+back to a stage that was just completed. For this initial planning-only part,
+the prompt is:
+
+> Continue the shared-command work from `docs/plans/shared-command.md`. Read
+> its handoff, `git status`, and recent commits, then complete Stage 1. Update
+> the document with results and give me the prompt for the next conversation.
