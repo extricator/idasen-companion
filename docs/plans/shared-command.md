@@ -29,12 +29,18 @@ without a graphical session or a PySide6 installation.
 `toggle`, `sit`, and `stand` are shortcut-friendly movement gestures. Send all
 three through `Desk1.GestureMove`, so a repeated identical command during a move
 uses the daemon's existing `[ui] tray_repeat_move` behavior (`stop`, `reverse`,
-or `off`). A different movement command redirects to its target. `stop` sends
-`Desk1.Stop`; `preset NAME` sends `Desk1.MoveToPreset`. The daemon remains the
-authority for movement state; the command must not infer a repeat from a
-possibly stale client-side `Moving` property. There is one public meaning per
-movement command; the plain D-Bus `Toggle`/`Sit`/`Stand` methods may remain for
-other clients, but the user-facing command does not use them.
+or `off`). A different movement command redirects to its target. This is their
+one meaning for scripts and keyboard shortcuts alike: do not add a separate
+`gesture` subcommand or an unconditional interpretation of these three verbs.
+The repeat behavior is intentional and must be stated in CLI help and examples.
+
+`stop` always sends `Desk1.Stop`. `preset NAME` remains a direct
+`Desk1.MoveToPreset` request; the daemon's current `GestureMove` method only
+accepts `toggle`, `sit`, and `stand`, so named presets do not acquire repeat
+behavior in this work. The daemon remains the authority for movement state;
+the command must not infer a repeat from a possibly stale client-side `Moving`
+property. The plain D-Bus `Toggle`/`Sit`/`Stand` methods may remain for other
+clients, but the user-facing command does not use them.
 
 The existing config key `tray_repeat_move` also governs keyboard gestures. Its
 name is historical. Renaming the config schema is outside this command-routing
@@ -92,7 +98,8 @@ record the commit and any remaining risk in the handoff.
   activation, while avoiding any GUI import for CLI/help/error paths.
 - Make `toggle`, `sit`, and `stand` call `GestureMove`. Keep the existing alias
   temporarily in packaging until Stage 2 removes it from every payload in one
-  coherent change. Do not add legacy movement flags.
+  coherent change. Keep `preset NAME` direct and `stop` explicit. Do not add a
+  `gesture` subcommand or legacy movement flags.
 - Add focused parser, routing, D-Bus-method, and isolated-import tests. Test a
   real command-shaped shortcut invocation with a fake D-Bus service or client;
   never move the physical desk as part of automated verification.
@@ -151,7 +158,8 @@ Stage 1. Keep the GUI import behind the no-argument/`--window` branch. Use
 `GestureMove` for all three movement gestures.
 
 **Completed work:** Design and stage boundaries recorded here. No code or
-package behavior changed.
+package behavior changed. The single repeat-aware meaning for `toggle`, `sit`,
+and `stand`, and the direct behavior of `preset NAME` and `stop`, are explicit.
 
 **Verification evidence:** None yet; this is a planning-only change.
 
