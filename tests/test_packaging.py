@@ -59,7 +59,7 @@ def test_project_exposes_daemon_gui_and_qt_free_cli_entry_points():
     scripts = tomllib.loads(read(ROOT / "pyproject.toml"))["project"]["scripts"]
     assert scripts == {
         "idasen-companiond": "idasen_companion.daemon.main:main",
-        "idasen-companion": "idasen_companion.gui.main:main",
+        "idasen-companion": "idasen_companion.command:main",
         "idasen-companion-cli": "idasen_companion.cli:main",
     }
 

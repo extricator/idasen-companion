@@ -41,8 +41,8 @@ class Desk(ServiceInterface):
         return False
 
     @method()
-    def Sit(self):  # pylint: disable=invalid-name
-        self.calls.append("sit")
+    def GestureMove(self, action: "s"):  # pylint: disable=invalid-name
+        self.calls.append(action)
 
     @method()
     def Stop(self):  # pylint: disable=invalid-name
@@ -98,7 +98,7 @@ class Log(ServiceInterface):
 
 async def run_cli(config, *args: str) -> tuple[int, str, str]:
     process = await asyncio.create_subprocess_exec(
-        sys.executable, "-m", "idasen_companion.cli",
+        sys.executable, "-m", "idasen_companion.command",
         "--config", str(config), *args,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
@@ -126,9 +126,10 @@ async def test_status_move_stop_log_shutdown_and_missing_owner(tmp_path):
     assert "Desk\n" in stdout and "110.0 cm" in stdout
     assert "Automation\n" in stdout and "Today\n" in stdout
 
-    assert (await run_cli(config, "sit"))[0] == 0
+    for action in ("sit", "sit", "stand", "toggle"):
+        assert (await run_cli(config, action))[0] == 0
     assert (await run_cli(config, "stop"))[0] == 0
-    assert calls == ["sit", "stop"]
+    assert calls == ["sit", "sit", "stand", "toggle", "stop"]
 
     code, stdout, stderr = await run_cli(config, "log", "--limit", "1")
     assert code == 0 and stderr == ""

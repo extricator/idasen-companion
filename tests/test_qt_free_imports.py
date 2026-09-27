@@ -142,3 +142,25 @@ def test_the_cli_entry_point_never_imports_qt(monkeypatch):
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "cli.py")
+
+
+def test_shared_command_cli_paths_never_import_qt(monkeypatch):
+    """Run real help, version, usage and CLI paths in fresh interpreters."""
+    monkeypatch.setattr(subprocess, "run", _REAL_SUBPROCESS_RUN)
+    for arguments, expected_code in (
+        (["--help"], 0), (["--version"], 0),
+        (["--sitt"], 2), (["--config", "/tmp/config.toml"], 2),
+        (["status"], 1),
+    ):
+        program = "\n".join((
+            "import sys",
+            f"sys.path.insert(0, {PACKAGE_ROOT!r})",
+            "from idasen_companion.command import main",
+            f"try: code = main({arguments!r})",
+            "except SystemExit as error: code = error.code",
+            f"assert code == {expected_code}, code",
+            f"print({_PRESENT!r} if 'PySide6' in sys.modules else {_ABSENT!r})",
+        ))
+        result = _run_isolated(program)
+        assert result.returncode == 0, (arguments, result.stderr)
+        assert result.stdout.splitlines()[-1] == _ABSENT, arguments

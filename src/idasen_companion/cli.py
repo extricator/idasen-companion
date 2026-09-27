@@ -236,9 +236,9 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig,
         rows = _json_rows(await client.call(IFACE_LOG, "GetRecent"))
         return _log_text(rows, fmt, args.limit)
     commands = {
-        "sit": (IFACE_DESK, "Sit", ()),
-        "stand": (IFACE_DESK, "Stand", ()),
-        "toggle": (IFACE_DESK, "Toggle", ()),
+        "sit": (IFACE_DESK, "GestureMove", ("sit",)),
+        "stand": (IFACE_DESK, "GestureMove", ("stand",)),
+        "toggle": (IFACE_DESK, "GestureMove", ("toggle",)),
         "stop": (IFACE_DESK, "Stop", ()),
     }
     interface, member, values = (commands[args.command]
@@ -257,15 +257,19 @@ def _positive(value: str) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="idasen-companion-cli",
-        description="Control and inspect the Idasen Companion daemon.")
+        prog="idasen-companion",
+        description="Control and inspect the Idasen Companion daemon.",
+        epilog="With no arguments, the full package opens the GUI; --window "
+               "shows its window. Repeating sit, stand, or toggle during a "
+               "move follows [ui] tray_repeat_move (stop, reverse, or off).")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH,
                         help=argparse.SUPPRESS)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="show desk, automation and today's totals")
-    for name in ("sit", "stand", "toggle", "stop"):
-        commands.add_parser(name, help=f"send the {name} command")
+    for name in ("sit", "stand", "toggle"):
+        commands.add_parser(name, help=f"send the {name} movement gesture")
+    commands.add_parser("stop", help="stop desk movement")
     preset = commands.add_parser("preset", help="move to a named preset")
     preset.add_argument("name", metavar="NAME")
     log = commands.add_parser("log", help="show the daemon's recent activity")
