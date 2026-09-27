@@ -1,6 +1,6 @@
 # Shared `idasen-companion` command
 
-**Status:** Stage 1 complete; Stage 2 pending.
+**Status:** Stages 1–2 complete; Stage 3 pending.
 **Source task:** `TODO.md` → “Make `idasen-companion` the single user-facing command”.
 **Scope:** Command routing, movement semantics, installed package entry points,
 tests, and user documentation. This document is the handoff between work sessions.
@@ -111,7 +111,7 @@ launching the installed desktop application.
 
 ### 2. Align full and headless packages
 
-**Status:** Pending. **Depends on:** Stage 1.
+**Status:** Complete in `aabc536`. **Depends on:** Stage 1.
 
 - Install `idasen-companion` in both RPM and Debian flavors and remove
   `idasen-companion-cli` from `[project.scripts]` and both package flavors.
@@ -147,23 +147,34 @@ and the source TODO is closed.
 
 ## Handoff for the next conversation
 
-**Current stage:** 2 — Align full and headless packages. Stage 1 is complete.
+**Current stage:** 3 — Document and verify the first interface. Stages 1–2 are
+complete.
 
 **Working branch:** `ft/shared-command`. Keep this work and its stage commits
 on that branch; local `main` tracks `origin/main` and should remain untouched.
 
-**Next action:** Complete Stage 2. Inspect installed RPM and Debian payloads,
-remove `idasen-companion-cli` from both flavors and `[project.scripts]`, and
-install the shared `idasen-companion` command in both. Verify full and headless
-entry paths without installing or launching the application.
+**Next action:** Complete Stage 3. Update active user documentation and the
+About page's command examples to use `idasen-companion`; explain repeated
+movement gestures and headless no-argument behavior. Close the source TODO,
+run the prescribed local checks, and prepare the PR summary.
 
 **Completed work:** Stage 1 commit `6c99b9d` adds a Qt-free shared command
 router. No arguments and `--window` retain GUI activation; help, version, CLI,
 and usage-error paths remain Qt-free. `sit`, `stand`, and `toggle` now call
 `Desk1.GestureMove`; `stop` and `preset NAME` retain their direct methods. The
-CLI alias remains until Stage 2. Focused routing, method, isolated-import, and
+CLI alias remained until Stage 2. Focused routing, method, isolated-import, and
 throwaway D-Bus shortcut tests were added or updated. The daemon's existing
 fake-based repeat tests pass.
+
+Stage 2 commit `aabc536` removes the alias from wheel entry points, both RPM
+flavors, and both Debian flavors. The bundled RPM launcher now enters
+`idasen_companion.command` for full and headless packages. Debian retains the
+shared executable when trimming GUI source from headless. The router checks
+for the GUI package as well as PySide6, so a headless Debian installation gives
+the intended usage error even if another system package installed PySide6.
+The release verifier now checks the shared command in both native flavors and
+Flatpak. The Flatpak manifest still uses it as the default GUI command; its
+packaging notes show a CLI subcommand through that default.
 
 **Verification evidence:**
 
@@ -175,10 +186,28 @@ fake-based repeat tests pass.
 - `uvx pylint` could not run: the default cache was read-only, then PyPI DNS
   failed with cache and tool directories redirected to `/tmp`. Stage 3 still
   requires this check.
+- Stage 2: `.venv/bin/python -m pytest -q tests/test_packaging.py tests/test_command.py tests/test_qt_free_imports.py` — 102 passed.
+- Stage 2: `.venv/bin/python -m pytest -q` — 1626 passed, 1 skipped.
+- Stage 2: `python3 -m build --wheel --no-isolation --outdir /tmp/idasen-stage2-wheel` — passed. Wheel metadata lists only `idasen-companion` →
+  `idasen_companion.command:main` and `idasen-companiond` →
+  `idasen_companion.daemon.main:main`. Extracted full and GUI-trimmed headless
+  wheel payloads passed help/version subprocess checks; headless bare command
+  returned exit 2 with the required message.
+- Stage 2: `rpmspec --parse packaging/idasen-companion-bundled.spec` and the
+  same command with `--define 'release_flavor headless'` — passed. Inspection
+  of both parsed `%files` lists confirmed the shared and daemon launchers,
+  no alias, and desktop files only in full. Both parsed installers target the
+  shared router.
+- Stage 2: `python3 scripts/check_naming_span.py src`,
+  `bash -n scripts/verify-release-artifacts.sh`, and `git diff --check` — passed.
 
-**Open decisions and risks:** No design decision is open. Both package flavors
-still expose the old alias until Stage 2. The headless route is covered by a
-simulated missing PySide6 test; actual payload checks remain for Stage 2.
+**Open decisions and risks:** No design decision is open. Native RPM and Debian
+packages and the Flatpak bundle were not built or installed here. Debian build
+tools are unavailable in this environment, and the bundled RPM build needs a
+separate runtime fetch. The wheel, parsed RPM specs, Debian manifests, and
+staged headless payload provide local evidence; Stage 3 must report its own
+artifact checks honestly. Active docs, the About page, and the source TODO
+still contain the old command name. `pylint` remains outstanding.
 
 **Constraints:** Do not launch, stop, or install the desktop application or
 daemon. Use fakes and throwaway D-Bus sessions. Do not start a release. Preserve
@@ -200,5 +229,5 @@ back to a stage that was just completed. The next prompt is:
 
 > Continue the shared-command work on `ft/shared-command` from
 > `docs/plans/shared-command.md`. Read its handoff, `git status`, and recent
-> commits, then complete Stage 2. Update the document with results and give me
+> commits, then complete Stage 3. Update the document with results and give me
 > the prompt for the next conversation.
