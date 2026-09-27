@@ -204,6 +204,42 @@ async def test_the_tick_takes_the_desk_lock():
 
 
 @pytest.mark.asyncio
+async def test_queued_manual_command_expires_before_a_stalled_tick_recovers(monkeypatch):
+    from dbus_fast.errors import DBusError
+    from idasen_companion.daemon import main as main_mod
+
+    d = make_daemon(AsyncMock())
+    d._session = MagicMock(state=AsyncMock(return_value="foreground"))
+    d._manual_move_locked = AsyncMock()
+    monkeypatch.setattr(main_mod, "MANUAL_LOCK_TIMEOUT", 0.02)
+    await d._desk_lock.acquire()
+    try:
+        with pytest.raises(DBusError):
+            await d._manual_move(1.10, "stand")
+    finally:
+        d._desk_lock.release()
+    d._manual_move_locked.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_queued_command_rechecks_seat_before_desk_io():
+    from dbus_fast.errors import DBusError
+
+    d = make_daemon(AsyncMock())
+    states = iter(("foreground", "background"))
+
+    async def seat_state():
+        return next(states)
+
+    d._session = MagicMock(state=seat_state)
+    d._manual_move_locked = AsyncMock()
+    with pytest.raises(DBusError):
+        await d._manual_move(1.10, "stand")
+    d._manual_move_locked.assert_not_awaited()
+    assert not d._desk_lock.locked()
+
+
+@pytest.mark.asyncio
 async def test_stop_is_not_blocked_by_a_move_holding_the_lock():
     """Stop must be able to interrupt a move that holds the lock — that is the
     whole point of it, and taking the lock there would deadlock the one

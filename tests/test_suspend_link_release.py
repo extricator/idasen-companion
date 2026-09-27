@@ -11,13 +11,11 @@ fire on their remaining interval (predicted 49.5s, observed 49.475s). What
 fails is the release they trigger, on a link that has spent the sleep going
 stale underneath it.
 
-Two mechanisms for that staleness were left undistinguished, at the user's
-direction, rather than reproduced live: bleak's cached connection flag going
-false while BlueZ still holds the link (so bleak sends nothing and reports
-success), and bleak's per-connection bus stalling (so the call never returns).
-Everything here is written to hold either way — which is why the resume-side
-reconciliation asks BlueZ rather than the desk handle, and why the disconnect
-is bounded rather than trusted to return.
+Two mechanisms for that staleness were left undistinguished: bleak's cached
+connection flag going false while BlueZ still holds the link, and bleak's
+per-connection bus stalling. The pre-sleep release is bounded; resume checks
+BlueZ but only disconnects this daemon's own Bleak client, since BlueZ does
+not identify the owner of a remaining device link.
 
 No hardware, no BLE stack, no real suspend: the logind signal is delivered by
 hand on both edges and every collaborator is a stub.
@@ -36,7 +34,6 @@ from idasen_companion.daemon.inhibit import (
 )
 
 DESK_MAC = "E1:B2:C3:D4:E5:F6"
-DESK_PATH = "/org/bluez/hci0/dev_E1_B2_C3_D4_E5_F6"
 
 
 class FakeInhibitor:
@@ -58,8 +55,7 @@ class FakeInhibitor:
         self.held = False
 
 
-def _daemon(monkeypatch, *, connected=True, bluez_connected=False,
-            other_daemons=()):
+def _daemon(monkeypatch, *, connected=True, bluez_connected=False):
     """A Daemon with only what the suspend/resume handler touches."""
     config = AppConfig()
     config.desk.mac = DESK_MAC
@@ -70,7 +66,6 @@ def _daemon(monkeypatch, *, connected=True, bluez_connected=False,
     daemon.config = config
     daemon.mock_mode = False
     daemon.desk_connected = connected
-    daemon._held_link_at_sleep = False
     daemon._system_bus = MagicMock()
     daemon.activity_log = MagicMock()
     daemon.machine = MagicMock()
@@ -83,9 +78,6 @@ def _daemon(monkeypatch, *, connected=True, bluez_connected=False,
     daemon.desk.forget_handle = MagicMock()
     monkeypatch.setattr(daemon, "_bluez_property",
                         AsyncMock(return_value=bluez_connected))
-    monkeypatch.setattr(daemon, "_other_companion_daemons",
-                        lambda: list(other_daemons))
-    monkeypatch.setattr(daemon, "_drop_bluez_link", AsyncMock(return_value=True))
     return daemon
 
 
@@ -149,85 +141,41 @@ async def test_a_release_that_raises_still_lets_the_machine_sleep(monkeypatch):
     assert "bus is gone" in _diagnostics(daemon)
 
 
-async def test_whether_the_link_was_ours_is_recorded_before_it_is_released(monkeypatch):
-    """After the resume nothing can tell whose link BlueZ is reporting, so the
-    answer has to be taken while this daemon's own view is still true — and
-    before the release falsifies it."""
-    daemon = _daemon(monkeypatch, connected=True)
-
-    async def disconnect():
-        daemon.desk_connected = False
-
-    daemon.desk.disconnect = AsyncMock(side_effect=disconnect)
-    daemon._on_system_message(_prepare_for_sleep(True))
-    await _settle(daemon)
-    assert daemon._held_link_at_sleep is True
-
-
 # ----- on the way out -----
 
-async def test_a_link_that_survived_the_sleep_is_dropped_through_bluez(monkeypatch):
-    """The safety net, for a sleep that was never announced or a release that
-    did not finish. It goes through BlueZ because the handle's own account of
-    the link is the thing under suspicion."""
+async def test_resume_releases_own_client_when_bluez_reports_connected(monkeypatch):
     daemon = _daemon(monkeypatch, bluez_connected=True)
-    daemon._held_link_at_sleep = True
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    daemon._drop_bluez_link.assert_awaited_once_with(DESK_PATH)
+    daemon.desk.disconnect.assert_awaited_once()
+    assert "cannot identify the link's owner" in _diagnostics(daemon)
 
 
-async def test_the_stale_handle_is_thrown_away_rather_than_reused(monkeypatch):
-    """Dropping the link through BlueZ leaves the handle describing a
-    connection that no longer exists, and bleak answers disconnect() out of
-    that cached view."""
+async def test_resume_leaves_ambiguous_link_alone_even_if_we_had_it_before_sleep(monkeypatch):
+    """The other account may have connected while this one was suspended."""
     daemon = _daemon(monkeypatch, bluez_connected=True)
-    daemon._held_link_at_sleep = True
+    daemon._on_system_message(_prepare_for_sleep(True))
+    await _settle(daemon)
+    daemon.desk.disconnect.reset_mock()
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    assert daemon.desk.forget_handle.called
+    daemon.desk.disconnect.assert_awaited_once()
+    daemon.desk.forget_handle.assert_not_called()
 
 
-async def test_bluez_is_asked_rather_than_the_daemons_own_view(monkeypatch):
-    """The divergence this exists to catch: the daemon believes the link is
-    gone and BlueZ still holds it. Gating on the daemon's own flag would skip
-    exactly the case that matters."""
+async def test_resume_checks_bluez_even_when_our_client_says_disconnected(monkeypatch):
     daemon = _daemon(monkeypatch, connected=False, bluez_connected=True)
-    daemon._held_link_at_sleep = True
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    assert daemon._drop_bluez_link.await_count == 1
+    assert daemon._bluez_property.await_count == 2
+    assert "cannot identify the link's owner" in _diagnostics(daemon)
 
 
-async def test_nothing_is_dropped_when_bluez_says_the_link_is_down(monkeypatch):
+async def test_no_resume_cleanup_when_bluez_says_the_link_is_down(monkeypatch):
     daemon = _daemon(monkeypatch, bluez_connected=False)
-    daemon._held_link_at_sleep = True
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    assert not daemon._drop_bluez_link.called
-    assert not daemon.desk.forget_handle.called
-
-
-async def test_another_accounts_link_is_left_alone(monkeypatch):
-    """One machine, several accounts, one desk is the expected arrangement.
-    With no record of holding the link and another companion daemon running,
-    the connection BlueZ reports is very likely theirs."""
-    daemon = _daemon(monkeypatch, bluez_connected=True, other_daemons=(4242,))
-    daemon._held_link_at_sleep = False
-    daemon._on_system_message(_prepare_for_sleep(False))
-    await _settle(daemon)
-    assert not daemon._drop_bluez_link.called
-    assert not daemon.desk.forget_handle.called
-
-
-async def test_our_own_link_is_reclaimed_even_beside_another_daemon(monkeypatch):
-    """Restraint, not paralysis: a link this daemon is on record as holding
-    when the machine went down is its own to clean up."""
-    daemon = _daemon(monkeypatch, bluez_connected=True, other_daemons=(4242,))
-    daemon._held_link_at_sleep = True
-    daemon._on_system_message(_prepare_for_sleep(False))
-    await _settle(daemon)
-    assert daemon._drop_bluez_link.await_count == 1
+    daemon.desk.disconnect.assert_not_awaited()
 
 
 async def test_a_mock_desk_reconciles_nothing(monkeypatch):
@@ -235,7 +183,6 @@ async def test_a_mock_desk_reconciles_nothing(monkeypatch):
     a fiction."""
     daemon = _daemon(monkeypatch, bluez_connected=True)
     daemon.mock_mode = True
-    daemon._held_link_at_sleep = True
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
     assert not daemon._bluez_property.called

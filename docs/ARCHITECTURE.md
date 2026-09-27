@@ -57,9 +57,19 @@ Ownership is logind's `Session.Active` on the user's Display session
 active session per seat, so foreground is a free, race-free lease — there is
 deliberately **no lock file or cross-user coordination**.
 
-While backgrounded, a daemon does no desk IO *of its own* (no periodic sync, no
-held poll, no startup read, no adapter scan) and releases the BLE link; it still
-obeys explicit D-Bus/CLI requests and hands the link straight back after.
+While backgrounded, a daemon does no desk IO (no periodic sync, held poll,
+startup read, adapter scan, or manual D-Bus/CLI move) and releases the BLE
+link. A manual request checks the seat on arrival and again after waiting for
+the desk lock; requests that wait too long expire instead of replaying later.
+Height reads have a deadline so a stuck BlueZ call cannot hold that lock for
+the life of the daemon. On handoff, the daemon disconnects its Bleak client
+and checks BlueZ for diagnostic purposes. BlueZ does not identify a link's
+client owner, so a remaining device-wide connection is left alone.
+The same rule applies after suspend and failed connection retries: release
+this daemon's Bleak client, retain the BlueZ state for diagnosis, and leave
+an ambiguous device link alone.
+Manual move connects also have a deadline, and Stop during a pending connect
+prevents that move from starting after the connection eventually completes.
 Returning to the seat reconciles unconditionally, since the desk may have moved
 however brief the switch. Every uncertainty degrades to "foreground", so a
 single-user machine is unaffected.
@@ -68,8 +78,8 @@ Statistics are **per-user** by decision — it's *your* sit/stand time — so ea
 account's history omits the other's hours, and a position change found on
 return is still recorded as an external move.
 
-Known limits: multi-seat setups, and daemons with no graphical session, all
-read as foreground. Both are recorded in `TODO.md`.
+Known limit: multi-seat setups are not fully exercised. A daemon with no
+graphical session stands down when logind can identify that state.
 
 ### The four `SEAT_*` verdicts
 

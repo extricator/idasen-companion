@@ -5,6 +5,53 @@ add new items as they're discovered, and **delete** finished ones outright —
 no checkmarks, no Done section. This file is what's left to do; git history is
 the record of what was done.
 
+## Next phase — session-switch recovery and live release validation
+
+- [ ] **Diagnose and fix the KDE Xorg fast-user-switch stall before preparing
+      the next release.** After this desktop session spends roughly 15–20
+      minutes in the background, the Bluetooth indicator can remain engaged
+      and tray/shortcut commands queue without taking effect. Turning Bluetooth
+      off and on releases the queue. On 2026-09-26 the daemon logged a switch
+      away at 10:42:45 and no return until 11:11:43, just after the adapter
+      reset; earlier switches logged multi-minute control-loop overruns. The
+      "desk released" activity line reports the requested handoff, not proof
+      that BlueZ dropped the link. Investigate which await holds the daemon's
+      desk lock (especially the return-side height sync and BLE connect/read),
+      then test bounded recovery with a hanging fake and a real KDE Xorg
+      session switch. Acceptance: the background session releases the link,
+      does no desk I/O, and responds to a command after return without an
+      adapter reset or replaying a backlog of old commands. Do not stop or
+      restart the installed daemon just to collect evidence.
+      Failed switches showed BlueZ connected while Bleak reported disconnected;
+      one also replayed a Sit request after Stop. Reads and move connections
+      now have deadlines, and Stop invalidates a pending move. Session handoff
+      releases this app's Bleak client and logs a remaining BlueZ link; it
+      cannot safely disconnect a device-wide link with no known owner.
+      Instrumented short and roughly 15-minute awake background switches
+      passed, including a suspend and one fresh Stand command after return.
+      Do not repeat the duration check solely to reach exactly 20 minutes.
+      The intermittent orphan's source remains unproven; use the captured
+      traces to diagnose it before calling the stall fixed or preparing the
+      release PR.
+- [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
+      normal version-and-notes PR after the session-switch fix, require its
+      automatic exact-head release-preparation proof, then merge. Confirm that
+      full `main` CI passes on the actual merge SHA, retains one unexpired
+      `release-assets` artifact with five verified packages and provenance,
+      and removes its intermediate artifacts. PR #2's merged-commit run
+      [36251547265](https://github.com/extricator/idasen-companion/actions/runs/36251547265)
+      passed all proofs but correctly retained no candidate for tagged 1.2.0.
+- [ ] **Test Release on that merged commit.** With separate authorization,
+      run a `main` release dry run and check its five-asset assembly without
+      publishing. With explicit publication authorization, dispatch Release
+      in promotion mode using the successful exact-SHA main CI candidate;
+      verify its source-job checks, version, names, notes, provenance and
+      checksums, then inspect the created tag, release body, and downloaded
+      bytes. If the one-day candidate expires, obtain fresh authorized source
+      evidence or explicitly choose the full-rebuild path; never silently
+      switch modes. Record the run IDs and results. A dry run or publication
+      must not be started merely because this checklist exists.
+
 ## 1.0 release gate — manual verification
 
 Run these immediately before the repository and the release go public, against

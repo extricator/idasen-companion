@@ -135,6 +135,30 @@ async def test_a_disconnect_that_never_answers_gives_up_and_frees_the_lock():
     desk._cancel_linger()  # that read armed one; it would stall again
 
 
+async def test_cancellation_resistant_disconnect_still_has_a_deadline():
+    class Resistant(FakeIdasenDesk):
+        def __init__(self):
+            super().__init__()
+            self.finish = asyncio.Event()
+
+        async def disconnect(self):
+            self.disconnect_calls += 1
+            try:
+                await self.finish.wait()
+            except asyncio.CancelledError:
+                await self.finish.wait()
+            self.is_connected = False
+
+    desk, fake = make_desk(Resistant(), disconnect_timeout=0.02, linger=60)
+    await desk.get_height()
+    await asyncio.wait_for(desk.disconnect(), 1)
+    assert fake.disconnect_calls == 1
+    assert desk._desk is None
+    assert desk.last_error and "no reply" in desk.last_error
+    fake.finish.set()
+    await asyncio.sleep(0)
+
+
 async def test_a_stalled_handle_is_written_off_rather_than_reused():
     created = []
 
@@ -150,6 +174,76 @@ async def test_a_stalled_handle_is_written_off_rather_than_reused():
     assert desk.last_error is not None, "a stalled disconnect went unreported"
     await desk.get_height()
     assert len(created) == 2, "reconnected through the handle that stalled"
+
+
+async def test_hanging_height_read_is_bounded_and_releases_the_link():
+    class HangingRead(FakeIdasenDesk):
+        async def get_height(self):
+            await asyncio.Event().wait()
+
+    desk, fake = make_desk(HangingRead(), read_timeout=0.02, linger=60)
+    assert await asyncio.wait_for(desk.get_height(), 1) is None
+    assert fake.disconnect_calls == 1
+    assert not fake.is_connected
+    assert desk.last_error and "no reply" in desk.last_error
+    desk._cancel_linger()
+
+
+async def test_hanging_connect_is_bounded_and_next_read_can_try_again():
+    class HangingConnect(FakeIdasenDesk):
+        async def connect(self):
+            self.connect_calls += 1
+            await asyncio.Event().wait()
+
+    made = []
+
+    def factory(mac, callback):
+        fake = HangingConnect() if not made else FakeIdasenDesk()
+        made.append(fake)
+        return fake
+
+    desk = BleDesk("AA:BB:CC:DD:EE:FF", desk_factory=factory,
+                   retry_delays=(), read_timeout=0.02, linger=60)
+    assert await asyncio.wait_for(desk.get_height(), 1) is None
+    assert await asyncio.wait_for(desk.get_height(), 1) == 0.62
+    assert len(made) == 2
+    await desk.disconnect()
+
+
+async def test_hanging_connect_cannot_leave_a_move_queued_forever():
+    class HangingConnect(FakeIdasenDesk):
+        async def connect(self):
+            self.connect_calls += 1
+            await asyncio.Event().wait()
+
+    desk, fake = make_desk(HangingConnect(), connect_timeout=0.02,
+                           linger=60)
+    assert await asyncio.wait_for(desk.move_to(1.10), 1) is False
+    assert fake.moves == []
+    assert desk.last_error and "no reply" in desk.last_error
+    desk._cancel_linger()
+
+
+async def test_stop_during_connect_prevents_a_late_move():
+    class SlowConnect(FakeIdasenDesk):
+        def __init__(self):
+            super().__init__()
+            self.started = asyncio.Event()
+            self.finish = asyncio.Event()
+
+        async def connect(self):
+            self.started.set()
+            await self.finish.wait()
+            await super().connect()
+
+    desk, fake = make_desk(SlowConnect(), connection_mode="persistent")
+    move = asyncio.create_task(desk.move_to(1.10))
+    await asyncio.wait_for(fake.started.wait(), 1)
+    await desk.stop()
+    fake.finish.set()
+    assert await asyncio.wait_for(move, 1) is False
+    assert fake.moves == []
+    assert not fake.is_connected
 
 
 async def test_forgetting_the_handle_tells_the_daemon_the_link_is_gone():

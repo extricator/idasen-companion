@@ -311,6 +311,10 @@ DAEMON_ERROR_MESSAGES = {
     "ConfigWriteFailed": P_('shared.presentation', "Could not save the configuration. Check that "
                             "your home directory is writable and has free "
                             "space."),
+    "SessionInactive": P_('shared.presentation',
+                          "Switch back to this session before moving the desk."),
+    "DeskBusy": P_('shared.presentation',
+                   "The desk is busy. Please try the command again."),
 }
 
 #: The last step of the error fallback chain: an error name nobody has

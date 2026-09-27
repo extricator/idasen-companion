@@ -9,10 +9,8 @@ found and are covered here:
      in startup for minutes while it reported itself active with every timer
      at zero (the UI's permanent "0m left").
 
-The connect-exhausted hook is covered too, but note it is defence rather than
-a proven fix: the orphaned-link theory for the original outage was tested
-against real hardware and disproven — a new client connects through an unowned
-BlueZ link perfectly well. The cause of that outage remains unknown.
+The connect-exhausted hook captures BlueZ state for diagnosis. It cannot
+safely clear a device-wide link whose client owner is unknown.
 """
 
 import asyncio
@@ -44,59 +42,47 @@ class FakeDesk:
         self.is_connected = False
 
 
-def _ble(reclaim=None, factories=None):
+def _ble(on_exhausted=None, *, connect_ok=False):
     made = []
 
     def factory(mac, cb):
-        desk = factories.pop(0) if factories else FakeDesk()
+        desk = FakeDesk(connect_ok=connect_ok)
         made.append(desk)
         return desk
 
     ble = BleDesk("E1:B2:C3:D4:E5:F6", retry_delays=(0, 0),
-                  desk_factory=factory, on_connect_exhausted=reclaim)
+                  desk_factory=factory, on_connect_exhausted=on_exhausted)
     ble.made = made
     return ble
 
 
-async def test_orphaned_link_is_reclaimed_and_the_connect_retried():
-    dropped = []
+async def test_failed_connect_records_snapshot_once_without_retrying():
+    snapshots = []
 
-    async def reclaim():
-        dropped.append(True)
-        return True
+    async def snapshot():
+        snapshots.append(True)
 
-    # First object never connects; after the link is reclaimed a fresh one does.
-    ble = _ble(reclaim=reclaim,
-               factories=[FakeDesk(), FakeDesk(connect_ok=True)])
-    assert await ble._ensure_connected() is True
-    assert dropped, "stale link was never reclaimed"
-    assert len(ble.made) == 2, "did not build a fresh client after reclaiming"
-
-
-async def test_reclaim_is_only_tried_after_the_retries_are_exhausted():
-    calls = []
-
-    async def reclaim():
-        calls.append(True)
-        return True
-
-    ble = _ble(reclaim=reclaim, factories=[FakeDesk(connect_ok=True)])
-    assert await ble._ensure_connected() is True
-    assert not calls, "reclaimed a link on a connection that worked"
-
-
-async def test_no_reclaim_hook_still_fails_cleanly():
-    ble = _ble(reclaim=None)
+    ble = _ble(on_exhausted=snapshot)
     assert await ble._ensure_connected() is False
+    assert snapshots == [True]
+    assert len(ble.made) == 1
+    assert ble.made[0].connect_calls == 3
 
 
-async def test_nothing_dropped_means_no_pointless_second_attempt():
-    async def reclaim():
-        return False  # BlueZ says the device isn't connected; not our problem
+async def test_snapshot_is_not_taken_when_connect_succeeds():
+    snapshots = []
 
-    ble = _ble(reclaim=reclaim)
+    async def snapshot():
+        snapshots.append(True)
+
+    ble = _ble(on_exhausted=snapshot, connect_ok=True)
+    assert await ble._ensure_connected() is True
+    assert not snapshots
+
+
+async def test_no_snapshot_hook_still_fails_cleanly():
+    ble = _ble()
     assert await ble._ensure_connected() is False
-    assert len(ble.made) == 1, "retried even though no link was dropped"
 
 
 # ----- the daemon releases the desk even when stopped during startup -----
@@ -114,6 +100,7 @@ def _bare_daemon(monkeypatch):
     d = main_mod.Daemon.__new__(main_mod.Daemon)
 
     d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
+    d._ifaces = {}
 
     d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
     d.activity_log = MagicMock()
@@ -318,11 +305,11 @@ async def test_no_link_is_dropped_while_another_users_daemon_runs(monkeypatch):
     dropped = []
     monkeypatch.setattr("idasen_companion.daemon.main.call",
                         lambda *a, **k: dropped.append(a) or _async([]))
-    assert await d._handle_connect_exhausted() is False
+    assert await d._handle_connect_exhausted() is None
     assert not dropped, "dropped a link another user's daemon was using"
 
 
-async def test_link_is_dropped_when_we_are_the_only_daemon(monkeypatch):
+async def test_link_is_left_alone_when_we_are_the_only_daemon(monkeypatch):
     d = _bare_daemon(monkeypatch)
     d._system_bus = MagicMock()
     monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
@@ -331,8 +318,10 @@ async def test_link_is_dropped_when_we_are_the_only_daemon(monkeypatch):
     calls = []
     monkeypatch.setattr("idasen_companion.daemon.main.call",
                         lambda *a, **k: calls.append(a[-1]) or _async([]))
-    assert await d._handle_connect_exhausted() is True
-    assert "Disconnect" in calls
+    assert await d._handle_connect_exhausted() is None
+    assert "Disconnect" not in calls
+    logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
+    assert "cannot identify the link's owner" in logged
 
 
 async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypatch):
@@ -342,7 +331,7 @@ async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypat
     d._system_bus = MagicMock()
     monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
     monkeypatch.setattr(d, "_bluez_property", lambda *a: _async(False))
-    assert await d._handle_connect_exhausted() is False
+    assert await d._handle_connect_exhausted() is None
     # Diagnostic channel: a real warning that means nothing to a desk user.
     logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
     for field in ("connected=", "paired=", "adapter powered=", "scanning="):
@@ -359,6 +348,21 @@ def test_own_process_is_not_counted_as_another_daemon(monkeypatch):
     assert os.getpid() not in d._other_companion_daemons()
 
 
+def test_other_daemon_started_with_python_module_is_detected(monkeypatch, tmp_path):
+    from idasen_companion.daemon import main as main_mod
+
+    candidate = tmp_path / "12345"
+    candidate.mkdir()
+    (candidate / "cmdline").write_bytes(
+        b"/usr/bin/python3\0-I\0-m\0idasen_companion.daemon.main\0")
+    unrelated = tmp_path / "12346"
+    unrelated.mkdir()
+    (unrelated / "cmdline").write_bytes(b"/usr/bin/python3\0other.py\0")
+    monkeypatch.setattr(main_mod, "Path", lambda _: tmp_path)
+    d = main_mod.Daemon.__new__(main_mod.Daemon)
+    assert d._other_companion_daemons() == [12345]
+
+
 # ----- the seat's active session is the lease on the desk -----
 
 async def test_leaving_the_seat_releases_the_desk(monkeypatch):
@@ -372,6 +376,20 @@ async def test_leaving_the_seat_releases_the_desk(monkeypatch):
     d._handle_event(AwayChanged(True), trigger="automation")
     await asyncio.sleep(0)  # the release is scheduled, not awaited inline
     assert d.desk.disconnect.called, "kept the desk after leaving the seat"
+
+
+async def test_handoff_leaves_ambiguous_bluez_link_alone(monkeypatch):
+    d = _bare_daemon(monkeypatch)
+    d.mock_mode = False
+    d.desk.connected = False
+    d.desk.disconnect = AsyncMock()
+    d._bluez_property = AsyncMock(return_value=True)
+
+    await d._release_desk()
+    d.desk.disconnect.assert_awaited_once()
+    d._bluez_property.assert_awaited_once_with(
+        d._bluez_device_path(), "org.bluez.Device1", "Connected")
+    d.activity_log.diag.assert_called_once()
 
 
 async def test_returning_to_the_seat_does_not_drop_the_link(monkeypatch):
@@ -420,22 +438,25 @@ async def test_a_logind_hiccup_is_never_grounds_to_stand_down(monkeypatch):
     assert await d._entitled_to_desk() is True
 
 
-async def test_a_move_asked_for_from_the_background_hands_the_desk_back(monkeypatch):
-    """An explicit request is still honoured while another session is in front
-    — you asked for it — but the link it opens is borrowed, not kept."""
+async def test_a_move_asked_for_from_the_background_does_no_desk_io(monkeypatch):
+    """A request from the old session must not borrow the foreground user's desk."""
+    from dbus_fast.errors import DBusError
+
     d = _bare_daemon(monkeypatch)
     d._current_move_id = 0
     d.moving = False
     d._ifaces = {"desk": MagicMock(), "automation": MagicMock()}
     d.desk.move_to = AsyncMock(return_value=True)
+    d._session.state = AsyncMock(return_value=SEAT_BACKGROUND)
     d.machine = MagicMock()
     d.machine.is_away = True
     d.machine.force_sync = AsyncMock(return_value=[])
     monkeypatch.setattr(d, "_emit_periodic_properties", MagicMock())
 
-    await d._manual_move(1.10, "stand")
-    assert d.desk.move_to.await_count == 1, "an explicit move was refused"
-    assert d.desk.disconnect.called, "held the desk after a borrowed move"
+    with pytest.raises(DBusError):
+        await d._manual_move(1.10, "stand")
+    d.desk.move_to.assert_not_awaited()
+    d.desk.disconnect.assert_not_called()
 
 
 async def _async(value):
