@@ -1,6 +1,6 @@
 # Shared `idasen-companion` command
 
-**Status:** Stages 1–2 complete; Stage 3 pending.
+**Status:** Stages 1–3 complete; ready for PR review.
 **Source task:** `TODO.md` → “Make `idasen-companion` the single user-facing command”.
 **Scope:** Command routing, movement semantics, installed package entry points,
 tests, and user documentation. This document is the handoff between work sessions.
@@ -127,7 +127,7 @@ name. No package is installed and no release workflow is started.
 
 ### 3. Document and verify the first interface
 
-**Status:** Pending. **Depends on:** Stages 1–2.
+**Status:** Complete in `9bd7f86`. **Depends on:** Stages 1–2.
 
 - Update `README.md`, `CONTRIBUTING.md`, Flatpak notes, and
   `docs/MANUAL-TESTING.md` to use the single command and explain repeat
@@ -147,16 +147,14 @@ and the source TODO is closed.
 
 ## Handoff for the next conversation
 
-**Current stage:** 3 — Document and verify the first interface. Stages 1–2 are
-complete.
+**Current stage:** All three stages complete. The branch is ready for PR review.
 
 **Working branch:** `ft/shared-command`. Keep this work and its stage commits
 on that branch; local `main` tracks `origin/main` and should remain untouched.
 
-**Next action:** Complete Stage 3. Update active user documentation and the
-About page's command examples to use `idasen-companion`; explain repeated
-movement gestures and headless no-argument behavior. Close the source TODO,
-run the prescribed local checks, and prepare the PR summary.
+**Next action:** Review the three stage commits and open a PR from
+`ft/shared-command` to `main` when ready. Use the PR summary below. Do not run
+a release or release dry run as part of that review.
 
 **Completed work:** Stage 1 commit `6c99b9d` adds a Qt-free shared command
 router. No arguments and `--window` retain GUI activation; help, version, CLI,
@@ -176,6 +174,13 @@ The release verifier now checks the shared command in both native flavors and
 Flatpak. The Flatpak manifest still uses it as the default GUI command; its
 packaging notes show a CLI subcommand through that default.
 
+Stage 3 commit `9bd7f86` updates README, contributing and Flatpak notes,
+architecture and manual testing docs, and the About page to use the shared
+command. It documents repeat gestures, shortcut examples, and the headless
+no-argument error. The source TODO is checked off. The new About text is in the
+Spanish catalog and compiled translation. Active user guidance no longer
+recommends the removed alias.
+
 **Verification evidence:**
 
 - `.venv/bin/python -m pytest -q tests/test_command.py tests/test_cli.py tests/test_qt_free_imports.py tests/test_daemon_emit.py` — 64 passed.
@@ -183,9 +188,9 @@ packaging notes show a CLI subcommand through that default.
 - `.venv/bin/python -m pytest -q tests/test_packaging.py` — 84 passed.
 - `.venv/bin/python -m pytest -q` — 1623 passed, 1 skipped.
 - `python scripts/check_naming_span.py src` and `git diff --check` — passed.
-- `uvx pylint` could not run: the default cache was read-only, then PyPI DNS
-  failed with cache and tool directories redirected to `/tmp`. Stage 3 still
-  requires this check.
+- Stage 1: `uvx pylint` could not run: the default cache was read-only, then
+  PyPI DNS failed with cache and tool directories redirected to `/tmp`. Stage 3
+  completed the check outside the sandbox, as recorded below.
 - Stage 2: `.venv/bin/python -m pytest -q tests/test_packaging.py tests/test_command.py tests/test_qt_free_imports.py` — 102 passed.
 - Stage 2: `.venv/bin/python -m pytest -q` — 1626 passed, 1 skipped.
 - Stage 2: `python3 -m build --wheel --no-isolation --outdir /tmp/idasen-stage2-wheel` — passed. Wheel metadata lists only `idasen-companion` →
@@ -200,14 +205,31 @@ packaging notes show a CLI subcommand through that default.
   shared router.
 - Stage 2: `python3 scripts/check_naming_span.py src`,
   `bash -n scripts/verify-release-artifacts.sh`, and `git diff --check` — passed.
+- Stage 3: `.venv/bin/python -m pytest -q tests/test_packaging.py tests/test_command.py tests/test_qt_free_imports.py` — 102 passed.
+- Stage 3: `dbus-run-session -- .venv/bin/python -m pytest -q tests/test_cli_integration.py` — 1 passed on a throwaway bus outside the filesystem sandbox.
+- Stage 3: `.venv/bin/python -m pytest -q` — 1626 passed, 1 skipped, both before and after the Spanish catalog update.
+- Stage 3: `python scripts/check_naming_span.py src` — passed.
+- Stage 3: `UV_CACHE_DIR=/tmp/idasen-uv-cache UV_TOOL_DIR=/tmp/idasen-uv-tools uvx pylint src/idasen_companion` — 10.00/10 outside the sandbox; the default cache was read-only.
+- Stage 3: `PATH="$PWD/.venv/bin:$PATH" bash scripts/build-translations.sh` — passed; Spanish text and compiled catalog updated.
+- Stage 3: `PIP_CACHE_DIR=/tmp/idasen-pip-cache PYTHON=python3 bash scripts/build-dist.sh` — passed outside the network-restricted sandbox, including tracked sdist members, size ceiling, and compiled catalog checks (213 members; 730147 bytes). `PYTHON=.venv/bin/python` first failed because that venv lacks `build`; system Python inside the sandbox then failed to fetch isolated `setuptools` due to DNS restrictions.
+- Stage 3: `git diff --check` — passed. The commit hook's canary and staged secret scan passed for `9bd7f86`.
 
-**Open decisions and risks:** No design decision is open. Native RPM and Debian
-packages and the Flatpak bundle were not built or installed here. Debian build
-tools are unavailable in this environment, and the bundled RPM build needs a
-separate runtime fetch. The wheel, parsed RPM specs, Debian manifests, and
-staged headless payload provide local evidence; Stage 3 must report its own
-artifact checks honestly. Active docs, the About page, and the source TODO
-still contain the old command name. `pylint` remains outstanding.
+**PR summary:** Make `idasen-companion` the only installed user command in the
+full and headless packages. Route GUI launches through a Qt-free entry module;
+CLI subcommands, help, version, and syntax errors do not import Qt. Route
+`toggle`, `sit`, and `stand` through the daemon's repeat-aware `GestureMove`;
+keep `stop` and named presets direct. Remove the old alias from wheel, RPM,
+Debian, and Flatpak-facing guidance. Document the command, shortcut semantics,
+and headless behavior in English and Spanish. Local unit, integration,
+packaging, lint, naming, translation, and distribution checks passed.
+
+**Open decisions and risks:** No design decision is open. Stage 3 built the
+sdist and wheel, but native RPM and Debian packages and the Flatpak bundle
+were not built or installed here. Debian build tools are unavailable in this
+environment, and the bundled RPM build needs a separate runtime fetch. The
+Stage 2 wheel, parsed RPM specs, Debian manifests, and staged headless payload
+provide local evidence; real installed-package behavior and keyboard shortcuts
+remain on the manual checklist. No release dry run was started.
 
 **Constraints:** Do not launch, stop, or install the desktop application or
 daemon. Use fakes and throwaway D-Bus sessions. Do not start a release. Preserve
@@ -227,7 +249,8 @@ commits before acting.
 Write the prompt from the handoff as it stands *after* the part; do not point
 back to a stage that was just completed. The next prompt is:
 
-> Continue the shared-command work on `ft/shared-command` from
+> Review the completed shared-command work on `ft/shared-command` from
 > `docs/plans/shared-command.md`. Read its handoff, `git status`, and recent
-> commits, then complete Stage 3. Update the document with results and give me
-> the prompt for the next conversation.
+> commits, then review the branch against `main` and open its PR using the
+> recorded summary and verification limits. Keep the repository private; do
+> not start a release or release dry run.
