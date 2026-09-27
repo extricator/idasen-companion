@@ -1,6 +1,6 @@
 # Shared `idasen-companion` command
 
-**Status:** Design agreed; implementation not started.
+**Status:** Stage 1 complete; Stage 2 pending.
 **Source task:** `TODO.md` → “Make `idasen-companion` the single user-facing command”.
 **Scope:** Command routing, movement semantics, installed package entry points,
 tests, and user documentation. This document is the handoff between work sessions.
@@ -46,7 +46,7 @@ The existing config key `tray_repeat_move` also governs keyboard gestures. Its
 name is historical. Renaming the config schema is outside this command-routing
 work; document the behavior accurately when updating the user guide.
 
-## Current implementation
+## Baseline before Stage 1
 
 - `pyproject.toml` maps `idasen-companion` to `gui.main:main`, which imports
   PySide6 at module import time. It maps `idasen-companion-cli` to `cli:main`.
@@ -91,7 +91,7 @@ record the commit and any remaining risk in the handoff.
 
 ### 1. Route one command
 
-**Status:** Pending.
+**Status:** Complete in `6c99b9d`.
 
 - Add the Qt-free top-level entry module and point `[project.scripts]` at it.
 - Keep the GUI's no-argument and `--window` behavior, including single-instance
@@ -147,21 +147,38 @@ and the source TODO is closed.
 
 ## Handoff for the next conversation
 
-**Current stage:** 1 — Route one command. Nothing in this plan has been
-implemented yet.
+**Current stage:** 2 — Align full and headless packages. Stage 1 is complete.
 
 **Working branch:** `ft/shared-command`. Keep this work and its stage commits
 on that branch; local `main` tracks `origin/main` and should remain untouched.
 
-**Next action:** Inspect the current entry points and tests, then implement
-Stage 1. Keep the GUI import behind the no-argument/`--window` branch. Use
-`GestureMove` for all three movement gestures.
+**Next action:** Complete Stage 2. Inspect installed RPM and Debian payloads,
+remove `idasen-companion-cli` from both flavors and `[project.scripts]`, and
+install the shared `idasen-companion` command in both. Verify full and headless
+entry paths without installing or launching the application.
 
-**Completed work:** Design and stage boundaries recorded here. No code or
-package behavior changed. The single repeat-aware meaning for `toggle`, `sit`,
-and `stand`, and the direct behavior of `preset NAME` and `stop`, are explicit.
+**Completed work:** Stage 1 commit `6c99b9d` adds a Qt-free shared command
+router. No arguments and `--window` retain GUI activation; help, version, CLI,
+and usage-error paths remain Qt-free. `sit`, `stand`, and `toggle` now call
+`Desk1.GestureMove`; `stop` and `preset NAME` retain their direct methods. The
+CLI alias remains until Stage 2. Focused routing, method, isolated-import, and
+throwaway D-Bus shortcut tests were added or updated. The daemon's existing
+fake-based repeat tests pass.
 
-**Verification evidence:** None yet; this is a planning-only change.
+**Verification evidence:**
+
+- `.venv/bin/python -m pytest -q tests/test_command.py tests/test_cli.py tests/test_qt_free_imports.py tests/test_daemon_emit.py` — 64 passed.
+- `dbus-run-session -- .venv/bin/python -m pytest -q tests/test_cli_integration.py` — 1 passed on a throwaway bus outside the filesystem sandbox, which blocked its socket.
+- `.venv/bin/python -m pytest -q tests/test_packaging.py` — 84 passed.
+- `.venv/bin/python -m pytest -q` — 1623 passed, 1 skipped.
+- `python scripts/check_naming_span.py src` and `git diff --check` — passed.
+- `uvx pylint` could not run: the default cache was read-only, then PyPI DNS
+  failed with cache and tool directories redirected to `/tmp`. Stage 3 still
+  requires this check.
+
+**Open decisions and risks:** No design decision is open. Both package flavors
+still expose the old alias until Stage 2. The headless route is covered by a
+simulated missing PySide6 test; actual payload checks remain for Stage 2.
 
 **Constraints:** Do not launch, stop, or install the desktop application or
 daemon. Use fakes and throwaway D-Bus sessions. Do not start a release. Preserve
@@ -179,10 +196,9 @@ name the working branch, this document, the current stage or next unfinished
 task, and tell the next agent to read the handoff, git status, and recent
 commits before acting.
 Write the prompt from the handoff as it stands *after* the part; do not point
-back to a stage that was just completed. For this initial planning-only part,
-the prompt is:
+back to a stage that was just completed. The next prompt is:
 
 > Continue the shared-command work on `ft/shared-command` from
 > `docs/plans/shared-command.md`. Read its handoff, `git status`, and recent
-> commits, then complete Stage 1. Update the document with results and give me
+> commits, then complete Stage 2. Update the document with results and give me
 > the prompt for the next conversation.
