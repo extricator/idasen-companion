@@ -174,7 +174,6 @@ class Daemon:
         # account's daemon — BlueZ reports that the desk is connected, not to
         # whom — and dropping someone else's is exactly the tug of war the
         # connect-failure recovery already declines to start.
-        self._held_link_at_sleep = False
 
     # ----- setup -----
 
@@ -537,12 +536,6 @@ class Daemon:
         if (message.interface == "org.freedesktop.login1.Manager"
                 and message.member == "PrepareForSleep" and message.body):
             if message.body[0]:
-                # Recorded here, synchronously, while this daemon's own view of
-                # the link is still fresh — the release below is about to
-                # falsify it. It is what lets the resume-side reconciliation
-                # tell a leftover link of its own from one belonging to another
-                # account's daemon, which is never this daemon's to drop.
-                self._held_link_at_sleep = self.desk_connected
                 self.activity_log.emit(logmsg.SUSPEND_SUSPENDING)
                 self._spawn(self._release_desk_before_sleep(),
                             "handing the desk back before the machine sleeps")
@@ -574,8 +567,7 @@ class Daemon:
             "warning",
             "No logind sleep-delay lock could be taken, so there is not "
             "enough time to release the desk's Bluetooth link before the "
-            "machine sleeps; a link left up will be reconciled against BlueZ "
-            "on resume instead.")
+            "machine sleeps; the link state will be checked on resume.")
 
     async def _release_desk_before_sleep(self) -> None:
         """Hand the desk back while the machine is still awake.
@@ -603,7 +595,7 @@ class Daemon:
                 "warning",
                 f"Could not hand the desk back within {budget:g}s of the "
                 f"system announcing a sleep; the link may survive it, and "
-                f"will be reconciled against BlueZ on resume.")
+                f"will be checked on resume.")
         except Exception as error:
             self.activity_log.diag(
                 "warning",
@@ -614,19 +606,11 @@ class Daemon:
             self._sleep_inhibitor.release()
 
     async def _recover_link_after_resume(self) -> None:
-        """Reconcile the desk's Bluetooth link against BlueZ after a resume.
+        """Check for a surviving link and release this daemon's Bleak client.
 
-        The safety net for the two cases the pre-sleep release cannot cover: a
-        sleep this daemon was never told about, and one where the release did
-        not finish inside its budget.
-
-        It asks BlueZ rather than the desk handle on purpose. One of the two
-        ways a link can survive a sleep — deliberately left undistinguished,
-        see the debug session — is bleak's cached connection flag going false
-        while BlueZ still holds the link, and in that state bleak's own
-        ``disconnect()`` sends nothing on the wire and reports success.
-        ``Device1.Connected`` is the only account of the link that cannot be
-        stale in that direction.
+        BlueZ reports device connectivity, not which client owns it. Another
+        account may connect during the sleep, so a pre-sleep snapshot cannot
+        authorize a device-wide disconnect after resume.
         """
         if self.mock_mode or not self.config.desk.mac:
             return
@@ -634,25 +618,13 @@ class Daemon:
         if not await self._bluez_property(path, "org.bluez.Device1",
                                           "Connected"):
             return
-        if not self._held_link_at_sleep and self._other_companion_daemons():
-            # Not this daemon's to drop: another account's daemon is running
-            # and this one has no record of holding the link when the machine
-            # went down. Same restraint as the connect-failure recovery.
+        await self.desk.disconnect()
+        if await self._bluez_property(path, "org.bluez.Device1", "Connected"):
             self.activity_log.diag(
-                "info",
-                "The desk is connected after the resume but this daemon did "
-                "not hold that link; leaving it to whoever does.")
-            return
-        self.activity_log.diag(
-            "warning",
-            "The desk's Bluetooth link survived the suspend; dropping it "
-            "through BlueZ and starting the next connection fresh.")
-        await self._drop_bluez_link(path)
-        # Even had BlueZ refused, the handle describes a link that spent the
-        # sleep out of this daemon's sight. Outside mock mode the desk is
-        # always a BleDesk, the same narrowing reload_config makes.
-        cast("BleDesk", self.desk).forget_handle()
-        self._held_link_at_sleep = False
+                "warning",
+                "The desk is still connected after resume and this daemon's "
+                "Bleak client was released; BlueZ cannot identify the link's "
+                "owner, so it was left alone.")
 
     def _scheduled_target(self) -> int:
         """The cycle length the user is now counting toward, or 0 if none is.
@@ -1681,14 +1653,14 @@ class Daemon:
         return body[0].value if body else None
 
     async def _handle_connect_exhausted(self) -> bool:
-        """Every connect attempt failed. Record the state of the Bluetooth
-        stack, then decide whether anything can safely be cleared.
+        """Every connect attempt failed. Record the Bluetooth stack state.
 
         The snapshot is the primary job. A desk that went unreachable for 45
         minutes could not be explained afterwards because nothing recorded what
         BlueZ thought at the time; this makes a repeat diagnose itself.
 
-        Returns whether something changed that is worth retrying for.
+        A BlueZ link has no discoverable client owner, so this diagnostic hook
+        never clears it or requests another retry.
         """
         if not self.config.desk.mac:
             return False
@@ -1731,29 +1703,9 @@ class Daemon:
 
         self.activity_log.diag(
             "warning",
-            "The desk is connected but unreachable from here, with no other "
-            "companion daemon running; dropping that connection and retrying.")
-        return await self._drop_bluez_link(path)
-
-    async def _drop_bluez_link(self, path: str) -> bool:
-        """Ask BlueZ itself to drop the desk's connection. Returns success.
-
-        Deliberately not routed through the desk handle. Every caller is a
-        case where the handle's own account of the link is the thing not to be
-        trusted: one has no handle for that link at all, and the other has one
-        that may believe it is already disconnected — in which case bleak
-        sends nothing on the wire and reports success.
-        """
-        if self._system_bus is None:
-            return False
-        try:
-            await call(self._system_bus, "org.bluez", path,
-                       "org.bluez.Device1", "Disconnect")
-        except (DBusCallError, DBusError) as error:
-            self.activity_log.diag("warning",
-                           f"Could not drop the desk connection: {error}")
-            return False
-        return True
+            "The desk is connected but unreachable from here. BlueZ cannot "
+            "identify the link's owner, so it was left alone.")
+        return False
 
     async def _bluez_known_desks(self) -> list[tuple[str, str]]:
         """Desks already paired via the system Bluetooth settings."""

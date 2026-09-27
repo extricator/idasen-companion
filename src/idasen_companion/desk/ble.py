@@ -202,18 +202,9 @@ class BleDesk:
         if await self._connect_with_retries():
             return True
 
-        # Every attempt failed. Hand off to the daemon to snapshot the stack
-        # (that snapshot is the point — a repeat of the outage this hook was
-        # written for should explain itself) and, if it finds something it can
-        # safely clear, say so. Only then do we build a fresh client and try
-        # once more.
-        #
-        # Note this is *defence, not diagnosis*: an unowned BlueZ link was the
-        # suspected cause of a desk being unreachable for 45 minutes, but
-        # reproducing that state showed a new client connects through it
-        # perfectly well (BlueZ refcounts Device1.Connect per client). The real
-        # cause is still unknown. This path costs nothing in the common case
-        # and may help a genuinely wedged one; it is not a proven fix.
+        # Every attempt failed. Let the daemon snapshot the Bluetooth stack
+        # for diagnosis. The hook can request a retry if it safely changes
+        # something, but the daemon never drops an ambiguous BlueZ device link.
         if (self._on_connect_exhausted is not None
                 and await self._on_connect_exhausted()):
             self._desk = self._desk_factory(self.mac, self._handle_disconnect)
@@ -295,10 +286,8 @@ class BleDesk:
     def forget_handle(self) -> None:
         """Throw the desk handle away without talking to it.
 
-        For the cases where there is nothing left to negotiate: the link has
-        already been dropped by other means (BlueZ asked directly), or the
-        handle has stopped answering at all. Both leave an object whose idea
-        of the link no longer describes one — and bleak answers
+        For a handle that has stopped answering at all. Its idea of the link
+        may no longer describe BlueZ's state, and bleak answers
         ``disconnect()`` out of its own cached connection flag, so a handle
         that believes it is already disconnected sends nothing on the wire and
         reports success. ``_ensure_connected`` builds a fresh one, which is

@@ -323,7 +323,7 @@ async def test_no_link_is_dropped_while_another_users_daemon_runs(monkeypatch):
     assert not dropped, "dropped a link another user's daemon was using"
 
 
-async def test_link_is_dropped_when_we_are_the_only_daemon(monkeypatch):
+async def test_link_is_left_alone_when_we_are_the_only_daemon(monkeypatch):
     d = _bare_daemon(monkeypatch)
     d._system_bus = MagicMock()
     monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
@@ -332,8 +332,10 @@ async def test_link_is_dropped_when_we_are_the_only_daemon(monkeypatch):
     calls = []
     monkeypatch.setattr("idasen_companion.daemon.main.call",
                         lambda *a, **k: calls.append(a[-1]) or _async([]))
-    assert await d._handle_connect_exhausted() is True
-    assert "Disconnect" in calls
+    assert await d._handle_connect_exhausted() is False
+    assert "Disconnect" not in calls
+    logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
+    assert "cannot identify the link's owner" in logged
 
 
 async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypatch):
@@ -396,13 +398,11 @@ async def test_handoff_leaves_ambiguous_bluez_link_alone(monkeypatch):
     d.desk.connected = False
     d.desk.disconnect = AsyncMock()
     d._bluez_property = AsyncMock(return_value=True)
-    d._drop_bluez_link = AsyncMock()
 
     await d._release_desk()
     d.desk.disconnect.assert_awaited_once()
     d._bluez_property.assert_awaited_once_with(
         d._bluez_device_path(), "org.bluez.Device1", "Connected")
-    d._drop_bluez_link.assert_not_awaited()
     d.activity_log.diag.assert_called_once()
 
 
