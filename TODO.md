@@ -30,10 +30,9 @@ the record of what was done.
       which app owns the link, and Device1.Disconnect affects the whole device.
       The handoff now only releases its own Bleak client and records any
       remaining BlueZ link for diagnosis. Identify why a link reappears around
-      the other KDE session's startup, fix it through the owning client or
-      session, then repeat short and roughly 20-minute switch tests. See
-      `docs/handoff-2026-09-26-session-switch-release-validation.md` for the
-      trace and test state. Do not prepare the release PR before acceptance.
+      the other KDE session's startup using the captured traces, then fix it
+      through the owning client or session. Do not prepare the release PR
+      before acceptance.
       The latest instrumented run stayed disconnected for about 15 minutes
       awake in the background (within the stated 15–20-minute window), then
       the machine suspended for about 24 minutes. It resumed and accepted one
