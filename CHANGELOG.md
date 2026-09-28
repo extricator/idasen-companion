@@ -6,6 +6,25 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-27
+
+### Changed
+
+- The installed `idasen-companion` command now opens the desktop app or runs
+  Qt-free desk commands from the same entry point. Full packages support both;
+  headless packages provide the command-line interface and daemon.
+- Release preparation now gets complete package and portability checks on the
+  exact pull-request commit. A new version merged to `main` produces a verified
+  five-package candidate that can be promoted by the release workflow.
+
+### Fixed
+
+- Bluetooth operations now have time bounds, and Stop prevents a pending move
+  from resuming. Session handoff releases this app's connection without
+  disconnecting other Bluetooth clients.
+- Release asset verification is included in source distributions, so package
+  builds can run the same checks.
+
 ## [1.2.0] - 2026-09-25
 
 ### Added
