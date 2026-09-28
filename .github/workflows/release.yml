@@ -441,7 +441,7 @@ jobs:
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             "${TARGET[@]}" \
-            --title "Idasen Companion $TAG" \
+            --title "$TAG" \
             --notes-file release-notes.md \
             "${RPM[0]}" \
             "${RPM_HEADLESS[0]}" \
@@ -474,7 +474,7 @@ jobs:
           body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
           [ "$body" = "$(cat release-notes.md)" ] || { echo 'Published release notes differ.' >&2; exit 1; }
           title=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)
-          [ "$title" = "Idasen Companion $TAG" ] || { echo 'Published release title differs.' >&2; exit 1; }
+          [ "$title" = "$TAG" ] || { echo 'Published release title differs.' >&2; exit 1; }
 
   cleanup:
     name: Retire consumed release artifacts

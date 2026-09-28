@@ -354,7 +354,7 @@ Poll for a new workflow-dispatch run on the exact `RELEASE_SHA`, absent from
 only a successful `main` CI release candidate or successful `main` release
 dry run from the same current SHA. It rechecks all proof jobs, asset names,
 release notes, provenance, and checksums. The workflow then publishes and
-verifies the tag, `Idasen Companion vX.Y.Z` release title, release body, and six
+verifies the tag, `vX.Y.Z` release title, release body, and six
 downloadable files before retiring the source artifact. Independently inspect
 the release URL, title, and asset list.
 
