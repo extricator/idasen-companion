@@ -278,8 +278,9 @@ always remains a separate, explicitly authorized action.
 
    The release carries full/headless RPMs, full/headless `.deb` packages, the
    versioned full `.flatpak` bundle, and `SHA256SUMS`. Its body is the matching
-   `CHANGELOG.md` section.
-6. **Check what shipped.** Download the assets and, in that directory:
+   `CHANGELOG.md` section. Its title is `vX.Y.Z`.
+6. **Check what shipped.** Confirm the GitHub Release title is
+   `vX.Y.Z`. Download the assets and, in that directory:
 
    ```bash
    sha256sum --ignore-missing -c SHA256SUMS

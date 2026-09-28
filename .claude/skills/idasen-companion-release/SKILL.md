@@ -354,8 +354,9 @@ Poll for a new workflow-dispatch run on the exact `RELEASE_SHA`, absent from
 only a successful `main` CI release candidate or successful `main` release
 dry run from the same current SHA. It rechecks all proof jobs, asset names,
 release notes, provenance, and checksums. The workflow then publishes and
-verifies the tag, release body, and six downloadable files before retiring
-the source artifact. Independently inspect the release URL and asset list.
+verifies the tag, `vX.Y.Z` release title, release body, and six
+downloadable files before retiring the source artifact. Independently inspect
+the release URL, title, and asset list.
 
 If the candidate artifact has expired or promotion fails closed, stop and
 explain why. With user authorization, choose the explicit full-rebuild path;
