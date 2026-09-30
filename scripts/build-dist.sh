@@ -105,7 +105,8 @@ fi
 
 echo ">> Checking the wheel contains the compiled app catalogs..."
 "$PYTHON" - "$WHEEL" <<'PYEOF'
-import fnmatch
+from pathlib import Path
+import subprocess
 import sys
 import zipfile
 
@@ -117,10 +118,18 @@ wheelpath = sys.argv[1]
 mo_pattern = "idasen_companion/locale/*/LC_MESSAGES/idasen_companion.mo"
 
 with zipfile.ZipFile(wheelpath) as wheel:
-    names = wheel.namelist()
+    names = set(wheel.namelist())
 
-missing = ([] if any(fnmatch.fnmatch(name, mo_pattern) for name in names)
-           else [mo_pattern])
+catalogs = subprocess.run(
+    ["git", "ls-files", "--", "po/*.po"],
+    capture_output=True, text=True, check=True,
+).stdout.splitlines()
+if not catalogs:
+    print("error: no tracked translation sources in po/", file=sys.stderr)
+    sys.exit(1)
+
+expected = {mo_pattern.replace("*", Path(catalog).stem) for catalog in catalogs}
+missing = sorted(expected - names)
 
 if missing:
     print("error: wheel is missing compiled catalog(s):", file=sys.stderr)

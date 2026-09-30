@@ -10,7 +10,9 @@ import importlib.util
 import re
 import subprocess
 import tomllib
+import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from typing import NamedTuple
 
 import pytest
@@ -1896,6 +1898,24 @@ def test_build_dist_wheel_check_matches_package_data():
     rel = asserted.removeprefix("idasen_companion/")
     assert any(fnmatch.fnmatch(rel, pattern) for pattern in package_data), (
         f"{asserted} matches none of pyproject.toml's package-data patterns")
+
+
+def test_build_dist_rejects_wheel_missing_one_tracked_catalog(tmp_path, monkeypatch, capsys):
+    """One surviving catalog must not make a partly translated wheel pass."""
+    script = read(BUILD_DIST)
+    check = script.split('"$PYTHON" - "$WHEEL" <<\'PYEOF\'\n', 1)[1].split("\nPYEOF", 1)[0]
+    wheel = tmp_path / "fixture.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(
+            "idasen_companion/locale/en/LC_MESSAGES/idasen_companion.mo", b"catalog")
+    monkeypatch.setattr(subprocess, "run", lambda *_args, **_kwargs:
+                        SimpleNamespace(stdout="po/en.po\npo/es.po\n"))
+    monkeypatch.setattr("sys.argv", ["wheel-check", str(wheel)])
+
+    with pytest.raises(SystemExit) as failure:
+        exec(compile(check, str(BUILD_DIST), "exec"), {"__name__": "__main__"})
+    assert failure.value.code == 1
+    assert "locale/es/LC_MESSAGES/idasen_companion.mo" in capsys.readouterr().err
 
 
 def load_trimmer():
