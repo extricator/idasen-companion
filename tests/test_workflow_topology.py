@@ -158,6 +158,22 @@ def test_main_ci_assembles_candidate_before_retiring_package_artifacts():
     assert "release-assets" not in cleanup["steps"][0]["run"]
 
 
+def test_release_rebuild_and_main_ci_use_the_same_assembler():
+    ci = workflow("ci.yml")
+    release = workflow("release.yml")
+    assembly = 'python3 scripts/release-assets.py assemble . "$VERSION" "$GITHUB_SHA" "$GITHUB_RUN_ID"'
+    assert any(step.get("run") == assembly for step in ci["jobs"]["candidate"]["steps"])
+    package = release["jobs"]["package"]
+    assert package["name"] == "Assemble and checksum the release assets"
+    assert any(step.get("run") == assembly and
+               step.get("env", {}).get("VERSION") == "${{ needs.gate.outputs.version }}"
+               for step in package["steps"])
+    assert not any("SHA256SUMS" in step.get("run", "") or
+                   "release-notes.md" in step.get("run", "") or
+                   "provenance.json" in step.get("run", "")
+                   for step in package["steps"])
+
+
 def test_every_runnable_job_has_a_timeout():
     for name in ("ci.yml", "verify.yml", "packages.yml", "release.yml"):
         for job in workflow(name)["jobs"].values():

@@ -154,12 +154,6 @@ jobs:
     if: needs.gate.outputs.mode != 'promote'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    outputs:
-      rpm: ${{ steps.assets.outputs.rpm }}
-      rpm_headless: ${{ steps.assets.outputs.rpm_headless }}
-      deb: ${{ steps.assets.outputs.deb }}
-      deb_headless: ${{ steps.assets.outputs.deb_headless }}
-      flatpak: ${{ steps.assets.outputs.flatpak }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -197,137 +191,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y podman flatpak
 
-      - name: Resolve each asset's filename and checksum the five
-        id: assets
-        run: |
-          VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); import idasen_companion; print(idasen_companion.__version__)")
-          cd artifacts
-          shopt -s nullglob
-
-          # rpmbuild and dpkg-buildpackage choose their own release suffixes,
-          # so neither name can be written out ahead of time. Resolve each and
-          # refuse to continue unless the match is unique: the unshipped split
-          # spec builds a package of a very similar name, which must never
-          # reach a release by accident.
-          rpm_matches=(idasen-companion-[0-9]*.rpm)
-          if [ "${#rpm_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one full RPM, found ${#rpm_matches[@]}: ${rpm_matches[*]}" >&2
-            exit 1
-          fi
-          rpm_headless_matches=(idasen-companion-headless-*.rpm)
-          if [ "${#rpm_headless_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one headless RPM, found ${#rpm_headless_matches[@]}: ${rpm_headless_matches[*]}" >&2
-            exit 1
-          fi
-          deb_matches=(idasen-companion_*.deb)
-          if [ "${#deb_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one full .deb, found ${#deb_matches[@]}: ${deb_matches[*]}" >&2
-            exit 1
-          fi
-          deb_headless_matches=(idasen-companion-headless_*.deb)
-          if [ "${#deb_headless_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one headless .deb, found ${#deb_headless_matches[@]}: ${deb_headless_matches[*]}" >&2
-            exit 1
-          fi
-          RPM="${rpm_matches[0]}"
-          RPM_HEADLESS="${rpm_headless_matches[0]}"
-          DEB="${deb_matches[0]}"
-          DEB_HEADLESS="${deb_headless_matches[0]}"
-
-          flatpak_matches=(idasen-companion-[0-9]*.flatpak)
-          if [ "${#flatpak_matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one Flatpak, found ${#flatpak_matches[@]}: ${flatpak_matches[*]}" >&2
-            exit 1
-          fi
-          FLATPAK="${flatpak_matches[0]}"
-
-          cd ..
-          bash scripts/verify-release-artifacts.sh artifacts
-          cd artifacts
-
-          # One checksum file for all five, written beside them.
-          sha256sum "$RPM" "$RPM_HEADLESS" "$DEB" "$DEB_HEADLESS" "$FLATPAK" > SHA256SUMS
-          cat SHA256SUMS
-
-          {
-            echo "VERSION=$VERSION"
-            echo "RPM=$RPM"
-            echo "RPM_HEADLESS=$RPM_HEADLESS"
-            echo "DEB=$DEB"
-            echo "DEB_HEADLESS=$DEB_HEADLESS"
-            echo "FLATPAK=$FLATPAK"
-          } >> "$GITHUB_ENV"
-
-          # The publish job is a separate job, so the environment above does not
-          # reach it. Hand the resolved names over as job outputs instead, and
-          # let it name each asset explicitly rather than re-globbing them.
-          {
-            echo "rpm=$RPM"
-            echo "rpm_headless=$RPM_HEADLESS"
-            echo "deb=$DEB"
-            echo "deb_headless=$DEB_HEADLESS"
-            echo "flatpak=$FLATPAK"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Write the release body from the changelog
-        env:
-          TAG: ${{ needs.gate.outputs.tag }}
-        run: |
-          # Notes only. Installing and verifying are documented once, in the
-          # README, and linked at this tag rather than restated here.
-          #
-          # Linked at the tag, not at the ref the run started from: a dispatch
-          # runs on the default branch, so using that would point every release
-          # body at a moving target instead of the tree it describes.
-          scripts/extract-changelog.sh "$VERSION" > release-notes.md
-          {
-            echo
-            echo "Installation and checksum verification: see the [README](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/README.md#install)."
-          } >> release-notes.md
-
-          # The nearest tag *below* this one, not merely the newest other tag.
-          # Those differ the moment a patch is cut on an older line: with
-          # v2.0.0 already out, the newest other tag for a v1.1.1 release is
-          # v2.0.0, and a comparison against it reads backwards.
-          #
-          # This release's tag is added to the list before sorting, because
-          # the two triggers disagree about whether it exists yet -- a tag
-          # push arrives with it already pointing at HEAD, a dispatch creates
-          # it later, in the publish job. Adding it either way makes the
-          # neighbour below it well defined on both paths.
-          #
-          # awk ends the pipeline, and its status is the pipeline's, so a
-          # release with nothing below it leaves this empty rather than
-          # failing the step.
-          PREVIOUS=$(
-            { git tag --list 'v*'; echo "$TAG"; } \
-              | sort -u -V -r \
-              | awk -v t="$TAG" '$0 == t { seen = 1; next } seen { print; exit }'
-          )
-          if [ -n "$PREVIOUS" ]; then
-            {
-              echo
-              echo "**Full changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS}...${TAG}"
-            } >> release-notes.md
-          else
-            # The first release has nothing to compare against. Say so in the
-            # log rather than emit a link to a range that cannot resolve.
-            echo "No tag older than $TAG; the body omits the comparison." >&2
-          fi
-          cat release-notes.md
-
-      - name: Record the assembled set's source
+      - name: Verify and assemble the release assets
         env:
           VERSION: ${{ needs.gate.outputs.version }}
-        run: |
-          python3 - <<'PY'
-          import json, os
-          with open('provenance.json', 'w') as output:
-              json.dump({'run_id': int(os.environ['GITHUB_RUN_ID']),
-                         'sha': os.environ['GITHUB_SHA'],
-                         'version': os.environ['VERSION'],
-                         'candidate': True}, output)
-          PY
+        run: python3 scripts/release-assets.py assemble . "$VERSION" "$GITHUB_SHA" "$GITHUB_RUN_ID"
 
       - name: Hand the assembled assets to the publish job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
