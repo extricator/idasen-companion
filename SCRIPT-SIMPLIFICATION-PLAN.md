@@ -84,8 +84,9 @@ local tests and the eventual PR's normal checks provide its review evidence.
 
 ### 3. Correct the wheel catalog assertion
 
-`scripts/build-dist.sh` currently claims to require both compiled catalogs
-but passes if it finds any one `.mo` file. Derive the expected language set
+`scripts/build-dist.sh` currently claims to require both compiled catalogs,
+but only `po/es.po` is tracked today and its check passes if it finds any one
+`.mo` file. Derive the expected language set
 from tracked `po/*.po` files and require each corresponding wheel member.
 Fail if the expected set is empty. Add a small test that removes one catalog
 from a fixture wheel and proves the check fails, then run the distribution
@@ -109,15 +110,30 @@ deletion.
    distribution content locally. Let the normal PR run execute the full test
    suite. Run `actionlint`, shell syntax checks, and `git diff --check` where
    available. Do not start the desktop app or daemon locally.
-3. Build the sdist and wheel with `scripts/build-dist.sh`; confirm both
-   compiled catalogs are present and that the source archive remains under
+3. Build the sdist and wheel with `scripts/build-dist.sh`; confirm every
+   tracked translation source has a compiled catalog and the archive remains under
    its size ceiling. Do not build or launch the desktop app or daemon.
 4. Review the diff against the release routes and holds above. Open a normal
    PR from the implementation branch when implementation is complete; inspect
    its exact-head CI result before considering merge. Do not start a remote
    release dry run or publish a release without separate explicit permission.
 
-This branch initially contains only the plan. Carry out the implementation on
-this branch after updating it from `main` if `main` has moved. Keep this file
-as the review record; it is not included in the source archive by
-`MANIFEST.in`.
+## Implementation outcome
+
+- The naming-span gate and its dedicated tests were removed in `9209c87`.
+- Release rebuild and dry-run assembly now use `release-assets.py assemble`,
+  with topology coverage in `4cb2ef5`.
+- The wheel audit now requires a compiled catalog for each tracked `po/*.po`
+  source, with a missing-catalog regression test in `6aa0dbc`. At this
+  baseline the only tracked source is `po/es.po`, so exactly one app catalog
+  is expected. The former "both catalogs" wording was incorrect.
+- RPM portability stays on main CI. In successful main run `36370468843`,
+  its step took 7m19s within an 11m55s RPM job. The potential saving is
+  material, but removing it would leave the merged main SHA without a
+  cross-distribution proof before it becomes a releasable candidate.
+- Local focused verification: 125 tests passed; shell syntax and diff checks
+  passed. The distribution audit built the sdist and wheel, found 211 tracked
+  sdist members at 726,886 bytes, and found the expected compiled catalog.
+
+Keep this file as the review record; it is not included in the source archive
+by `MANIFEST.in`.

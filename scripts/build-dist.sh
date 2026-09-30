@@ -10,7 +10,7 @@
 #   1. Refuse to start if an untracked file sits under a packaged directory.
 #   2. Every sdist member must be tracked in git (the root-cause check).
 #   3. The sdist must stay under a fixed size ceiling.
-#   4. The wheel must contain both compiled translation catalogs.
+#   4. The wheel must contain a compiled catalog for every tracked PO source.
 #
 # All four gate on exit codes only, never on printed text — a coverage tool
 # in this project was found to print "FAIL" and exit 0 at an integer
