@@ -56,8 +56,7 @@ Before opening a pull request, run:
 
 ```bash
 .venv/bin/python -m pytest
-uvx pylint src/idasen_companion          # naming rule, tier 3 — see "Naming things"
-python scripts/check_naming_span.py src  # naming rule, tier 2 — see "Naming things"
+uvx pylint src/idasen_companion          # naming rules — see "Naming things"
 ```
 
 Touching packaging (`MANIFEST.in`, `pyproject.toml`, `data/`, `packaging/`)
@@ -445,19 +444,12 @@ carries an extra concept. Renames are their own commits, never mixed with
 behaviour changes; see `docs/ARCHITECTURE.md` § "Renaming anything" for two
 ways a rename can look fine and still break something silently.
 
-Two of the three tiers are enforced by a command, both blocking, both run
-before opening a pull request:
+Pylint enforces the configured glossary and naming patterns. Run it before
+opening a pull request:
 
 ```bash
-uvx pylint src/idasen_companion          # tier 3 — glossary
-python scripts/check_naming_span.py src  # tier 2 — scope span
+uvx pylint src/idasen_companion
 ```
 
-The scope-span band: a 1-character name may live 5 lines between its
-declaration and its last use, 2 characters 8 lines, 3 characters 12 lines;
-4+ characters is unlimited. `scripts/check_naming_span.py` explains why the
-band stops at 3.
-
-**Tier 1 (accuracy) is not machine-checkable and stays a review norm,
-permanently.** Both commands exiting clean means tiers 2 and 3 are
-satisfied — it does not mean the naming rule as a whole is satisfied.
+Accuracy and scope span remain review norms. A clean Pylint run does not
+establish that every name communicates its role clearly at its actual scope.

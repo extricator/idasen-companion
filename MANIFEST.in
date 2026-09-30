@@ -97,15 +97,9 @@ include scripts/verify-release-artifacts.sh
 # %check, so it must travel with the test suite even though the RPM never runs
 # the release workflow itself.
 include scripts/release-assets.py
-# The suite ships whole (recursive-include tests above) and the RPM's %check
-# runs it from an unpacked sdist, so every script a test reads must ship too.
-# tests/test_naming_span.py imports this one; without it %check dies at
-# collection with FileNotFoundError, which no local run reproduces because the
-# file is sitting right there in the working tree.
-include scripts/check_naming_span.py
-# Same reasoning as the naming checker just above: the suite ships whole and
-# the RPM's %check runs it from an unpacked tarball, so anything a test opens
-# has to travel with it too. A missing line here fails only in a package
+# The suite ships whole and the RPM's %check runs it from an unpacked
+# tarball, so anything a test opens has to travel with it too. A missing
+# line here fails only in a package
 # build, never in a local run, because the file sits right there in the
 # working tree the whole time.
 include .githooks/pre-commit

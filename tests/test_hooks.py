@@ -15,10 +15,8 @@ CONTRIBUTING = ROOT / "CONTRIBUTING.md"
 SCANNER = ROOT / "scripts" / "scan-secrets.sh"
 
 # Read at collection time, not inside a test, so a missing MANIFEST.in entry
-# for this file reproduces the same failure mode project documentation documents for
-# scripts/check_naming_span.py: the RPM's %check dies at collection from an
-# unpacked sdist while every local run passes, because the file sits right
-# there in the working tree.
+# for this file makes the RPM's %check die at collection from an unpacked
+# sdist while every local run passes, because the file sits in the working tree.
 CONTRIBUTING_TEXT = CONTRIBUTING.read_text()
 
 # conftest.py's no_real_subprocesses autouse fixture replaces subprocess.run
