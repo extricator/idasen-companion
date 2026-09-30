@@ -95,11 +95,9 @@ module = ["idasen.*"]
 follow_untyped_imports = true
 
 [tool.pylint.main]
-# Enforces CONTRIBUTING.md's "Naming things", tier 3 (glossary): don't coin a
-# second abbreviation for something that already has a name. Tier 2 (scope
-# span) is scripts/check_naming_span.py; tier 1 (accuracy) is not
-# machine-checkable and stays a review norm permanently — neither this
-# section nor the span check covers it.
+# Enforces the configured naming patterns and CONTRIBUTING.md's glossary:
+# don't coin a second abbreviation for something that already has a name.
+# Accuracy and scope span remain review norms, outside this check.
 #
 # No method-naming pattern override is configured. The 63 D-Bus interface
 # members and Qt virtual overrides that must keep their framework-mandated

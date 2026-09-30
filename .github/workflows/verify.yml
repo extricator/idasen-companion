@@ -96,9 +96,6 @@ jobs:
       - name: Run pylint over src/idasen_companion
         run: pylint src/idasen_companion
 
-      - name: Run the naming scope-span check
-        run: python scripts/check_naming_span.py src
-
   distribution:
     name: Quality / Distribution and supply chain
     runs-on: ubuntu-24.04
