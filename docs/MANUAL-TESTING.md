@@ -33,6 +33,43 @@ needs the desk unpaired. The tags:
 - **[split]** — needs the three-package COPR build, which is not what ships.
 - **[flatpak]** — needs the CI-built `.flatpak` bundle installed user-scope.
 
+## Venv smoke test
+
+Ask for a **venv smoke test** to stop the installed desktop app and daemon,
+then run both from the current checkout's Python venv in the real desktop
+session. Set the environment and provide desktop assets needed to behave as
+they would when installed. Keep the existing configuration and record the
+branch, commit, launch setup, and observations. No package installation is
+part of this test.
+
+Leave the venv app running while the user inspects it. Once testing is done,
+stop the venv GUI and daemon, wait for their processes to exit, then restore
+the installed daemon and desktop app. Do not leave competing daemons running.
+
+For an icon change, temporarily stage the checkout's icons in the standard
+user `icons/hicolor` directory, preserving existing files for restoration.
+Launch the venv app with normal icon-name lookup, and verify the tray advertises
+`io.github.extricator.IdasenCompanion-symbolic`. The tray host runs in a
+separate process and must resolve the same staged theme assets. Restore the
+previous user icons when testing is done.
+
+On Plasma, replacing files and restarting the app can leave the host showing
+cached artwork. After staging icons and relaunching the venv GUI, refresh KDE's
+icon loader through its standard session-bus signal:
+
+```bash
+dbus-send --session --type=signal /KIconLoader org.kde.KIconLoader.iconChanged int32:0
+```
+
+This is a workstation test step; the app continues to use Freedesktop icon
+names on every desktop. Verify the visible artwork after the refresh rather
+than relying only on matching filenames or `IconName`.
+
+Check the tray glyph's contrast and
+legibility at 16px and 22px, their 2× equivalents, its tooltip, and its menu.
+Record visual acceptance after observing the desktop; a successful SVG render
+alone does not verify the panel's theme handling.
+
 ## Covered by ordinary use — no checklist pass needed
 
 Exercised continuously on the development machine (KDE, real desk, installed

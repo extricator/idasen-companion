@@ -1405,6 +1405,22 @@ def test_debian_control_depends_on_the_real_pyside6_modules_only():
     assert not found, f"debian/control still names a disproved dependency: {found}"
 
 
+
+def test_debian_svg_icon_plugin_is_present_for_build_and_gui_runtime():
+    """QtSvg bindings alone cannot load SVGs through QIcon on Debian."""
+    source, full, headless = read(DEBIAN_CONTROL).split("\nPackage:")
+    assert "qt6-svg-plugins" in source
+    assert "qt6-svg-plugins" in full
+    assert "qt6-svg-plugins" not in headless
+    assert "qt6-svg-plugins" in (ROOT / "scripts/build-release-variants.sh").read_text()
+
+
+def test_debian_ci_installs_svg_icon_plugin():
+    if not DEB_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
+    assert "qt6-svg-plugins" in read(DEB_WORKFLOW)
+
+
 def test_debian_rules_guards_against_silently_skipped_gui_tests():
     """14 test modules importorskip("PySide6"). Without a build-time guard
     they skip and the pybuild test step still goes green, verifying 72% of

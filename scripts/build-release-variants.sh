@@ -50,7 +50,7 @@ if $build_all; then
     podman run --rm --security-opt label=disable \
         -e DEBIAN_FRONTEND=noninteractive \
         -v "$PWD:/workspace" -v "$output:/output" -w /workspace debian:13 \
-        bash -lc "apt-get update && apt-get install -y --no-install-recommends build-essential debhelper dh-python python3-all pybuild-plugin-pyproject devscripts lintian debhelper-compat python3-setuptools python3-pytest python3-pytest-asyncio python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtwidgets python3-pyside6.qtdbus python3-pyside6.qtsvg qt6-translations-l10n python3-babel python3-tomlkit python3-yaml python3-dbus-fast python3-idasen python3-bleak && bash scripts/build-release-variants.sh --deb --output /output"
+        bash -lc "apt-get update && apt-get install -y --no-install-recommends build-essential debhelper dh-python python3-all pybuild-plugin-pyproject devscripts lintian debhelper-compat python3-setuptools python3-pytest python3-pytest-asyncio python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtwidgets python3-pyside6.qtdbus python3-pyside6.qtsvg qt6-svg-plugins qt6-translations-l10n python3-babel python3-tomlkit python3-yaml python3-dbus-fast python3-idasen python3-bleak && bash scripts/build-release-variants.sh --deb --output /output"
     bash scripts/build-release-variants.sh --flatpak --output "$output"
     echo "Built release assets in $output:"
     find "$output" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort

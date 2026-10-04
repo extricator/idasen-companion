@@ -96,6 +96,30 @@ modules:
         ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
       - install -Dm644 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg
         ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
+      - install -Dm644 data/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg
+      - install -Dm644 data/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+      - install -Dm644 data/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg
+      - install -Dm644 data/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+      - install -Dm644 data/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg
+      - install -Dm644 data/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg
       # Session-bus activation so the daemon starts on demand (see the file).
       - install -Dm644 data/io.github.extricator.IdasenCompanion.service
         ${FLATPAK_DEST}/share/dbus-1/services/io.github.extricator.IdasenCompanion.service
