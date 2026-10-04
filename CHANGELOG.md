@@ -6,6 +6,21 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-03
+
+### Changed
+
+- Refreshed the application and symbolic tray icons, with SVG assets for desktop
+  sizes and HiDPI displays.
+- Simplified development checks and release assembly, and documented venv smoke
+  testing and icon-cache refresh.
+
+### Fixed
+
+- Debian GUI packages now include the plugin needed to load SVG icons.
+- Package checks now verify every shipped translation catalog.
+- Published release titles consistently use the version number.
+
 ## [1.3.0] - 2026-09-27
 
 ### Changed
