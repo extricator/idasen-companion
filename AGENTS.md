@@ -8,6 +8,10 @@ Treat a brief continuation request, such as "keep working," "continue," "pick up
 
 While this redesign is active, use the open CI redesign PR description and `CONTRIBUTING.md` for its current state. A brief continuation request does not override the approval holds below.
 
-Do not use GSD for this redesign. Preserve unrelated files and ignored build outputs. Do not install, stop, or launch the desktop application or daemon. Keep the repository private. Do not configure required reviews, branch protection, or required checks while the one-contributor approval policy is unresolved. Do not start a remote release dry run or publish a release without the user's explicit authorization.
+Do not use GSD for this redesign. Preserve unrelated files and ignored build outputs. Do not install, stop, or launch the desktop application or daemon. Do not start a remote release dry run or publish a release without the user's explicit authorization.
+
+## Public repository policy
+
+The user approved public visibility and the protection policy in `CONTRIBUTING.md`. Use pull requests for changes to `main`, require the GitHub Actions `PR CI` check against current `main`, resolve review conversations, and require zero approving reviews while the repository has one maintainer. Never bypass protections to merge a failing PR. Keep force-push and deletion prevention on `main`, and update/deletion prevention on release tags. Push branches explicitly by name; local backup refs and archived icon versions must not be published.
 
 Before changing GitHub Actions workflows, fetch current GitHub Actions documentation with the `ctx7` CLI: resolve `GitHub Actions` with `npx ctx7@latest library` before using `npx ctx7@latest docs` for the relevant topic.

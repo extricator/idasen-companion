@@ -243,8 +243,9 @@ always remains a separate, explicitly authorized action.
    Debian with smoke, Flatpak, and five-asset assembly on the exact PR head.
    The single `PR CI` aggregate requires all selected proofs to pass. A new
    PR commit gets a new run; inspect the checks for that exact head. The
-   repository currently has one contributor, so no review, required check,
-   or branch-protection policy is enforced yet. Start the preparation from
+   protection policy requires `PR CI`, an up-to-date branch, and resolved
+   review conversations. Zero approving reviews are required while the
+   repository has one maintainer. Start the preparation from
    current `main` on a dedicated release branch, make the version and notes
    commit there, and merge the PR only after its exact head has passed the
    complete automatic PR run. If `main` moves before merge, refresh the PR
@@ -291,122 +292,69 @@ always remains a separate, explicitly authorized action.
    downloaded holding a file that no longer matches what the tag now claims —
    and a checksum that can mean two different things is worth nothing.
 
-**One time, for the 1.0 release only.** These steps happen once. They are
-written down because getting their order wrong is expensive.
+## Repository protections and publication
 
-*Before making the repository public*, re-scan both the whole history and the
-working tree for committed secrets — they answer different questions (a
-history scan cannot see a file that was never committed, by construction),
-and this phase exists precisely because a working-tree-only gap once hid a
-real credential from a history-only scan:
+The repository uses the following policy for a single maintainer:
 
-```bash
-git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
-bash scripts/scan-secrets.sh history <evidence-directory>/history
-bash scripts/scan-secrets.sh worktree <evidence-directory>/worktree
-```
+- `main` requires a pull request, the `PR CI` check from GitHub Actions,
+  an up-to-date branch, and resolved review conversations.
+- Zero approving reviews are required. The maintainer cannot approve their
+  own PR; CI and the PR merge route remain mandatory.
+- Force pushes and deletion of `main` are blocked, with no routine bypass.
+- Merge commits and squash merges are supported. Release preparation uses
+  a merge commit to retain its approved source commit.
+- Existing tags matching `v*` cannot be updated or deleted. Tag creation is
+  allowed so the release publisher can create the next version.
+- Immutable releases protect the assets and tags of future published
+  releases. Enabling this setting does not make existing releases immutable.
 
-The fetch is not optional and not a convenience. A clone holds branches and
-tags; the forge additionally keeps a permanent ref for every proposed change,
-carrying each of its intermediate commits — including the ones a squash-merge
-collapsed, whose content therefore never reached `main` and which a scan of
-the branches cannot reach either. A secret added in such a commit and tidied
-up before the merge lives on that ref, invisible to every check here, and
-becomes fetchable by anyone the moment the repository is public. The history
-scan compares what the remote publishes against what this clone can reach and
-refuses to report clean when the two disagree, so a forgotten fetch fails the
-scan rather than quietly narrowing it.
+`PR CI` runs on every PR update and requires every selected proof to pass.
+Package selection uses the complete diff against the PR base, including after
+synchronize events: a documentation-only push cannot hide an earlier package
+failure. Ready PRs that change the version also require complete release
+preparation proof. Draft PRs defer packaging until they are marked ready.
 
-Each plants a secret in a throwaway repository and checks the scanner finds it
-before it will believe a clean result on the real target — a scan that walked
-nothing looks exactly like a scan that found nothing. A zero exit from a run
-means both halves passed for that mode; both commands above must exit zero.
-It covers credential-shaped strings only: personal data (MAC addresses, home
-directory paths, email addresses, authorship trailers) still needs a person
-to judge each distinct value, and the safe window for finding any of it
-closes the moment anonymous readers can fetch the history.
+The Actions token defaults to read access, with write permissions limited to
+publication and artifact cleanup jobs. External fork contributors require
+maintainer approval before their workflows run. Review workflow changes before
+approving a run, keep fork jobs without write tokens or repository secrets,
+and use GitHub-hosted runners. Allowed actions are maintained in the repository
+settings and must be pinned to full commit SHAs.
 
-*Every push to this remote, and above all the ones around the flip*: push
-branches by name. Never `git push --all`, never `git push --mirror`. This
-clone carries far more history than the remote does, and the gap is now almost
-total — `git rev-list --count HEAD` reports 1 revision on `main` against the
-555 that `git rev-list --all --count` reports across every ref. The difference
-lives on `backup/main-pre-squash` and five other refs
-(`feat/flatpak-release`, `feat/logging-policy`, `feat/settings-apply-model`,
-`review-main`, `simplify`) deliberately left behind by the rewrites, plus the
-pull-request refs of the repository that preceded this one. What they hold is
-exactly what the rewrites removed: the real desk MAC, retired home-directory
-paths and stale authorship trailers. Once one of those objects is pushed, it is fetchable by
-sha whether or not the branch that carried it still exists — deleting the
-branch afterwards does not retract it. Neither flag is something anyone reaches
-for deliberately; both get typed as a shortcut for "push everything I have",
-which is precisely the thing not to do here.
+Secret scanning, repository push protection, private vulnerability reporting,
+Dependabot alerts and security updates, and Python CodeQL scanning are enabled
+through GitHub settings. CodeQL starts as an advisory check until its baseline
+has been reviewed. `.github/dependabot.yml` groups weekly Python and Actions
+updates. Bundled dependencies pinned in RPM specs and Flatpak manifests also
+need review during release preparation; Dependabot does not cover every
+bundled runtime or library.
 
-*Flip the repository public — after the release is published*, so the
-repository and the release become visible together:
+Before the initial public visibility change, audit a fresh remote clone rather
+than the development clone, which also holds deliberately unpublished backup
+history:
 
 ```bash
-gh repo edit --visibility public --accept-visibility-change-consequences
+git clone https://github.com/extricator/idasen-companion.git /tmp/idasen-public-audit
+git -C /tmp/idasen-public-audit fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
+cd /tmp/idasen-public-audit
+bash scripts/scan-secrets.sh history /tmp/idasen-public-history-scan
+bash scripts/scan-secrets.sh worktree /tmp/idasen-public-worktree-scan
 ```
 
-Both flags are needed. Passing the visibility on its own is an error rather
-than a default.
+Both scanner modes must pass their canary and real scan. Review personal data,
+PR descriptions and comments, retained Actions logs, and build artifacts too.
+Making the repository public exposes its history and Actions logs; subsequent
+forks can remain public even if visibility is later changed back to private.
 
-*Enable secret scanning and push protection — the first thing done once the
-repository is public*, since neither setting exists on it before that:
+Push branches explicitly by name. Never push all refs or mirror this development
+clone: local backup refs hold removed personal data, and archived icon artwork
+is intentionally excluded from the published project.
 
-```bash
-gh api \
-  --method PATCH \
-  repos/extricator/idasen-companion \
-  --field security_and_analysis[secret_scanning][status]=enabled \
-  --field security_and_analysis[secret_scanning_push_protection][status]=enabled
-```
-
-Both are free on a public repository, regardless of account plan, and neither
-is available on a private personal-account repository — which is why this step
-cannot precede the flip and is not a step that got forgotten.
-
-These are a third layer, not a duplicate of what this project already runs.
-The local hook is advisory and absent for anyone who never installed it; CI
-catches a pull request but has nothing to say about a push to a branch with no
-pull request open; push protection is server-side and needs no cooperation
-from the contributor at all — it sees every push, by construction. What that
-actually binds, because the field names mislead: the two settings are
-independent. Secret scanning finds a credential already committed; push
-protection refuses a new one on the way in. Enabling only the first leaves the
-door open on the way a credential most often lands in a public repository —
-a push, not a merge.
-
-Once this is on, a push carrying a credential-shaped string is rejected by
-GitHub itself, and that rejection is the feature working, not a broken remote.
-
-Confirm it took:
-
-```bash
-gh api repos/extricator/idasen-companion \
-  --jq '.security_and_analysis.secret_scanning.status,
-        .security_and_analysis.secret_scanning_push_protection.status'
-```
-
-Both lines should read `enabled`.
-
-*Decide the `main` approval policy before adding protection.* This private
-repository has one contributor, who cannot approve their own PR. Do not make
-an approving review or status check required until that contributor policy is
-settled and live PR runs confirm the exact check names and head-SHA association.
-`PR CI` reports every PR update and includes full release-preparation proof
-automatically when the ready PR changes the source version. It is not enforced
-today. Keep force-push and deletion prevention in the eventual protection
-decision, and check the rules available to the account at that time.
-
-*Enable private vulnerability reporting* the moment the repository is public.
-`SECURITY.md` already tells reporters to use it, and it is unavailable on a
-private personal-account repository:
-
-```bash
-gh api -X PUT repos/extricator/idasen-companion/private-vulnerability-reporting
-```
+After the audit and CI preparation PR pass, change visibility and immediately
+apply the branch and tag rulesets, fork approval policy, and security settings.
+Check the effective rules and use a small PR to verify the required check and
+normal maintainer merge route. An administrator can edit the ruleset for
+recovery, but must not bypass it for an ordinary merge.
 
 *Nothing to do for the AppStream screenshot URLs.* They name the default
 branch, so replacing a picture is a plain overwrite of the file in
