@@ -294,6 +294,10 @@ always remains a separate, explicitly authorized action.
 
 ## Repository protections and publication
 
+The applied settings are recorded in [`.github/repository-policy.json`](.github/repository-policy.json).
+Treat this as an audited snapshot; verify current settings through GitHub when
+changing protections or investigating a blocked merge.
+
 The repository uses the following policy for a single maintainer:
 
 - `main` requires a pull request, the `PR CI` check from GitHub Actions,
