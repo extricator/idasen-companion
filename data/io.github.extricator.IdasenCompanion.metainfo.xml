@@ -96,6 +96,19 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.3.1" date="2026-10-03">
+      <description>
+        <p>
+          Refreshed application and tray icons include artwork for small desktop
+          sizes and HiDPI displays. Debian packages now include the SVG
+          icon-loading plugin.
+        </p>
+        <p>
+          Package checks better detect missing translations, and release titles
+          consistently show the version number.
+        </p>
+      </description>
+    </release>
     <release version="1.3.0" date="2026-09-27">
       <description>
         <p>

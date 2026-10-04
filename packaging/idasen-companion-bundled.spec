@@ -87,7 +87,7 @@
 %global _rpmformat 4
 
 Name:           %{package_name}
-Version:        1.3.0
+Version:        1.3.1
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
@@ -652,6 +652,11 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 
 %changelog
+* Sat Oct 03 2026 extricator <extricator@users.noreply.github.com> - 1.3.1-1
+- Refresh application and symbolic tray SVG assets.
+- Require Debian's SVG icon-loading plugin.
+- Verify translation catalogs and correct release titles.
+
 * Sun Sep 27 2026 extricator <extricator@users.noreply.github.com> - 1.3.0-1
 - Share the installed command between the desktop app and Qt-free CLI.
 - Bound Bluetooth operations and prevent stale moves across Stop and session

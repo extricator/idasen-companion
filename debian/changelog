@@ -1,3 +1,11 @@
+idasen-companion (1.3.1-1) unstable; urgency=medium
+
+  * Refresh application and symbolic tray SVG assets.
+  * Require Debian's SVG icon-loading plugin.
+  * Verify translation catalogs and correct release titles.
+
+ -- extricator <extricator@users.noreply.github.com>  Sat, 03 Oct 2026 00:00:00 +0000
+
 idasen-companion (1.3.0-1) unstable; urgency=medium
 
   * Share the installed command between the desktop app and Qt-free CLI.

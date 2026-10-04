@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.3.0
+Version:        1.3.1
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -139,6 +139,11 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Sat Oct 03 2026 extricator <extricator@users.noreply.github.com> - 1.3.1-1
+- Refresh application and symbolic tray SVG assets.
+- Require Debian's SVG icon-loading plugin.
+- Verify translation catalogs and correct release titles.
+
 * Sun Sep 27 2026 extricator <extricator@users.noreply.github.com> - 1.3.0-1
 - Share the installed command between the desktop app and Qt-free CLI.
 - Bound Bluetooth operations and prevent stale moves across Stop and session
