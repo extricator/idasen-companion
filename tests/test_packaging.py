@@ -1412,8 +1412,13 @@ def test_debian_svg_icon_plugin_is_present_for_build_and_gui_runtime():
     assert "qt6-svg-plugins" in source
     assert "qt6-svg-plugins" in full
     assert "qt6-svg-plugins" not in headless
-    for relative in ("scripts/build-release-variants.sh", ".github/workflows/packages.yml"):
-        assert "qt6-svg-plugins" in (ROOT / relative).read_text()
+    assert "qt6-svg-plugins" in (ROOT / "scripts/build-release-variants.sh").read_text()
+
+
+def test_debian_ci_installs_svg_icon_plugin():
+    if not DEB_WORKFLOW.exists():
+        pytest.skip("workflow files are intentionally absent from the sdist")
+    assert "qt6-svg-plugins" in read(DEB_WORKFLOW)
 
 
 def test_debian_rules_guards_against_silently_skipped_gui_tests():
