@@ -42,12 +42,9 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          EVENT_ACTION: ${{ github.event.action }}
           PR_DRAFT: ${{ github.event.pull_request.draft }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
-          UPDATE_BEFORE: ${{ github.event.before }}
-          UPDATE_AFTER: ${{ github.event.after }}
           MODE: ${{ inputs.mode }}
           # Keep these path classes in YAML so tests can read the same data.
           # Source changes get Python/quality checks; a version change against
@@ -60,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           rpm=false deb=false flatpak=false rpm_portability=false release_preparation=false
-          reason='No package paths in this update'
+          reason='No package paths in this PR'
           if [[ "$EVENT_NAME" == push || "$MODE" == full ]]; then
             rpm=true deb=true flatpak=true rpm_portability=true
             reason='Full run'
@@ -78,8 +75,8 @@ jobs:
           else
             base="$PR_BASE"
             head="$PR_HEAD"
-            # Release preparation is cumulative across PR updates. Never use
-            # the synchronize delta to decide whether the version changed.
+            # Every ready PR update proves its complete diff against main.
+            # A later docs-only push must not hide an earlier package failure.
             git fetch --no-tags origin "$PR_BASE" "$PR_HEAD" >/dev/null 2>&1 || true
             if ! git cat-file -e "$PR_BASE^{commit}" 2>/dev/null ||
                ! git cat-file -e "$PR_HEAD^{commit}" 2>/dev/null; then
@@ -104,44 +101,22 @@ jobs:
                 fi
               fi
             fi
-            if [[ "$release_preparation" == true ]]; then
-              :
-            elif [[ "$reason" == Full\ proof* ]]; then
-              :
-            else
-            if [[ "$EVENT_ACTION" == synchronize && -n "$UPDATE_BEFORE" && -n "$UPDATE_AFTER" ]]; then
-              # A force push can remove the old head. Fetch it if possible;
-              # otherwise inspect the full PR diff, never an empty diff.
-              git fetch --no-tags origin "$UPDATE_BEFORE" >/dev/null 2>&1 || true
-              git fetch --no-tags origin "$UPDATE_AFTER" >/dev/null 2>&1 || true
-              if git cat-file -e "$UPDATE_BEFORE^{commit}" 2>/dev/null &&
-                 git cat-file -e "$UPDATE_AFTER^{commit}" 2>/dev/null &&
-                 git merge-base --is-ancestor "$UPDATE_BEFORE" "$UPDATE_AFTER"; then
-                base="$UPDATE_BEFORE"
-                head="$UPDATE_AFTER"
-                reason='New PR update'
-              else
-                reason='Full PR diff after unavailable or rewritten update'
-              fi
-            else
+            if [[ "$release_preparation" != true && "$reason" != Full\ proof* ]]; then
               reason='Full PR diff'
-            fi
-            git fetch --no-tags origin "$PR_BASE" "$PR_HEAD" >/dev/null 2>&1 || true
-            if ! git cat-file -e "$base^{commit}" 2>/dev/null ||
-               ! git cat-file -e "$head^{commit}" 2>/dev/null; then
-              echo 'Cannot inspect required diff; selecting every package proof.' >&2
-              rpm=true deb=true flatpak=true rpm_portability=true
-              reason='Full proof because diff could not be inspected'
-            else
-              while IFS= read -r path; do
-                [[ -n "$path" ]] || continue
-                if [[ "$path" =~ $SHARED_PATHS ]]; then rpm=true deb=true flatpak=true; fi
-                if [[ "$path" =~ $RPM_PATHS ]]; then rpm=true; fi
-                if [[ "$path" =~ $DEB_PATHS ]]; then deb=true; fi
-                if [[ "$path" =~ $FLATPAK_PATHS ]]; then flatpak=true; fi
-                if [[ "$path" =~ $PORTABILITY_PATHS ]]; then rpm=true rpm_portability=true; fi
-              done < <(git diff --name-only "$base" "$head")
-            fi
+              if changed_paths=$(git diff --name-only "$base" "$head"); then
+                while IFS= read -r path; do
+                  [[ -n "$path" ]] || continue
+                  if [[ "$path" =~ $SHARED_PATHS ]]; then rpm=true deb=true flatpak=true; fi
+                  if [[ "$path" =~ $RPM_PATHS ]]; then rpm=true; fi
+                  if [[ "$path" =~ $DEB_PATHS ]]; then deb=true; fi
+                  if [[ "$path" =~ $FLATPAK_PATHS ]]; then flatpak=true; fi
+                  if [[ "$path" =~ $PORTABILITY_PATHS ]]; then rpm=true rpm_portability=true; fi
+                done <<< "$changed_paths"
+              else
+                echo 'Cannot inspect required diff; selecting every package proof.' >&2
+                rpm=true deb=true flatpak=true rpm_portability=true
+                reason='Full proof because diff failed'
+              fi
             fi
           fi
           {

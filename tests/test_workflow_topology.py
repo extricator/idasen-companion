@@ -22,8 +22,8 @@ def workflow(name):
     return yaml.load((WORKFLOWS / name).read_text(), Loader=yaml.BaseLoader)
 
 
-def plan_for(tmp_path, paths, *, event="pull_request", action="synchronize",
-             draft="false", before=None, mode="", prior_paths=(), base_override=None):
+def plan_for(tmp_path, paths, *, event="pull_request",
+             draft="false", mode="", prior_paths=(), base_override=None):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "ci@example.invalid"], check=True)
     subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "CI"], check=True)
@@ -38,7 +38,6 @@ def plan_for(tmp_path, paths, *, event="pull_request", action="synchronize",
     if prior_paths:
         subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
         subprocess.run(["git", "-C", str(tmp_path), "commit", "-qm", "prior change"], check=True)
-    prior_head = subprocess.check_output(["git", "-C", str(tmp_path), "rev-parse", "HEAD"], text=True).strip()
     for path in paths:
         target = tmp_path / path
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -51,12 +50,9 @@ def plan_for(tmp_path, paths, *, event="pull_request", action="synchronize",
     summary = tmp_path / "summary"
     env = os.environ | step["env"] | {
         "EVENT_NAME": event,
-        "EVENT_ACTION": action,
         "PR_DRAFT": draft,
         "PR_BASE": base_override if base_override is not None else base,
         "PR_HEAD": head,
-        "UPDATE_BEFORE": before if before is not None else prior_head,
-        "UPDATE_AFTER": head,
         "MODE": mode,
         "GITHUB_OUTPUT": str(output),
         "GITHUB_STEP_SUMMARY": str(summary),
@@ -81,13 +77,8 @@ def test_planner_path_classes(tmp_path, paths, expected):
 
 def test_draft_pr_defers_packages_then_ready_event_rechecks_full_diff(tmp_path):
     assert all(value == "false" for value in plan_for(tmp_path / "draft", ["debian/control"], draft="true").values())
-    result = plan_for(tmp_path / "ready", ["debian/control"], action="ready_for_review")
+    result = plan_for(tmp_path / "ready", ["debian/control"])
     assert result["deb"] == "true"
-
-
-def test_unavailable_update_falls_back_to_full_pr_diff(tmp_path):
-    result = plan_for(tmp_path, ["packaging/flatpak/python3-deps.json"], before="0" * 40)
-    assert result["flatpak"] == "true"
 
 
 def test_unavailable_pr_base_selects_all_release_proofs(tmp_path):
@@ -95,9 +86,16 @@ def test_unavailable_pr_base_selects_all_release_proofs(tmp_path):
     assert all(value == "true" for value in result.values())
 
 
-def test_synchronize_ignores_package_changes_from_earlier_updates(tmp_path):
-    result = plan_for(tmp_path, ["docs/readme.md"], prior_paths=["debian/control"])
-    assert all(value == "false" for value in result.values())
+@pytest.mark.parametrize(("prior_path", "expected"), [
+    ("debian/control", {"deb"}),
+    ("packaging/idasen-companion-bundled.spec", {"rpm"}),
+    ("packaging/flatpak/python3-deps.json", {"flatpak"}),
+    ("data/icons/app.svg", {"rpm", "deb", "flatpak"}),
+    ("scripts/verify-rpm-portability.sh", {"rpm", "rpm_portability"}),
+])
+def test_docs_only_push_keeps_package_proofs_from_earlier_updates(tmp_path, prior_path, expected):
+    result = plan_for(tmp_path, ["docs/readme.md"], prior_paths=[prior_path])
+    assert {key for key, value in result.items() if value == "true"} == expected
 
 
 def test_main_and_manual_modes(tmp_path):
