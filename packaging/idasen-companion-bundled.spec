@@ -429,6 +429,30 @@ install -Dm644 data/icons/io.github.extricator.IdasenCompanion.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
 install -Dm644 data/icons/io.github.extricator.IdasenCompanion-symbolic.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
+install -Dm644 data/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg
+install -Dm644 data/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+install -Dm644 data/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg
+install -Dm644 data/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+install -Dm644 data/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg
+install -Dm644 data/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg
 install -Dm644 data/io.github.extricator.IdasenCompanion.metainfo.xml \
     %{buildroot}%{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 %endif
@@ -612,6 +636,18 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %{_datadir}/applications/io.github.extricator.IdasenCompanion.desktop
 %{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion.svg
 %{_datadir}/icons/hicolor/scalable/apps/io.github.extricator.IdasenCompanion-symbolic.svg
+%{_datadir}/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg
+%{_datadir}/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+%{_datadir}/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg
+%{_datadir}/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+%{_datadir}/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg
+%{_datadir}/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 %endif
 

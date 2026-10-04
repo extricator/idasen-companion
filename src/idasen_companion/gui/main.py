@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
 
         # The tray wants a monochrome symbolic icon the panel recolours
         # to match its theme, not the colourful launcher icon.
-        tray_icon = QIcon.fromTheme(f"{APP_ID}-symbolic", icon)
+        tray_icon = QIcon.fromTheme(f"{APP_ID}-symbolic")
         tray = TrayIcon(client, window, tray_icon)
         tray.show()
         application.setQuitOnLastWindowClosed(False)

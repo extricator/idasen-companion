@@ -18,6 +18,18 @@ include CONTRIBUTING.md
 # fails safe: new working material stays out until someone adds it on purpose.
 include data/icons/io.github.extricator.IdasenCompanion-symbolic.svg
 include data/icons/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/128x128/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/16x16/status/io.github.extricator.IdasenCompanion-symbolic.svg
+include data/icons/hicolor/16x16@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+include data/icons/hicolor/16x16/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/22x22/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/22x22/status/io.github.extricator.IdasenCompanion-symbolic.svg
+include data/icons/hicolor/22x22@2/status/io.github.extricator.IdasenCompanion-symbolic.svg
+include data/icons/hicolor/24x24/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/256x256/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/32x32/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/48x48/apps/io.github.extricator.IdasenCompanion.svg
+include data/icons/hicolor/64x64/apps/io.github.extricator.IdasenCompanion.svg
 include data/idasen-companion.service
 include data/io.github.extricator.IdasenCompanion.desktop
 include data/io.github.extricator.IdasenCompanion.metainfo.xml
