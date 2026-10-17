@@ -5,63 +5,12 @@ add new items as they're discovered, and **delete** finished ones outright —
 no checkmarks, no Done section. This file is what's left to do; git history is
 the record of what was done.
 
-## Next phase — session-switch recovery and live release validation
+## Manual desktop verification
 
-- [ ] **Diagnose and fix the KDE Xorg fast-user-switch stall before preparing
-      the next release.** After this desktop session spends roughly 15–20
-      minutes in the background, the Bluetooth indicator can remain engaged
-      and tray/shortcut commands queue without taking effect. Turning Bluetooth
-      off and on releases the queue. On 2026-09-26 the daemon logged a switch
-      away at 10:42:45 and no return until 11:11:43, just after the adapter
-      reset; earlier switches logged multi-minute control-loop overruns. The
-      "desk released" activity line reports the requested handoff, not proof
-      that BlueZ dropped the link. Investigate which await holds the daemon's
-      desk lock (especially the return-side height sync and BLE connect/read),
-      then test bounded recovery with a hanging fake and a real KDE Xorg
-      session switch. Acceptance: the background session releases the link,
-      does no desk I/O, and responds to a command after return without an
-      adapter reset or replaying a backlog of old commands. Do not stop or
-      restart the installed daemon just to collect evidence.
-      Failed switches showed BlueZ connected while Bleak reported disconnected;
-      one also replayed a Sit request after Stop. Reads and move connections
-      now have deadlines, and Stop invalidates a pending move. Session handoff
-      releases this app's Bleak client and logs a remaining BlueZ link; it
-      cannot safely disconnect a device-wide link with no known owner.
-      Instrumented short and roughly 15-minute awake background switches
-      passed, including a suspend and one fresh Stand command after return.
-      Do not repeat the duration check solely to reach exactly 20 minutes.
-      The intermittent orphan's source remains unproven; use the captured
-      traces to diagnose it before calling the stall fixed or preparing the
-      release PR.
-- [ ] **Exercise the first unreleased-version main CI candidate.** Prepare a
-      normal version-and-notes PR after the session-switch fix, require its
-      automatic exact-head release-preparation proof, then merge. Confirm that
-      full `main` CI passes on the actual merge SHA, retains one unexpired
-      `release-assets` artifact with five verified packages and provenance,
-      and removes its intermediate artifacts. PR #2's merged-commit run
-      [36251547265](https://github.com/extricator/idasen-companion/actions/runs/36251547265)
-      passed all proofs but correctly retained no candidate for tagged 1.2.0.
-- [ ] **Test Release on that merged commit.** With separate authorization,
-      run a `main` release dry run and check its five-asset assembly without
-      publishing. With explicit publication authorization, dispatch Release
-      in promotion mode using the successful exact-SHA main CI candidate;
-      verify its source-job checks, version, names, notes, provenance and
-      checksums, then inspect the created tag, release body, and downloaded
-      bytes. If the one-day candidate expires, obtain fresh authorized source
-      evidence or explicitly choose the full-rebuild path; never silently
-      switch modes. Record the run IDs and results. A dry run or publication
-      must not be started merely because this checklist exists.
-
-## 1.0 release gate — manual verification
-
-Run these immediately before the repository and the release go public, against
-the **published artifacts** rather than CI builds. Deliberately batched here
-rather than done piecemeal during development: verifying the thing users will
-actually download, once, is worth more than verifying a CI build twice.
-
-Nothing below is reachable from an automated test — each needs a real desktop,
-a real portal backend or a real machine. A green CI run says nothing about any
-of them.
+These checks remain unverified against published artifacts. The repository is
+public and releases through 1.3.1 have shipped; the old pre-publication timing
+no longer applies. Use `docs/MANUAL-TESTING.md` to record actual observations.
+CI container proofs do not establish desktop, portal or hardware behavior.
 
 **BLE hazard, applies to all of these.** The RPM daemon is normally installed,
 enabled and active, and it holds the desk's single LE slot. The Flatpak and the
@@ -97,34 +46,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       a full automation cycle against the desk from inside the sandbox.
 
 ## Features / enhancements (deferred)
-- [x] **A `status` command, so the desk can be read from a terminal** — delivered
-      by `idasen-companion status`, with Desk / Automation / Today sections,
-      localized values and explicit exit/stdout/stderr behavior. The original
-      design record follows: the
-      command line can only *write* today: `--toggle`, `--sit`, `--stand`,
-      `--stop` and `--preset` (`gui/main.py:39`) each fire one method and exit,
-      and every readable fact — height, sit/stand word, connection, cycle
-      position, next move — exists only in the GUI, so answering "am I due to
-      stand up?" means launching a window. Nothing is missing from the daemon:
-      `Desk1` and `Automation1` publish all of it as properties
-      (`daemon/service.py:44-56`, `daemon/service.py:129-157`) and
-      `Stats1.GetDaily` returns the day's totals as JSON. **Shape is settled**
-      (2026-08-19) — three labelled sections, Desk / Automation / Today,
-      carrying the Overview page's content in the *tray tooltip's* wording,
-      since the tooltip is the one place already tuned for a glance and its
-      "Standing for 42 min" and "sitting down in 17 min" both say things
-      Overview does not. **The height and duration vocabulary is no longer
-      the obstacle it was.** It now lives under `core/presentation/`,
-      unit-explicit and Qt-free, reached through a `Formatter` built onto an
-      explicit `PresentationContext` a caller constructs — no module global,
-      no argument-less `QLocale()` read, nothing that only resolves correctly
-      after a GUI-specific startup sequence has run. What a status command
-      needs from the shared vocabulary is fully available now: the status,
-      position, preset and trigger words (Phase 14) and the four date/time
-      helpers (Phase 15) all render through `core/presentation/`, reachable
-      with no `gui/util.py` involvement. Full design, traps and open
-      decisions (what it exits with when the daemon is down) in
-      `.planning/todos/pending/2026-08-19-add-cli-status-command.md`.
 - [ ] **Clear statistics / history button** — a control on the Statistics page to
       wipe the recorded sit/stand history (the daily-totals data and the recent
       transitions). Needs a daemon-side method to clear the stats DB (wire
@@ -156,29 +77,17 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       design README §6 pages "remain to be done in this style". It carries no
       theme-derived stylesheet at all, so the live-switch work above left it
       untouched — what remains here is purely the visual redesign.
-- [ ] **The date shape has no user override, now that the clock does** —
-      `[ui] clock_format` lets a user pin 12- or 24-hour, and the app resolves
-      it once in `core/clock_format.py` and hands a `TimeStyle` to both
-      backends. `DateStyle` has no equivalent: the window still renders
-      whatever `QLocale` says and the Qt-free backend still renders ISO,
-      with nothing the user can say about either. Nobody has asked for it,
-      and it was left out of the clock work deliberately rather than
-      overlooked — widening into it without deciding out loud is what that
-      restraint was protecting. Recorded so the asymmetry is a decision on
-      the record rather than something the next reader discovers.
-- [ ] **Non-Latin digit sets aren't handled by any locale backend's `integer()`
-      implementation** — the routing half of this item is now fully solved:
-      both `Formatter.duration_hm`'s zero-padded minutes (`"1h 05m"`) and
-      `fmt_countdown`'s `"2:05"` (via `core/presentation/words.py`'s
-      `countdown`, converted in Phase 14) go through the locale backend's own
-      `integer(IntegerSpec(min_digits=2))` operation rather than a Python
-      f-string at the call site. What is left is inside that operation
-      itself: `QtLocaleFormatter.integer`'s non-grouping path still renders
-      with `f"{value:d}"`, plain ASCII digits, so a backend for a language
-      with its own digit set would need to override this method — the shared
-      layer no longer stands in the way, but nothing implements it yet. The
-      standing judgement is unchanged: only worth revisiting once a language
-      with non-Latin digits actually ships.
+- [ ] **Add a date-format preference if users need one** — `[ui] clock_format`
+      supports system, 12-hour and 24-hour choices, but there is no equivalent
+      date setting. All front ends now use `LocaleProfile` and Babel rather
+      than separate Qt and ISO date backends. A future preference should resolve
+      once and reach that shared renderer. Deferred until there is demand.
+- [ ] **Support native digit glyphs when a language needs them** — all app-owned
+      numbers now go through Babel-backed `LocaleProfile`, including padded
+      duration and countdown integers. Babel's default numbering system supplies
+      Arabic separators but still renders Latin digit glyphs; the `ar_EG`
+      cases in `tests/test_locale_profile.py` pin that limitation. Revisit when
+      a language with non-Latin digits ships, across numbers, dates and times.
 - [ ] **Proactive BLE warm-up** — connect *before* the user asks, so a tray
       click lands on a warm link. Measured cold connect is 2.2–2.6s in the good
       case and ~12.3s in the bad one (a discrete ~10.2s penalty inside BlueZ's
@@ -196,70 +105,15 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       with the same trade-off and none of the code.
 
 ## Refactoring / structure
-- [x] **Make `idasen-companion` the single user-facing command** — route GUI
-      launches and Qt-free CLI subcommands through one entry point in full and
-      headless packages. This is the first public command interface, so remove
-      `idasen-companion-cli` and the old movement flags. Make `toggle`, `sit`,
-      and `stand` use the daemon's repeat-aware gesture method for shortcuts.
-- [x] **Decide whether the command line becomes a first-class front end** — yes:
-      `idasen-companion` now owns status, log and movement subcommands without
-      importing Qt; full/headless artifact publication remains packaging work.
-      The original analysis follows: it
-      is not one now: five flags living inside the GUI, declared at
-      `gui/main.py:135` and short-circuiting at `gui/main.py:150` before any
-      `QApplication` exists. That was right for what they are, and stops being
-      right the moment the command line has to *report* anything, which the
-      `status` item above starts doing. A CLI and a GUI over one daemon is the
-      ordinary arrangement for this kind of tool; what exists instead is a GUI
-      with flags attached, and the asymmetry already shows in packaging —
-      PySide6 is an *optional* extra (`pyproject.toml:29`) yet the
-      `idasen-companion` entry point runs `gui.main:main`, which imports
-      `QtWidgets` at module scope, so the flags need the GUI extra to fire one
-      D-Bus method. **The code separation is nearly free and the vocabulary
-      separation is most of the way done already.** `dbus-fast` is already a
-      base dependency, so a Qt-free client needs no new package, and the wire
-      format is deliberately flat-and-JSON already. The height and duration
-      words such a client would need are no longer the obstacle: they live
-      under `core/presentation/`, unit-explicit and Qt-free, reached through
-      a `Formatter` built onto an explicit context rather than through
-      `gui/util.py`'s `QCoreApplication.translate("util", …)` (`gui/util.py:27`)
-      against the Qt catalog. The status, position, preset and trigger words
-      (Phase 14) and the four date/time helpers (Phase 15) have since moved
-      to `core/presentation/` too, so nothing left in `gui/util.py` would
-      cross catalogs for a Qt-free client to reach. **The prize is a headless
-      package** — daemon plus command line, no PySide6 anywhere. Measured
-      untrimmed, Qt is 648 MB against ~7.9 MB for the whole rest of the
-      closure, so it is not a component of this app's weight, it is nearly all
-      of it; the split spec is already `noarch` and needs only a GUI
-      subpackage to carry its unconditional `Requires: python3-pyside6`
-      (`packaging/idasen-companion.spec:28`), and the bundled spec might stop
-      vendoring an interpreter altogether — its reason for doing so is
-      cross-distro correctness rather than Qt, but the only compiled
-      extensions left outside Qt are `dbus-fast`'s nine and PyYAML's one, both
-      with pure-Python fallbacks nothing here is fast enough to miss.
-      **Deferred deliberately**: adding `status` needs none of this and would
-      be held up by all of it. All four options weighed — status-in-place,
-      extract the vocabulary into `core/`, a separate binary with duplicated
-      formatters (rejected on the naming rule), and a full surface redesign
-      covering subcommand grammar, the fate of the existing flags, `--json`,
-      `--watch`, the packaging split and configuration — are written up in
+- [ ] **Extend the terminal interface beyond status, log and movement** — the
+      shared Qt-free `idasen-companion` command and full/headless RPM and Debian
+      packages have shipped. Remaining proposals: configuration read/write/edit
+      commands with shared validation and daemon-path awareness; JSON status;
+      signal-driven watch mode with daemon-restart recovery; a man page and
+      shell completion; and an explicit narrow/non-UTF-8/piped-output contract.
+      Decide scope before implementing these. The original design and current
+      remainder are in
       `.planning/todos/pending/2026-08-19-rethink-the-command-line-surface.md`.
-      **Configuration is the third front-end question and repeats the same
-      shape.** There is no way to change a setting outside the GUI, and the GUI
-      binary cannot even be pointed at another file (`--config` exists on the
-      daemon, `IDASEN_COMPANION_CONFIG` in `core/config.py:21`, neither on the
-      GUI). A generic `config set <section>.<key> <value>` is unusually cheap
-      because the dataclasses already *are* the schema and `_apply_section`
-      (`core/config.py:188`) already resolves, coerces and type-checks keys —
-      parse the argv value as a one-line TOML document and the types match the
-      file exactly. What blocks it is the same invariant problem as the
-      vocabulary: `AppContext.write_config` (`gui/context.py:62`) is the single
-      writer and owns tomlkit-preserving saves, the `configChanged` signal and
-      the `ReloadConfig` nudge, of which a CLI needs two and not the third.
-      Note also that temporary overrides mostly should *not* be config —
-      `Pause`, `Resume`, `SkipNext` and `Snooze` already exist as transient
-      daemon state (`daemon/service.py:161-177`) and a CLI should surface those
-      rather than coin a second way to say "not right now".
 - [ ] **Declare D-Bus signatures with `Annotated` so `service.py` is checked**
       — `daemon/service.py` is the only module excluded from type checking, via
       a scoped `disable_error_code` in `pyproject.toml`. It is the project's
@@ -294,7 +148,7 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
         user-shaped.** "Another idasen-companiond already owns the bus name"
         is diagnostic today, but a second daemon is a real thing a user might
         need to know about. Revisit if it ever shows up in a support thread.
-      - **The Activity Log seeds from journald with a 7-day window and no
+      - **The Activity Log seeds from journald with a 3-day window and no
         paging.** Fine for the ring-sized case it replaced; if anyone wants
         real history the window should be a control, not a constant.
       - **`journalctl` is shelled out to.** `core/journal.py` writes natively
@@ -395,37 +249,15 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
         `tests/test_dbus_contract.py`'s coverage, which scans for calls naming
         them — so it has to land together with a widened scan, the same way the
         `_iface(...).call()` gap was closed.
-- [ ] **ID-keyed translation (scheme C), deferred on sequencing rather than
-      merit** — settled during the Phase 12 discussion. Today's catalogs key on
-      the English source string; this reworks that to key on a stable id, e.g.
-      `Msg("status_standing", "Standing")` in a register, with the id reaching
-      the lookup and the register's own English serving as the runtime fallback
-      on a miss. It buys three things: rewording the English no longer orphans
-      the translation (today it does, silently); collisions between two
-      concepts that want the same English word stop being possible, since each
-      keeps its own id; and it deletes the class-rename trap `CLAUDE.md`
-      documents, because the Qt key stops being `(context, source)` with the
-      context a class name — renaming a GUI class today orphans every
-      `<message>` under its old context with nothing failing.
-      Not done now because re-keying while roughly twenty formatters are
-      simultaneously being merged into one shared vocabulary (Phases 13-15)
-      would put two changes in every diff — when a Spanish string lands wrong,
-      nothing says whether the move or the re-key did it. Doing it afterwards
-      instead means re-keying a settled target with the baseline harness this
-      milestone built already in place, the instrument that can prove a re-key
-      changed no rendered string. Whether it is worth doing at all is itself
-      evidence Phases 13-15 are expected to produce: reword-driven orphaning
-      and source-string collisions are being logged as they happen (see the
-      collision log in `docs/TRANSLATING.md`), and whether either actually
-      bites is the case for or against this.
-      Two obstacles are already verified on the Qt side rather than assumed:
-      PySide6's `QtCore` exposes `qtTrId` but not `QT_TRID_NOOP` (confirmed by
-      import — `QT_TRID_NOOP` is absent from `dir(QtCore)`), so the register
-      marker this shape needs is not available out of the box; and
-      `tests/test_catalog_contexts.py` is built entirely around Qt contexts,
-      which id-keying makes vestigial, so it needs substantial rework rather
-      than a small edit. `pyside6-lupdate` itself does already recognise
-      `qtTrId`, `QT_TRID_NOOP`, `QT_TRID_N_NOOP` and `qsTrId` as keywords.
+- [ ] **Reassess stable translation IDs against the current gettext design**
+      — GUI, daemon and CLI now share one contextual gettext catalog. English
+      rewording can still orphan a translation because source text remains part
+      of the key; stable message IDs could address that. The former Qt class
+      context/rename trap, `qtTrId` limitations and two-catalog migration no
+      longer apply. Re-measure actual rewording churn before changing the key
+      scheme, and preserve extraction, completeness checks and rendered-output
+      baselines. Historical trade-offs live in
+      `.planning/todos/pending/2026-08-21-key-translations-on-ids-instead-of-english-source.md`.
 ## UI polish
 - [ ] **The setup wizard opens off-centre** — reported on the maintainer's
       Fedora/KDE machine, 2026-08-13. Two facts, both confirmed by reading the
@@ -449,86 +281,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       is not portable — parent-relative placement and letting the compositor
       decide is, which argues for fixing the ordering rather than adding
       coordinates.
-- [ ] **Redesign the app icon and the tray icon** — both shipped icons are
-      first-draft placeholders drawn to have *something* there, not designed:
-      `data/icons/io.github.extricator.IdasenCompanion.svg` (64×64, a blue
-      rounded square with a white desk and a rising arrow, ~1 KB of hand-written
-      SVG) and `data/icons/io.github.extricator.IdasenCompanion-symbolic.svg`
-      (16×16 monochrome). They install to `hicolor/scalable/apps/` from the spec
-      and are referenced by `APP_ID` / `APP_ID-symbolic` in `gui/main.py`, so a
-      redesign is a straight file swap — no code change unless the naming
-      scheme changes.
-      **Light and dark are two different problems here, and only one of them
-      wants two files:**
-      - *Tray/symbolic — must recolour on **both** Plasma and GNOME.* Neither
-        gets a `-dark` twin: symbolic icons are recoloured by the panel, so a
-        second file would break that. The catch is that **the two desktops
-        recolour by different conventions, and today's file implements only
-        one of them.** Ours is written to Breeze's: a `<style
-        id="current-color-scheme">` block defining `.ColorScheme-Text`, with
-        `fill="currentColor"` on the group. GTK/GNOME ignores all of that —
-        Adwaita's own symbolic icons (`/usr/share/icons/Adwaita/symbolic/`)
-        are plain `<path fill="#2e3436"/>` with no classes at all, because
-        GTK overrides the fills itself, and GTK4 goes further: the `fill`
-        attribute and any `style`/`color` are *ignored*, with recolouring
-        driven by `gpa:fill` or by the recognised classes `foreground-fill` /
-        `success-fill` / `warning-fill` / `error-fill`. So our icon may be
-        rendering with its hardcoded `#232629` on GNOME — near-black on a
-        near-black panel, i.e. invisible rather than visibly wrong. **Verify
-        before redesigning, because it decides whether this is an art task or
-        also a bug fix.**
-        The target is one file both honour: keep the Breeze style block and
-        `currentColor`, and *also* carry GTK's `foreground-fill` class (the
-        two coexist — `class="ColorScheme-Text foreground-fill"`). If that
-        proves unreliable, the documented escape hatch is
-        `gtk-encode-symbolic-svg` (already on the box, from `gtk3-devel`),
-        which bakes the SVG into `.symbolic.png` files that GTK recolours
-        reliably and faster; they install alongside the SVG in fixed-size
-        icon dirs.
-        One precondition is already satisfied and worth not breaking: GTK only
-        recolours icons looked up **by name through the icon theme**, never
-        ones loaded from a file path. `gui/main.py:144` asks for
-        `APP_ID-symbolic` by name and the spec installs it under
-        `hicolor/scalable/apps/`, so that part is fine.
-        Testing needs `gnome-shell-extension-appindicator` **v50 or newer**
-        (that is where the `St.IconTheme` symbolic-loading path landed;
-        recolouring is a known long-standing gap in older versions). It is not
-        installed on this machine and this is a Plasma box, so GNOME
-        verification needs a VM or a second session — which is precisely why
-        it has gone unchecked.
-        Also keep the design legible as a flat silhouette at 16px; the current
-        one is close to the limit already. GTK4's format is stricter than
-        plain SVG: geometry attributes are mandatory (`d` on paths, `x`/`y`/
-        `width`/`height` on rects, `cx`/`cy`/`r` on circles) and strokes must
-        be converted to paths. Today's file happens to satisfy those — a
-        redesign drawn in Inkscape easily won't.
-        Sources for the above, so none of it has to be re-derived:
-        - GTK4 symbolic icon format (`gpa:fill`, the recognised classes, the
-          ignored attributes, mandatory geometry):
-          <https://docs.gtk.org/gtk4/icon-format.html>
-        - The by-name-through-the-icon-theme rule, and the `was_symbolic`
-          return value that tells you whether recolouring actually happened:
-          <https://docs.gtk.org/gtk3/method.IconInfo.load_symbolic.html>
-        - Authoring guidance (no unfilled shapes, strokes to paths, `class`
-          to colour a specific part):
-          <https://wiki.gnome.org/HowDoI/CreateSymbolicIconsThatChangeColorAccordingToTheme>
-        - The appindicator extension's long-standing "indicator icons don't
-          take the panel colour" issue, which is what v50's `St.IconTheme`
-          path addresses:
-          <https://github.com/ubuntu/gnome-shell-extension-appindicator/issues/253>
-        - Local reference implementation to compare against:
-          `/usr/share/icons/Adwaita/symbolic/actions/*.svg`
-      - *Main app icon.* Full-colour and sits on the app's own surface, so it
-        does not need a dark variant *if* it stays a filled shape with its own
-        background. It would need one the moment the design goes transparent-
-        background with dark strokes, which is exactly the trap a "modern,
-        minimal" redesign walks into. Decide that deliberately rather than
-        discovering it on a dark theme.
-      Also worth settling in the same pass: whether to ship raster fallbacks
-      (some environments still prefer PNG sizes over scalable SVG), and
-      whether the icon should reflect *state* (sitting vs standing vs
-      automation paused) in the tray rather than being static — that is a
-      genuine feature, not just art, and would need its own set of glyphs.
 - [ ] **Scroll wheel over settings spin/combo controls changes the value** — when
       scrolling a settings-class page with the mouse wheel, hovering over a
       `QSpinBox` (`_minutes_spin`/`linger_spin`/`lead_spin`), a `QComboBox`
@@ -555,7 +307,7 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       Deriving the expected set with the module's own `_reaches_tr` is
       *circular*: that helper is seeded by `_TRANSLATOR_SEEDS`, so removing a
       seed removes it from both sides and the check can never fail (verified
-      by mutation). Deriving it by intersecting "methods in `formatter.py`
+      by mutation). Deriving it by intersecting "methods in `core/presentation.py`
       that mention a translator" with "attribute names called in
       `gui/util.py`" *over-reaches*: names are matched bare, so `util`'s own
       `preset_label` collides with a same-named `Formatter` method and eleven
@@ -575,73 +327,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       reaches the tooltip via the daemon echoing `StatusChanged`, not via
       Apply. Narrow in practice — the tooltip carries a clock only while
       snoozed — but the test claims to pin a mechanism it does not exercise.
-- [ ] **CI generates no POSIX locale for any shipped language, so a
-      locale-sensitive gate only ever runs on a developer machine** — two
-      different things are called a language here and CI has only one of them.
-      The *catalog code* (`es`, from a compiled catalog) is committed and
-      ships, so the runner has it. The *POSIX locale* (`es_ES.UTF-8`,
-      generated in the operating system) is absent from both the GitHub runner
-      and the RPM buildroot. Any check needing the second kind skips there.
-      Today that is
-      `tests/test_golden_presentation_contract.py`'s
-      `test_the_qt_free_backend_ignores_the_posix_locale_too`, which renders
-      every shared formatter under a non-English numeric and time locale and
-      requires the output to match the `C` baseline — `BACK-04` as a
-      behavioural check rather than a promise, and the leg that caught the real
-      hole in Phase 17 when a mutant using a C-library number and date
-      conversion passed everything else. The proof that does run everywhere is
-      the structural gate in `tests/test_plain_locale.py`, which parses every
-      module under `core/presentation/`, so the gap is narrow rather than open:
-      a source-level reintroduction is still caught, a behavioural one is not.
-      Closing it is one step in the test workflow, no new runtime dependency —
-      but generate the list **from the shipped catalogs** rather than naming a
-      language, and fix the test's own hardcoded candidate locales the same
-      way, or language three lands in exactly this position again. The catalog
-      code to locale name mapping is not mechanical (`pt` has two territories)
-      and wants an explicit answer in committed source. The RPM buildroot is a
-      separate decision — no workflow step reaches it, and closing it means a
-      langpack build dependency per language.
-- [ ] **The window's minimum size is a pixel constant chosen against English,
-      and Spanish page content clips below it** — `gui/main_window.py` declares
-      a fixed minimum size, but the width the layout actually needs is a
-      function of the translated strings inside it. Measured offscreen through
-      `tests/test_baseline_window.py`'s own harness,
-      `window.minimumSizeHint().width()` is 658 for English and 779 for
-      Spanish, so the app permits a Spanish window narrow enough to cut its own
-      Settings content off — which is exactly what a maintainer hit, at the
-      window size English had trained them to use. Pre-existing: Spanish
-      already needed 770 before Phase 16's sidebar work, ten over the declared
-      minimum; that phase's nine-pixel sidebar growth moved it to 779, making
-      it a contributor rather than the cause. Same root-cause family as both
-      defects Phase 16 fixed — a pixel constant measured against English with
-      nothing checking whether a translation fits — which is the argument for
-      fixing it by measuring rather than by raising the number. Measurements,
-      four options and the shape of the test that would catch it are written up
-      in `2026-08-24-window-minimum-width-clips-translated-pages.md`, with its
-      reproduction script beside it; read that rather than re-deriving any of
-      it. Found during the Phase 16 bilingual walk.
-- [ ] **Six translated messages carry unnamed format slots a translator
-      cannot reorder** — each is a single whole catalog entry, so the
-      concatenation gate correctly reports no offender and no v1.1.1
-      requirement is unmet: the rule those requirements enforce is about
-      joining a translated fragment to something else, and none of these
-      does that. What they do instead is take two substitutions positionally.
-      Python's percent-formatting has no indexed form, so the order the
-      English fixed is the order every language inherits, and a language
-      needing the two swapped has no way to ask for it. That is the same
-      shape of silent failure the milestone was built to remove — correct in
-      English, discovered only by a language whose word order differs. Six
-      sites, all with two or more slots: five in `gui/tray.py` (the
-      position-and-detail separator, the held-for line, the status-and-change
-      line, the daily totals line, and the preset menu's name-and-height
-      entry) and one in `gui/pages/presets.py` (the preset-set confirmation).
-      Spanish needs no reorder in any of them today, which is why nothing is
-      visibly wrong. The fix is to give each slot a name, the way the sites
-      converted in phase 11 already do, and to re-translate — mechanical, but
-      it moves catalog entries, so it wants its own change with the catalogs
-      regenerated alongside. Consider whether the concatenation gate should
-      grow a companion check for multi-slot unnamed formatting, since nothing
-      currently stops the next one. Found during the v1.1.1 milestone audit.
 - [ ] **CLAUDE.md's documented development setup command is missing two
       packages the CI gates section immediately below it depends on** —
       the venv-creation line names `pytest` and `pytest-asyncio` and the GUI
@@ -656,17 +341,6 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       unrelated import errors. Found re-running the CI gates from a freshly
       recreated venv during Phase 10; recorded rather than fixed here since
       the section it sits in is being rewritten in the next phase.
-- [ ] **CLAUDE.md's coverage-floor parenthetical quotes a stale measured
-      total** — the note beside the pass threshold cites a specific
-      percentage as "the measured" total; the suite has grown since, and the
-      real number now sits well clear of both that quoted figure and the
-      floor. What it explains — that the coverage tool can print a failing
-      line and still exit success at the exact boundary, and that the total
-      wobbles slightly between identical runs — is still correct and worth
-      keeping; only the one number embedded in it has drifted. Prefer
-      unnumbered phrasing when this is corrected, the way this project's
-      README test-count claim was, since a number written into prose drifts
-      again the moment the suite grows.
 - [ ] **The Activity Log's colours are baked in at render time and do not
       follow a palette change** — every row is written as rich text with its
       timestamp, level and message colours resolved from `theme()` at the
@@ -685,26 +359,19 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       when the rendered rows are unchanged, and since the colours are part of
       that rendered string a palette change already produces different rows —
       so the skip does not stand in the way, and a call to `_redraw` is enough.
-- [ ] **Why a BLE link survived a suspend was never narrowed to one mechanism**
-      — the fix (release the link before the sleep under a logind delay lock,
-      reconcile against BlueZ on resume) is written to hold either way, and the
-      question only becomes worth settling if it turns out not to. Two
-      candidates remain, both inferred from vendored bleak 3.0.2's
-      `BleakClientBlueZDBus.disconnect()` and neither observed: **(b)** bleak's
-      cached `is_connected` flag goes false across the sleep, so it never sends
-      `Device1.Disconnect` at all, returns success, and BlueZ keeps the link;
-      **(c)** bleak's per-connection `MessageBus` stalls, so the untimed bus
-      call never returns and hangs holding `BleDesk._lock`. The experiment that
-      distinguishes them is one live suspend entered inside the linger window
-      with `--verbose` on (so bleak's own BlueZ logging reaches the journal),
-      reading both BlueZ `Device1.Connected` and the daemon's `Desk1.Connected`
-      immediately on resume: (b) logs "Disconnecting …" with no
-      `Device1.Disconnect` and shows the two disagreeing; (c) logs
-      "Disconnecting …" and then nothing, and a later desk operation never
-      returns. It was skipped by choice — a real suspend/resume cycle against
-      the real desk, which is the sharpest form of the BLE hazard this file
-      keeps warning about. Full evidence in the debug session
-      `ble-link-survives-suspend`.
+- [ ] **Identify the source of the intermittent orphaned BlueZ link if it
+      recurs** — PR #5 (`2e9cad1`, shipped in 1.3.0) bounded BLE reads and
+      connections, invalidated pending moves on Stop, and made session handoff
+      release only this app's Bleak client. Short and roughly 15-minute awake
+      KDE Xorg background switches, suspend, and a fresh Stand command passed.
+      Those safeguards did not establish why earlier failures left BlueZ
+      connected while Bleak reported disconnected. Preserve the captured
+      session-switch and `ble-link-survives-suspend` traces; if it recurs,
+      correlate the daemon journal, BlueZ state and Bleak lifecycle before
+      adding recovery. Device-wide disconnects can affect another client and
+      are deliberately excluded. This forensic question no longer blocks a
+      release, and duration tests need not be repeated solely to reach 20 minutes.
+      Do not stop or restart the installed daemon just to collect evidence.
 - [ ] **`gui/setup_wizard.py` is the least-tested file in the project, and it
       is untested rather than untestable** — 152 statements, 127 uncovered,
       **16%**, against 96% for `core/` and 99% for `core/machine.py`. Nothing
@@ -734,57 +401,24 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       Follow the GUI-test rules in `CLAUDE.md` when writing them: force
       `QT_QPA_PLATFORM=offscreen` before importing `QtWidgets` (`setdefault`
       is not enough), and destroy any tray icon explicitly at teardown.
-- [ ] **Nothing installs the compiled Spanish catalog and renders a
-      catalogued message through it** — `tests/test_log_catalog.py` and
-      `tests/test_command_errors.py` are thorough about *structure* (every id
-      has a twin, every parameter kind has a formatter, sample values render),
-      but every one of those checks runs the English source; a malformed
-      Spanish `%(...)s` substitution has no test that would notice.
-      `core/logmsg.py:560` and `:568` both swallow the `KeyError`/`ValueError`/
-      `TypeError` a bad substitution raises and silently render the raw
-      template instead — so a Spanish user would read the unsubstituted
-      pattern with the build staying green. The one-message-per-translatable-
-      unit milestone raises this item's value rather than lowering it: it
-      added several new `%(name)s`-substituted entries (`fmt_height`,
-      `fmt_days`' range/pair patterns, the About desk line, the Statistics
-      transition arrow, the setup wizard's success paragraphs) to exactly the
-      catalog surface this gap covers, on top of `core/logmsg.py`'s existing
-      62 `LogMessage` ids. `tests/test_command_errors.py:65` already installs
-      a compiled `.qm` and asserts on translated output for eight daemon error
-      strings — the template to extend, not a new mechanism to invent.
-- [ ] **Reassess `scripts/scan-secrets.sh` once GitHub's own secret scanning is
-      on** — Phase 04.1 documented enabling it as the first post-flip step
-      (`CONTRIBUTING.md` § "Cutting a release"), and once that lands the
-      script's remaining unique job narrows to proving a tree is clean before a
-      rewrite or a visibility change — the one moment GitHub will not do it for
-      you. Drop-candidates for a thinner version: the podman fallback, the ANSI
-      stripping, the evidence-directory plumbing and the history mode's rev-list
-      walk cross-check. The one part that must survive whatever replaces it is
-      the canary: a scan that walked nothing exits 0 and reports no leaks
-      (upstream gitleaks#2129), and a marketplace action inherits that
-      identically — worse in CI, where a green check is exactly what nobody
-      reads. Check the premise before designing around it: the script now takes
-      a mode and has three callers (the pre-commit hook, the `secrets` CI job
-      and this one-time pre-flip scan), so thinning it is no longer the
-      single-caller change the source note assumed.
-- [ ] **A `git commit` given a trailing pathspec can trip the pre-commit
-      hook's canary into a false refusal** — found and root-caused during
-      Phase 15, unrelated to that phase's own changes. `git commit -- <paths>`
-      makes git export a temporary lock-index path via `GIT_INDEX_FILE`; the
-      hook's nested canary `git -C $CANARY_DIR init`/`add` calls inherit that
-      variable because `-C` does not clear it, so the canary's synthetic
-      secret gets written into the *outer* repository's temp lock-index
-      instead of the canary's own fresh index. The containerized scanner never
-      sees `GIT_INDEX_FILE` and falls back to the canary's untouched real
-      index, finds nothing, and the hook correctly refuses on "canary reported
-      no findings" — its designed response to a broken scan, working exactly
-      as intended against a corrupted setup it didn't cause. Reproduced
-      deterministically: the same staged content commits cleanly with a plain
-      `git commit -m "..."` (no trailing pathspec) every time. Fix is to clear
-      `GIT_INDEX_FILE` (and `GIT_DIR`/`GIT_WORK_TREE`) before the nested canary
-      `git` calls in `scripts/scan-secrets.sh`; not fixed here since the
-      workaround (omit the trailing pathspec) is reliable for as long as a
-      caller stages exactly what it intends to commit.
+- [ ] **Exercise every activity-log template through the compiled Spanish
+      gettext catalog** — `tests/test_log_catalog.py` renders all message IDs
+      with English sample values and checks one Spanish scan-count plural.
+      That does not cover every translated template or its substitutions.
+      Extend the sample-value loop to the bound Spanish catalog, including
+      cycle/fallback notes, and check for untranslated or unsubstituted output.
+      Keep the runtime fallback for malformed messages. The former Qt `.qm`
+      catalog and two-catalog migration are gone; use `tests/language_context.py`
+      and the current gettext reader.
+- [ ] **Reassess the secret-scan script now that GitHub scanning is enabled**
+      — `.github/repository-policy.json` records secret scanning and push
+      protection as enabled. The local pre-commit hook, CI and full-history
+      audit still use `scripts/scan-secrets.sh`; compare their coverage before
+      removing any part. Candidates for simplification remain the container
+      fallback, ANSI stripping and evidence plumbing. Preserve the canary and
+      proof that the intended history/tree was actually scanned: a scanner
+      that walks nothing can otherwise report success. GitHub's settings alone
+      do not establish that these local and history checks are redundant.
 - [ ] **Fedora 42 cannot *build* this project's RPM: `setuptools>=77` unmet** —
       `pyproject.toml`'s `[build-system] requires` floors `setuptools` at 77,
       needed for PEP 639's SPDX `license`/`license-files` metadata. Fedora 42
@@ -1113,43 +747,15 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       only by hand, from `docs/MANUAL-TESTING.md`. A trim that dropped
       something one of those needs passes every gate this project has and fails
       on the first desktop.
-- [ ] **The split spec has no build gate and has now drifted much further from
-      the one that ships** — `packaging/idasen-companion.spec` plus
-      `python-bleak.spec` and `python-idasen.spec` build the repo-shaped
-      three-package set, and nothing in CI builds any of them; it shipped once
-      with a broken `%install`, unbuilt and undetected. The risk grew rather
-      than shrank: the bundled spec is now a different kind of package
-      altogether — private runtime directory, run-time interpreter choice,
-      trimmed Qt, architecture-specific, no `python3-*` requires — so reading
-      one of the two tells you nothing about the other, and the version
-      agreement a test does pin is most of what they still share. Either gate
-      it in CI or decide out loud that it is unsupported, somewhere a packager
-      will see it.
-- [ ] **Nothing watches the versions of anything the RPM bundles, and the
-      interpreter is now one of them** — `scripts/fetch-bundled-runtime.sh`
-      pins the nine distributions the package vendors *and* the CPython it
-      carries, and the spec restates each of the ten in a bundled-component
-      line, nine of them with a licence text as well. That those agree is now
-      checked; what nothing checks is how old any of them is. A security fix
-      reaches a user only when somebody bumps that script by hand and rebuilds.
-      There is no schedule, no advisory feed and no check that notices a pin
-      has aged, and bundling is precisely what makes that this project's
-      problem rather than the distribution's. Same gap as the scheduled
-      dependency audit further down, for what ships inside the package rather
-      than what it declares.
-      **The interpreter statically links its own OpenSSL, so the machine's
-      security updates do not reach it.** Nothing about installing a
-      distribution's `openssl` update touches the copy inside this package —
-      `objdump` shows no `libssl` in what the binary links, because the library
-      is compiled in. The only answer to a CVE there is to rebuild at a newer
-      python-build-standalone release and ship a new package; there is no
-      in-place patch path and there cannot be one. That is an accepted
-      consequence of carrying an interpreter, not a defect — the same trade
-      made knowingly when the package stopped asking the machine for a Python
-      — and it is written here so that it stays a decision rather than becoming
-      a discovery. The same applies to the six other C libraries compiled into
-      it (ncurses, Berkeley DB, libmpdec, liblzma, zlib, bzip2); OpenSSL is
-      simply the one whose advisories arrive most often.
+- [ ] **Monitor the dependencies embedded in release packages** — weekly
+      Dependabot updates now cover Python project requirements and Actions,
+      with security updates and alerts enabled, but not every pin in
+      `scripts/fetch-bundled-runtime.sh`, the RPM specs or Flatpak manifest.
+      Define how those bundled runtime/library pins are reviewed for advisories
+      and bumped. The bundled CPython statically links OpenSSL and other C
+      libraries, so host security updates cannot patch those copies: users
+      need a rebuilt release at a newer runtime pin. Version/spec agreement
+      tests do not detect a vulnerable or stale pin.
 - [ ] **Nothing holds the licence expression against what the interpreter
       actually links** — the spec now names fourteen terms and ships a text for
       each, and two standing tests hold those two lists against *each other* in
@@ -1235,35 +841,14 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       wheels are not: they are pinned by version only, which says what to fetch
       and nothing about what came back, so an index URL in the environment
       still redirects those downloads silently — and they end up inside a
-      signed release artifact carrying a private Qt. Closing the second half
-      means generating a requirements file with hashes and requiring them.
+      checksummed release artifact carrying a private Qt. Closing that gap means
+      generating a requirements file with hashes and requiring them.
       One smaller gap sits with it, and one has gone. Still open: the archive
       step records mtimes, ownership and directory order, so two runs on one
       host do not produce identical bytes; normalising the archive's metadata
       closes that. No longer true: which wheels arrive used to depend on the
       build host's Python, and the set is now resolved by the pinned
       interpreter the package carries, so every host fetches the same files.
-- [ ] **Review the admin/owner branch-protection bypass before the repository
-      goes public** — Phase 4 applies branch protection to `main` with
-      `enforce_admins: false`, a deliberate, temporary accommodation so the
-      solo maintainer isn't locked out while the repository is private. It
-      deviates from CI's own point: a red run should not be overridable, and
-      right now the owner can override one anyway. Revisit — most likely
-      flip to `enforce_admins: true` — the moment the repository is made
-      public, the same trigger as the `SECURITY.md` item directly below.
-- [ ] **`SECURITY.md` points at a button that does not exist yet** — it tells
-      reporters to use Security tab → Report a vulnerability, and
-      `.github/ISSUE_TEMPLATE/config.yml` links to the advisory page. GitHub only
-      offers private vulnerability reporting on **public** repositories, and on
-      org-owned private ones with Advanced Security — not on a private repo owned
-      by a personal account, which is what this is today. Verified by running the
-      same `PUT /repos/.../private-vulnerability-reporting` call against three
-      repos on the same account: it succeeds on a public one and 404s on private
-      ones, so it is visibility, not a token scope problem. Harmless while the
-      repo is private and has no other readers. **Enable it the moment the repo
-      goes public** — it is free there, and that is exactly when the instruction
-      starts being read by people who need it. Nothing else to change if enabled
-      then; the wording is already correct for that state.
 - [ ] **Per-file SPDX headers** — `README.md` and `pyproject.toml` now name the
       copyright holder, but no source file carries
       `SPDX-License-Identifier: GPL-3.0-or-later`, which is what the GPL's own
@@ -1403,9 +988,9 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
       setup — ~15 items, each tagged with its cost (`[GNOME]`, `[unpair]`,
       `[power]`, `[sweep]`, `[split]`). Real gaps: **every GNOME path** (the tray
       is optional *by design* because GNOME may not show it, and that design has
-      never met a GNOME session), the other KDE session type, the split spec —
-      it builds by hand (fixed and proven this phase) but nothing in CI gates
-      it, so it can go stale again — fresh pairing/discovery, out-of-range desk,
+      never met a GNOME session), the other KDE session type, the optional split spec
+      (documented as unverified; self-contained release RPMs are the supported
+      path), fresh pairing/discovery, out-of-range desk,
       and the policy matrices (ordinary use only exercises whichever value is
       configured). Newest and now the largest of them: **the window, the tray
       and the icons under the trimmed bundled Qt**, on both session types, from
@@ -1420,27 +1005,27 @@ slot and wedge the Bluetooth stack. Re-enable it afterwards.
 - [ ] **OSS hygiene files deferred from the release-readiness audit** — that
       audit (`RELEASE-READINESS.md`, kept in the parent directory rather than
       in the repo, since it documents where a credential lived) lists 18 tasks.
-      Phase 04.1 carries the publication-risk ones and explicitly rejects
-      `CODEOWNERS`, Dependabot and the workflow consolidation. These are what
-      is left, none of them a publication risk, all cheap:
+      Phase 04.1 carries the publication-risk ones and originally rejected
+      `CODEOWNERS`, Dependabot and workflow consolidation; the latter two have
+      since landed. Remaining housekeeping:
       `.editorconfig` (T-009) and `.gitattributes` (T-010) — the repo ships
-      Python, Markdown, YAML, TOML, shell, XML, `.desktop`, `.spec`, PO/TS
-      sources plus PNG screenshots and compiled `.qm`/`.mo` catalogs, and
+      Python, Markdown, YAML, TOML, shell, XML, `.desktop`, `.spec`, PO
+      sources plus PNG screenshots and compiled `.mo` catalogs, and
       nothing currently declares which of those are binary; `examples/config.toml`
       (T-016) — README documents the config path but ships no sample; a Makefile
       or task runner (T-017) wrapping the commands `CONTRIBUTING.md` already
       spells out.
-- [ ] **A scheduled dependency audit, once the repository is public** (T-015 in
-      `RELEASE-READINESS.md`) — CI has tests, type checks, artifact audit,
-      catalog checks, AppStream validation and packaging, but nothing watches
-      the dependencies over time, and `pyproject.toml` uses lower bounds with no
-      lockfile. A weekly `pip-audit` workflow is the obvious shape. Deliberately
-      **not** in Phase 04.1: a scheduled safety net only starts earning after
-      the flip, and it drags in a vulnerability-triage policy that a
-      pre-publication hardening pass should not be deciding in passing.
-- [ ] **Decide provenance vs. signatures for release artifacts** (T-018 in
-      `RELEASE-READINESS.md`) — releases publish `SHA256SUMS`, and README is
-      already careful to say checksums detect corruption rather than forgery.
+- [ ] **Decide whether dependency alerts need a scheduled vulnerability audit**
+      — Dependabot alerts/security updates and weekly Python/Actions update
+      groups are enabled. The old claim that nothing watches dependencies is
+      obsolete. What remains is a decision about resolved-environment auditing
+      (for example, a scheduled `pip-audit`) and a triage policy, including how
+      it complements review of bundled pins. Do not add a duplicate alerting
+      workflow without identifying the coverage it would add.
+- [ ] **Decide attestations or signatures for release artifacts** (T-018 in
+      `RELEASE-READINESS.md`) — CI candidates now carry build provenance, and
+      releases publish `SHA256SUMS`. Neither is a verifiable signature over the downloaded assets.
+      README is already careful to say checksums detect corruption rather than forgery.
       Closing that gap means either Sigstore/GitHub artifact attestations or
       detached signatures over the RPM, `.deb`, Flatpak bundle and the checksum
       file, plus a documented verification command. This is a real design
