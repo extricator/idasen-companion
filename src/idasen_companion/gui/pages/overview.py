@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
-from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES
+from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, Status
+from ...core.state_values import StatusValue, parse_status
 from .. import restyle
 from ..theme import css, theme
 from ..util import (
@@ -29,10 +30,6 @@ from ..widgets import (
 from .base import Page
 
 
-# The machine speaks ``Status``; the wire and this client speak its values.
-_RESUMABLE_VALUES = frozenset(s.value for s in RESUMABLE_STATUSES)
-_COUNTDOWN_VALUES = frozenset(s.value for s in COUNTDOWN_STATUSES)
-
 # The snooze button's duration, in minutes. Read by both the button's label
 # and its click handler, so the two cannot drift apart from separately edited
 # literals.
@@ -43,7 +40,7 @@ class OverviewPage(Page):
     def __init__(self, ctx):
         super().__init__(ctx)
         self._remaining = 0.0
-        self._status = ""
+        self._status: StatusValue = parse_status("")
         self._connected = False
         self._position = ""
         self._moving = False
@@ -368,7 +365,7 @@ class OverviewPage(Page):
         self.height_rail.set_target(self._target)
 
     def _toggle_pause(self) -> None:
-        if self._status in _RESUMABLE_VALUES:
+        if self._status in RESUMABLE_STATUSES:
             self.client.resume()
         else:
             self.client.pause()
@@ -440,7 +437,7 @@ class OverviewPage(Page):
              for name in PROTECTED_PRESETS if name in presets])
 
     def _on_status(self, status: str) -> None:
-        self._status = status
+        self._status = parse_status(status)
         self._render_status()
 
     def _schedule_clock(self, stored: str) -> str:
@@ -463,28 +460,28 @@ class OverviewPage(Page):
         tokens = theme()
         status = self._status
         config = self.ctx.cfg
-        if status == "active":
+        if status == Status.ACTIVE:
             color, head = tokens.success, status_head(status)
             reason = ""
-        elif status == "paused":
+        elif status == Status.PAUSED:
             color, head = tokens.warning, status_head(status)
             reason = ""
-        elif status == "snoozed":
+        elif status == Status.SNOOZED:
             color, head = tokens.warning, snooze_line(
                 self.ctx.fmt, self.client.snooze_until())
             reason = ""
-        elif status == "user-idle":
+        elif status == Status.USER_IDLE:
             idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
             reason = pgettext('overview', "no input for %(idle)s") % {
                 "idle": self.ctx.fmt.duration_minutes(idle_seconds)}
-        elif status == "away":
+        elif status == Status.AWAY:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "locked":
+        elif status == Status.LOCKED:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "out-of-schedule":
+        elif status == Status.OUT_OF_SCHEDULE:
             color, head = tokens.muted, status_head(status)
             if config:
                 # Three substituted values -- the day range, the start time
@@ -503,13 +500,13 @@ class OverviewPage(Page):
                     "end": self._schedule_clock(config.schedule.end)}
             else:
                 reason = ""
-        elif status == "disabled":
+        elif status == Status.DISABLED:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "held":
+        elif status == Status.HELD:
             color, head = tokens.warning, status_head(status)
             reason = pgettext('overview', "desk isn't at a preset")
-        elif status == "move-failed":
+        elif status == Status.MOVE_FAILED:
             color, head = tokens.error, status_head(status)
             reason = pgettext('overview', "couldn't reach the desk")
         else:
@@ -525,11 +522,11 @@ class OverviewPage(Page):
         # A failed move doesn't stop the cycle (a fresh one starts right
         # after), so hiding the countdown here would remove information
         # exactly when the user needs it most.
-        self._countdown_widget.setVisible(status in _COUNTDOWN_VALUES)
-        disabled = status == "disabled"
+        self._countdown_widget.setVisible(status in COUNTDOWN_STATUSES)
+        disabled = status == Status.DISABLED
         self._cycle_controls.setVisible(not disabled)
         self.enable_btn.setVisible(disabled)
-        paused = status in _RESUMABLE_VALUES
+        paused = status in RESUMABLE_STATUSES
         self.pause_btn.setText(pgettext('overview', "Resume") if paused else pgettext('overview', "Pause"))
         self.pause_btn.setIcon(icon("media-playback-start") if paused
                                else icon("media-playback-pause"))
@@ -541,7 +538,7 @@ class OverviewPage(Page):
         self._update_countdown_text()
 
     def _tick_countdown(self) -> None:
-        if self._status in _COUNTDOWN_VALUES and self._remaining > 0:
+        if self._status in COUNTDOWN_STATUSES and self._remaining > 0:
             elapsed = time.monotonic() - self._progress_stamp
             shown = max(0.0, self._remaining - elapsed)
             self._update_countdown_text(shown)

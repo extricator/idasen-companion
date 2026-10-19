@@ -50,6 +50,7 @@ from datetime import datetime
 from . import display_prefs as units
 from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from .machine import DeskState
+from .state_values import StatusValue, UnknownStatus
 from .display_prefs import HeightUnit
 from .i18n import Translator
 from .i18n import (
@@ -194,11 +195,11 @@ class Formatter:
         key = connection_state_key(connected, available, persistent)
         return connection_phrases(self._context.translator, key)
 
-    def status_label(self, status: str) -> str:
+    def status_label(self, status: StatusValue) -> str:
         """The long automation-status sentence for a status wire value."""
         return status_label(self._context.translator, status)
 
-    def status_head(self, status: str) -> str:
+    def status_head(self, status: StatusValue) -> str:
         """The short Overview status head word for a status wire value."""
         return status_head(self._context.translator, status)
 
@@ -605,7 +606,7 @@ def connection_phrases(translator: Translator, key: str) -> tuple[str, str]:
             translator.message(CONNECTION_CHIP_ON_DEMAND))
 
 
-def status_label(translator: Translator, status: str) -> str:
+def status_label(translator: Translator, status: StatusValue) -> str:
     """The long automation-status sentence for a status wire value.
 
     Falls back to the raw status string for an unrecognized key: a status
@@ -613,14 +614,18 @@ def status_label(translator: Translator, status: str) -> str:
     as nothing at all, and `tests/test_status_labels.py` is what stops that
     fallback from becoming the way a new status ships.
     """
+    if isinstance(status, UnknownStatus):
+        return status.raw
     source = STATUS_LABELS.get(status)
     return translator.message(source) if source is not None else status
 
 
-def status_head(translator: Translator, status: str) -> str:
+def status_head(translator: Translator, status: StatusValue) -> str:
     """The short Overview status head word for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
+    if isinstance(status, UnknownStatus):
+        return status.raw
     source = STATUS_HEADS.get(status)
     return translator.message(source) if source is not None else status
 

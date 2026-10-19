@@ -25,13 +25,15 @@ import os
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.machine import Status  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
+from idasen_companion.gui.theme import theme  # noqa: E402
 
 
 class FakeClient(QObject):
@@ -125,3 +127,66 @@ def test_a_fresh_cycle_puts_the_clock_back(page):
     page.client.progressChanged.emit(2400.0, 1800.0)
     page.client.progressChanged.emit(0.0, 1800.0)
     assert _header(page) == "Next: Stand in 30:00 of active time"
+
+
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
+                                     Qt.ConnectionType.QueuedConnection])
+def test_status_signal_enters_typed_overview_logic(page, qapp, delivery):
+    page.client.statusChanged.disconnect(page._on_status)
+    page.client.statusChanged.connect(page._on_status, delivery)
+    page.client.statusChanged.emit("move-failed")
+    qapp.processEvents()
+
+    # Qt transports strings; the consumer owns the typed interpretation.
+    assert page._status is Status.MOVE_FAILED
+    assert page.status_head_lbl.text() == "Last move failed"
+    assert page.status_reason.text() == "couldn't reach the desk"
+    assert not page._countdown_widget.isHidden()
+    page.client.progressChanged.emit(2400.0, 1800.0)
+    assert _header(page) == "Next: Stand Due now"
+    assert page.countdown_bar.value() == page.countdown_bar.maximum()
+
+
+@pytest.mark.parametrize("raw", ["", " Future-Status \t"])
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
+                                     Qt.ConnectionType.QueuedConnection])
+def test_unfamiliar_status_keeps_text_and_pause_controls(
+        page, qapp, monkeypatch, raw, delivery):
+    calls = []
+    monkeypatch.setattr(page.client, "pause", lambda: calls.append("pause"))
+    monkeypatch.setattr(page.client, "resume", lambda: calls.append("resume"))
+    page.client.statusChanged.disconnect(page._on_status)
+    page.client.statusChanged.connect(page._on_status, delivery)
+    page.client.statusChanged.emit(raw)
+    qapp.processEvents()
+
+    assert page.status_head_lbl.text() == raw
+    assert page.status_reason.text() == ""
+    assert page.status_dot._color == theme().muted
+    assert page._countdown_widget.isHidden()
+    assert not page._cycle_controls.isHidden()
+    assert page.enable_btn.isHidden()
+    assert page.pause_btn.text() == "Pause"
+    page.pause_btn.click()
+    assert calls == ["pause"]
+
+
+def test_known_status_actions_and_moving_override(page, monkeypatch):
+    calls = []
+    monkeypatch.setattr(page.client, "pause", lambda: calls.append("pause"))
+    monkeypatch.setattr(page.client, "resume", lambda: calls.append("resume"))
+    for raw in ("paused", "snoozed", "active", "move-failed"):
+        page.client.statusChanged.emit(raw)
+        page.pause_btn.click()
+    assert calls == ["resume", "resume", "pause", "pause"]
+    assert page.status_dot._color == theme().error
+
+    page.client.statusChanged.emit("disabled")
+    assert page._cycle_controls.isHidden()
+    assert not page.enable_btn.isHidden()
+    page.client.movingChanged.emit(True)
+    assert page.position_label.text() == "Moving…"
+    assert page.stop_btn.isEnabled()
+    page.client.movingChanged.emit(False)
+    assert page.position_label.text() == "Sitting"
+    assert not page.stop_btn.isEnabled()

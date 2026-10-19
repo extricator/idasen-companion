@@ -16,6 +16,8 @@ separating space of its own.
 from __future__ import annotations
 
 from datetime import datetime
+
+from ..core.state_values import StatusValue
 from typing import Any, Callable, TypeVar
 
 from ..core.i18n import pgettext
@@ -141,7 +143,7 @@ def fmt_days(days: list[str]) -> str:
 
 
 @returns_translated
-def status_label(status: str) -> str:
+def status_label(status: StatusValue) -> str:
     """Translated automation-status sentence for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
@@ -149,7 +151,7 @@ def status_label(status: str) -> str:
 
 
 @returns_translated
-def status_head(status: str) -> str:
+def status_head(status: StatusValue) -> str:
     """Translated Overview status head word for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
