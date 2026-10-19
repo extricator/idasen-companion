@@ -27,7 +27,6 @@ from .. import DBUS_NAME, DBUS_PATH, __version__
 from ..core import journal, logmsg
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, MAX_HEIGHT, MIN_HEIGHT,
-    save_config,
 )
 from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
@@ -1147,7 +1146,7 @@ class Daemon:
         previous = self.config.automation.enabled
         self.config.automation.enabled = enabled
         try:
-            save_config(self.config, self.config_file.path)
+            self.config_file.save(self.config)
         except (ConfigError, OSError) as error:
             # Mutating before writing left the daemon running on state that is
             # not on disk when the write failed — and reporting "disabled"
@@ -1156,7 +1155,6 @@ class Daemon:
             self.config.automation.enabled = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self.config_file.note_mtime()
         self.machine.update_config(self.config)
         self.activity_log.emit(logmsg.AUTOMATION_ENABLED if enabled
                        else logmsg.AUTOMATION_DISABLED)
@@ -1652,8 +1650,7 @@ class Daemon:
 
         previous_mac = self.config.desk.mac
         self.config.desk.mac = desk_mac
-        save_config(self.config, self.config_file.path)
-        self.config_file.note_mtime()
+        self.config_file.save(self.config)
         if not self.mock_mode and desk_mac != previous_mac:
             self._swap_desk()
         self.activity_log.emit(
@@ -1747,12 +1744,11 @@ class Daemon:
         disk, with no PresetsChanged and no log line to say so.
         """
         try:
-            save_config(self.config, self.config_file.path)
+            self.config_file.save(self.config)
         except (ConfigError, OSError) as error:
             self.config.presets = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self.config_file.note_mtime()  # don't treat our own write as a hot reload
         self._ifaces["presets"].PresetsChanged(json.dumps(self.config.presets))
 
 

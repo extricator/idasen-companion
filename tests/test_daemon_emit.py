@@ -421,7 +421,8 @@ async def test_a_stop_that_precedes_a_reverse_leaves_the_flag_for_it():
 
 def _enable_daemon(tmp_path, enabled=True):
     import time
-    from idasen_companion.core.config import AppConfig, load_config, save_config
+    from idasen_companion.core.config import AppConfig, load_config
+    from idasen_companion.daemon.config_file import ConfigFileStore
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.desk.mock import MockDesk
 
@@ -435,21 +436,16 @@ def _enable_daemon(tmp_path, enabled=True):
     cfg = AppConfig()
     cfg.automation.enabled = enabled
     d.config = cfg
-    d.config_path = tmp_path / "config.toml"
-    save_config(cfg, d.config_path)
+    d.config_file = ConfigFileStore(tmp_path / "config.toml", d.activity_log)
+    d.config_file.save(cfg)
     d.machine = StateMachine(cfg, MockDesk(height=0.62), now=time.time())
-    # set_automation_enabled now re-checks the file before writing, so a hand
-    # edit made in the last check_interval isn't clobbered. Seed the mtime the
-    # way the daemon would have after writing this file itself; leaving it None
-    # would make the check treat the file as newly appeared and hot-reload it.
-    d._config_mtime = d.config_path.stat().st_mtime
     return d, load_config
 
 
 def test_set_automation_enabled_persists_to_config(tmp_path):
     d, load = _enable_daemon(tmp_path)
     d.set_automation_enabled(False)
-    assert load(d.config_path).automation.enabled is False
+    assert load(d.config_file.path).automation.enabled is False
     assert d.machine.status(0.0).value == "disabled"
     _assert_announced(d)
 
@@ -474,3 +470,50 @@ def test_turning_automation_back_on_starts_a_fresh_cycle(tmp_path):
     d.set_automation_enabled(True)
     assert d.machine.target_duration > 0
     assert d.machine.active_time == 0
+
+
+def test_an_automation_write_consumes_its_own_revision(tmp_path):
+    d, _ = _enable_daemon(tmp_path)
+    d.set_automation_enabled(False)
+    assert not d.config_file.poll_changed()
+
+
+@pytest.mark.parametrize("error_kind", ["config", "os"])
+def test_failed_automation_write_restores_state_without_announcing(tmp_path, monkeypatch, error_kind):
+    from dbus_fast import DBusError
+    from idasen_companion.core.config import ConfigError
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    d, load = _enable_daemon(tmp_path)
+    before_status = d.machine.status(0.0)
+    error = ConfigError("invalid") if error_kind == "config" else OSError("disk full")
+    monkeypatch.setattr(config_file_mod, "save_config", MagicMock(side_effect=error))
+
+    with pytest.raises(DBusError) as raised:
+        d.set_automation_enabled(False)
+
+    assert raised.value.type.endswith(".Error.ConfigWriteFailed")
+    assert d.config.automation.enabled is True
+    assert load(d.config_file.path).automation.enabled is True
+    assert d.machine.status(0.0) == before_status
+    d.activity_log.emit.assert_not_called()
+    d._ifaces["automation"].StatusChanged.assert_not_called()
+    d._ifaces["automation"].emit_properties_changed.assert_not_called()
+    assert not d.config_file.poll_changed()
+
+
+async def test_setup_saves_through_the_same_watcher_before_scheduling_sync(tmp_path):
+    d, load = _enable_daemon(tmp_path)
+    d.mock_mode = True
+    d.desk = MagicMock(get_height=AsyncMock(return_value=0.95))
+    observed = []
+
+    async def sync():
+        observed.append((load(d.config_file.path).desk.mac,
+                         d.config_file.poll_changed()))
+
+    d._post_setup_sync = sync
+    assert await d.setup_desk(" AA:BB:CC:DD:EE:FF ") == 0.95
+    await asyncio.gather(*d._tasks)
+
+    assert observed == [("AA:BB:CC:DD:EE:FF", False)]

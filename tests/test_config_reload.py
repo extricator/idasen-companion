@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from idasen_companion.core.config import load_config
+from idasen_companion.core.config import ConfigError, load_config
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.daemon.config_file import ConfigFileStore
 
@@ -279,3 +279,34 @@ def test_a_semantic_no_op_edit_is_consumed_without_reroll_or_repeated_applicatio
     daemon.machine.update_config.assert_called_once_with(
         daemon.config, reroll_target=False)
     assert "config.reloaded" not in _emitted_ids(daemon)
+
+
+def test_daemon_constructs_one_config_file_owner(tmp_path):
+    path = tmp_path / "config.toml"
+    d = Daemon(path, mock_desk=True, stats_path=Path(":memory:"))
+    try:
+        assert isinstance(d.config_file, ConfigFileStore)
+        assert d.config_file.path == path
+        assert not hasattr(d, "config_path")
+        assert not hasattr(d, "_config_mtime")
+        assert not hasattr(d, "_note_config_mtime")
+        assert not hasattr(d, "_load_or_bootstrap_config")
+    finally:
+        d.stats.close()
+
+
+@pytest.mark.parametrize("error", [ConfigError("invalid"), OSError("disk full")])
+def test_a_failed_store_save_does_not_consume_an_external_revision(daemon, monkeypatch, error):
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    path = daemon.config_file.path
+    daemon.config_file.note_mtime()
+    first_mtime = path.stat().st_mtime
+    os.utime(path, (first_mtime + 10,) * 2)
+    monkeypatch.setattr(config_file_mod, "save_config", MagicMock(side_effect=error))
+
+    with pytest.raises(type(error)):
+        daemon.config_file.save(daemon.config)
+
+    assert daemon.config_file.poll_changed()
+    assert not daemon.config_file.poll_changed()

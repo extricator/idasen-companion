@@ -109,7 +109,10 @@ def _bare_daemon(monkeypatch):
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.mock_mode = True
-    d.config_path = None
+    from idasen_companion.daemon.config_file import ConfigFileStore
+    d.config_file = MagicMock(spec=ConfigFileStore)
+    d.config_file.path = Path("unused-config.toml")
+    d.config_file.load_or_bootstrap.return_value = cfg
     d.accounting = MagicMock(spec=["account", "flush"])
     d._stop_event = asyncio.Event()
     d._initial_read = None
@@ -118,7 +121,6 @@ def _bare_daemon(monkeypatch):
     d.desk.disconnect = MagicMock(side_effect=lambda: asyncio.sleep(0))
     d._session = MagicMock()
     d._session.state = AsyncMock(return_value=SEAT_FOREGROUND)
-    monkeypatch.setattr(d, "_load_or_bootstrap_config", lambda: cfg)
     monkeypatch.setattr(d, "_unconfigured", lambda: False)
     monkeypatch.setattr(d, "_make_desk", lambda: d.desk)
     monkeypatch.setattr(main_mod, "set_language", lambda _l: None)
@@ -139,8 +141,8 @@ async def test_signal_handlers_are_installed_before_anything_can_block(monkeypat
 
     monkeypatch.setattr(main_mod.asyncio, "get_running_loop", lambda: Recorder())
     d = _bare_daemon(monkeypatch)
-    monkeypatch.setattr(d, "_load_or_bootstrap_config",
-                        lambda: (order.append("config"), _cfg_for(d))[1])
+    d.config_file.load_or_bootstrap.side_effect = (
+        lambda: (order.append("config"), _cfg_for(d))[1])
 
     async def setup_dbus():
         order.append("dbus")
