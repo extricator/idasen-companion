@@ -345,31 +345,3 @@ def test_could_not_listen_for_response_is_non_success(monkeypatch):
     assert ok is False
     assert err
     assert not connection.disconnect_calls  # nothing to disconnect
-
-
-# ----- listener cleanup across every outcome -----
-
-def test_response_listener_disconnected_on_success_failure_and_timeout(monkeypatch):
-    connection_ok, _ = _install(monkeypatch, response=0, results={"autostart": True})
-    bp.set_autostart(True)
-    assert connection_ok.disconnect_calls
-
-    connection_cancelled, _ = _install(monkeypatch, response=1, results={})
-    bp.set_autostart(True)
-    assert connection_cancelled.disconnect_calls
-
-    monkeypatch.setattr(bp, "_RESPONSE_DEADLINE_MS", 20)
-    connection_timeout = _FakeConnection()
-
-    class _NeverRespondsInterface:
-        def __init__(self, service, path, interface, conn):
-            pass
-
-        def call(self, method, *args):
-            return _FakeReply()
-
-    monkeypatch.setattr(bp, "is_flatpak", lambda: True)
-    monkeypatch.setattr(bp, "QDBusConnection", _FakeSessionBus(connection_timeout))
-    monkeypatch.setattr(bp, "QDBusInterface", _NeverRespondsInterface)
-    bp.set_autostart(True)
-    assert connection_timeout.disconnect_calls

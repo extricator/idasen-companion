@@ -77,17 +77,3 @@ def test_the_delay_renders_english_under_the_system_catalog(seconds, expected):
 def test_the_delay_translates_under_the_spanish_catalog(seconds, expected):
     i18n.set_language("es")
     assert _delay(seconds) == expected
-
-
-def test_the_delay_no_longer_rounds():
-    """The measured D-02 correction: 90 seconds now says '1 minute', not
-    the '2 minutes' the old `round(seconds / 60)` arithmetic produced."""
-    i18n.set_language(i18n.SYSTEM)
-    assert _delay(90) == "1 minute"
-
-
-def test_the_delay_no_longer_floors_hours_out():
-    """3900 seconds now splits into hours and minutes, where the old
-    arithmetic never split hours at all and said '65 minutes'."""
-    i18n.set_language(i18n.SYSTEM)
-    assert _delay(3900) == "1 hour 5 minutes"

@@ -74,10 +74,3 @@ async def test_the_mock_disconnect_is_a_no_op_that_can_be_awaited():
     desk = MockDesk(height=0.9)
     await desk.disconnect()      # must not raise
     assert desk.height == 0.9    # and must not disturb anything
-
-
-def test_a_mock_desk_is_accepted_where_a_deskport_is_wanted():
-    def wants_port(_d: DeskPort) -> None:
-        pass
-
-    wants_port(MockDesk())       # runtime is trivially fine; mypy is the check

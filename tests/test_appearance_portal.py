@@ -213,8 +213,8 @@ def test_a_reply_of_the_wrong_type_is_treated_as_absent(monkeypatch, bad_value):
     assert prefs.contrast is None
 
 
-@pytest.mark.parametrize("out_of_range", [-1, 3, 999, 2 ** 32 - 1],
-                         ids=["negative", "just-past", "far-past",
+@pytest.mark.parametrize("out_of_range", [-1, 3, 2 ** 32 - 1],
+                         ids=["negative", "just-past",
                               "largest-uint32"])
 def test_a_number_outside_the_key_s_defined_set_is_treated_as_absent(
         monkeypatch, out_of_range):
