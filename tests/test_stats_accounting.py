@@ -106,6 +106,15 @@ class Harness:
         return sum(sec for _, s, sec in totals if s == state)
 
 
+@pytest.fixture
+def harness():
+    instance = Harness()
+    try:
+        yield instance
+    finally:
+        instance.stats.close()
+
+
 def test_daemon_constructs_one_accounting_owner(tmp_path):
     d = Daemon(tmp_path / "config.toml", mock_desk=True,
                stats_path=Path(":memory:"))
@@ -124,17 +133,17 @@ def test_daemon_constructs_one_accounting_owner(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_working_time_is_credited_as_it_happens():
+async def test_working_time_is_credited_as_it_happens(harness):
     """Input in every window: credited immediately, so "Today:" stays live."""
-    h = Harness()
+    h = harness
     for _ in range(10):
         await h.tick(5)
     assert h.credited() == pytest.approx(10 * TICK)
 
 
 @pytest.mark.asyncio
-async def test_tick_accounts_captured_position_after_unlock_before_events():
-    h = Harness()
+async def test_tick_accounts_captured_position_after_unlock_before_events(harness):
+    h = harness
     d = h.daemon
     order = []
     d.accounting = MagicMock()
@@ -163,13 +172,13 @@ async def test_tick_accounts_captured_position_after_unlock_before_events():
 
 
 @pytest.mark.asyncio
-async def test_silence_that_ends_in_input_counts_in_full():
+async def test_silence_that_ends_in_input_counts_in_full(harness):
     """Reading a dense page for eight minutes is time spent at the desk.
 
     Nothing distinguishes it from being away until it ends — and it ends with
     input, well short of the away threshold, so it was presence after all.
     """
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(8 * 60)
     await h.tick(2)  # scrolled the page
@@ -177,7 +186,7 @@ async def test_silence_that_ends_in_input_counts_in_full():
 
 
 @pytest.mark.asyncio
-async def test_break_past_the_away_threshold_deposits_nothing():
+async def test_break_past_the_away_threshold_deposits_nothing(harness):
     """The regression this suite exists for.
 
     Accounting used to credit every tick under the away threshold and never
@@ -185,15 +194,15 @@ async def test_break_past_the_away_threshold_deposits_nothing():
     permanently. Crossing the threshold is precisely the evidence that the
     silence was absence, so that time must not survive it.
     """
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(15 * 60)
     assert h.credited() == pytest.approx(TICK)  # only the tick with input
 
 
 @pytest.mark.asyncio
-async def test_returning_after_a_long_break_resumes_clean():
-    h = Harness()
+async def test_returning_after_a_long_break_resumes_clean(harness):
+    h = harness
     await h.tick(5)
     await h.silence(15 * 60)
     await h.tick(2)  # back at the desk
@@ -202,9 +211,9 @@ async def test_returning_after_a_long_break_resumes_clean():
 
 
 @pytest.mark.asyncio
-async def test_lock_discards_held_back_time():
+async def test_lock_discards_held_back_time(harness):
     """A lock is proof of absence, at any idleness."""
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     await h.tick(300, locked=True)
@@ -213,8 +222,8 @@ async def test_lock_discards_held_back_time():
 
 
 @pytest.mark.asyncio
-async def test_switching_session_discards_held_back_time():
-    h = Harness()
+async def test_switching_session_discards_held_back_time(harness):
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     await h.tick(300, away=True)
@@ -223,8 +232,8 @@ async def test_switching_session_discards_held_back_time():
 
 
 @pytest.mark.asyncio
-async def test_no_graphical_session_discards_held_back_time():
-    h = Harness()
+async def test_no_graphical_session_discards_held_back_time(harness):
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     await h.tick(0, seatless=True)
@@ -233,8 +242,8 @@ async def test_no_graphical_session_discards_held_back_time():
 
 
 @pytest.mark.asyncio
-async def test_tick_uses_the_reloaded_idle_threshold():
-    h = Harness()
+async def test_tick_uses_the_reloaded_idle_threshold(harness):
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     h.daemon._check_config_file.side_effect = lambda: setattr(
@@ -245,11 +254,11 @@ async def test_tick_uses_the_reloaded_idle_threshold():
 
 
 @pytest.mark.asyncio
-async def test_suspend_sized_gap_discards_held_back_time():
+async def test_suspend_sized_gap_discards_held_back_time(harness):
     """A wall-clock jump is the stats-side twin of the machine's time-jump
     reset: the gap itself isn't credited, and neither is the silence before it.
     """
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     await h.tick(3600, elapsed=3600)
@@ -258,11 +267,11 @@ async def test_suspend_sized_gap_discards_held_back_time():
 
 
 @pytest.mark.asyncio
-async def test_backward_clock_step_credits_nothing():
+async def test_backward_clock_step_credits_nothing(harness):
     """A clock correction can step backwards. Crediting a negative elapsed
     would *subtract* from a daily row, leaving a total that no amount of real
     desk time explains and a negative bar on the Statistics chart."""
-    h = Harness()
+    h = harness
     for _ in range(5):
         await h.tick(5)
     banked = h.credited()
@@ -277,9 +286,9 @@ async def test_backward_clock_step_credits_nothing():
 
 
 @pytest.mark.asyncio
-async def test_off_cycle_time_is_not_attributed_to_either_state():
+async def test_off_cycle_time_is_not_attributed_to_either_state(harness):
     """Held off-cycle the desk is at neither preset, so nothing to credit."""
-    h = Harness()
+    h = harness
     await h.tick(5, held=True)
     await h.tick(5, held=True)
     assert h.credited("sitting") == 0
@@ -287,10 +296,10 @@ async def test_off_cycle_time_is_not_attributed_to_either_state():
 
 
 @pytest.mark.asyncio
-async def test_held_back_time_lands_on_the_state_it_was_spent_in():
+async def test_held_back_time_lands_on_the_state_it_was_spent_in(harness):
     """The desk can change position between silence and the input that
     confirms it, so held-back time is keyed by the state it was held in."""
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(3 * 60)
     h.daemon.machine.state = MagicMock(value="standing")
@@ -300,9 +309,9 @@ async def test_held_back_time_lands_on_the_state_it_was_spent_in():
 
 
 @pytest.mark.asyncio
-async def test_shutdown_commits_held_back_time():
+async def test_shutdown_commits_held_back_time(harness):
     """Stopping mid-silence is not evidence of absence; don't lose the time."""
-    h = Harness()
+    h = harness
     await h.tick(5)
     await h.silence(4 * 60)
     assert h.credited() == pytest.approx(TICK)
@@ -312,7 +321,7 @@ async def test_shutdown_commits_held_back_time():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("settled_by", ["input", "shutdown"])
-async def test_pending_credit_keeps_original_day_and_state(monkeypatch, settled_by):
+async def test_pending_credit_keeps_original_day_and_state(monkeypatch, settled_by, harness):
     from idasen_companion.daemon import accounting as accounting_mod
     from idasen_companion.daemon import stats as stats_mod
 
@@ -325,7 +334,7 @@ async def test_pending_credit_keeps_original_day_and_state(monkeypatch, settled_
 
     monkeypatch.setattr(accounting_mod, "date", AccountingDate)
     monkeypatch.setattr(stats_mod, "date", AccountingDate)
-    h = Harness()
+    h = harness
     await h.tick(60)
     h.daemon.machine.state = MagicMock(value="standing")
     await h.tick(120)
