@@ -13,18 +13,21 @@ from idasen_companion.core.config import load_config, save_config
 
 
 class FakeClient:
-    def __init__(self) -> None:
+    def __init__(self, *, status: str = "active",
+                 position: str = "standing") -> None:
         self.calls: list[tuple[str, str, tuple[object, ...]]] = []
         self.closed = False
+        self.status = status
+        self.position = position
 
     async def properties(self, interface: str,
                          names: tuple[str, ...]) -> dict[str, object]:
         values = {
             "Connected": True,
             "Height": 1.10,
-            "Position": "standing",
+            "Position": self.position,
             "Moving": False,
-            "Status": "active",
+            "Status": self.status,
             "ActiveTime": 3900.0,
             "TimeRemaining": 1020.0,
             "SnoozeUntil": 0.0,
@@ -64,6 +67,7 @@ async def test_status_has_the_three_settled_sections_and_shared_values():
     assert "Today" in output.splitlines()
     assert "110.0 cm" in output
     assert "Standing" in output
+    assert "  Status: Automation active" in output.splitlines()
     assert "1h 05m" in output
     assert "Sitting down in 17m" in output
     assert "2h 00m" in output
@@ -83,6 +87,39 @@ async def test_status_uses_the_selected_spanish_catalog():
     assert "Automatización\n" in output
     assert "Hoy\n" in output
     assert "Altura: 110,0 cm" in output
+    assert "  Posición: De pie" in output.splitlines()
+    assert "  Estado: Automatización activa" in output.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("status", "position", "status_line", "position_line"),
+    [
+        ("future-MODE ", "focus-SPOT", "  Status: future-MODE ",
+         "  Position: Focus-spot"),
+        ("", "", "  Status: ", "  Position: Custom"),
+    ],
+)
+def test_status_command_preserves_open_values(
+    tmp_path, monkeypatch, capsys, status, position, status_line, position_line,
+):
+    path = tmp_path / "config.toml"
+    path.write_text("[ui]\nlanguage = 'en'\n")
+    client = FakeClient(status=status, position=position)
+
+    async def connect():
+        return client
+
+    monkeypatch.setattr(cli.DaemonClient, "connect", connect)
+    try:
+        assert cli.main(["--config", str(path), "status"]) == 0
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert status_line in captured.out.splitlines()
+    assert position_line in captured.out.splitlines()
+    assert "  Next: 17m left" in captured.out.splitlines()
+    assert client.closed
 
 
 @pytest.mark.asyncio

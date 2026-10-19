@@ -49,7 +49,10 @@ from idasen_companion.core.i18n import (  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
-from idasen_companion.core.state_values import parse_status  # noqa: E402
+from idasen_companion.core.machine import DeskState  # noqa: E402
+from idasen_companion.core.state_values import (  # noqa: E402
+    parse_position, parse_status,
+)
 
 #: Set to regenerate the committed goldens instead of comparing against them.
 #: Unset (the default, and the only state CI ever runs in), a mismatch fails
@@ -243,10 +246,10 @@ def _status_cases() -> dict[str, str]:
 
 def _position_cases() -> dict[str, str]:
     return {
-        "sitting": util.position_label("sitting"),
-        "standing": util.position_label("standing"),
-        "empty": util.position_label(""),
-        "unknown": util.position_label("custom-spot"),
+        "sitting": util.position_label(DeskState.SITTING),
+        "standing": util.position_label(DeskState.STANDING),
+        "empty": util.position_label(parse_position("")),
+        "unknown": util.position_label(parse_position("custom-spot")),
     }
 
 
@@ -280,8 +283,8 @@ _SNOOZE_UNTIL = 1_800_000_000.0
 def _cycle_cases() -> dict[str, str]:
     cases = {
         "due_now": util.due_now_label(),
-        "position_or_custom_known": util.position_or_custom("standing"),
-        "position_or_custom_custom": util.position_or_custom(""),
+        "position_or_custom_known": util.position_or_custom(DeskState.STANDING),
+        "position_or_custom_custom": util.position_or_custom(parse_position("")),
     }
     for clock, style in _CLOCKS.items():
         fmt = _clock_formatter(style)
