@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.main import Daemon
 
 
@@ -181,7 +182,7 @@ async def test_the_tick_takes_the_desk_lock():
     d._lock = MagicMock(is_locked=AsyncMock(return_value=False))
     d._session = MagicMock(state=AsyncMock(return_value="foreground"))
     d.stats = MagicMock()
-    d._pending_credit = {}
+    d.accounting = ActiveTimeAccounting(d.stats)
     d._handle_event = MagicMock()
     d._maybe_warn = AsyncMock()
     d._emit_periodic_properties = MagicMock()

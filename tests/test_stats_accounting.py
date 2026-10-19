@@ -223,6 +223,28 @@ async def test_switching_session_discards_held_back_time():
 
 
 @pytest.mark.asyncio
+async def test_no_graphical_session_discards_held_back_time():
+    h = Harness()
+    await h.tick(5)
+    await h.silence(4 * 60)
+    await h.tick(0, seatless=True)
+    await h.tick(2)
+    assert h.credited() == pytest.approx(2 * TICK)
+
+
+@pytest.mark.asyncio
+async def test_tick_uses_the_reloaded_idle_threshold():
+    h = Harness()
+    await h.tick(5)
+    await h.silence(4 * 60)
+    h.daemon._check_config_file.side_effect = lambda: setattr(
+        h.daemon.config.automation, "idle_threshold", 120)
+    await h.tick(300)
+    await h.tick(2)
+    assert h.credited() == pytest.approx(2 * TICK)
+
+
+@pytest.mark.asyncio
 async def test_suspend_sized_gap_discards_held_back_time():
     """A wall-clock jump is the stats-side twin of the machine's time-jump
     reset: the gap itself isn't credited, and neither is the silence before it.
@@ -286,3 +308,44 @@ async def test_shutdown_commits_held_back_time():
     assert h.credited() == pytest.approx(TICK)
     h.daemon.accounting.flush()
     assert h.credited() == pytest.approx(5 * TICK)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("settled_by", ["input", "shutdown"])
+async def test_pending_credit_keeps_original_day_and_state(monkeypatch, settled_by):
+    from idasen_companion.daemon import accounting as accounting_mod
+    from idasen_companion.daemon import stats as stats_mod
+
+    current_day = date(2026, 1, 1)
+
+    class AccountingDate(date):
+        @classmethod
+        def today(cls):
+            return current_day
+
+    monkeypatch.setattr(accounting_mod, "date", AccountingDate)
+    monkeypatch.setattr(stats_mod, "date", AccountingDate)
+    h = Harness()
+    await h.tick(60)
+    h.daemon.machine.state = MagicMock(value="standing")
+    await h.tick(120)
+    current_day = date(2026, 1, 2)
+    await h.tick(180)
+    assert h.stats.daily_totals(date(2026, 1, 1), date(2026, 1, 3)) == []
+
+    current_day = date(2026, 1, 3)
+    expected = [
+        ("2026-01-01", "sitting", TICK),
+        ("2026-01-01", "standing", TICK),
+        ("2026-01-02", "standing", TICK),
+    ]
+    if settled_by == "input":
+        await h.tick(2)
+        expected.append(("2026-01-03", "standing", TICK))
+    else:
+        h.daemon.accounting.flush()
+
+    assert h.stats.daily_totals(date(2026, 1, 1), current_day) == expected
+    # The same buckets cannot be deposited again on a second flush.
+    h.daemon.accounting.flush()
+    assert h.stats.daily_totals(date(2026, 1, 1), current_day) == expected

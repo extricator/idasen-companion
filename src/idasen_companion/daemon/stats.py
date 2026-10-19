@@ -3,8 +3,8 @@
 Active time is credited to the desk state it was spent in — but not per
 tick. A silent window is held back until presence is settled, then flushed if
 input proves the user was there, or discarded if the silence turns out to have
-been an absence. See ``Daemon._tick`` and ``_flush_pending_credit``; the
-``day`` parameter on ``add_active_time`` exists to serve that deferred flush.
+been an absence. ``ActiveTimeAccounting`` owns that attribution and pending
+credit; the ``day`` parameter on ``add_active_time`` serves its deferred flush.
 """
 
 from __future__ import annotations

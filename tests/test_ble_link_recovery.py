@@ -259,6 +259,7 @@ async def test_shutdown_flushes_the_accounting_owner_before_stats_close(monkeypa
 async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monkeypatch):
     d = _bare_daemon(monkeypatch)
     order = []
+    flushed_rows = []
     d.stats = Stats(Path(":memory:"))
     d.accounting = ActiveTimeAccounting(d.stats)
     owner = d.accounting
@@ -268,8 +269,7 @@ async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monke
     def flush():
         order.append("flush")
         real_flush()
-        assert d.stats.daily_totals(date.today(), date.today()) == [
-            (date.today().isoformat(), "sitting", 60.0)]
+        flushed_rows.extend(d.stats.daily_totals(date.today(), date.today()))
 
     async def initial_read():
         try:
@@ -299,6 +299,7 @@ async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monke
     assert d._initial_read.cancelled()
     owner.flush.assert_called_once_with()
     assert order == ["read cancelled", "disconnect", "flush", "close"]
+    assert flushed_rows == [(date.today().isoformat(), "sitting", 60.0)]
 
 
 async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
