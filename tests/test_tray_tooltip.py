@@ -36,7 +36,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from types import SimpleNamespace  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QObject, Signal, Qt  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
@@ -51,6 +51,8 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
     LocaleProfile,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.machine import Status  # noqa: E402
+from idasen_companion.core.state_values import UnknownStatus  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -163,6 +165,50 @@ def standing_and_active(icon):
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
+
+
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.AutoConnection,
+                                      Qt.ConnectionType.QueuedConnection])
+def test_raw_status_delivery_keeps_typed_actions_and_fallbacks(
+        tray, qapp, monkeypatch, delivery):
+    icon, client = tray
+    client.statusChanged.disconnect(icon._on_status)
+    client.statusChanged.connect(icon._on_status, delivery)
+    dispatched = []
+    monkeypatch.setattr(client, "pause", lambda: dispatched.append("pause"))
+    monkeypatch.setattr(client, "resume", lambda: dispatched.append("resume"))
+    standing_and_active(icon)
+
+    for raw, label, stopped, resume, visible in (
+            ("move-failed", "Last move failed", False, False, True),
+            ("paused", "Paused", True, True, True),
+            ("snoozed", "Snoozed", True, True, True),
+            ("held", "Paused — desk moved off sit/stand", True, False, True),
+            ("disabled", "Automation off", True, False, False),
+            (" Future Status ", " Future Status ", False, False, True),
+            ("", "", False, False, True)):
+        client.statusChanged.emit(raw)
+        qapp.processEvents()
+        expected = (UnknownStatus(raw) if raw in (" Future Status ", "")
+                    else Status(raw))
+        assert icon._status == expected
+        assert type(icon._status) is type(expected)
+        assert icon._cycle_stopped() is stopped
+        assert icon._status_action.text() == "Standing · " + label
+        assert all(action.isVisible() is visible for action in icon._cycle_actions)
+        assert icon._cycle_separator.isVisible() is visible
+        assert icon._pause_action.text() == (
+            "Resume automation" if resume else "Pause automation")
+        icon._pause_action.trigger()
+        assert dispatched[-1] == ("resume" if resume else "pause")
+        lines = icon.toolTip().split("\n")
+        assert lines[1] == ("Standing" if stopped else "Standing for 43m")
+        if raw == "move-failed":
+            assert lines[2] == "Last move failed · 11m left"
+        elif raw == "snoozed":
+            assert lines[2] == "Snoozed until later"
+        else:
+            assert lines[2] == label
 
 
 def test_title_is_the_app_name_on_its_own(tray):
@@ -518,13 +564,14 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
         "Today: 1h 58m sitting / 50m standing")
 
 
-def test_ticker_does_no_work_when_there_is_no_countdown(tray):
+@pytest.mark.parametrize("status", ["paused", " Future Status ", ""])
+def test_ticker_does_no_work_when_there_is_no_countdown(tray, status):
     # It runs for the life of the tray, so the two states that have nothing to
     # age — no countdown showing, and a cycle already spent — must cost a
     # comparison rather than a re-render.
     icon, _ = tray
     standing_and_active(icon)
-    icon._on_status("paused")
+    icon._on_status(status)
     renders = []
     icon._refresh_texts = lambda *a, **kw: renders.append(1)
 
@@ -532,7 +579,7 @@ def test_ticker_does_no_work_when_there_is_no_countdown(tray):
     assert renders == []
 
     # Set directly: _on_status would re-render through the spy itself.
-    icon._status = "active"
+    icon._status = Status.ACTIVE
     icon._progress_stamp -= 660.0
     icon._tick()
     assert renders == []

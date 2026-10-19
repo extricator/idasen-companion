@@ -18,20 +18,16 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from ..core.machine import (
-    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES,
+    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES, Status,
 )
 from ..core.presentation import Formatter
+from ..core.state_values import StatusValue, parse_status
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,
                    snooze_line, status_label)
 
 SNOOZE_CHOICES = (5, 10, 15, 30, 60)
-
-# The machine speaks ``Status``; the wire and this client speak its values.
-_NO_CYCLE_STATUS_VALUES = frozenset(s.value for s in NO_CYCLE_STATUSES)
-_RESUMABLE_VALUES = frozenset(s.value for s in RESUMABLE_STATUSES)
-_COUNTDOWN_VALUES = frozenset(s.value for s in COUNTDOWN_STATUSES)
 
 # The tooltip's bold title. Not a tr() string: it is the product name, and a
 # brand name is the one piece of UI text that must read the same in every
@@ -58,7 +54,7 @@ class TrayIcon(QSystemTrayIcon):
         super().__init__(icon, parent)
         self.client = client
         self.window = window
-        self._status = ""
+        self._status: StatusValue = parse_status("")
         self._position = ""
         # None until the first progress push, and deliberately not 0.0: a zero
         # countdown is a real state ("Due now"), not the absence of one. A
@@ -217,15 +213,15 @@ class TrayIcon(QSystemTrayIcon):
             self._end_connecting()
 
     def _on_status(self, status: str) -> None:
-        self._status = status
-        if status == "move-failed":
+        self._status = parse_status(status)
+        if self._status == Status.MOVE_FAILED:
             self._end_connecting()
         self._pause_action.setText(
-            pgettext('tray', "Resume automation") if status in _RESUMABLE_VALUES
+            pgettext('tray', "Resume automation") if self._status in RESUMABLE_STATUSES
             else pgettext('tray', "Pause automation"))
         for action in self._cycle_actions:
-            action.setVisible(status != "disabled")
-        self._cycle_separator.setVisible(status != "disabled")
+            action.setVisible(self._status != Status.DISABLED)
+        self._cycle_separator.setVisible(self._status != Status.DISABLED)
         self._refresh_texts()
 
     def _on_position(self, position: str) -> None:
@@ -248,7 +244,7 @@ class TrayIcon(QSystemTrayIcon):
         bare comparison, and even inside a cycle it usually re-renders the same
         string — which ``RichTooltip.update`` drops without a D-Bus signal.
         """
-        if self._status not in _COUNTDOWN_VALUES:
+        if self._status not in COUNTDOWN_STATUSES:
             return
         remaining = self._shown_remaining()
         if remaining is None or remaining <= 0:
@@ -281,7 +277,7 @@ class TrayIcon(QSystemTrayIcon):
         too, but the cycle is still this one and the freeze ends the moment the
         user comes back, so the duration is stale rather than meaningless.
         """
-        return self._status in _NO_CYCLE_STATUS_VALUES
+        return self._status in NO_CYCLE_STATUSES
 
     def _shown_elapsed(self) -> float | None:
         """How long this position has been held, aged the same way."""
@@ -344,7 +340,7 @@ class TrayIcon(QSystemTrayIcon):
         # but the failure is the thing worth the line.
         tail = ""
         remaining = self._shown_remaining()
-        if self._status == "active" and remaining is not None:
+        if self._status == Status.ACTIVE and remaining is not None:
             tail = self._countdown_clause(remaining)
         return pgettext('tray', "%(position)s · %(status)s") % {
             "position": self._position_word(),
@@ -385,9 +381,9 @@ class TrayIcon(QSystemTrayIcon):
         # (paused, snoozed, off), which is where it stops being filler.
         change = status_label(self._status)
         remaining = self._shown_remaining()
-        if self._status == "snoozed":
+        if self._status == Status.SNOOZED:
             change = self._snooze_line()
-        elif remaining is not None and self._status == "active":
+        elif remaining is not None and self._status == Status.ACTIVE:
             if int(remaining) <= 0:
                 # No direction word here: "Standing up Due now" is not a
                 # sentence, and the held line above already says which way the
@@ -404,7 +400,7 @@ class TrayIcon(QSystemTrayIcon):
             else:
                 # Off sit/stand: we know when, not what to call it.
                 change = pgettext('tray', "%s left") % self._time_left(remaining)
-        elif remaining is not None and self._status == "move-failed":
+        elif remaining is not None and self._status == Status.MOVE_FAILED:
             change = pgettext('tray', "%(status)s · %(countdown)s") % {
                 "status": change,
                 "countdown": self._countdown_clause(remaining)}
@@ -494,7 +490,7 @@ class TrayIcon(QSystemTrayIcon):
     # ----- actions -----
 
     def _toggle_pause(self) -> None:
-        if self._status in _RESUMABLE_VALUES:
+        if self._status in RESUMABLE_STATUSES:
             self.client.resume()
         else:
             self.client.pause()
