@@ -16,11 +16,14 @@ safely clear a device-wide link whose client owner is unknown.
 import asyncio
 import os
 from datetime import date
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from idasen_companion.daemon.idle import SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE
+from idasen_companion.daemon.accounting import ActiveTimeAccounting
+from idasen_companion.daemon.stats import Stats
 from idasen_companion.desk.ble import BleDesk
 
 
@@ -107,7 +110,7 @@ def _bare_daemon(monkeypatch):
     d.stats = MagicMock()
     d.mock_mode = True
     d.config_path = None
-    d._pending_credit = {}
+    d.accounting = MagicMock(spec=["account", "flush"])
     d._stop_event = asyncio.Event()
     d._initial_read = None
     d.config = cfg
@@ -198,8 +201,7 @@ async def test_bookkeeping_failures_never_cost_the_desk_release(monkeypatch,
         if break_step == "ring":
             d.activity_log.emit = MagicMock(side_effect=boom)
         else:
-            d.stats.add_active_time = MagicMock(side_effect=boom)
-            d._pending_credit = {(date.today(), "sitting"): 60.0}
+            d.accounting.flush.side_effect = boom
 
     monkeypatch.setattr(d, "_setup_dbus", setup_dbus)
     monkeypatch.setattr(d, "_run_until_stopped", run_until_stopped)
@@ -207,6 +209,8 @@ async def test_bookkeeping_failures_never_cost_the_desk_release(monkeypatch,
     await d.run()  # must not raise
 
     assert d.desk.disconnect.called, "desk not released when bookkeeping failed"
+    d.accounting.flush.assert_called_once_with()
+    d.stats.close.assert_called_once_with()
 
 
 async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
@@ -219,6 +223,7 @@ async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
     d.activity_log.emit = MagicMock(
         side_effect=lambda *a, **k: order.append("activity_log"))
     d.stats.close = MagicMock(side_effect=lambda: order.append("stats"))
+    d.accounting.flush.side_effect = lambda: order.append("accounting")
 
     async def setup_dbus():
         return True
@@ -232,6 +237,7 @@ async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
     await d.run()
 
     assert order[0] == "disconnect", f"released the desk too late: {order}"
+    assert order[-3:] == ["activity_log", "accounting", "stats"]
 
 
 async def test_shutdown_flushes_the_accounting_owner_before_stats_close(monkeypatch):
@@ -248,6 +254,51 @@ async def test_shutdown_flushes_the_accounting_owner_before_stats_close(monkeypa
 
     assert order == ["disconnect", "flush", "close"]
     d.accounting.flush.assert_called_once_with()
+
+
+async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monkeypatch):
+    d = _bare_daemon(monkeypatch)
+    order = []
+    d.stats = Stats(Path(":memory:"))
+    d.accounting = ActiveTimeAccounting(d.stats)
+    owner = d.accounting
+    real_flush = owner.flush
+    real_close = d.stats.close
+
+    def flush():
+        order.append("flush")
+        real_flush()
+        assert d.stats.daily_totals(date.today(), date.today()) == [
+            (date.today().isoformat(), "sitting", 60.0)]
+
+    async def initial_read():
+        try:
+            await asyncio.Event().wait()
+        finally:
+            order.append("read cancelled")
+
+    async def run_until_stopped(now):
+        d._initial_read = asyncio.create_task(initial_read())
+        await asyncio.sleep(0)
+        owner.account("sitting", 60, held=False, idle_ms=60000, absent=False,
+                      idle_threshold_seconds=600)
+        assert d.stats.daily_totals(date.today(), date.today()) == []
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(owner, "flush", MagicMock(side_effect=flush))
+    monkeypatch.setattr(d.stats, "close", MagicMock(
+        side_effect=lambda: (order.append("close"), real_close())))
+    d.desk.disconnect = AsyncMock(side_effect=lambda: order.append("disconnect"))
+    monkeypatch.setattr(d, "_setup_dbus", AsyncMock(return_value=True))
+    monkeypatch.setattr(d, "_run_until_stopped", run_until_stopped)
+
+    with pytest.raises(asyncio.CancelledError):
+        await d.run()
+
+    assert d.accounting is owner
+    assert d._initial_read.cancelled()
+    owner.flush.assert_called_once_with()
+    assert order == ["read cancelled", "disconnect", "flush", "close"]
 
 
 async def test_unreadable_desk_does_not_pin_startup(monkeypatch):

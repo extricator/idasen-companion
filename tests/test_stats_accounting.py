@@ -6,8 +6,8 @@ signals are identical, so the daemon credits silence only provisionally and
 holds it back until something settles the question — input proves the user was
 there, reaching the away threshold proves they weren't.
 
-These drive ``Daemon._tick`` directly, because the attribution lives in the
-daemon: ``StateMachine`` deliberately does no stats at all.
+These drive ``Daemon._tick`` directly through its accounting collaborator:
+``StateMachine`` deliberately does no stats at all.
 """
 
 import time
@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.idle import (
     SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE,
 )
@@ -52,13 +53,13 @@ class Harness:
         d.config.automation.idle_threshold = idle_threshold
         d.config.automation.recent_input_threshold = recent_input_threshold
         d.stats = self.stats
+        d.accounting = ActiveTimeAccounting(d.stats)
         d.activity_log = MagicMock()
         d.machine = MagicMock()
         d.machine.state = MagicMock(value="sitting")
         d.machine.held = False
         d.machine._last_check = self.clock
         d.machine.tick = AsyncMock(return_value=[])
-        d._pending_credit = {}
         d._idle = MagicMock()
         d._lock = MagicMock()
         d._session = MagicMock()
@@ -103,6 +104,23 @@ class Harness:
         totals = self.stats.daily_totals(today - timedelta(days=1),
                                          today + timedelta(days=1))
         return sum(sec for _, s, sec in totals if s == state)
+
+
+def test_daemon_constructs_one_accounting_owner(tmp_path):
+    d = Daemon(tmp_path / "config.toml", mock_desk=True,
+               stats_path=Path(":memory:"))
+    try:
+        assert isinstance(d.accounting, ActiveTimeAccounting)
+        assert not hasattr(d, "_pending_credit")
+        assert not hasattr(d, "_account_desk_time")
+        assert not hasattr(d, "_flush_pending_credit")
+        d.accounting.account("sitting", TICK, held=False, idle_ms=60000,
+                             absent=False, idle_threshold_seconds=600)
+        d.accounting.flush()
+        assert d.stats.daily_totals(date.today(), date.today()) == [
+            (date.today().isoformat(), "sitting", TICK)]
+    finally:
+        d.stats.close()
 
 
 @pytest.mark.asyncio
@@ -266,5 +284,5 @@ async def test_shutdown_commits_held_back_time():
     await h.tick(5)
     await h.silence(4 * 60)
     assert h.credited() == pytest.approx(TICK)
-    h.daemon._flush_pending_credit()
+    h.daemon.accounting.flush()
     assert h.credited() == pytest.approx(5 * TICK)

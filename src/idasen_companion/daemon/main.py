@@ -15,7 +15,6 @@ import os
 import signal as unix_signal
 import sys
 import time
-from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -36,7 +35,7 @@ from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
     MoveFailed,
     ResumedOnCycle, SeatChanged, StateMachine, StateSynced, SyncFailed,
-    TIME_JUMP_THRESHOLD_SECONDS, TimeJumpDetected, TransitionCompleted,
+    TimeJumpDetected, TransitionCompleted,
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.migration import import_idasen_cli_config
@@ -48,6 +47,7 @@ from ..core.display_prefs import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 
+from .accounting import ActiveTimeAccounting
 from .bluez import merge_devices, parse_paired_desks
 from .dbus_util import DBusCallError, call
 from .idle import (
@@ -107,9 +107,7 @@ class Daemon:
             stats_path,
             on_error=lambda msg: self.activity_log.diag(
                 "error", f"Statistics unavailable: {msg}"))
-        # Sit/stand time observed during silence, held back until presence is
-        # settled one way or the other (see _tick). Keyed by (day, state).
-        self._pending_credit: dict[tuple[date, str], float] = {}
+        self.accounting = ActiveTimeAccounting(self.stats)
         # Strong references to in-flight fire-and-forget tasks. CPython holds
         # only a *weak* reference to a running task, so an unreferenced one can
         # be collected mid-execution — which for the two that release BLE links
@@ -709,7 +707,7 @@ class Daemon:
             with self._shutdown_step("saving held-back desk time"):
                 # Stopping is not evidence the user left, so commit whatever
                 # silence was still being held back rather than dropping it.
-                self._flush_pending_credit()
+                self.accounting.flush()
             with self._shutdown_step("closing the statistics store"):
                 self.stats.close()
 
@@ -873,64 +871,16 @@ class Daemon:
         async with self._desk_lock:
             events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless)
 
-        self._account_desk_time(state_before.value, tick_time - last_check_before,
-                                held=held_before, idle_ms=idle_ms,
-                                absent=locked or away or seatless)
+        self.accounting.account(
+            state_before.value, tick_time - last_check_before,
+            held=held_before, idle_ms=idle_ms, absent=locked or away or seatless,
+            idle_threshold_seconds=self.config.automation.idle_threshold)
 
         for event in events:
             self._handle_event(event, trigger="automation")
 
         await self._maybe_warn(tick_time)
         self._emit_periodic_properties()
-
-    def _account_desk_time(self, state: str, elapsed: float, *, held: bool,
-                           idle_ms: int, absent: bool) -> None:
-        """Attribute ``elapsed`` seconds to ``state``'s daily total.
-
-        Real elapsed time goes to the position the desk was in, regardless of
-        automation freeze states — pause and snooze stop the cycle, not the
-        clock you are sitting through.
-
-        Presence is a guess whenever there's no input: a silent stretch is
-        either the user reading at the desk (real sit/stand time) or an empty
-        chair, and the two look identical while they last. So a silent window
-        is held back rather than credited, and settled only once something
-        proves which it was — input inside a later window means the user was
-        there for the silence too, while the away threshold (or a lock, a
-        switched-away session, a suspend-sized gap — all of which arrive here
-        as ``absent``) proves they weren't. Crediting silence outright is what
-        used to bank ~idle_threshold of phantom "active" time on every break,
-        permanently.
-        """
-        # Don't credit a suspend-sized gap to sit/stand totals (the stats-side
-        # twin of the machine's time-jump reset); shared absolute threshold, and
-        # the same both-directions rule — a backward clock step would otherwise
-        # write negative seconds into a daily row, permanently.
-        elapsed_is_plausible = 0 <= elapsed <= TIME_JUMP_THRESHOLD_SECONDS
-        idle_threshold_ms = self.config.automation.idle_threshold * 1000
-        if not elapsed_is_plausible or absent or idle_ms >= idle_threshold_ms:
-            self._pending_credit.clear()
-        elif held:
-            pass  # off-cycle: the desk is at neither preset, so neither gets it
-        elif idle_ms / 1000.0 < elapsed:
-            # Input landed inside this window: the user is here now, which
-            # settles the silence leading up to it as time at the desk.
-            self._flush_pending_credit()
-            self.stats.add_active_time(state, elapsed)
-        else:
-            key = (date.today(), state)
-            self._pending_credit[key] = self._pending_credit.get(key, 0.0) + elapsed
-
-    def _flush_pending_credit(self) -> None:
-        """Commit time held back during silence, now that presence is proven.
-
-        Keyed by day and state, not just totalled: a silent stretch can cross
-        midnight or span a desk move, and each part belongs to the row it was
-        actually spent in.
-        """
-        for (day, state), seconds in self._pending_credit.items():
-            self.stats.add_active_time(state, seconds, day)
-        self._pending_credit.clear()
 
     def _check_config_file(self) -> None:
         try:
