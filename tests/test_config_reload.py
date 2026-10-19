@@ -240,3 +240,43 @@ def test_an_unchanged_file_is_not_reloaded_every_tick(tmp_path: Path):
     for _ in range(5):
         d._check_config_file()
     d.reload_config.assert_not_called()
+
+
+def test_an_invalid_revision_is_consumed_before_parsing_and_retried_only_after_edit(daemon):
+    path = daemon.config_path
+    daemon._note_config_mtime()
+    first_mtime = path.stat().st_mtime
+    before = daemon.config
+    path.write_text("not toml at all [")
+    os.utime(path, (first_mtime + 10,) * 2)
+
+    daemon._check_config_file()
+    for _ in range(5):
+        daemon._check_config_file()
+
+    assert daemon.config is before
+    assert _emitted_ids(daemon).count("config.reload_failed") == 1
+    daemon.machine.update_config.assert_not_called()
+
+    path.write_text(CONFIG.replace('"45m"', '"50m"'))
+    os.utime(path, (first_mtime + 20,) * 2)
+    daemon._check_config_file()
+
+    assert daemon.config.automation.sit_duration == 50 * 60
+    daemon.machine.update_config.assert_called_once()
+
+
+def test_a_semantic_no_op_edit_is_consumed_without_reroll_or_repeated_application(daemon):
+    path = daemon.config_path
+    daemon._note_config_mtime()
+    first_mtime = path.stat().st_mtime
+    path.write_text(CONFIG + "\n# just a comment\n")
+    os.utime(path, (first_mtime + 10,) * 2)
+
+    daemon._check_config_file()
+    for _ in range(5):
+        daemon._check_config_file()
+
+    daemon.machine.update_config.assert_called_once_with(
+        daemon.config, reroll_target=False)
+    assert "config.reloaded" not in _emitted_ids(daemon)
