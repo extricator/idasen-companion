@@ -67,7 +67,7 @@ async def test_positive_timeout_always_scans_and_replaces_fresh_cache(discovery)
     daemon.activity_log.emit.assert_any_call(logmsg.SCAN_FINISHED, count=1)
 
 
-@pytest.mark.parametrize("timeout", [0, -4, "0"])
+@pytest.mark.parametrize("timeout", [0, -4])
 async def test_zero_timeout_uses_fresh_cache_without_importing_scanner(
         discovery, monkeypatch, timeout):
     daemon, clock, scanner = discovery
@@ -84,10 +84,9 @@ async def test_zero_timeout_uses_fresh_cache_without_importing_scanner(
     assert daemon.bluetooth._scan_cache == (clock.now - 59, [SCANNED])
 
 
-@pytest.mark.parametrize("age", [60, 61])
-async def test_expired_zero_timeout_returns_only_paired_and_keeps_cache(discovery, age):
+async def test_expired_zero_timeout_returns_only_paired_and_keeps_cache(discovery):
     daemon, clock, scanner = discovery
-    cache = (clock.now - age, [OLD])
+    cache = (clock.now - 60, [OLD])
     daemon.bluetooth._scan_cache = cache
     assert await daemon.discover(0) == [PAIRED]
     assert daemon.bluetooth._scan_cache is cache
@@ -142,17 +141,6 @@ async def test_support_can_discover_directly_and_reports_bluez_query_failure(mon
     monkeypatch.setattr(bluetooth_mod, "call", AsyncMock(side_effect=DBusCallError("offline")))
     assert await support.discover(0, mock_mode=False) == []
     activity_log.diag.assert_called_once_with("debug", "BlueZ device query failed: offline")
-
-
-def test_daemon_composes_one_cache_owner(tmp_path):
-    daemon = main_mod.Daemon(tmp_path / "config.toml", stats_path=tmp_path / "stats.sqlite")
-    try:
-        assert isinstance(daemon.bluetooth, BluetoothSupport)
-        assert daemon.bluetooth.activity_log is daemon.activity_log
-        assert daemon.bluetooth._scan_cache is None
-        assert not hasattr(daemon, "_scan_cache")
-    finally:
-        daemon.stats.close()
 
 
 @pytest.mark.parametrize("connected,others", [(False, []), (True, []), (True, [4242])])

@@ -115,19 +115,26 @@ def harness():
         instance.stats.close()
 
 
-def test_daemon_constructs_one_accounting_owner(tmp_path):
-    d = Daemon(tmp_path / "config.toml", mock_desk=True,
+@pytest.mark.asyncio
+async def test_constructed_daemon_can_save_config_account_time_and_discover(tmp_path):
+    path = tmp_path / "config.toml"
+    d = Daemon(path, mock_desk=True,
                stats_path=Path(":memory:"))
     try:
-        assert isinstance(d.accounting, ActiveTimeAccounting)
-        assert not hasattr(d, "_pending_credit")
-        assert not hasattr(d, "_account_desk_time")
-        assert not hasattr(d, "_flush_pending_credit")
+        config = AppConfig()
+        config.desk.mac = "00:11:22:33:44:55"
+        d.config_file.save(config)
+        assert path.is_file()
+        assert d.config_file.load() == config
+        assert not d.config_file.poll_changed()
+
         d.accounting.account("sitting", TICK, held=False, idle_ms=60000,
                              absent=False, idle_threshold_seconds=600)
         d.accounting.flush()
         assert d.stats.daily_totals(date.today(), date.today()) == [
             (date.today().isoformat(), "sitting", TICK)]
+
+        assert await d.discover(0) == [("Desk 0000 (mock)", config.desk.mac)]
     finally:
         d.stats.close()
 

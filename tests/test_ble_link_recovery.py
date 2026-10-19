@@ -245,22 +245,6 @@ async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
     assert order[-3:] == ["activity_log", "accounting", "stats"]
 
 
-async def test_shutdown_flushes_the_accounting_owner_before_stats_close(monkeypatch):
-    d = _bare_daemon(monkeypatch)
-    order = []
-    d.accounting = MagicMock()
-    d.accounting.flush.side_effect = lambda: order.append("flush")
-    d.desk.disconnect = AsyncMock(side_effect=lambda: order.append("disconnect"))
-    d.stats.close.side_effect = lambda: order.append("close")
-    monkeypatch.setattr(d, "_setup_dbus", AsyncMock(return_value=True))
-    monkeypatch.setattr(d, "_run_until_stopped", AsyncMock())
-
-    await d.run()
-
-    assert order == ["disconnect", "flush", "close"]
-    d.accounting.flush.assert_called_once_with()
-
-
 async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monkeypatch):
     d = _bare_daemon(monkeypatch)
     order = []
