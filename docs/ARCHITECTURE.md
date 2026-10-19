@@ -123,6 +123,57 @@ D-Bus service; the control loop calls `machine.tick()` every `check_interval`.
 `ringlog.py` is the in-memory activity log the GUI reads; `stats.py` is the
 SQLite store.
 
+### Explicit owners, with orchestration retained in `Daemon`
+
+`Daemon` constructs one of each collaborator below. Each owns a distinct state
+domain and accepts only the dependencies or observations it needs:
+
+| Owner | State and interface | Boundary |
+| --- | --- | --- |
+| `accounting.py` `ActiveTimeAccounting` | Private pending credit keyed by original day and position; `account()` and `flush()` | Receives `Stats` for persistence and each tick's observations, including the current idle threshold. It holds no config, machine or desk reference. |
+| `config_file.py` `ConfigFileStore` | Config path and private observed mtime; `load_or_bootstrap()`, `load()`, `poll_changed()`, `note_mtime()` and `save()` | Owns bootstrap/import and file lifecycle, using the existing validated, comment-preserving atomic config writer. It returns fresh config without applying it. |
+| `bluetooth.py` `BluetoothSupport` | Private timestamped discovery cache; `discover()`, `bind_bus()`, `device_path()`, `property()` and `report_connect_exhausted()` | Borrows the optional system bus for discovery and observations. It has no desk client or connect/disconnect authority. |
+
+These are composed owners, not shared-state mixins. There is no universal
+daemon context passed into them. None retains a config snapshot: accounting
+receives the current threshold per call, file reads return fresh config, and
+the connect-exhausted callback resolves the current configured MAC when invoked.
+
+`Daemon` remains authoritative for the applied config, formatter, machine and
+current desk. It decides when to reload, apply changes, replace the desk, update
+machine configuration and notify clients. Each write caller retains its existing
+ordering and rollback policy: automation and preset edits restore their prior
+in-memory values on failed persistence; setup keeps its own sequence. The file
+owner stamps successful writes, consumes a changed revision before a watcher
+reload attempt, and never decides runtime application or rollback.
+
+The tick still captures the position, held state and previous check time before
+calling the machine under the movement lock. After releasing that lock it sends
+those observations to accounting, then handles the machine events. Deferred
+credit retains its original day and position; `Stats` remains the SQLite owner.
+`_handle_event` remains the machine-event-to-side-effect boundary.
+
+Movement locking, generation-based supersession, Stop, tracked background tasks,
+initial-read cancellation, sleep inhibition, session handoff, resume recovery
+and guarded shutdown stay in `Daemon`. Stop can interrupt a move without waiting
+for its lock. Shutdown awaits initial-read cancellation, releases this daemon's
+desk client, flushes accounting and closes statistics, guarding bookkeeping
+steps so their failure cannot prevent release. Bluetooth diagnostics may report a
+device-wide connection, but cannot infer its owner or disconnect it; recovery
+continues to release only this daemon's client.
+
+Discovery preserves paired-first merging and the existing timeout policy:
+positive timeouts always scan (capped at 30 seconds), zero uses only a cache
+younger than 60 seconds, and a failed scan replaces the cache with a newly
+timestamped empty result. The support object borrows the bus after setup without
+owning its lifetime. Scanner/controller/Bleak imports remain deferred to the
+operations that need them; daemon and shared imports remain Qt-free.
+
+These boundaries change internal ownership while preserving the public D-Bus
+surface, config format and persistence, statistics, Activity Log messages and
+notifications. Automated fake/offscreen regression and import checks establish
+those contracts; they do not establish new desktop or hardware observations.
+
 `cli.py` is the Qt-free terminal reader and controller. It connects with
 `dbus-fast`, reads the same scalar properties and JSON tables as the GUI, and
 constructs the shared Babel/gettext `Formatter` directly from `AppConfig`.
