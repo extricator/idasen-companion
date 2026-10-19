@@ -115,6 +115,36 @@ async def test_working_time_is_credited_as_it_happens():
 
 
 @pytest.mark.asyncio
+async def test_tick_accounts_captured_position_after_unlock_before_events():
+    h = Harness()
+    d = h.daemon
+    order = []
+    d.accounting = MagicMock()
+
+    async def machine_tick(*args):
+        assert d._desk_lock.locked()
+        order.append("machine")
+        d.machine.state = MagicMock(value="standing")
+        d.machine.held = True
+        d.machine._last_check = h.clock
+        return ["transition"]
+
+    def account(*args, **kwargs):
+        assert not d._desk_lock.locked()
+        order.append("account")
+
+    d.machine.tick = AsyncMock(side_effect=machine_tick)
+    d.accounting.account.side_effect = account
+    d._handle_event.side_effect = lambda *a, **kw: order.append("event")
+    await h.tick(5)
+
+    d.accounting.account.assert_called_once_with(
+        "sitting", TICK, held=False, idle_ms=5000, absent=False,
+        idle_threshold_seconds=600)
+    assert order == ["machine", "account", "event"]
+
+
+@pytest.mark.asyncio
 async def test_silence_that_ends_in_input_counts_in_full():
     """Reading a dense page for eight minutes is time spent at the desk.
 
