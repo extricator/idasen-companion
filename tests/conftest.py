@@ -60,6 +60,35 @@ def no_real_subprocesses(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _destroy_widgets_created_by_test():
+    """Delete each test's widgets while the QApplication is still alive.
+
+    Signal connections and restyle callbacks can retain pages after their
+    test returns. Leaving them for interpreter cleanup crashes Qt 6.12 after
+    the suite reports success. Preserve pre-existing widgets owned by wider
+    fixtures, and do not create an application for non-GUI tests.
+    """
+    try:
+        import shiboken6
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QApplication
+    except ImportError:
+        yield
+        return
+    previous = (set(QApplication.topLevelWidgets())
+                if QApplication.instance() is not None else set())
+    yield
+    if QApplication.instance() is None:
+        return
+    for widget in QApplication.topLevelWidgets():
+        if widget not in previous and shiboken6.isValid(widget):
+            widget.deleteLater()
+    # These tests do not run app.exec(), so process deferred deletes explicitly
+    # instead of leaving them until the event loop (and platform) are gone.
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+@pytest.fixture(autouse=True)
 def _restore_the_application_style():
     """Undo any test's mutation of the session QApplication's style.
 
