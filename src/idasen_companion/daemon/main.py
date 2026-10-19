@@ -27,7 +27,7 @@ from .. import DBUS_NAME, DBUS_PATH, __version__
 from ..core import journal, logmsg
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, MAX_HEIGHT, MIN_HEIGHT,
-    load_config, save_config,
+    save_config,
 )
 from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
@@ -38,7 +38,6 @@ from ..core.machine import (
     TimeJumpDetected, TransitionCompleted,
     TransitionHeldForInput, TransitionSkipped,
 )
-from ..core.migration import import_idasen_cli_config
 from ..core.display_prefs import ClockSetting, resolve_clock_style
 from ..core.presentation import format_duration_human
 from ..core.presentation import Formatter, PresentationContext
@@ -49,6 +48,7 @@ from ..desk.port import DeskPort
 
 from .accounting import ActiveTimeAccounting
 from .bluez import merge_devices, parse_paired_desks
+from .config_file import ConfigFileStore
 from .dbus_util import DBusCallError, call
 from .idle import (
     IdleMonitor, LockMonitor, SEAT_BACKGROUND, SEAT_NONE, SEAT_UNKNOWN,
@@ -81,7 +81,6 @@ MANUAL_LOCK_TIMEOUT = 30.0
 class Daemon:
     def __init__(self, config_path: Path, *, mock_desk: bool = False,
                  stats_path: Path | None = None):
-        self.config_path = config_path
         self.mock_mode = mock_desk
         # Built by `run()` before anything can reach them: `run` assigns the
         # config and desk, then exports the D-Bus interfaces that are the only
@@ -96,6 +95,7 @@ class Daemon:
         # and guards on None, which needs the attribute to exist pre-`run`.
         self.machine: StateMachine = None  # type: ignore[assignment]
         self.activity_log = RingLog()
+        self.config_file = ConfigFileStore(config_path, self.activity_log)
         if stats_path is None and mock_desk:
             # Keep simulated runs out of the user's real statistics.
             from .stats import DEFAULT_DB_PATH
@@ -161,7 +161,6 @@ class Daemon:
         self._system_bus: MessageBus | None = None
         self._ifaces: dict = {}
         self._warned_this_cycle = False
-        self._config_mtime: float | None = None
         self._scan_cache: tuple[float, list] | None = None
         self._last_height_emit = 0.0
         self._initial_read: asyncio.Task | None = None
@@ -219,42 +218,6 @@ class Daemon:
                 config.ui.language, os.environ)), translator=GettextTranslator(),
             unit=unit, time_style=time_style)
         return Formatter(context)
-
-    def _load_or_bootstrap_config(self) -> AppConfig:
-        config = load_config(self.config_path)
-        if not config.desk.mac and not self.config_path.exists():
-            imported = import_idasen_cli_config()
-            if imported:
-                self.activity_log.emit(logmsg.SETUP_IMPORTED_CLI,
-                               mac=imported.mac, presets=len(imported.presets))
-                if imported.mac:
-                    config.desk.mac = imported.mac
-                for name, height in imported.presets.items():
-                    config.presets[name] = height
-                if imported.skipped:
-                    self.activity_log.diag("warning",
-                                   "idasen CLI positions outside this desk's "
-                                   f"range, not imported: {', '.join(imported.skipped)}")
-                # Never let the import wedge the first start. The file is only
-                # written once save_config succeeds, so a rejected bootstrap
-                # config used to fail identically on every subsequent start —
-                # a crash loop under Restart=on-failure. Running on defaults
-                # with the wizard still available is strictly better than not
-                # running at all.
-                try:
-                    save_config(config, self.config_path)
-                except (ConfigError, OSError) as error:
-                    self.activity_log.diag("error",
-                                   f"could not write the imported config: {error}")
-                    return load_config(self.config_path)
-        self._note_config_mtime()
-        return config
-
-    def _note_config_mtime(self) -> None:
-        try:
-            self._config_mtime = self.config_path.stat().st_mtime
-        except OSError:
-            self._config_mtime = None
 
     def _report_config_warnings(self, config: AppConfig,
                                 previous: AppConfig | None = None) -> None:
@@ -657,7 +620,7 @@ class Daemon:
         for sig in (unix_signal.SIGINT, unix_signal.SIGTERM):
             loop.add_signal_handler(sig, self._stop_event.set)
 
-        self.config = self._load_or_bootstrap_config()
+        self.config = self.config_file.load_or_bootstrap()
         # Localize notifications per the [ui] language setting (default
         # "system" = the daemon's environment locale).
         set_language(self.config.ui.language)
@@ -668,7 +631,7 @@ class Daemon:
         # later than it first looks.
         self.fmt = self._build_formatter(self.config)
         self.activity_log.emit(logmsg.DAEMON_STARTING, version=__version__,
-                       config=str(self.config_path))
+                       config=str(self.config_file.path))
         self._report_config_warnings(self.config)
         if self._unconfigured():
             self.activity_log.emit(logmsg.SETUP_NO_DESK)
@@ -883,22 +846,8 @@ class Daemon:
         self._emit_periodic_properties()
 
     def _check_config_file(self) -> None:
-        try:
-            mtime = self.config_path.stat().st_mtime
-        except OSError:
-            return
-        # A None mtime — the file did not exist at startup and does now —
-        # compares unequal like any other change, so it reloads and adopts the
-        # mtime. It must not be read as "watching disabled": the old guard
-        # required a non-None mtime *and* never assigned one on that branch, so
-        # once None it stayed None and hot-reload was dead for the rest of the
-        # process's life — silently, on a fresh install with no config to
-        # import, which is exactly when the user hand-writes their MAC into the
-        # file the README says hot-reloads.
-        if mtime == self._config_mtime:
-            return
-        self._config_mtime = mtime
-        self.reload_config()
+        if self.config_file.poll_changed():
+            self.reload_config()
 
     async def _maybe_warn(self, now: float) -> None:
         ncfg = self.config.notifications
@@ -1198,7 +1147,7 @@ class Daemon:
         previous = self.config.automation.enabled
         self.config.automation.enabled = enabled
         try:
-            save_config(self.config, self.config_path)
+            save_config(self.config, self.config_file.path)
         except (ConfigError, OSError) as error:
             # Mutating before writing left the daemon running on state that is
             # not on disk when the write failed — and reporting "disabled"
@@ -1207,7 +1156,7 @@ class Daemon:
             self.config.automation.enabled = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self._note_config_mtime()
+        self.config_file.note_mtime()
         self.machine.update_config(self.config)
         self.activity_log.emit(logmsg.AUTOMATION_ENABLED if enabled
                        else logmsg.AUTOMATION_DISABLED)
@@ -1242,7 +1191,7 @@ class Daemon:
 
     def reload_config(self) -> None:
         try:
-            new_config = load_config(self.config_path)
+            new_config = self.config_file.load()
         except ConfigError as error:
             self.activity_log.emit(logmsg.CONFIG_RELOAD_FAILED, error=str(error))
             return
@@ -1295,7 +1244,7 @@ class Daemon:
             # does at boot — without it the machine would stay inert forever.
             self.activity_log.emit(logmsg.SETUP_STARTING_AUTOMATION)
             self._spawn(self._start_after_setup(), "starting automation after setup")
-        self._note_config_mtime()
+        self.config_file.note_mtime()
         # Durations may have changed the target/progress; announce now.
         self._emit_automation_state()
 
@@ -1703,8 +1652,8 @@ class Daemon:
 
         previous_mac = self.config.desk.mac
         self.config.desk.mac = desk_mac
-        save_config(self.config, self.config_path)
-        self._note_config_mtime()
+        save_config(self.config, self.config_file.path)
+        self.config_file.note_mtime()
         if not self.mock_mode and desk_mac != previous_mac:
             self._swap_desk()
         self.activity_log.emit(
@@ -1798,12 +1747,12 @@ class Daemon:
         disk, with no PresetsChanged and no log line to say so.
         """
         try:
-            save_config(self.config, self.config_path)
+            save_config(self.config, self.config_file.path)
         except (ConfigError, OSError) as error:
             self.config.presets = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self._note_config_mtime()  # don't treat our own write as a hot reload
+        self.config_file.note_mtime()  # don't treat our own write as a hot reload
         self._ifaces["presets"].PresetsChanged(json.dumps(self.config.presets))
 
 
