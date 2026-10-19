@@ -29,6 +29,8 @@ from PySide6.QtDBus import (
 )
 
 from .. import DBUS_NAME, DBUS_PATH
+from ..core.machine import Status
+from ..core.state_values import StatusValue, parse_status
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
 IFACE_AUTO = f"{DBUS_NAME}.Automation1"
@@ -150,7 +152,7 @@ class DaemonClient(QObject):
     @Slot(QDBusMessage)
     def _on_status(self, message: QDBusMessage) -> None:
         status = str(message.arguments()[0])
-        self._note_status(status)
+        self._note_status(parse_status(status))
         self.statusChanged.emit(status)
 
     @Slot(QDBusMessage)
@@ -248,7 +250,7 @@ class DaemonClient(QObject):
             self.movingChanged.emit(bool(moving))
         status = self.get_property(IFACE_AUTO, "Status")
         if status is not None:
-            self._note_status(str(status))
+            self._note_status(parse_status(str(status)))
             self.statusChanged.emit(str(status))
         active_time = self.get_property(IFACE_AUTO, "ActiveTime")
         target = self.get_property(IFACE_AUTO, "TargetDuration")
@@ -259,7 +261,7 @@ class DaemonClient(QObject):
     def set_automation_enabled(self, enabled: bool) -> None:
         self._async_call(IFACE_AUTO, "SetEnabled", bool(enabled))
 
-    def _note_status(self, status: str) -> None:
+    def _note_status(self, status: StatusValue) -> None:
         """Keep the snooze deadline cached alongside the status it belongs to.
 
         Reading it is a round-trip, and the Overview drew it straight from a
@@ -268,7 +270,7 @@ class DaemonClient(QObject):
         announced — including a second snooze extending the first, which
         re-announces ``snoozed`` — so this is the one place it needs fetching,
         asynchronously, with ``snooze_until()`` served from cache."""
-        if status == "snoozed":
+        if status == Status.SNOOZED:
             self.get_property_async(IFACE_AUTO, "SnoozeUntil",
                                     self._set_snooze_until)
         else:

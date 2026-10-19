@@ -26,10 +26,13 @@ from datetime import datetime
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QObject, Signal, Qt  # noqa: E402
+from PySide6.QtDBus import QDBusMessage  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.machine import Status  # noqa: E402
+from idasen_companion.core.state_values import UnknownStatus  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.dbus_client import DaemonClient  # noqa: E402
@@ -64,7 +67,7 @@ def client(qapp):
 
 
 def test_a_snoozed_status_asks_for_the_deadline(client):
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     assert [name for name, _ in client.requests] == ["SnoozeUntil"]
     # Asked, not yet answered: nothing to report until the reply lands.
     assert client.snooze_until() == 0.0
@@ -73,7 +76,7 @@ def test_a_snoozed_status_asks_for_the_deadline(client):
 def test_the_reply_lands_in_the_cache(client):
     seen = []
     client.snoozeUntilChanged.connect(seen.append)
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     _, deliver = client.requests[0]
     deliver(1800.0)
     assert client.snooze_until() == 1800.0
@@ -81,7 +84,7 @@ def test_the_reply_lands_in_the_cache(client):
 
 
 def test_reading_the_deadline_is_never_a_round_trip(client):
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[0][1](1800.0)
     before = len(client.requests)
     for _ in range(10):
@@ -94,10 +97,10 @@ def test_an_unchanged_deadline_does_not_redraw(client):
     # so an unconditional emit would repaint the page once a minute for
     # nothing.
     seen = []
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[0][1](1800.0)
     client.snoozeUntilChanged.connect(seen.append)
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[1][1](1800.0)
     assert seen == []
 
@@ -105,24 +108,77 @@ def test_an_unchanged_deadline_does_not_redraw(client):
 def test_a_second_snooze_extends_it(client):
     seen = []
     client.snoozeUntilChanged.connect(seen.append)
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[0][1](1800.0)
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[1][1](2400.0)
     assert client.snooze_until() == 2400.0
     assert seen == [1800.0, 2400.0]
 
 
 def test_leaving_the_snooze_clears_it_without_asking(client):
-    client._note_status("snoozed")
+    client._note_status(Status.SNOOZED)
     client.requests[0][1](1800.0)
     seen = []
     client.snoozeUntilChanged.connect(seen.append)
-    client._note_status("active")
+    client._note_status(Status.ACTIVE)
     assert client.snooze_until() == 0.0
     assert seen == [0.0]
     # A status that isn't snoozed has no deadline to fetch.
     assert len(client.requests) == 1
+
+
+@pytest.mark.parametrize("entry", ["live", "refresh"])
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.AutoConnection,
+                                      Qt.ConnectionType.QueuedConnection])
+def test_status_paths_parse_before_snooze_work_and_emit_exact_strings(
+        client, qapp, monkeypatch, entry, delivery):
+    parsed = []
+    note_status = client._note_status
+
+    def note(value):
+        parsed.append(value)
+        note_status(value)
+
+    monkeypatch.setattr(client, "_note_status", note)
+    observed = []
+    client.statusChanged.connect(
+        lambda raw: observed.append((raw, type(raw), len(client.requests),
+                                     client.snooze_until())), delivery)
+    current = [None]
+    monkeypatch.setattr(client, "get_property",
+                        lambda iface, name: current[0] if name == "Status" else None)
+    monkeypatch.setattr(client, "list_presets", lambda: {})
+
+    def announce(raw):
+        if entry == "live":
+            message = QDBusMessage.createSignal("/desk", "test.Desk", "StatusChanged")
+            message.setArguments([raw])
+            client._on_status(message)
+        else:
+            current[0] = raw
+            client.refresh_all()
+        qapp.processEvents()
+
+    announce("snoozed")
+    assert parsed[-1] is Status.SNOOZED
+    assert observed[-1] == ("snoozed", str, 1, 0.0)
+    client.requests[-1][1](1800.0)
+    announce("snoozed")
+    assert observed[-1] == ("snoozed", str, 2, 1800.0)
+    client.requests[-1][1](2400.0)
+
+    for raw in ("active", " Future Status ", ""):
+        announce(raw)
+        expected = Status.ACTIVE if raw == "active" else UnknownStatus(raw)
+        assert parsed[-1] == expected
+        assert type(parsed[-1]) is type(expected)
+        assert observed[-1] == (raw, str, 2, 0.0)
+
+    if entry == "refresh":
+        before = (len(parsed), len(observed), len(client.requests))
+        announce(None)
+        assert (len(parsed), len(observed), len(client.requests)) == before
 
 
 # ----- what the Overview does with it -----
