@@ -272,6 +272,47 @@ owns its widgets, subscribes to the client signals it needs, and reloads lazily
 via an `on_shown()` hook. `main.py` enforces single-instance (a second launch
 calls `Activate()` over D-Bus) and is tray-optional.
 
+### Typed state values behind raw transport
+
+The Qt-free `core/state_values.py` owns two distinct open domains:
+`PositionValue = DeskState | UnknownPosition` and
+`StatusValue = Status | UnknownStatus`. Known values reuse the enums in
+`core/machine.py`. Each frozen unknown wrapper retains its original `raw: str`,
+including empty text, casing and whitespace. `parse_position` and `parse_status`
+recognize only exact enum values; unfamiliar values stay in their own domain.
+
+D-Bus signatures, properties and Qt `Signal(str)` declarations still carry raw
+strings. Qt converts emitted string enums back to plain strings, so Overview
+and tray parse **after signal delivery**, once in each receiving `str` slot,
+and retain one typed cache per domain. Their decisions use the existing enum
+groups. The D-Bus client parses status before its typed snooze-cache handler
+and emits the original string afterward, preserving update-before-notify order.
+CLI snapshots and stored Statistics history remain raw; they parse only when
+calling the shared presentation API. No storage or transport migration occurs.
+
+`Formatter` and the `gui/util.py` facades accept the appropriate open domain.
+They explicitly unwrap unknown values before rendering: unknown statuses keep
+their exact text; unfamiliar positions keep the existing capitalized fallback;
+an empty position label stays empty and `position_or_custom` supplies translated
+Custom. Only known sitting/standing positions select an opposite direction.
+An unknown wrapper can contain empty text, so its object truthiness cannot
+replace a check of its raw text. Moving state, countdown timing, actions,
+translations and widget layout keep their existing behavior.
+
+Phase 21 checks the actual final APIs with a temporary executable proof outside
+the repository. From this checkout, run
+`/tmp/idasen-companion-phase21-type-proof/run.sh "$PWD"`. It recreates both
+samples and invokes pinned `uvx mypy==2.3.0` with this checkout's `src` on
+`MYPYPATH` and `.venv/bin/python` for installed package discovery. The positive
+sample exercises both enums, both unknown wrappers and both parsers through
+`Formatter` and GUI facades; it exits 0 with no diagnostics. The negative sample
+exits 1 with exactly eight `arg-type` errors: lines 8–9 pass wrong enums, 10–11
+wrong unknown wrappers, 12–13 wrong parsed open domains, and 14–15 raw typo
+strings. `positive.log`, `negative.log`, their `.status` files and
+`evidence.json` beside the script record the commands, source head and exact
+line/category map. These are temporary verification artifacts; no checker
+subprocess or demonstration API is added to the product or test suite.
+
 ### Two settings-class pages, one shape
 
 Settings (how the *app* is set up: language, autostart, window & tray, desk
