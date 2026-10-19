@@ -312,6 +312,8 @@ _STATUS_BRANCH_CASES = [
     ("held", "Off-cycle", "desk isn't at a preset"),
     ("move-failed", "Last move failed", "couldn't reach the desk"),
     ("does-not-exist", "does-not-exist", ""),
+    ("", "", ""),
+    (" Future-Status \t", " Future-Status \t", ""),
 ]
 
 

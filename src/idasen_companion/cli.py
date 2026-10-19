@@ -27,6 +27,7 @@ from .core.presentation import (
     Formatter, PresentationContext, daemon_error_message,
 )
 from .core.i18n import GettextTranslator
+from .core.state_values import parse_status
 from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
@@ -162,7 +163,7 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
         "connection": connection,
     }
 
-    status = fmt.status_label(snapshot.status)
+    status = fmt.status_label(parse_status(snapshot.status))
     elapsed = fmt.duration(snapshot.active_time)
     if snapshot.status == "snoozed" and snapshot.snooze_until:
         next_change = fmt.snooze_line(

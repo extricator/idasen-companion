@@ -49,6 +49,7 @@ from idasen_companion.core.i18n import (  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
+from idasen_companion.core.state_values import parse_status  # noqa: E402
 
 #: Set to regenerate the committed goldens instead of comparing against them.
 #: Unset (the default, and the only state CI ever runs in), a mismatch fails
@@ -231,12 +232,12 @@ def _status_cases() -> dict[str, str]:
     # The key lists come from the register, which is where the tables live
     # after Phase 14; every case still renders through `gui.util`, so the
     # recorded values are unchanged by the move.
-    cases = {f"label_{key}": util.status_label(key)
+    cases = {f"label_{key}": util.status_label(parse_status(key))
              for key in register.STATUS_LABELS}
-    cases["label_unknown"] = util.status_label("unknown-status")
-    cases.update({f"head_{key}": util.status_head(key)
+    cases["label_unknown"] = util.status_label(parse_status("unknown-status"))
+    cases.update({f"head_{key}": util.status_head(parse_status(key))
                   for key in register.STATUS_HEADS})
-    cases["head_unknown"] = util.status_head("unknown-status")
+    cases["head_unknown"] = util.status_head(parse_status("unknown-status"))
     return cases
 
 
