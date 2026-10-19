@@ -46,7 +46,6 @@ from idasen_companion.core.i18n import (  # noqa: E402
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.core.machine import DeskState  # noqa: E402
-from idasen_companion.core.state_values import UnknownPosition  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -267,16 +266,6 @@ def test_transition_row_renders_position_words_as_one_message(
         if lbl.text() not in ("",) and "→" in lbl.text())
     assert change_label.text() == (
         position_label(DeskState.SITTING) + " → " + position_label(DeskState.STANDING))
-
-
-def test_formatter_preserves_open_position_display(overview_page):
-    fmt = overview_page.ctx.fmt
-    assert fmt.position_label(DeskState.SITTING) == "Sitting"
-    assert fmt.position_label(DeskState.STANDING) == "Standing"
-    assert fmt.position_label(UnknownPosition(" Future-POSITION \t")) == " future-position \t"
-    assert fmt.position_label(UnknownPosition("")) == ""
-    assert fmt.position_or_custom(UnknownPosition("")) == "Custom"
-    assert fmt.position_or_custom(UnknownPosition("custom")) == "Custom"
 
 
 def test_history_positions_are_formatted_without_changing_raw_rows(

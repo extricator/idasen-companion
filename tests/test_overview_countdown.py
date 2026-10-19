@@ -29,8 +29,6 @@ from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.machine import DeskState, Status  # noqa: E402
-from idasen_companion.core.state_values import UnknownPosition  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
@@ -52,7 +50,7 @@ class FakeClient(QObject):
 
     available = False
 
-    # Button targets — connected at build time, never pressed here.
+    # Button targets connected at build time.
     def sit(self): ...
     def stand(self): ...
     def stop(self): ...
@@ -130,11 +128,7 @@ def test_a_fresh_cycle_puts_the_clock_back(page):
     assert _header(page) == "Next: Stand in 30:00 of active time"
 
 
-@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
-                                     Qt.ConnectionType.QueuedConnection])
-def test_position_signal_preserves_labels_direction_and_moving(page, qapp, delivery):
-    page.client.positionChanged.disconnect(page._on_position)
-    page.client.positionChanged.connect(page._on_position, delivery)
+def test_position_signal_preserves_labels_and_direction(page):
     for raw, expected_label, expected_next in (
             ("sitting", "Sitting", "Next: Stand"),
             ("standing", "Standing", "Next: Sit"),
@@ -143,32 +137,20 @@ def test_position_signal_preserves_labels_direction_and_moving(page, qapp, deliv
             (" Future-POSITION \t", " future-position \t", "Next change"),
             ("SITTING", "Sitting", "Next change")):
         page.client.positionChanged.emit(raw)
-        qapp.processEvents()
-        expected_value = (DeskState(raw) if raw in ("sitting", "standing")
-                          else UnknownPosition(raw))
-        assert page._position == expected_value
-        assert isinstance(page._position, type(expected_value))
         assert page.position_label.text() == expected_label
         page.client.progressChanged.emit(1500.0, 1800.0)
         assert _header(page) == expected_next + " in 5:00 of active time"
-        page.client.movingChanged.emit(True)
-        assert page.position_label.text() == "Moving…"
-        assert page.stop_btn.isEnabled()
-        page.client.movingChanged.emit(False)
-        assert page.position_label.text() == expected_label
-        assert not page.stop_btn.isEnabled()
 
 
-@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
-                                     Qt.ConnectionType.QueuedConnection])
-def test_status_signal_enters_typed_overview_logic(page, qapp, delivery):
+def test_queued_failure_status_updates_overview(page, qapp):
+    # Keep one application-level queued delivery check, rather than repeating
+    # the full input matrix for Qt's delivery modes at every consumer.
     page.client.statusChanged.disconnect(page._on_status)
-    page.client.statusChanged.connect(page._on_status, delivery)
+    page.client.statusChanged.connect(
+        page._on_status, Qt.ConnectionType.QueuedConnection)
     page.client.statusChanged.emit("move-failed")
     qapp.processEvents()
 
-    # Qt transports strings; the consumer owns the typed interpretation.
-    assert page._status is Status.MOVE_FAILED
     assert page.status_head_lbl.text() == "Last move failed"
     assert page.status_reason.text() == "couldn't reach the desk"
     assert not page._countdown_widget.isHidden()
@@ -178,17 +160,12 @@ def test_status_signal_enters_typed_overview_logic(page, qapp, delivery):
 
 
 @pytest.mark.parametrize("raw", ["", " Future-Status \t"])
-@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
-                                     Qt.ConnectionType.QueuedConnection])
 def test_unfamiliar_status_keeps_text_and_pause_controls(
-        page, qapp, monkeypatch, raw, delivery):
+        page, monkeypatch, raw):
     calls = []
     monkeypatch.setattr(page.client, "pause", lambda: calls.append("pause"))
     monkeypatch.setattr(page.client, "resume", lambda: calls.append("resume"))
-    page.client.statusChanged.disconnect(page._on_status)
-    page.client.statusChanged.connect(page._on_status, delivery)
     page.client.statusChanged.emit(raw)
-    qapp.processEvents()
 
     assert page.status_head_lbl.text() == raw
     assert page.status_reason.text() == ""

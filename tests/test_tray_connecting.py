@@ -27,7 +27,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from types import SimpleNamespace  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QObject, Signal, Qt  # noqa: E402
+from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
@@ -180,26 +180,20 @@ def test_repeat_click_while_moving_does_not_show_connecting(tray):
     assert label(icon) != "Connecting…"
 
 
-@pytest.mark.parametrize("delivery", [Qt.ConnectionType.AutoConnection,
-                                      Qt.ConnectionType.QueuedConnection])
-def test_move_failed_clears_connecting(tray, qapp, delivery):
+def test_move_failed_clears_connecting(tray):
     # The desk never moves in this case, so nothing else would take the label
     # down before the backstop timer.
     icon, client = tray
-    client.statusChanged.disconnect(icon._on_status)
-    client.statusChanged.connect(icon._on_status, delivery)
     icon._on_connected(False)
     icon._on_moving(False)
     icon._run_action("toggle")
 
     for raw in (" Future Status ", ""):
         client.statusChanged.emit(raw)
-        qapp.processEvents()
         assert label(icon) == "Connecting…"
         assert icon._connecting_timer.isActive()
 
     client.statusChanged.emit("move-failed")
-    qapp.processEvents()
 
     assert label(icon) != "Connecting…"
     assert not icon._connecting_timer.isActive()

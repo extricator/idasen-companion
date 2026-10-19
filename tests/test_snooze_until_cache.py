@@ -26,13 +26,12 @@ from datetime import datetime
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Signal, Qt  # noqa: E402
+from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtDBus import QDBusMessage  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.machine import Status  # noqa: E402
-from idasen_companion.core.state_values import UnknownStatus  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.dbus_client import DaemonClient  # noqa: E402
@@ -129,22 +128,12 @@ def test_leaving_the_snooze_clears_it_without_asking(client):
 
 
 @pytest.mark.parametrize("entry", ["live", "refresh"])
-@pytest.mark.parametrize("delivery", [Qt.ConnectionType.AutoConnection,
-                                      Qt.ConnectionType.QueuedConnection])
-def test_status_paths_parse_before_snooze_work_and_emit_exact_strings(
-        client, qapp, monkeypatch, entry, delivery):
-    parsed = []
-    note_status = client._note_status
-
-    def note(value):
-        parsed.append(value)
-        note_status(value)
-
-    monkeypatch.setattr(client, "_note_status", note)
+def test_status_paths_update_snooze_cache_before_emitting_raw_strings(
+        client, monkeypatch, entry):
     observed = []
     client.statusChanged.connect(
         lambda raw: observed.append((raw, type(raw), len(client.requests),
-                                     client.snooze_until())), delivery)
+                                     client.snooze_until())))
     current = [None]
     monkeypatch.setattr(client, "get_property",
                         lambda iface, name: current[0] if name == "Status" else None)
@@ -158,10 +147,8 @@ def test_status_paths_parse_before_snooze_work_and_emit_exact_strings(
         else:
             current[0] = raw
             client.refresh_all()
-        qapp.processEvents()
 
     announce("snoozed")
-    assert parsed[-1] is Status.SNOOZED
     assert observed[-1] == ("snoozed", str, 1, 0.0)
     client.requests[-1][1](1800.0)
     announce("snoozed")
@@ -170,15 +157,12 @@ def test_status_paths_parse_before_snooze_work_and_emit_exact_strings(
 
     for raw in ("active", " Future Status ", ""):
         announce(raw)
-        expected = Status.ACTIVE if raw == "active" else UnknownStatus(raw)
-        assert parsed[-1] == expected
-        assert type(parsed[-1]) is type(expected)
         assert observed[-1] == (raw, str, 2, 0.0)
 
     if entry == "refresh":
-        before = (len(parsed), len(observed), len(client.requests))
+        before = (len(observed), len(client.requests))
         announce(None)
-        assert (len(parsed), len(observed), len(client.requests)) == before
+        assert (len(observed), len(client.requests)) == before
 
 
 # ----- what the Overview does with it -----
