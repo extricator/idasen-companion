@@ -24,6 +24,8 @@ import pytest
 from idasen_companion.daemon.idle import SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.stats import Stats
+from idasen_companion.daemon import bluetooth as bluetooth_mod
+from idasen_companion.daemon.bluetooth import BluetoothSupport
 from idasen_companion.desk.ble import BleDesk
 
 
@@ -107,6 +109,7 @@ def _bare_daemon(monkeypatch):
 
     d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
     d.activity_log = MagicMock()
+    d.bluetooth = BluetoothSupport(d.activity_log)
     d.stats = MagicMock()
     d.mock_mode = True
     from idasen_companion.daemon.config_file import ConfigFileStore
@@ -367,28 +370,26 @@ async def test_no_link_is_dropped_while_another_users_daemon_runs(monkeypatch):
     likely one it is using — dropping it starts a tug of war instead of
     fixing anything."""
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [4242])
-    monkeypatch.setattr(d, "_bluez_property",
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [4242])
+    monkeypatch.setattr(d.bluetooth, "property",
                         lambda *a: _async(True))   # BlueZ says connected
 
     dropped = []
-    monkeypatch.setattr("idasen_companion.daemon.main.call",
+    monkeypatch.setattr("idasen_companion.daemon.bluetooth.call",
                         lambda *a, **k: dropped.append(a) or _async([]))
-    assert await d._handle_connect_exhausted() is None
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     assert not dropped, "dropped a link another user's daemon was using"
 
 
 async def test_link_is_left_alone_when_we_are_the_only_daemon(monkeypatch):
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
-    monkeypatch.setattr(d, "_bluez_property", lambda *a: _async(True))
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [])
+    monkeypatch.setattr(d.bluetooth, "property", lambda *a: _async(True))
 
     calls = []
-    monkeypatch.setattr("idasen_companion.daemon.main.call",
+    monkeypatch.setattr("idasen_companion.daemon.bluetooth.call",
                         lambda *a, **k: calls.append(a[-1]) or _async([]))
-    assert await d._handle_connect_exhausted() is None
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     assert "Disconnect" not in calls
     logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
     assert "cannot identify the link's owner" in logged
@@ -398,10 +399,9 @@ async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypat
     """The snapshot is the point: the original outage could not be explained
     afterwards because nothing recorded what BlueZ thought at the time."""
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
-    monkeypatch.setattr(d, "_bluez_property", lambda *a: _async(False))
-    assert await d._handle_connect_exhausted() is None
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [])
+    monkeypatch.setattr(d.bluetooth, "property", lambda *a: _async(False))
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     # Diagnostic channel: a real warning that means nothing to a desk user.
     logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
     for field in ("connected=", "paired=", "adapter powered=", "scanning="):
@@ -410,17 +410,39 @@ async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypat
                for c in d.activity_log.diag.call_args_list)
 
 
-def test_own_process_is_not_counted_as_another_daemon(monkeypatch):
-    from idasen_companion.daemon import main as main_mod
-    d = main_mod.Daemon.__new__(main_mod.Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    assert os.getpid() not in d._other_companion_daemons()
+async def test_exhaustion_callback_reads_current_mac_after_desk_construction(monkeypatch):
+    from idasen_companion.desk import ble as ble_mod
+
+    daemon = _bare_daemon(monkeypatch)
+    daemon.mock_mode = False
+    captured = {}
+
+    def make_desk(_mac, **kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    monkeypatch.setattr(ble_mod, "BleDesk", make_desk)
+    monkeypatch.setattr(daemon.bluetooth, "_other_companion_daemons", lambda: [])
+    query = AsyncMock(return_value=False)
+    monkeypatch.setattr(daemon.bluetooth, "property", query)
+    from idasen_companion.daemon.main import Daemon
+    Daemon._make_desk(daemon)
+    daemon.config.desk.mac = "AA:BB:CC:DD:EE:FF"
+    await captured["on_connect_exhausted"]()
+    query.assert_any_await("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF",
+                           "org.bluez.Device1", "Connected")
+
+
+def test_own_process_is_not_counted_as_another_daemon(monkeypatch, tmp_path):
+    own = tmp_path / str(os.getpid())
+    own.mkdir()
+    (own / "cmdline").write_bytes(b"idasen-companiond\0")
+    monkeypatch.setattr(bluetooth_mod, "Path", lambda _: tmp_path)
+    support = BluetoothSupport(MagicMock())
+    assert support._other_companion_daemons() == []
 
 
 def test_other_daemon_started_with_python_module_is_detected(monkeypatch, tmp_path):
-    from idasen_companion.daemon import main as main_mod
-
     candidate = tmp_path / "12345"
     candidate.mkdir()
     (candidate / "cmdline").write_bytes(
@@ -428,9 +450,9 @@ def test_other_daemon_started_with_python_module_is_detected(monkeypatch, tmp_pa
     unrelated = tmp_path / "12346"
     unrelated.mkdir()
     (unrelated / "cmdline").write_bytes(b"/usr/bin/python3\0other.py\0")
-    monkeypatch.setattr(main_mod, "Path", lambda _: tmp_path)
-    d = main_mod.Daemon.__new__(main_mod.Daemon)
-    assert d._other_companion_daemons() == [12345]
+    monkeypatch.setattr(bluetooth_mod, "Path", lambda _: tmp_path)
+    support = BluetoothSupport(MagicMock())
+    assert support._other_companion_daemons() == [12345]
 
 
 # ----- the seat's active session is the lease on the desk -----
@@ -453,12 +475,12 @@ async def test_handoff_leaves_ambiguous_bluez_link_alone(monkeypatch):
     d.mock_mode = False
     d.desk.connected = False
     d.desk.disconnect = AsyncMock()
-    d._bluez_property = AsyncMock(return_value=True)
+    d.bluetooth.property = AsyncMock(return_value=True)
 
     await d._release_desk()
     d.desk.disconnect.assert_awaited_once()
-    d._bluez_property.assert_awaited_once_with(
-        d._bluez_device_path(), "org.bluez.Device1", "Connected")
+    d.bluetooth.property.assert_awaited_once_with(
+        d.bluetooth.device_path(d.config.desk.mac), "org.bluez.Device1", "Connected")
     d.activity_log.diag.assert_called_once()
 
 

@@ -337,7 +337,8 @@ class Daemon:
             # stay out of it. This is the case docs/LOGGING.md was written for.
             on_error=lambda msg: self.activity_log.diag(
                 "warning", f"BLE: {msg}"),
-            on_connect_exhausted=self._handle_connect_exhausted,
+            on_connect_exhausted=lambda: self.bluetooth.report_connect_exhausted(
+                self.config.desk.mac),
         )
 
     def _on_connection_change(self, connected: bool) -> None:
@@ -379,8 +380,8 @@ class Daemon:
         # Connected is device-wide: it does not identify the client that owns
         # the link. Another session may have connected before this check, so
         # do not call Device1.Disconnect on a link Bleak no longer owns.
-        path = self._bluez_device_path()
-        if await self._bluez_property(path, "org.bluez.Device1", "Connected"):
+        path = self.bluetooth.device_path(self.config.desk.mac)
+        if await self.bluetooth.property(path, "org.bluez.Device1", "Connected"):
             self.activity_log.diag(
                 "warning", "BlueZ reports the desk connected after this "
                 "session released its BLE client; the link's owner is unknown, "
@@ -573,12 +574,12 @@ class Daemon:
         """
         if self.mock_mode or not self.config.desk.mac:
             return
-        path = self._bluez_device_path()
-        if not await self._bluez_property(path, "org.bluez.Device1",
+        path = self.bluetooth.device_path(self.config.desk.mac)
+        if not await self.bluetooth.property(path, "org.bluez.Device1",
                                           "Connected"):
             return
         await self.desk.disconnect()
-        if await self._bluez_property(path, "org.bluez.Device1", "Connected"):
+        if await self.bluetooth.property(path, "org.bluez.Device1", "Connected"):
             self.activity_log.diag(
                 "warning",
                 "The desk is still connected after resume and this daemon's "
@@ -1477,99 +1478,6 @@ class Daemon:
         """Known paired desks (from BlueZ) plus live scan results, paired
         first. timeout=0 returns paired devices + cached scan instantly."""
         return await self.bluetooth.discover(timeout, mock_mode=self.mock_mode)
-
-    def _bluez_device_path(self) -> str:
-        """BlueZ object path for the configured desk (hci0 only, matching the
-        rest of the app's single-adapter assumption)."""
-        return f"/org/bluez/hci0/dev_{self.config.desk.mac.upper().replace(':', '_')}"
-
-    def _other_companion_daemons(self) -> list[int]:
-        """PIDs of other idasen-companiond processes on this machine.
-
-        One desk, one machine, several accounts is the *expected* arrangement,
-        not an anomaly — each logged-in user's session runs its own daemon and
-        they all want the same desk. Ownership is settled by the seat lease
-        (see ``_release_desk``), not by this scan. The PID list gives useful
-        context in a failed-connect diagnostic; it cannot prove link ownership.
-        """
-        own_pid = os.getpid()
-        found = []
-        for entry in Path("/proc").iterdir():
-            if not entry.name.isdigit() or int(entry.name) == own_pid:
-                continue
-            try:
-                argv = (entry / "cmdline").read_bytes().split(b"\0")
-            except OSError:
-                continue  # exited, or another user's process we can't read
-            if any(arg == b"idasen_companion.daemon.main"
-                   or arg.rsplit(b"/", 1)[-1] == b"idasen-companiond"
-                   for arg in argv if arg):
-                found.append(int(entry.name))
-        return found
-
-    async def _bluez_property(self, path: str, iface: str, name: str):
-        if self._system_bus is None:
-            return None
-        try:
-            body = await call(self._system_bus, "org.bluez", path,
-                              "org.freedesktop.DBus.Properties", "Get", "ss",
-                              [iface, name])
-        except (DBusCallError, DBusError):
-            return None
-        return body[0].value if body else None
-
-    async def _handle_connect_exhausted(self) -> None:
-        """Every connect attempt failed. Record the Bluetooth stack state.
-
-        The snapshot is the primary job. A desk that went unreachable for 45
-        minutes could not be explained afterwards because nothing recorded what
-        BlueZ thought at the time; this makes a repeat diagnose itself.
-
-        A BlueZ link has no discoverable client owner, so this hook only logs.
-        """
-        if not self.config.desk.mac:
-            return
-        path = self._bluez_device_path()
-        connected = await self._bluez_property(path, "org.bluez.Device1",
-                                               "Connected")
-        paired = await self._bluez_property(path, "org.bluez.Device1", "Paired")
-        rssi = await self._bluez_property(path, "org.bluez.Device1", "RSSI")
-        powered = await self._bluez_property("/org/bluez/hci0",
-                                             "org.bluez.Adapter1", "Powered")
-        discovering = await self._bluez_property("/org/bluez/hci0",
-                                                 "org.bluez.Adapter1",
-                                                 "Discovering")
-        others = self._other_companion_daemons()
-        # The snapshot exists so a repeat outage diagnoses itself. It is a real
-        # warning and means nothing at all to a desk user, which is exactly the
-        # combination the diagnostic channel is for.
-        self.activity_log.diag(
-            "warning",
-            f"Could not reach the desk. BlueZ reports: connected={connected}, "
-            f"paired={paired}, rssi={rssi}, adapter powered={powered}, "
-            f"scanning={discovering}; other companion daemons running: "
-            f"{others or 'none'}.")
-
-        if not connected:
-            return  # nothing in the way; the failure is something else
-
-        if others:
-            # Shared desk: another account's daemon is running and BlueZ holds
-            # a connection we can't use. Dropping it would just start a fight
-            # neither side wins, and it is very likely being used right now —
-            # a daemon releases the desk when its session leaves the seat, but
-            # not instantly (a move in flight finishes first), so a link that
-            # is on its way out looks exactly like one that is staying.
-            # This one *is* activity: it says why the desk won't move for you,
-            # and what to do about it is a real-world action.
-            self.activity_log.emit(logmsg.DESK_HELD_BY_OTHER,
-                           pids=", ".join(map(str, others)))
-            return
-
-        self.activity_log.diag(
-            "warning",
-            "The desk is connected but unreachable from here. BlueZ cannot "
-            "identify the link's owner, so it was left alone.")
 
     async def setup_desk(self, desk_mac: str) -> float:
         """First-run onboarding: verify we can actually talk to the desk

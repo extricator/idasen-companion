@@ -29,6 +29,7 @@ import pytest
 
 from idasen_companion.core.config import AppConfig
 from idasen_companion.daemon import main as main_mod
+from idasen_companion.daemon.bluetooth import BluetoothSupport
 from idasen_companion.daemon.inhibit import (
     DELAY_HEADROOM, MAX_BUDGET, MIN_BUDGET, SleepInhibitor,
 )
@@ -66,8 +67,8 @@ def _daemon(monkeypatch, *, connected=True, bluez_connected=False):
     daemon.config = config
     daemon.mock_mode = False
     daemon.desk_connected = connected
-    daemon._system_bus = MagicMock()
     daemon.activity_log = MagicMock()
+    daemon.bluetooth = BluetoothSupport(daemon.activity_log)
     daemon.machine = MagicMock()
     daemon.machine.cycle_target = MagicMock(return_value=0)
     daemon._idle = MagicMock()
@@ -76,7 +77,7 @@ def _daemon(monkeypatch, *, connected=True, bluez_connected=False):
     daemon.desk = MagicMock()
     daemon.desk.disconnect = AsyncMock()
     daemon.desk.forget_handle = MagicMock()
-    monkeypatch.setattr(daemon, "_bluez_property",
+    monkeypatch.setattr(daemon.bluetooth, "property",
                         AsyncMock(return_value=bluez_connected))
     return daemon
 
@@ -167,7 +168,7 @@ async def test_resume_checks_bluez_even_when_our_client_says_disconnected(monkey
     daemon = _daemon(monkeypatch, connected=False, bluez_connected=True)
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    assert daemon._bluez_property.await_count == 2
+    assert daemon.bluetooth.property.await_count == 2
     assert "cannot identify the link's owner" in _diagnostics(daemon)
 
 
@@ -185,7 +186,7 @@ async def test_a_mock_desk_reconciles_nothing(monkeypatch):
     daemon.mock_mode = True
     daemon._on_system_message(_prepare_for_sleep(False))
     await _settle(daemon)
-    assert not daemon._bluez_property.called
+    assert not daemon.bluetooth.property.called
 
 
 async def test_the_lock_is_taken_again_for_the_next_sleep(monkeypatch):
