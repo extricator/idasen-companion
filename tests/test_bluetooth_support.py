@@ -3,6 +3,7 @@
 All platform inputs are fake: these tests never contact BlueZ or scan BLE.
 """
 
+import asyncio
 import builtins
 import sys
 from types import SimpleNamespace
@@ -213,8 +214,51 @@ async def test_property_query_errors_and_empty_replies_return_unknown(monkeypatc
     assert await support.property("/device", "org.bluez.Device1", "Connected") is None
 
 
-@pytest.mark.parametrize("available", [True, False])
-async def test_system_bus_setup_binds_the_same_optional_bus(monkeypatch, available):
+async def test_paired_discovery_works_while_signal_registration_is_pending(
+        discovery, monkeypatch):
+    daemon, _, scanner = discovery
+    bus = daemon.bluetooth._system_bus
+    daemon.bluetooth.bind_bus(None)
+    daemon._system_bus = None
+    registration_started = asyncio.Event()
+    finish_registration = asyncio.Event()
+    query_paired = bus.call
+
+    async def answer(message):
+        if message.member == "AddMatch":
+            registration_started.set()
+            await finish_registration.wait()
+            return SimpleNamespace(message_type=MessageType.METHOD_RETURN, body=[])
+        return await query_paired(message)
+
+    bus.call = answer
+    bus.add_message_handler = MagicMock()
+    connector = MagicMock()
+    connector.connect = AsyncMock(return_value=bus)
+    monkeypatch.setattr(main_mod, "MessageBus", MagicMock(return_value=connector))
+    monkeypatch.setattr(main_mod, "SleepInhibitor", MagicMock())
+    monkeypatch.setattr(daemon, "_rearm_sleep_inhibitor", AsyncMock())
+    session = MagicMock()
+    session.state = AsyncMock(return_value=SEAT_FOREGROUND)
+    monkeypatch.setattr(main_mod, "SessionActiveMonitor", MagicMock(return_value=session))
+
+    setup = asyncio.create_task(daemon._setup_system_bus())
+    try:
+        await asyncio.wait_for(registration_started.wait(), timeout=1)
+        assert not setup.done()
+        assert daemon._system_bus is bus
+        assert await daemon.discover(0) == [PAIRED]
+        scanner.assert_not_awaited()
+    finally:
+        finish_registration.set()
+        await asyncio.wait_for(setup, timeout=1)
+    bus.add_message_handler.assert_called_once_with(daemon._on_system_message)
+    assert await daemon.discover(0) == [PAIRED]
+
+
+@pytest.mark.parametrize("available,registered", [(True, True), (True, False), (False, False)])
+async def test_system_bus_setup_binds_the_same_optional_bus(
+        monkeypatch, available, registered):
     daemon = main_mod.Daemon.__new__(main_mod.Daemon)
     daemon.activity_log = MagicMock()
     daemon.bluetooth = BluetoothSupport(daemon.activity_log)
@@ -222,6 +266,8 @@ async def test_system_bus_setup_binds_the_same_optional_bus(monkeypatch, availab
     bus = MagicMock()
     bus.call = AsyncMock(return_value=SimpleNamespace(
         message_type=MessageType.METHOD_RETURN, body=[]))
+    if not registered:
+        bus.call.side_effect = DBusCallError("signal registration failed")
     connector = MagicMock()
     connector.connect = AsyncMock(return_value=bus)
     if not available:
@@ -235,3 +281,7 @@ async def test_system_bus_setup_binds_the_same_optional_bus(monkeypatch, availab
     await daemon._setup_system_bus()
     assert daemon.bluetooth._system_bus is (bus if available else None)
     assert daemon.bluetooth._system_bus is daemon._system_bus
+    if available and registered:
+        bus.add_message_handler.assert_called_once_with(daemon._on_system_message)
+    else:
+        bus.add_message_handler.assert_not_called()

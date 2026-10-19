@@ -448,6 +448,7 @@ class Daemon:
             # descriptor stripped and there is nothing to hold.
             self._system_bus = await MessageBus(
                 bus_type=BusType.SYSTEM, negotiate_unix_fd=True).connect()
+            self.bluetooth.bind_bus(self._system_bus)
             await call(self._system_bus, "org.freedesktop.DBus",
                        "/org/freedesktop/DBus", "org.freedesktop.DBus", "AddMatch",
                        "s", ["type='signal',interface='org.freedesktop.login1.Manager',"
