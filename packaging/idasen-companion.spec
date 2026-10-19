@@ -18,7 +18,7 @@ BuildRequires:  python3-pytest
 BuildRequires:  python3-pytest-asyncio
 BuildRequires:  python3-tomlkit
 BuildRequires:  python3-pyyaml
-BuildRequires:  python3-dbus-fast
+BuildRequires:  python3-dbus-fast >= 4.0.0
 BuildRequires:  python3-babel
 # PySide6 is a runtime Requires, not a build input — but without it here the
 # 14 GUI test modules importorskip themselves and %%check silently verifies
@@ -28,7 +28,7 @@ BuildRequires:  python3-pyside6
 
 Requires:       python3-pyside6
 Requires:       python3-babel
-Requires:       python3-dbus-fast
+Requires:       python3-dbus-fast >= 4.0.0
 Requires:       python3-idasen
 Requires:       python3-bleak
 Requires:       python3-pyyaml

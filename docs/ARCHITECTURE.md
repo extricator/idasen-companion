@@ -198,8 +198,32 @@ was removed before 0.1.0 on exactly that basis — it had no client, published a
 timestamp whose epoch was undocumented on the wire, and was the only reason
 `StateMachine.last_height_at` existed.
 
-`tests/test_dbus_contract.py` checks every member the GUI asks for exists on
-the daemon side, in the shape it asks for it.
+`tests/test_dbus_contract.py` freezes the complete introspection XML of all
+five interfaces (45 members), checks the GUI/CLI member references, and invokes
+the four compound signals through a mock bus to protect flat field order.
+
+The service declarations use dbus-fast's Python scalar aliases and
+`Annotated[..., DBusSignature(...)]` metadata, available since 4.0.0. Compound
+results are typed tuples with unparenthesized signatures (`dd`, `su`, `ssb`,
+`dsssss`); dbus-fast flattens them into the same ordered wire arguments.
+Empty exported results use an explicit empty-signature `EmptyResult` alias:
+bare deferred `None` annotations fail declaration construction in the compiled
+5.0.22 runtime. All five constructors refer to the real `Daemon` under
+`TYPE_CHECKING`, avoiding a runtime import cycle while letting mypy check the
+service bodies, inputs and collaborator calls without scoped suppressions.
+
+This checking has limits at the decorators and dynamic dispatch. `dbus_method`
+exposes `None` to direct Python callers, including erasing async results into a
+non-awaitable type; `dbus_signal` results and `dbus_property` descriptor reads
+remain `Any`. `Daemon._ifaces` is still a dynamically typed dictionary. The
+unsigned scalar alias is an `int` for Python checking, without range refinement;
+existing runtime validation and D-Bus marshalling remain responsible for values.
+
+Compatibility was verified with the final service source on pure-source
+dbus-fast 4.0.0 and the current compiled 5.0.22, including full XML equality and
+all four compound notifier paths. Python 3.11 syntax parsing and mypy targeting
+passed, and upstream 4.0.0 declares Python >=3.10 with explicit 3.11 support.
+A native Python 3.11 runtime was not run locally.
 
 ### Why the D-Bus wire format avoids containers
 

@@ -21,7 +21,7 @@ dependencies = [
     "Babel>=2.17",
     "idasen>=0.12",
     "bleak>=0.21",
-    "dbus-fast>=2.0",
+    "dbus-fast>=4.0.0",
     "PyYAML>=5.3",
     "tomlkit>=0.11",
 ]
@@ -74,17 +74,6 @@ asyncio_mode = "auto"
 # package build). CI is where this belongs; see TODO.md.
 python_version = "3.11"
 files = ["src"]
-
-[[tool.mypy.overrides]]
-# `daemon/service.py` annotates its exported methods with D-Bus *type codes*,
-# not Python types — `-> "d"` is a double on the wire, `minutes: "i"` an
-# int32. dbus-fast reads them off the signature; mypy sees string annotations
-# and tries to resolve them as forward references, hence "Name "s" is not
-# defined" and "Variable "…Desk1.d" is not valid as a type". There is nothing
-# to fix in the code: the annotations mean something other than what mypy
-# assumes. Scoped to this module so the same typo anywhere else still errors.
-module = "idasen_companion.daemon.service"
-disable_error_code = ["name-defined", "valid-type"]
 
 [[tool.mypy.overrides]]
 # `idasen` is annotated but ships no py.typed, so mypy would skip it and hand
