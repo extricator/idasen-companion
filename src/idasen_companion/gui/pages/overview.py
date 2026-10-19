@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
-from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, Status
-from ...core.state_values import StatusValue, parse_status
+from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, DeskState, Status
+from ...core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .. import restyle
 from ..theme import css, theme
 from ..util import (
@@ -42,7 +42,7 @@ class OverviewPage(Page):
         self._remaining = 0.0
         self._status: StatusValue = parse_status("")
         self._connected = False
-        self._position = ""
+        self._position: PositionValue = parse_position("")
         self._moving = False
         self._progress_stamp = time.monotonic()
         # The desk's last reported height in metres, kept so the labels that
@@ -393,7 +393,7 @@ class OverviewPage(Page):
             self._set_spin_height(height)
 
     def _on_position(self, position: str) -> None:
-        self._position = position
+        self._position = parse_position(position)
         self._update_position_word()
 
     def _on_connected(self, connected: bool) -> None:
@@ -545,8 +545,9 @@ class OverviewPage(Page):
 
     def _update_countdown_text(self, remaining: float | None = None) -> None:
         remaining = self._remaining if remaining is None else remaining
-        next_pos = {"sitting": preset_label("stand"),
-                    "standing": preset_label("sit")}.get(self._position)
+        next_pos = ({DeskState.SITTING: preset_label("stand"),
+                     DeskState.STANDING: preset_label("sit")}.get(self._position)
+                    if isinstance(self._position, DeskState) else None)
         self.countdown_next_lbl.setText(pgettext('overview', "Next:") if next_pos else "")
         self.countdown_next_word.setText(next_pos or pgettext('overview', "Next change"))
         # A cycle with nothing left on the clock is *due*, not stalled: the

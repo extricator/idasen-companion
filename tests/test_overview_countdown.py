@@ -29,7 +29,8 @@ from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.core.machine import Status  # noqa: E402
+from idasen_companion.core.machine import DeskState, Status  # noqa: E402
+from idasen_companion.core.state_values import UnknownPosition  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
@@ -127,6 +128,35 @@ def test_a_fresh_cycle_puts_the_clock_back(page):
     page.client.progressChanged.emit(2400.0, 1800.0)
     page.client.progressChanged.emit(0.0, 1800.0)
     assert _header(page) == "Next: Stand in 30:00 of active time"
+
+
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
+                                     Qt.ConnectionType.QueuedConnection])
+def test_position_signal_preserves_labels_direction_and_moving(page, qapp, delivery):
+    page.client.positionChanged.disconnect(page._on_position)
+    page.client.positionChanged.connect(page._on_position, delivery)
+    for raw, expected_label, expected_next in (
+            ("sitting", "Sitting", "Next: Stand"),
+            ("standing", "Standing", "Next: Sit"),
+            ("", "Custom", "Next change"),
+            ("custom", "Custom", "Next change"),
+            (" Future-POSITION \t", " future-position \t", "Next change"),
+            ("SITTING", "Sitting", "Next change")):
+        page.client.positionChanged.emit(raw)
+        qapp.processEvents()
+        expected_value = (DeskState(raw) if raw in ("sitting", "standing")
+                          else UnknownPosition(raw))
+        assert page._position == expected_value
+        assert isinstance(page._position, type(expected_value))
+        assert page.position_label.text() == expected_label
+        page.client.progressChanged.emit(1500.0, 1800.0)
+        assert _header(page) == expected_next + " in 5:00 of active time"
+        page.client.movingChanged.emit(True)
+        assert page.position_label.text() == "Moving…"
+        assert page.stop_btn.isEnabled()
+        page.client.movingChanged.emit(False)
+        assert page.position_label.text() == expected_label
+        assert not page.stop_btn.isEnabled()
 
 
 @pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,

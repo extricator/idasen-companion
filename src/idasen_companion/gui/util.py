@@ -24,7 +24,7 @@ from ..core.presentation import Formatter
 from ..core.i18n import GettextTranslator
 from ..core.i18n import MessageKey, P_
 from ..core.display_prefs import HeightUnit
-from ..core.state_values import StatusValue
+from ..core.state_values import PositionValue, StatusValue
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
@@ -158,7 +158,7 @@ def status_head(status: StatusValue) -> str:
 
 
 @returns_translated
-def position_label(position: str) -> str:
+def position_label(position: PositionValue) -> str:
     """Translated display word for a desk position wire value.
 
     Falls back to a capitalized copy for anything unrecognized, and "" for an
@@ -282,6 +282,6 @@ def due_now_label() -> str:
 
 
 @returns_translated
-def position_or_custom(position: str) -> str:
+def position_or_custom(position: PositionValue) -> str:
     """The desk's position as a word, or "Custom" when it is at neither preset."""
     return presentation.position_or_custom(GettextTranslator(), position)

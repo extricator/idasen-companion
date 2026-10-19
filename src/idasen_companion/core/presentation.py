@@ -50,7 +50,7 @@ from datetime import datetime
 from . import display_prefs as units
 from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from .machine import DeskState
-from .state_values import StatusValue, UnknownStatus
+from .state_values import PositionValue, StatusValue, UnknownPosition, UnknownStatus
 from .display_prefs import HeightUnit
 from .i18n import Translator
 from .i18n import (
@@ -203,7 +203,7 @@ class Formatter:
         """The short Overview status head word for a status wire value."""
         return status_head(self._context.translator, status)
 
-    def position_label(self, position: str) -> str:
+    def position_label(self, position: PositionValue) -> str:
         """The display word for a desk position wire value."""
         return position_label(self._context.translator, position)
 
@@ -310,7 +310,7 @@ class Formatter:
         """The plural word for a count of minutes, e.g. "5 minutes"."""
         return minutes_label(self._context.translator, count)
 
-    def position_or_custom(self, position: str) -> str:
+    def position_or_custom(self, position: PositionValue) -> str:
         """The desk's position as a word, or "Custom" at neither preset."""
         return position_or_custom(self._context.translator, position)
 
@@ -630,17 +630,18 @@ def status_head(translator: Translator, status: StatusValue) -> str:
     return translator.message(source) if source is not None else status
 
 
-def position_label(translator: Translator, position: str) -> str:
+def position_label(translator: Translator, position: PositionValue) -> str:
     """The display word for a desk position wire value.
 
     Falls back to a capitalized copy for anything unrecognized, and ``""``
     for an empty/unknown position (callers substitute their own
     placeholder).
     """
-    source = POSITION_LABELS.get(position)
+    raw = position.raw if isinstance(position, UnknownPosition) else position
+    source = POSITION_LABELS.get(raw)
     if source is not None:
         return translator.message(source)
-    return position.capitalize() if position else ""
+    return raw.capitalize() if raw else ""
 
 
 def preset_label(translator: Translator, name: str) -> str:
@@ -702,7 +703,7 @@ def minutes_label(translator: Translator, count: int) -> str:
     return translator.plural(*MINUTES, count) % count
 
 
-def position_or_custom(translator: Translator, position: str) -> str:
+def position_or_custom(translator: Translator, position: PositionValue) -> str:
     """The desk's position as a word, or "Custom" at neither preset."""
     return (position_label(translator, position)
             or translator.message(CUSTOM))
