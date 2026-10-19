@@ -51,8 +51,8 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
     LocaleProfile,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
-from idasen_companion.core.machine import Status  # noqa: E402
-from idasen_companion.core.state_values import UnknownStatus  # noqa: E402
+from idasen_companion.core.machine import DeskState, Status  # noqa: E402
+from idasen_companion.core.state_values import UnknownPosition, UnknownStatus  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -165,6 +165,36 @@ def standing_and_active(icon):
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
+
+
+@pytest.mark.parametrize("delivery", [Qt.ConnectionType.DirectConnection,
+                                     Qt.ConnectionType.QueuedConnection])
+def test_position_signal_preserves_typed_tray_labels_and_direction(tray, qapp, delivery):
+    icon, client = tray
+    client.positionChanged.disconnect(icon._on_position)
+    client.positionChanged.connect(icon._on_position, delivery)
+    for raw, label, direction in (
+            ("sitting", "Sitting", "Standing up in 11m"),
+            ("standing", "Standing", "Sitting down in 11m"),
+            ("", "Custom", "11m left"),
+            ("custom", "Custom", "11m left"),
+            (" Future-POSITION \t", " future-position \t", "11m left"),
+            ("SITTING", "Sitting", "11m left")):
+        client.positionChanged.emit(raw)
+        qapp.processEvents()
+        expected = (DeskState(raw) if raw in ("sitting", "standing")
+                    else UnknownPosition(raw))
+        assert icon._position == expected
+        assert isinstance(icon._position, type(expected))
+        client.statusChanged.emit("active")
+        client.progressChanged.emit(2580.0, 3240.0)
+        assert icon.toolTip().split("\n")[1:] == [label + " for 43m", direction]
+        assert icon._status_action.text() == label + " · 11m left"
+        client.statusChanged.emit("move-failed")
+        assert icon.toolTip().split("\n")[2] == "Last move failed · 11m left"
+        assert icon._status_action.text() == label + " · Last move failed"
+        client.statusChanged.emit("paused")
+        assert icon.toolTip().split("\n")[1:] == [label, "Paused"]
 
 
 @pytest.mark.parametrize("delivery", [Qt.ConnectionType.AutoConnection,

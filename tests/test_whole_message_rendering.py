@@ -279,6 +279,23 @@ def test_formatter_preserves_open_position_display(overview_page):
     assert fmt.position_or_custom(UnknownPosition("custom")) == "Custom"
 
 
+def test_history_positions_are_formatted_without_changing_raw_rows(
+        qapp, tmp_path, monkeypatch):
+    page = _statistics_page(qapp, tmp_path, monkeypatch, [])
+    history = [[0.0, "sitting", " Future-POSITION \t", "manual", False],
+               [1.0, "", "SITTING", "automation", False]]
+    original = [row[:] for row in history]
+    monkeypatch.setattr(page.client, "get_transitions", lambda limit: history)
+    page.on_shown()
+    changes = [label.text()
+               for index in range(page._trans_rows.count())
+               for label in page._trans_rows.itemAt(index).widget().findChildren(QLabel)
+               if "→" in label.text()]
+    assert changes == ["Sitting →  future-position \t", " → Sitting"]
+    assert history == original
+    assert all(type(row[column]) is str for row in history for column in (1, 2))
+
+
 def test_about_desk_line_renders_mac_and_mode_as_one_message(
         qapp, tmp_path, monkeypatch):
     page = _about_page(

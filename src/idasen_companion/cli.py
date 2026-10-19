@@ -27,7 +27,7 @@ from .core.presentation import (
     Formatter, PresentationContext, daemon_error_message,
 )
 from .core.i18n import GettextTranslator
-from .core.state_values import parse_status
+from .core.state_values import parse_position, parse_status
 from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
@@ -146,7 +146,7 @@ def _json_rows(payload: object) -> list:
 
 def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
                  persistent_connection: bool) -> str:
-    position = fmt.position_or_custom(snapshot.position)
+    position = fmt.position_or_custom(parse_position(snapshot.position))
     if snapshot.moving:
         position = i18n.pgettext("cli.status", "%(position)s (moving)") % {
             "position": position}

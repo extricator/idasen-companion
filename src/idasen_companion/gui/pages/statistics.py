@@ -8,6 +8,8 @@ from datetime import date, datetime, timedelta
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ...core.machine import DeskState
+from ...core.state_values import parse_position
 from .. import restyle
 from ..theme import css, theme
 from ..util import (
@@ -47,8 +49,8 @@ class StatisticsPage(Page):
         head.addStretch()
         sit_color, stand_color = DailyBarsChart.series_colors()
         legend_dots: list[StatusDot] = []
-        for color, name in ((sit_color, position_label("sitting")),
-                            (stand_color, position_label("standing"))):
+        for color, name in ((sit_color, position_label(DeskState.SITTING)),
+                            (stand_color, position_label(DeskState.STANDING))):
             dot = StatusDot(color)
             legend_dots.append(dot)
             label = QLabel(name)
@@ -178,7 +180,8 @@ class StatisticsPage(Page):
         # to know about marked helpers, not just tr() itself.
         # Translators: The arrow may be reversed for right-to-left languages.
         change_text = pgettext('statistics', "%(from)s → %(to)s") % {
-            "from": position_label(from_state), "to": position_label(to_state)}
+            "from": position_label(parse_position(from_state)),
+            "to": position_label(parse_position(to_state))}
         change = QLabel(change_text)
         change.setStyleSheet("border: none;")
         hbox.addWidget(when)

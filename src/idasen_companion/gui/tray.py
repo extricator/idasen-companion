@@ -18,10 +18,10 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from ..core.machine import (
-    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES, Status,
+    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES, DeskState, Status,
 )
 from ..core.presentation import Formatter
-from ..core.state_values import StatusValue, parse_status
+from ..core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,
@@ -55,7 +55,7 @@ class TrayIcon(QSystemTrayIcon):
         self.client = client
         self.window = window
         self._status: StatusValue = parse_status("")
-        self._position = ""
+        self._position: PositionValue = parse_position("")
         # None until the first progress push, and deliberately not 0.0: a zero
         # countdown is a real state ("Due now"), not the absence of one. A
         # falsy 0.0 conflated the two, so the countdown clause vanished
@@ -225,7 +225,7 @@ class TrayIcon(QSystemTrayIcon):
         self._refresh_texts()
 
     def _on_position(self, position: str) -> None:
-        self._position = position
+        self._position = parse_position(position)
         self._refresh_texts()
 
     def _on_progress(self, active_time: float, target: float) -> None:
@@ -389,12 +389,12 @@ class TrayIcon(QSystemTrayIcon):
                 # sentence, and the held line above already says which way the
                 # desk is about to go.
                 change = due_now_label()
-            elif self._position == "sitting":
+            elif self._position == DeskState.SITTING:
                 # Deliberately the daemon's pre-move notification wording, so
                 # the notification and the tooltip name one event one way.
                 change = (pgettext('tray', "Standing up in %s")
                           % self._time_left(remaining))
-            elif self._position == "standing":
+            elif self._position == DeskState.STANDING:
                 change = (pgettext('tray', "Sitting down in %s")
                           % self._time_left(remaining))
             else:
