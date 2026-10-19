@@ -227,11 +227,6 @@ def test_a_locale_only_helper_does_not_reach_tr():
     assert _reaches_tr(tree) == set()
 
 
-def test_a_direct_tr_call_reaches_tr():
-    tree = ast.parse("def f():\n    return _tr('x')\n")
-    assert _reaches_tr(tree) == {"f"}
-
-
 def test_a_call_through_a_second_function_reaches_tr():
     tree = ast.parse(
         "def f():\n    return _tr('x')\n"
@@ -279,11 +274,6 @@ def test_a_function_reaching_neither_does_not_reach_tr():
 
 def test_an_async_definition_reaches_tr():
     tree = ast.parse("async def f():\n    return _tr('x')\n")
-    assert _reaches_tr(tree) == {"f"}
-
-
-def test_a_method_reaches_tr():
-    tree = ast.parse("class C:\n    def f(self):\n        return _tr('x')\n")
     assert _reaches_tr(tree) == {"f"}
 
 

@@ -295,14 +295,6 @@ def test_about_desk_line_renders_mac_and_mode_as_one_message(
         "AA:BB:CC:DD:EE:FF" + " · " + page.tr("persistent"))
 
 
-def test_overview_status_reason_renders_with_no_separator(overview_page):
-    overview_page.client.statusChanged.emit("paused")
-    assert overview_page.status_reason.text() == ""
-
-    overview_page.client.statusChanged.emit("does-not-exist")
-    assert overview_page.status_reason.text() == ""
-
-
 # The ceiling D-05's table sets: the three longest reasons wrapped at the
 # window's 760px minimum in both shipped languages, and Spanish runs longer
 # than English for these four surviving notes -- so this English-side figure

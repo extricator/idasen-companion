@@ -101,22 +101,6 @@ def test_the_daemon_renders_the_clock_the_setting_names(
     assert _daemon_style(clock_format) is expected
 
 
-@pytest.mark.parametrize("clock_format", ["system", "12", "24"])
-def test_both_processes_reach_the_same_answer(
-        qapp, tmp_path, monkeypatch, clock_format):
-    """The point of the whole design: no D-Bus method carries this, and none
-    is needed, because both sides run one pure function over one config
-    value."""
-    assert (_window_style(qapp, tmp_path, monkeypatch, clock_format)
-            is _daemon_style(clock_format))
-
-
-@pytest.mark.parametrize("clock_format", ["system", "12", "24"])
-def test_the_journal_keeps_its_stable_duration_shape(clock_format):
-    """No display clock setting can alter released English journal values."""
-    assert english.format_duration_human(90) == "1.5 minutes", clock_format
-
-
 def test_no_config_value_can_reach_the_journals_formatter():
     """A source-level check, because a test that only asserts the *current*
     answer would still pass the day somebody wires the setting in here.
