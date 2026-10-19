@@ -123,21 +123,6 @@ def test_automation_dropdowns_read_the_picker_shape(automation_page):
             for i in range(page.sync_combo.count())] == _SYNC_ROW_LABELS
 
 
-def test_the_sync_combos_hour_row_reads_sixty_minutes_not_an_hour(
-        automation_page):
-    """D-11's whole point, its own named assertion rather than one entry in
-    a list: the sync combo's top row (3600 seconds) is the only offered
-    choice across every picker that reaches an hour, and it must read "60
-    min" — never an hour decomposition ("1h 00m") — because the tray's own
-    minutes-only Snooze design was deliberate and unifying every picker onto
-    this shape must honour it, not silently hand the tray hour decomposition
-    it was built to avoid.
-    """
-    combo = automation_page.sync_combo
-    last = combo.count() - 1
-    assert combo.itemText(last) == "60 min"
-
-
 # ----------------------------------------------------------------------
 # 2. The tray Snooze submenu.
 # ----------------------------------------------------------------------

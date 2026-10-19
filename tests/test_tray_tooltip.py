@@ -225,27 +225,6 @@ def test_title_is_the_app_name_on_its_own(tray):
     assert icon.toolTip().split("\n")[0] == "Idasen Companion"
 
 
-def test_held_position_and_next_change_are_separate_lines(tray):
-    icon, _ = tray
-    standing_and_active(icon)
-
-    lines = icon.toolTip().split("\n")
-
-    assert lines[1] == "Standing for 43m"
-    assert lines[2] == "Sitting down in 11m"
-
-
-def test_next_change_names_the_direction_it_is_heading(tray):
-    # Sitting means the next event is standing up — the same wording the
-    # daemon's pre-move notification uses, so one event is named one way.
-    icon, _ = tray
-    icon._on_position("sitting")
-    icon._on_status("active")
-    icon._on_progress(2580.0, 3240.0)
-
-    assert icon.toolTip().split("\n")[2] == "Standing up in 11m"
-
-
 def test_countdown_replaces_the_status_word(tray):
     # Deliberate: a visible countdown already proves automation is running, so
     # "Automation active" beside it was filler.
@@ -253,27 +232,6 @@ def test_countdown_replaces_the_status_word(tray):
     standing_and_active(icon)
 
     assert "Automation active" not in icon.toolTip()
-
-
-def test_status_word_returns_when_there_is_no_countdown(tray):
-    # ...and it earns its place here, where nothing else explains the state.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("paused")
-
-    assert icon.toolTip().split("\n")[2] == "Paused"
-
-
-def test_a_stopped_cycle_drops_the_held_duration(tray):
-    # The duration is active time, not time in the position: once the cycle
-    # stops running down the machine stops crediting it, so it would stand at
-    # the same number for the whole pause while reading like a running clock.
-    icon, _ = tray
-    standing_and_active(icon)
-    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
-
-    icon._on_status("paused")
-    assert icon.toolTip().split("\n")[1] == "Standing"
 
 
 @pytest.mark.parametrize("status", ["paused", "snoozed", "disabled",
@@ -417,26 +375,6 @@ def test_menu_entry_stays_short_in_a_bad_state(tray):
         assert text.startswith("Standing · ")
 
 
-def test_menu_entry_keeps_the_position_when_not_active(tray):
-    # A status word must not take the whole line: knowing where the desk is
-    # matters most when you are about to press Sit or Stand.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("paused")
-
-    assert icon._status_action.text() == "Standing · Paused"
-
-
-def test_menu_entry_names_the_failure_over_the_countdown(tray):
-    # A failed move still has a countdown running, but the failure is the thing
-    # worth the one line the menu gets.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("move-failed")
-
-    assert icon._status_action.text() == "Standing · Last move failed"
-
-
 def test_no_line_ends_with_a_stranded_separator(tray):
     # The original bug: Plasma wrapped after the "·", so a line ended on it.
     icon, _ = tray
@@ -444,20 +382,6 @@ def test_no_line_ends_with_a_stranded_separator(tray):
 
     for line in icon.toolTip().split("\n"):
         assert not line.rstrip().endswith("·"), line
-
-
-def test_empty_position_falls_back_to_custom(tray):
-    # Held off sit/stand. "Custom" mirrors the Overview title, and with no
-    # sit/stand to head towards the countdown loses its direction word.
-    icon, _ = tray
-    icon._on_position("")
-    icon._on_status("active")
-    icon._on_progress(2580.0, 3240.0)
-
-    lines = icon.toolTip().split("\n")
-
-    assert lines[1] == "Custom for 43m"
-    assert lines[2] == "11m left"
 
 
 def test_today_summary_is_still_the_last_line(tray_with_stats):

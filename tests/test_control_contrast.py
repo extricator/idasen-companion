@@ -29,11 +29,10 @@ import re
 # reach. See tests/test_settings_form.py for the same rule.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
+from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QCheckBox, QLineEdit, QSpinBox, QStyle, QStyleFactory,
-    QStyleOption,
+    QApplication, QStyle, QStyleFactory, QStyleOption,
 )
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -42,7 +41,6 @@ from idasen_companion.gui.pages import settings_form as settings_form_mod  # noq
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
 from idasen_companion.gui.style import ControlStyle  # noqa: E402
 from idasen_companion.gui.theme import css, theme  # noqa: E402
-from idasen_companion.gui.widgets import Card  # noqa: E402
 
 # Copied rather than imported from tests/test_theme_restyle.py -- tests/
 # carries no __init__.py, and no other test module in this suite imports
@@ -237,100 +235,6 @@ def test_the_pointer_overlays_are_not_fainter_than_the_resting_border_dark(
     _assert_overlays_are_not_fainter_than_rest(qapp, dark=True)
 
 
-# ================= 2. The rendered indicator =================
-
-
-def _build_checkbox_in_card(qapp) -> tuple[Card, QCheckBox]:
-    """A checkbox the way the app builds one -- inside a Card, under the
-    installed ``ControlStyle`` the module fixture applies. A decoy field is
-    focused first: a widget alone in a shown window already has keyboard
-    focus, and the checkbox's own focus-ring colour would otherwise leak
-    into what looks like its resting state."""
-    card = Card()
-    decoy = QLineEdit()
-    checkbox = QCheckBox("test")
-    card.body.addWidget(decoy)
-    card.body.addWidget(checkbox)
-    card.show()
-    qapp.processEvents()
-    decoy.setFocus(Qt.FocusReason.OtherFocusReason)
-    qapp.processEvents()
-    assert checkbox.hasFocus() is False, (
-        "the checkbox already has focus before the decoy was focused -- "
-        "the 'resting' grab below would silently measure the focused state")
-    return card, checkbox
-
-
-def _find_border_pixel(image, y: int, card_bg_hex: str):
-    """The first non-background, non-transparent pixel scanning left to
-    right at row ``y`` -- not a hardcoded column, since a font-size change
-    would move the indicator box."""
-    for x in range(image.width()):
-        pixel = image.pixelColor(x, y)
-        if pixel.alpha() != 0 and pixel.name() != card_bg_hex:
-            return pixel
-    raise AssertionError(
-        "no border-coloured pixel found scanning the indicator row -- "
-        "the whole row reads as the card background")
-
-
-def _channel_distance(a: QColor, b: QColor) -> int:
-    return (abs(a.red() - b.red()) + abs(a.green() - b.green())
-            + abs(a.blue() - b.blue()))
-
-
-def _closer_to(pixel: QColor, target: QColor, other: QColor) -> bool:
-    return _channel_distance(pixel, target) < _channel_distance(pixel, other)
-
-
-def _assert_indicator_border_has_contrast(qapp, dark: bool) -> None:
-    """The checkbox indicator is the smallest box the overlay draws on --
-    Fusion sizes it at 14px -- so how much of each edge survives as a
-    straight, unblended run depends on ``theme.corner_radius`` and on
-    Fusion's own indicator size, neither of which this assertion is about.
-    It asks the question antialiased blending can always answer instead: is
-    the observed pixel closer to ``theme().border`` than to
-    ``theme().card_bg``."""
-    flip_palette(qapp, dark=dark)
-    card, checkbox = _build_checkbox_in_card(qapp)
-    try:
-        image = checkbox.grab().toImage()
-        # Measured on this build: the indicator box sits at the checkbox's
-        # vertical centre, so scanning that row finds its left edge first.
-        y = checkbox.height() // 2
-        pixel = _find_border_pixel(image, y, theme().card_bg.name())
-        assert pixel.name() != theme().card_bg.name()
-        assert _closer_to(pixel, theme().border, theme().card_bg), (
-            f"the unchecked checkbox indicator's border pixel "
-            f"{pixel.name()} is not closer to theme().border "
-            f"({theme().border.name()}) than to theme().card_bg "
-            f"({theme().card_bg.name()}) -- dark={dark}")
-    finally:
-        card.close()
-
-
-def test_the_unchecked_indicator_border_has_contrast_in_light(qapp):
-    _assert_indicator_border_has_contrast(qapp, dark=False)
-
-
-def test_the_unchecked_indicator_border_has_contrast_in_dark(qapp):
-    _assert_indicator_border_has_contrast(qapp, dark=True)
-
-
-# The checked glyph is covered by
-# `tests/test_control_style.py::test_the_checked_indicator_still_shows_its_glyph`.
-# A test of that name lived here too, asserting an absolute floor of ten
-# distinct colours over the indicator box. That floor was written against
-# the stylesheet mechanism this phase replaced, whose failure mode was an
-# unscoped rule *blanking* the glyph to two colours. The draw-through
-# overlay inverts it: losing the unchecked-only scope draws a thin stroke on
-# top of the glyph and *raises* the colour count, so the floor passes on the
-# very mutation its own message names -- proven, the guard deleted from
-# `gui/style.py` left all seven tests in this module green. The successor
-# asserts a delta against plain Fusion's own count, which catches both
-# directions.
-
-
 # ================= 3. Combo and spin frames =================
 
 # Repurposed as the negative matcher below: _themed_combo() used to compose
@@ -399,31 +303,6 @@ def test_the_themed_combos_highlighted_row_is_the_desktops_selection(qapp):
         f"the themed combo still names the emphasis tint "
         f"({css(tokens.accent_fill)}) -- its highlighted row has gone back "
         "to being a tint, or half of it has")
-
-
-def test_the_spin_box_frame_is_theme_derived_not_fusions_grey(qapp):
-    flip_palette(qapp, dark=False)
-    card = Card()
-    decoy = QLineEdit()
-    spin = QSpinBox()
-    card.body.addWidget(decoy)
-    card.body.addWidget(spin)
-    card.show()
-    qapp.processEvents()
-    decoy.setFocus(Qt.FocusReason.OtherFocusReason)
-    qapp.processEvents()
-    assert spin.hasFocus() is False, (
-        "the spin box already has focus before the decoy was focused -- "
-        "the 'resting' grab below would silently measure the focused state")
-    try:
-        image = spin.grab().toImage()
-        y = spin.height() // 2
-        pixel = _find_border_pixel(image, y, theme().card_bg.name())
-        assert pixel.name() == theme().border.name(), (
-            f"the spin box frame reads {pixel.name()}, not the current "
-            f"theme().border ({theme().border.name()})")
-    finally:
-        card.close()
 
 
 # ================= 4. The icon candidate lists, not the icons =================

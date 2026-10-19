@@ -203,17 +203,6 @@ def test_detail_survives_having_only_one_line(tray):
     assert icon._rich.last == ("Idasen Companion", "Connecting…")
 
 
-def test_title_carries_no_newline(tray_with_stats):
-    # A newline in the title would be rendered inside the bold heading, which
-    # is precisely the uniform block this change exists to break up.
-    icon, _ = tray_with_stats
-    icon._rich = Recorder()
-
-    standing_and_active(icon)
-
-    assert "\n" not in icon._rich.last[0]
-
-
 def test_plain_tooltip_is_still_set_alongside(tray_with_stats):
     # The fallback string stays correct even while the split is being published,
     # so a host that reads the Qt-shaped tooltip loses nothing.

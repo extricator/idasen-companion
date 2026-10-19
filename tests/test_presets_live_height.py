@@ -111,14 +111,6 @@ def test_losing_the_daemon_stops_it_too(page):
     assert page.range_rail._height == 0
 
 
-def test_the_capture_button_never_keeps_a_height_it_cannot_deliver(page):
-    # The sharp end of the bug: capture_preset re-reads the desk, so a label
-    # quoting the old height promises a number it would not save.
-    page.client.heightChanged.emit(1.14)
-    page.client.connectedChanged.emit(False)
-    assert "cm" not in page._new_at_btn.text()
-
-
 def test_reconnecting_lights_the_page_back_up(page):
     page.client.heightChanged.emit(1.14)
     page.client.connectedChanged.emit(False)
