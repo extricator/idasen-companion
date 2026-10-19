@@ -16,8 +16,6 @@ separating space of its own.
 from __future__ import annotations
 
 from datetime import datetime
-
-from ..core.state_values import StatusValue
 from typing import Any, Callable, TypeVar
 
 from ..core.i18n import pgettext
@@ -26,6 +24,7 @@ from ..core.presentation import Formatter
 from ..core.i18n import GettextTranslator
 from ..core.i18n import MessageKey, P_
 from ..core.display_prefs import HeightUnit
+from ..core.state_values import StatusValue
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
