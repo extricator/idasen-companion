@@ -46,7 +46,7 @@ from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 
 from .accounting import ActiveTimeAccounting
-from .bluez import merge_devices, parse_paired_desks
+from .bluetooth import BluetoothSupport
 from .config_file import ConfigFileStore
 from .dbus_util import DBusCallError, call
 from .idle import (
@@ -71,9 +71,6 @@ logger = logging.getLogger(__name__)
 # Automation1.Snooze, and the app names one action one way.
 SNOOZE_MINUTES = 5
 HEIGHT_EMIT_INTERVAL = 0.5  # throttle for live height PropertiesChanged
-# How long a BLE scan's results stay good enough to hand back without scanning
-# again — the answer `Discover(0)` gives the setup wizard instantly.
-SCAN_CACHE_SECONDS = 60
 MANUAL_LOCK_TIMEOUT = 30.0
 
 
@@ -95,6 +92,7 @@ class Daemon:
         self.machine: StateMachine = None  # type: ignore[assignment]
         self.activity_log = RingLog()
         self.config_file = ConfigFileStore(config_path, self.activity_log)
+        self.bluetooth = BluetoothSupport(self.activity_log)
         if stats_path is None and mock_desk:
             # Keep simulated runs out of the user's real statistics.
             from .stats import DEFAULT_DB_PATH
@@ -160,7 +158,6 @@ class Daemon:
         self._system_bus: MessageBus | None = None
         self._ifaces: dict = {}
         self._warned_this_cycle = False
-        self._scan_cache: tuple[float, list] | None = None
         self._last_height_emit = 0.0
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
@@ -459,6 +456,8 @@ class Daemon:
             self.activity_log.diag("warning",
                            f"logind PrepareForSleep unavailable ({error}); "
                            f"relying on time-jump detection only.")
+
+        self.bluetooth.bind_bus(self._system_bus)
 
         # Constructed even with no system bus, in which case it delays nothing
         # and reports the shipped budget — one fewer optional collaborator for
@@ -1477,36 +1476,7 @@ class Daemon:
     async def discover(self, timeout: int) -> list[tuple[str, str]]:
         """Known paired desks (from BlueZ) plus live scan results, paired
         first. timeout=0 returns paired devices + cached scan instantly."""
-        if self.mock_mode:
-            return [("Desk 0000 (mock)", "00:11:22:33:44:55")]
-
-        known = await self._bluez_known_desks()
-
-        timeout = max(0, int(timeout))
-        if timeout == 0:
-            # The age test and the subscript live in one expression so mypy can
-            # narrow `cache` from `tuple[...] | None`. Held apart in a separate
-            # boolean, the narrowing was lost by the time `cache[1]` was read
-            # and mypy called the optional tuple not indexable.
-            cache = self._scan_cache
-            scanned = (cache[1]
-                       if cache is not None
-                       and time.time() - cache[0] < SCAN_CACHE_SECONDS
-                       else [])
-        else:
-            from ..desk.ble import discover_desks
-
-            self.activity_log.emit(logmsg.SCAN_STARTED)
-            try:
-                scanned = await discover_desks(min(timeout, 30))
-            except Exception as error:
-                self.activity_log.emit(logmsg.SCAN_FAILED, error=str(error))
-                scanned = []
-            else:
-                self.activity_log.emit(
-                    logmsg.SCAN_FINISHED, count=len(scanned))
-            self._scan_cache = (time.time(), scanned)
-        return merge_devices(known, scanned)
+        return await self.bluetooth.discover(timeout, mock_mode=self.mock_mode)
 
     def _bluez_device_path(self) -> str:
         """BlueZ object path for the configured desk (hci0 only, matching the
@@ -1600,19 +1570,6 @@ class Daemon:
             "warning",
             "The desk is connected but unreachable from here. BlueZ cannot "
             "identify the link's owner, so it was left alone.")
-
-    async def _bluez_known_desks(self) -> list[tuple[str, str]]:
-        """Desks already paired via the system Bluetooth settings."""
-        if self._system_bus is None:
-            return []
-        try:
-            body = await call(self._system_bus, "org.bluez", "/",
-                              "org.freedesktop.DBus.ObjectManager",
-                              "GetManagedObjects")
-        except (DBusCallError, DBusError) as error:
-            self.activity_log.diag("debug", f"BlueZ device query failed: {error}")
-            return []
-        return parse_paired_desks(body[0])
 
     async def setup_desk(self, desk_mac: str) -> float:
         """First-run onboarding: verify we can actually talk to the desk
