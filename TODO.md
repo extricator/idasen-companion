@@ -82,8 +82,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       distinct height/duration/timestamp types before broad conversion.
 - [ ] **Use DeskState and Status enums at GUI boundaries** — Adopt useful typed state boundaries
       and consumer annotations, accounting for Signal(str).
-- [ ] **Split daemon responsibilities into cohesive modules** — Select cohesive interfaces that
-      reduce coupling before moving code.
 - [ ] **Define shared decoded D-Bus data contracts** — Define shared decoded structures and
       parsing boundaries without changing transport.
 - [ ] **Improve Python type coverage for D-Bus service declarations** — Revalidate
