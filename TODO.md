@@ -82,8 +82,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       distinct height/duration/timestamp types before broad conversion.
 - [ ] **Define shared decoded D-Bus data contracts** — Define shared decoded structures and
       parsing boundaries without changing transport.
-- [ ] **Improve Python type coverage for D-Bus service declarations** — Revalidate
-      typed-signature support and supported source/package versions.
 - [ ] **Decide the next CLI extensions** — Choose the next CLI scope among config operations,
       JSON status, reconnecting watch, man/completion and terminal-output rules.
 - [ ] **Reassess stable translation IDs against contextual gettext** — Measure real rewording
