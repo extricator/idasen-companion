@@ -8,6 +8,7 @@ import asyncio
 import struct
 
 from idasen_companion.desk.ble import BleDesk, _decode_height
+from idasen_companion.core.lengths import Length
 
 
 class FakeIdasenDesk:
@@ -398,7 +399,7 @@ async def test_new_move_preempts_one_in_flight():
 
 def test_decode_height():
     # raw counts are tenths of a millimeter above minimum height (0.62 m)
-    assert _decode_height(struct.pack("<HH", 0, 0)) == 0.62
+    assert _decode_height(struct.pack("<HH", 0, 0)) == Length(0.62)
     assert abs(_decode_height(struct.pack("<HH", 4800, 0)) - 1.10) < 1e-9
     assert abs(_decode_height(struct.pack("<HH", 6500, 0)) - 1.27) < 1e-9
 
