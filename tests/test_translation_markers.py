@@ -252,6 +252,17 @@ def _reaches_tr(tree, presentation_tree=None):
     definitions = {}
     classes = {}
     owners = {}
+    comprehensions = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+    def scope_body(node):
+        if isinstance(node, ast.Lambda):
+            return [node.body]
+        if isinstance(node, comprehensions):
+            values = [node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt]
+            return [*values, *(gen.target for gen in node.generators),
+                    *(condition for gen in node.generators for condition in gen.ifs),
+                    *(gen.iter for gen in node.generators[1:])]
+        return node.body
 
     def enclosing_expressions(node):
         expressions = list(getattr(node, "decorator_list", []))
@@ -266,6 +277,11 @@ def _reaches_tr(tree, presentation_tree=None):
 
     def collect(body, scope=(), owner=None):
         for node in body:
+            if isinstance(node, comprehensions):
+                collect([node.generators[0].iter], scope, owner)
+                register(f"<comprehension@{node.lineno}:{node.col_offset}>", node,
+                         scope, owner)
+                continue
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 name, value = node.name, node
             elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
@@ -298,8 +314,7 @@ def _reaches_tr(tree, presentation_tree=None):
         else:
             definitions[key] = node
             owners[key] = owner or key
-            collect(node.body if not isinstance(node, ast.Lambda) else [node.body],
-                    key, owner or key)
+            collect(scope_body(node), key, owner or key)
 
     collect(tree.body)
 
@@ -336,17 +351,26 @@ def _reaches_tr(tree, presentation_tree=None):
         return resolve(node, scope)
 
     def body_nodes(node):
-        """Walk one scope, leaving nested definitions for their own scope."""
-        roots = [node.body] if isinstance(node, ast.Lambda) else node.body
-        pending = list(roots)
+        """Walk one scope, retaining inputs evaluated before nested bodies."""
+        pending = list(scope_body(node))
         while pending:
             child = pending.pop()
+            if isinstance(child, comprehensions):
+                pending.append(child.generators[0].iter)
+                continue
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
                                   ast.ClassDef, ast.Lambda)):
                 pending.extend(enclosing_expressions(child))
                 continue
             yield child
-            pending.extend(ast.iter_child_nodes(child))
+            # A comprehension walrus binds the nearest enclosing callable.
+            pending.extend([child.value] if isinstance(child, ast.NamedExpr)
+                           else ast.iter_child_nodes(child))
+
+    def assignment_scope(scope):
+        while scope in definitions and isinstance(definitions[scope], comprehensions):
+            scope = parents[scope]
+        return scope
 
     scopes = {(): tree, **classes, **definitions}
     # Predeclare local assignments, so a shadow cannot inherit outer provenance.
@@ -354,7 +378,9 @@ def _reaches_tr(tree, presentation_tree=None):
         for child in body_nodes(node):
             if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
                 bindings[scope].setdefault(child.id, None)
-        if scope in definitions:
+            elif isinstance(child, ast.NamedExpr):
+                bindings[assignment_scope(scope)].setdefault(child.target.id, None)
+        if scope in definitions and not isinstance(node, comprehensions):
             args = node.args
             for arg in [*args.posonlyargs, *args.args, *args.kwonlyargs,
                         *([args.vararg] if args.vararg else []),
@@ -377,7 +403,7 @@ def _reaches_tr(tree, presentation_tree=None):
                         if alias.name == "GettextTranslator":
                             value = ("translator",)
                     bindings[scope][alias.asname or alias.name] = value
-        if scope in definitions:
+        if scope in definitions and not isinstance(node, comprehensions):
             for arg in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]:
                 if (arg.annotation
                         and resolve_annotation(arg.annotation, parents[scope]) == ("formatter_class",)):
@@ -392,6 +418,8 @@ def _reaches_tr(tree, presentation_tree=None):
                 for target in child.targets:
                     if isinstance(target, ast.Name) and not isinstance(child.value, ast.Lambda):
                         bindings[scope][target.id] = resolve(child.value, scope)
+            elif isinstance(child, ast.NamedExpr):
+                bindings[assignment_scope(scope)][child.target.id] = resolve(child.value, scope)
 
     edges = {key: set() for key in definitions}
     reached = set()
@@ -624,6 +652,25 @@ def test_a_formatter_default_capture_requires_a_real_registry_mark():
     with pytest.raises(AssertionError, match=(
             r"no @returns_translated mark.*\['fmt_default_capture'\]")):
         _assert_translation_registry(facade, set(), presentation)
+
+
+def test_gui_comprehension_bindings_preserve_receiver_ownership():
+    facade = ast.parse('''
+from idasen_companion.core.presentation import Formatter
+
+def imported_after_comprehension(context):
+    numbers = [Formatter for Formatter in range(2)]
+    return Formatter(context).later_label()
+
+def captured_inside_comprehension(fmt: Formatter):
+    return [(lambda: fmt.height(value))() for value in range(2)]
+
+def shadowed_inside_comprehension(fmt: Formatter, plain):
+    return [(lambda: fmt.height(1))() for fmt in plain]
+''')
+    assert _reaches_tr(facade) == {
+        "imported_after_comprehension", "captured_inside_comprehension",
+    }
 
 
 def test_formatter_comprehension_bindings_preserve_receiver_ownership():
