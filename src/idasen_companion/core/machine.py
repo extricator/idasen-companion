@@ -63,7 +63,6 @@ from typing import NamedTuple
 from .config import AppConfig
 from .durations import Duration
 from .lengths import Length
-from ..desk.port import DeskPort
 from .schedule import is_schedule_active
 
 # A gap between ticks larger than this means the machine was almost certainly
@@ -280,7 +279,7 @@ class StateMachine:
     def __init__(
         self,
         config: AppConfig,
-        desk: DeskPort,
+        desk,
         *,
         now: float,
         rng: random.Random | None = None,

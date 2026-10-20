@@ -7,9 +7,9 @@ from idasen_companion.core.config import AppConfig
 from idasen_companion.core.machine import StateMachine
 from idasen_companion.desk.mock import MockDesk
 
-SIT_H = Length(0.62)
-STAND_H = Length(1.10)
-OFF_CYCLE_H = Length(0.95)  # not within tolerance of either preset target
+SIT_H: Length = Length(0.62)
+STAND_H: Length = Length(1.10)
+OFF_CYCLE_H: Length = Length(0.95)  # not within tolerance of either preset target
 
 
 def make_config(**automation_overrides) -> AppConfig:
@@ -40,7 +40,7 @@ class MaxRng(random.Random):
 
 
 class Driver:
-    def __init__(self, cfg=None, height=SIT_H, rng=None, now=1_000_000.0):
+    def __init__(self, cfg=None, height: Length = SIT_H, rng=None, now=1_000_000.0):
         self.cfg = cfg or make_config()
         self.desk = MockDesk(height)
         self.now = now

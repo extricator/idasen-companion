@@ -533,3 +533,40 @@ def test_live_height_keeps_domain_cache_and_scalar_bus_payload():
     d._ifaces["desk"].emit_properties_changed.assert_called_once_with(
         {"Height": 1.105})
     assert Desk1(d).Height == 1.105
+
+
+async def test_direct_height_bounds_remain_inclusive_and_do_not_accept_slack(tmp_path):
+    import math
+    from dbus_fast.errors import DBusError
+    from idasen_companion.core.config import MIN_HEIGHT, MAX_HEIGHT
+
+    d, _ = _enable_daemon(tmp_path)
+    d._manual_move = AsyncMock()
+    for height in (MIN_HEIGHT, MAX_HEIGHT):
+        await d.manual_move_to_height(Length(height))
+    assert [call.args[0] for call in d._manual_move.await_args_list] == [
+        Length(MIN_HEIGHT), Length(MAX_HEIGHT)]
+    for height in (math.nextafter(MIN_HEIGHT, -math.inf),
+                   math.nextafter(MAX_HEIGHT, math.inf)):
+        with pytest.raises(DBusError) as error:
+            await d.manual_move_to_height(Length(height))
+        assert error.value.type.endswith(".Error.OutOfRange")
+    assert d._manual_move.await_count == 2
+
+
+async def test_capture_rounds_before_slack_validation_and_stores_raw_metres(tmp_path):
+    from dbus_fast.errors import DBusError
+
+    d, load = _enable_daemon(tmp_path)
+    d._ifaces["presets"] = MagicMock()
+    d.desk = MagicMock(get_height=AsyncMock(return_value=Length(0.60996)))
+    assert await d.capture_current_preset("low") == Length(0.61)
+    d.save_preset("high", Length(1.28))
+    d.save_preset("lean", Length(0.955555))
+    saved = load(d.config_file.path).presets
+    assert saved["low"] == 0.61 and saved["high"] == 1.28
+    assert saved["lean"] == 0.9556
+    assert all(type(saved[name]) is float for name in ("low", "high", "lean"))
+    with pytest.raises(DBusError) as error:
+        d.save_preset("outside", Length(0.60996))
+    assert error.value.type.endswith(".Error.InvalidPreset")
