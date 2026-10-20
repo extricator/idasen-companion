@@ -25,6 +25,7 @@ def make_daemon(tick):
     d.config = AppConfig()
     d.config.automation.check_interval = 0  # don't wait between ticks
     d.activity_log = MagicMock()
+    d.accounting = MagicMock()
     d.machine = MagicMock()
     d._stop_event = asyncio.Event()
     d._initial_read = None
@@ -188,7 +189,6 @@ async def test_the_tick_takes_the_desk_lock():
     d._emit_periodic_properties = MagicMock()
     d.machine.held = False
     d.machine.state = MagicMock(value="sitting")
-    d.machine._last_check = 0.0
 
     await d._desk_lock.acquire()          # a manual move is in flight
     try:

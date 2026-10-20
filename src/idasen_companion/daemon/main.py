@@ -703,6 +703,7 @@ class Daemon:
         # D-Bus is already served by this point, so all the wait ever bought
         # was the "Initial state:" line arriving sooner.
         self.machine.start_without_desk_read(now)
+        self.accounting.start(now)
         self._initial_read = asyncio.ensure_future(self._adopt_initial_state())
         if self._stop_event.is_set():
             return
@@ -827,7 +828,6 @@ class Daemon:
 
         state_before = self.machine.state
         held_before = self.machine.held
-        last_check_before = self.machine._last_check
         # Held across the whole tick, not just the move: the machine's
         # transition captures state before its await and writes it back after,
         # so a manual move landing in between is what corrupted it.
@@ -835,7 +835,7 @@ class Daemon:
             events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless)
 
         self.accounting.account(
-            state_before.value, tick_time - last_check_before,
+            state_before.value, tick_time,
             held=held_before, idle_ms=idle_ms, absent=locked or away or seatless,
             idle_threshold_seconds=self.config.automation.idle_threshold)
 

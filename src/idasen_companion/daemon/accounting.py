@@ -11,17 +11,22 @@ from .stats import Stats
 class ActiveTimeAccounting:
     """Hold silent windows until presence or absence settles their credit.
 
-    Only pending credit lives here. Stats owns persistence, and the daemon
+    The observation clock and pending credit live here. Stats owns persistence, and the daemon
     supplies each tick's observations and current idle threshold.
     """
 
     def __init__(self, stats: Stats):
         self._stats = stats
+        self._last_observation: float | None = None
         self._pending_credit: dict[tuple[date, str], float] = {}
 
-    def account(self, state: str, elapsed: float, *, held: bool,
+    def start(self, now: float) -> None:
+        """Seed the observation clock from the daemon's startup origin."""
+        self._last_observation = now
+
+    def account(self, state: str, now: float, *, held: bool,
                 idle_ms: int, absent: bool, idle_threshold_seconds: int) -> None:
-        """Attribute ``elapsed`` seconds to ``state``'s daily total.
+        """Attribute the window ending at ``now`` to ``state``'s daily total.
 
         Real elapsed time goes to the position the desk was in, regardless of
         automation freeze states — pause and snooze stop the cycle, not the
@@ -37,6 +42,11 @@ class ActiveTimeAccounting:
         Crediting silence outright used to bank ~idle_threshold of phantom
         "active" time on every break, permanently.
         """
+        last_observation = self._last_observation
+        self._last_observation = now
+        if last_observation is None:
+            return
+        elapsed = now - last_observation
         # Don't credit a suspend-sized gap to sit/stand totals (the stats-side
         # twin of the machine's time-jump reset); shared absolute threshold, and
         # the same both-directions rule — a backward clock step would otherwise

@@ -54,11 +54,11 @@ class Harness:
         d.config.automation.recent_input_threshold = recent_input_threshold
         d.stats = self.stats
         d.accounting = ActiveTimeAccounting(d.stats)
+        d.accounting.start(self.clock)
         d.activity_log = MagicMock()
         d.machine = MagicMock()
         d.machine.state = MagicMock(value="sitting")
         d.machine.held = False
-        d.machine._last_check = self.clock
         d.machine.tick = AsyncMock(return_value=[])
         d._idle = MagicMock()
         d._lock = MagicMock()
@@ -74,7 +74,6 @@ class Harness:
     async def tick(self, idle_s, *, locked=False, away=False, seatless=False,
                    held=False, elapsed=TICK):
         """Advance the clock by one interval and run a tick at that idleness."""
-        self.daemon.machine._last_check = self.clock
         self.clock += elapsed
         self.daemon.machine.held = held
         self.daemon._idle.get_idle_ms = AsyncMock(return_value=int(idle_s * 1000))
@@ -128,6 +127,7 @@ async def test_constructed_daemon_can_save_config_account_time_and_discover(tmp_
         assert d.config_file.load() == config
         assert not d.config_file.poll_changed()
 
+        d.accounting.start(0.0)
         d.accounting.account("sitting", TICK, held=False, idle_ms=60000,
                              absent=False, idle_threshold_seconds=600)
         d.accounting.flush()
@@ -146,6 +146,27 @@ async def test_working_time_is_credited_as_it_happens(harness):
     for _ in range(10):
         await h.tick(5)
     assert h.credited() == pytest.approx(10 * TICK)
+
+
+@pytest.mark.asyncio
+async def test_cycle_clock_reset_does_not_change_active_time(harness):
+    h = harness
+    await h.tick(5)
+    # A cycle restart between observations must not shorten the next window.
+    h.daemon.machine._last_check = h.clock + TICK / 2
+    await h.tick(5)
+    await h.tick(5)
+    assert h.credited() == pytest.approx(3 * TICK)
+
+
+@pytest.mark.asyncio
+async def test_unseeded_accounting_observes_before_crediting(harness):
+    h = harness
+    h.daemon.accounting = ActiveTimeAccounting(h.stats)
+    await h.tick(5)
+    assert h.credited() == 0
+    await h.tick(5)
+    assert h.credited() == pytest.approx(TICK)
 
 
 @pytest.mark.asyncio
@@ -173,7 +194,7 @@ async def test_tick_accounts_captured_position_after_unlock_before_events(harnes
     await h.tick(5)
 
     d.accounting.account.assert_called_once_with(
-        "sitting", TICK, held=False, idle_ms=5000, absent=False,
+        "sitting", h.clock, held=False, idle_ms=5000, absent=False,
         idle_threshold_seconds=600)
     assert order == ["machine", "account", "event"]
 
@@ -300,6 +321,8 @@ async def test_off_cycle_time_is_not_attributed_to_either_state(harness):
     await h.tick(5, held=True)
     assert h.credited("sitting") == 0
     assert h.credited("standing") == 0
+    await h.tick(5)
+    assert h.credited("sitting") == pytest.approx(TICK)
 
 
 @pytest.mark.asyncio
