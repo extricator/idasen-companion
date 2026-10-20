@@ -17,6 +17,7 @@ from dbus_fast.errors import DBusError
 
 from . import DBUS_NAME, DBUS_PATH, __version__
 from .core import activity_log, i18n
+from .core.decoded_data import DailyStatRow, LogEntry, decode_daily_rows, decode_log_entries
 from .core.display_prefs import ClockSetting, resolve_clock_style
 from .core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, format_config_warning,
@@ -98,7 +99,7 @@ class StatusSnapshot:
     active_time: float
     time_remaining: float
     snooze_until: float
-    daily: tuple[tuple[str, str, float], ...]
+    daily: tuple[DailyStatRow, ...]
 
 
 def _formatter(config: AppConfig) -> Formatter:
@@ -123,9 +124,7 @@ async def _read_status(client: Client) -> StatusSnapshot:
     )
     today = date.today().isoformat()
     rows = _json_rows(await client.call(IFACE_STATS, "GetDaily", today, today))
-    daily = tuple(
-        (str(row[0]), str(row[1]), float(row[2]))
-        for row in rows if isinstance(row, (list, tuple)) and len(row) >= 3)
+    daily = tuple(decode_daily_rows(rows))
     return StatusSnapshot(
         connected=bool(desk["Connected"]), height=float(desk["Height"]),
         position=str(desk["Position"]), moving=bool(desk["Moving"]),
@@ -183,9 +182,9 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
             "duration": fmt.duration(snapshot.time_remaining)}
 
     totals = {"sitting": 0.0, "standing": 0.0}
-    for _day, state, seconds in snapshot.daily:
-        if state in totals:
-            totals[state] += seconds
+    for row in snapshot.daily:
+        if row.state in totals:
+            totals[row.state] += row.seconds
     return "\n".join((
         i18n.pgettext("cli.status", "Desk"),
         i18n.pgettext("cli.status", "  Height: %(height)s") % desk_values,
@@ -208,18 +207,12 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
     ))
 
 
-def _log_text(rows: list, fmt: Formatter, limit: int | None) -> str:
-    selected = rows[-limit:] if limit is not None else rows
+def _log_text(rows: list[LogEntry], fmt: Formatter) -> str:
     lines = []
-    for row in selected:
-        if not isinstance(row, dict):
-            raise ValueError("activity log entry was not an object")
-        timestamp = datetime.fromtimestamp(float(row.get("ts", 0.0)))
-        params = row.get("params", {})
-        if not isinstance(params, dict):
-            params = {}
+    for row in rows:
+        timestamp = datetime.fromtimestamp(row["ts"])
         message = activity_log.render(
-            str(row.get("msg_id", "")), params, str(row.get("text", "")),
+            row["msg_id"], row["params"], row["text"],
             fmt=fmt)
         lines.append(i18n.pgettext("cli.log", "%(when)s  %(message)s") % {
             "when": fmt.day_and_clock(timestamp), "message": message})
@@ -235,7 +228,8 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig,
             persistent_connection=config.desk.connection == "persistent")
     if args.command == "log":
         rows = _json_rows(await client.call(IFACE_LOG, "GetRecent"))
-        return _log_text(rows, fmt, args.limit)
+        selected = rows[-args.limit:] if args.limit is not None else rows
+        return _log_text(decode_log_entries(selected), fmt)
     commands = {
         "sit": (IFACE_DESK, "GestureMove", ("sit",)),
         "stand": (IFACE_DESK, "GestureMove", ("stand",)),

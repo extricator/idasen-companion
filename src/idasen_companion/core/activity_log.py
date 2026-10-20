@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from . import logmsg
+from .decoded_data import LogParams
 from .logmsg import Param
 from .presentation import Formatter
 from .i18n import GettextTranslator
@@ -39,7 +40,7 @@ def build_formatters(fmt: Formatter) -> dict[Param, object]:
     }
 
 
-def render(msg_id: str, params: dict, text: str, *, fmt: Formatter) -> str:
+def render(msg_id: str, params: LogParams, text: str, *, fmt: Formatter) -> str:
     """Render a known id in the reader's language, else use wire English."""
     message = logmsg.get(msg_id)
     if message is None:

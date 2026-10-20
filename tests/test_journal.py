@@ -161,7 +161,7 @@ def test_read_recent_skips_unparsable_lines():
 
 def test_read_recent_recovers_per_record_with_journal_defaults():
     with _journalctl([
-        None, ["not an object"], {"MESSAGE": [999]},
+        ["not an object"], {"MESSAGE": [999]},
         {"MESSAGE": [255], "__REALTIME_TIMESTAMP": "bad", "PRIORITY": "bad",
          journal.FIELD_PARAMS: "[]"},
         {"MESSAGE": "out of range", "__REALTIME_TIMESTAMP": str(10 ** 30),

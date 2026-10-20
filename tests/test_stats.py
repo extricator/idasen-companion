@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,37 +17,37 @@ def make_stats():
 
 
 def test_stored_named_rows_keep_stats1_json_order_and_meaning():
-    stats = make_stats()
-    stats.add_active_time(" Custom ", 12.5, date(2026, 7, 17))
-    stats.add_active_time("standing", 7, date(2026, 7, 16))
-    stats.add_active_time("z-other", 3, date(2026, 7, 17))
-    stats.record_transition(" Custom ", "", " Future trigger ", True, timestamp=200)
-    stats.record_transition("standing", " Custom ", "manual", False, timestamp=100)
-    service = Stats1(SimpleNamespace(stats=stats))
-    # Invoke the exported implementation, without starting a bus or daemon.
-    daily_json = Stats1.GetDaily.__wrapped__(service, "2026-07-16", "2026-07-17")
-    transition_json = Stats1.GetTransitions.__wrapped__(service, 50)
-    assert daily_json == json.dumps([
-        ["2026-07-16", "standing", 7.0], ["2026-07-17", " Custom ", 12.5],
-        ["2026-07-17", "z-other", 3.0],
-    ])
-    assert transition_json == json.dumps([
-        [200.0, " Custom ", "", " Future trigger ", True],
-        [100.0, "standing", " Custom ", "manual", False],
-    ])
-    daily = decode_daily_rows(json.loads(daily_json))
-    assert [(row.day, row.state, row.seconds) for row in daily] == [
-        ("2026-07-16", "standing", 7.0), ("2026-07-17", " Custom ", 12.5),
-        ("2026-07-17", "z-other", 3.0),
-    ]
-    transitions = decode_transition_rows(json.loads(transition_json))
-    assert [(row.timestamp, row.from_state, row.to_state, row.trigger, row.interrupted)
-            for row in transitions] == [
-        (200.0, " Custom ", "", " Future trigger ", True),
-        (100.0, "standing", " Custom ", "manual", False),
-    ]
-    assert stats.daily_totals(date(2026, 7, 17), date(2026, 7, 17))[0].state == " Custom "
-    assert stats.recent_transitions(1)[0].interrupted is True
+    with closing(make_stats()) as stats:
+        stats.add_active_time(" Custom ", 12.5, date(2026, 7, 17))
+        stats.add_active_time("standing", 7, date(2026, 7, 16))
+        stats.add_active_time("z-other", 3, date(2026, 7, 17))
+        stats.record_transition(" Custom ", "", " Future trigger ", True, timestamp=200)
+        stats.record_transition("standing", " Custom ", "manual", False, timestamp=100)
+        service = Stats1(SimpleNamespace(stats=stats))
+        # Invoke the exported implementation, without starting a bus or daemon.
+        daily_json = Stats1.GetDaily.__wrapped__(service, "2026-07-16", "2026-07-17")
+        transition_json = Stats1.GetTransitions.__wrapped__(service, 50)
+        assert daily_json == json.dumps([
+            ["2026-07-16", "standing", 7.0], ["2026-07-17", " Custom ", 12.5],
+            ["2026-07-17", "z-other", 3.0],
+        ])
+        assert transition_json == json.dumps([
+            [200.0, " Custom ", "", " Future trigger ", True],
+            [100.0, "standing", " Custom ", "manual", False],
+        ])
+        daily = decode_daily_rows(json.loads(daily_json))
+        assert [(row.day, row.state, row.seconds) for row in daily] == [
+            ("2026-07-16", "standing", 7.0), ("2026-07-17", " Custom ", 12.5),
+            ("2026-07-17", "z-other", 3.0),
+        ]
+        transitions = decode_transition_rows(json.loads(transition_json))
+        assert [(row.timestamp, row.from_state, row.to_state, row.trigger, row.interrupted)
+                for row in transitions] == [
+            (200.0, " Custom ", "", " Future trigger ", True),
+            (100.0, "standing", " Custom ", "manual", False),
+        ]
+        assert stats.daily_totals(date(2026, 7, 17), date(2026, 7, 17))[0].state == " Custom "
+        assert stats.recent_transitions(1)[0].interrupted is True
 
 
 def test_active_time_accumulates_per_day_and_state():

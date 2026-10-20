@@ -77,7 +77,8 @@ class Stats(ServiceInterface):
     @method()
     def GetDaily(self, start: "s", end: "s") -> "s":  # pylint: disable=invalid-name
         assert start == end == date.today().isoformat()
-        return json.dumps([[start, "standing", 3900.0]])
+        return json.dumps([[start, "standing", 3900.0, "extra"], None,
+                           [start, "bad", "not seconds"], [start, " Custom ", -1]])
 
 
 class Log(ServiceInterface):
@@ -86,14 +87,15 @@ class Log(ServiceInterface):
 
     @method()
     def GetRecent(self) -> "s":  # pylint: disable=invalid-name
-        return json.dumps([{
+        return json.dumps([None, {
             "ts": 1_787_000_000.0,
             "level": "info",
             "channel": "activity",
             "msg_id": "daemon.stopping",
             "params": {},
             "text": "Daemon stopping.",
-        }])
+        }, {"ts": "bad", "msg_id": " Future ", "params": {"nested": [None, True]},
+            "text": "Old ring fallback"}, {"params": [], "text": "Non-object params"}])
 
 
 async def run_cli(config, *args: str) -> tuple[int, str, str]:
@@ -125,15 +127,17 @@ async def test_status_move_stop_log_shutdown_and_missing_owner(tmp_path):
     assert code == 0 and stderr == ""
     assert "Desk\n" in stdout and "110.0 cm" in stdout
     assert "Automation\n" in stdout and "Today\n" in stdout
+    assert "  Standing: 1h 05m" in stdout.splitlines()
 
     for action in ("sit", "sit", "stand", "toggle"):
         assert (await run_cli(config, action))[0] == 0
     assert (await run_cli(config, "stop"))[0] == 0
     assert calls == ["sit", "sit", "stand", "toggle", "stop"]
 
-    code, stdout, stderr = await run_cli(config, "log", "--limit", "1")
+    code, stdout, stderr = await run_cli(config, "log")
     assert code == 0 and stderr == ""
-    assert "Daemon stopping." in stdout
+    assert [line.rsplit("  ", 1)[-1] for line in stdout.splitlines()] == [
+        "Daemon stopping.", "Old ring fallback", "Non-object params"]
 
     bus.disconnect()
     await asyncio.sleep(0)

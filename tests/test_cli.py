@@ -10,6 +10,7 @@ import pytest
 from idasen_companion import cli
 from idasen_companion.core import i18n
 from idasen_companion.core.config import load_config, save_config
+from idasen_companion.core.decoded_data import DailyStatRow
 
 
 class FakeClient:
@@ -71,6 +72,30 @@ async def test_status_has_the_three_settled_sections_and_shared_values():
     assert "1h 05m" in output
     assert "Sitting down in 17m" in output
     assert "2h 00m" in output
+
+
+@pytest.mark.asyncio
+async def test_status_decodes_named_daily_rows_and_keeps_valid_neighbors(monkeypatch):
+    client = FakeClient()
+
+    async def call(*_args):
+        return json.dumps([
+            ["raw day", "sitting", "3600", "extra"], None,
+            ["day", "standing", "bad"], ["day", "short"],
+            ["day", " Future ", -1], ["day", "standing", 0],
+        ])
+
+    monkeypatch.setattr(client, "call", call)
+    snapshot = await cli._read_status(client)
+    assert snapshot.daily == (
+        DailyStatRow("raw day", "sitting", 3600.0),
+        DailyStatRow("day", " Future ", -1.0), DailyStatRow("day", "standing", 0.0),
+    )
+    assert snapshot.daily[0].seconds == 3600.0
+    output = cli._status_text(snapshot, cli._formatter(load_config()),
+                              persistent_connection=True)
+    assert "  Sitting: 1h 00m" in output.splitlines()
+    assert "  Standing: 0m" in output.splitlines()
 
 
 @pytest.mark.asyncio
@@ -148,6 +173,36 @@ async def test_log_limit_is_client_side_and_unknown_text_falls_back():
     assert output.endswith("BLE diagnostic")
     assert "Daemon stopping" not in output
     assert client.calls == [(cli.IFACE_LOG, "GetRecent", ())]
+
+
+@pytest.mark.parametrize(("payload", "detail"), [
+    (123, "D-Bus reply was not JSON text"),
+    ('{"unexpected": []}', "D-Bus reply was not a JSON list"),
+])
+def test_log_envelope_errors_keep_exit_one_and_exact_detail(
+    tmp_path, monkeypatch, capsys, payload, detail,
+):
+    path = tmp_path / "config.toml"
+    path.write_text("[ui]\nlanguage = 'en'\n")
+    client = FakeClient()
+
+    async def call(*_args):
+        return payload
+
+    async def connect():
+        return client
+
+    monkeypatch.setattr(client, "call", call)
+    monkeypatch.setattr(cli.DaemonClient, "connect", connect)
+    try:
+        assert cli.main(["--config", str(path), "log"]) == 1
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert detail in captured.err
+    assert "Traceback" not in captured.err
+    assert client.closed
 
 
 @pytest.mark.parametrize("argv", [[], ["preset"], ["log", "--limit", "0"]])
