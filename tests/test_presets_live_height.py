@@ -92,6 +92,7 @@ def _lit_presets(page) -> int:
 
 def test_a_reading_lights_up_the_page(page):
     page.client.heightChanged.emit(1.14)
+    page.client.heightChanged.emit(0.0)  # unknown wire height leaves the reading alone
     assert page._new_at_btn.text() == "+ New preset at 114.0 cm"
     assert page.range_rail._height == Length(1.14)
     assert _lit_presets(page) == 1

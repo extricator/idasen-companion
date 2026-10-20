@@ -47,6 +47,7 @@ from idasen_companion.core.i18n import (  # noqa: E402
     GettextTranslator,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.core.machine import DeskState  # noqa: E402
@@ -93,8 +94,8 @@ def _connection_cases() -> dict[str, str]:
     return cases
 
 
-_HEIGHT_METERS = 1.105
-_HEIGHT_METERS_WHOLE = 1.10
+_HEIGHT_METERS = Length(1.105)
+_HEIGHT_METERS_WHOLE = Length(1.10)
 
 
 def _height_formatter(unit: HeightUnit) -> Formatter:

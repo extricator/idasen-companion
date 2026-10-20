@@ -64,5 +64,7 @@ async def test_mock_height_path_has_typed_domain_values():
     assert machine.last_height == Length(0.62)
     assert await desk.move_to(Length(1.1)) is True
     assert desk.move_calls == [Length(1.1)]
+    desk.height = Length(0)
+    assert await desk.get_height() == Length(0)  # present zero is still a reading
     desk.height_unavailable = True
     assert await desk.get_height() is None
