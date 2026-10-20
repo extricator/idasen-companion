@@ -30,6 +30,7 @@ from PySide6.QtCore import QObject  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
@@ -90,7 +91,7 @@ def _lit_presets(page) -> int:
 def test_a_reading_lights_up_the_page(page):
     page.client.heightChanged.emit(1.14)
     assert page._new_at_btn.text() == "+ New preset at 114.0 cm"
-    assert page.range_rail._height == pytest.approx(1.14)
+    assert page.range_rail._height == Length(1.14)
     assert _lit_presets(page) == 1
 
 
@@ -98,7 +99,7 @@ def test_losing_the_link_stops_the_page_claiming_a_height(page):
     page.client.heightChanged.emit(1.14)
     page.client.connectedChanged.emit(False)
     assert page._new_at_btn.text() == "+ New preset"
-    assert page.range_rail._height == 0
+    assert page.range_rail._height == Length(0)
     assert _lit_presets(page) == 0
 
 
@@ -108,7 +109,7 @@ def test_losing_the_daemon_stops_it_too(page):
     page.client.heightChanged.emit(1.14)
     page.client.availableChanged.emit(False)
     assert page._new_at_btn.text() == "+ New preset"
-    assert page.range_rail._height == 0
+    assert page.range_rail._height == Length(0)
 
 
 def test_reconnecting_lights_the_page_back_up(page):
@@ -133,6 +134,34 @@ def test_staying_connected_leaves_the_reading_alone(page):
 def test_the_presets_themselves_survive_the_disconnect(page):
     page.client.heightChanged.emit(1.14)
     page.client.connectedChanged.emit(False)
-    assert page._presets == PRESETS
+    assert page._presets == {name: Length(height) for name, height in PRESETS.items()}
     assert len(page._preset_chips) == len(PRESETS)
     assert page._presets_empty.isHidden(), "the empty-state notice must stay away"
+
+
+def test_unit_repaint_reuses_decoded_presets_and_live_height(page):
+    page.client.presetsChanged.emit({"custom": 0.90123})
+    page.client.heightChanged.emit(0.90123)
+    assert page.range_rail._height == Length(0.90123)
+    page.ctx.write_config(lambda config: setattr(config.ui, "units", "in"))
+    assert page._new_at_btn.text() == "+ New preset at 35.48 in"
+    assert _lit_presets(page) == 1
+    page.ctx.write_config(lambda config: setattr(config.ui, "units", "cm"))
+    assert page._new_at_btn.text() == "+ New preset at 90.1 cm"
+    assert page.range_rail._height == Length(0.90123)
+    page.client.presetsChanged.emit({})
+    assert not page._presets_empty.isHidden()
+    assert _lit_presets(page) == 0
+
+
+def test_raw_presets_are_decoded_before_height_formatting(qapp, tmp_path, monkeypatch):
+    path = tmp_path / "config.toml"
+    save_config(AppConfig(), path)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
+    ctx = AppContext(FakeClient(), tray_available=True)
+    received = []
+    monkeypatch.setattr(type(ctx.fmt), "height",
+                        lambda self, value: received.append(value) or "height")
+    page = PresetsPage(ctx)
+    page._on_presets({"custom": 0.90123})
+    assert received == [Length(0.90123), Length(0.90123)]
