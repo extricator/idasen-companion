@@ -33,6 +33,7 @@ from idasen_companion.daemon.bluetooth import BluetoothSupport
 from idasen_companion.daemon.inhibit import (
     DELAY_HEADROOM, MAX_BUDGET, MIN_BUDGET, SleepInhibitor,
 )
+from idasen_companion.core.durations import Duration
 
 DESK_MAC = "E1:B2:C3:D4:E5:F6"
 
@@ -293,6 +294,8 @@ async def test_the_budget_leaves_logind_room_to_stop_waiting():
     bus = FakeBus(max_delay_usec=5_000_000)
     inhibitor = _inhibitor(bus)
     await inhibitor.acquire()
+    assert isinstance(inhibitor._max_delay, Duration)
+    assert isinstance(inhibitor.budget, Duration)
     assert inhibitor.budget == 5.0 - DELAY_HEADROOM
     inhibitor.release()
 

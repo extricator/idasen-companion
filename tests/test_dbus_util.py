@@ -11,7 +11,8 @@ import asyncio
 import pytest
 from dbus_fast import MessageType
 
-from idasen_companion.daemon.dbus_util import DBusCallError, call
+from idasen_companion.core.durations import Duration
+from idasen_companion.daemon.dbus_util import DBusCallError, DEFAULT_TIMEOUT, call
 
 # dbus-fast validates these at Message construction, so they must be real-looking.
 DEST, PATH, IFACE = "org.example.Svc", "/org/example/Svc", "org.example.Iface"
@@ -41,6 +42,10 @@ class FakeBus:
                 self.cancelled = True
                 raise
         return self._reply
+
+
+def test_default_timeout_is_a_duration():
+    assert isinstance(DEFAULT_TIMEOUT, Duration)
 
 
 async def test_successful_call_returns_body():
