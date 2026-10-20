@@ -5,6 +5,7 @@ from __future__ import annotations
 from . import logmsg
 from .decoded_data import LogParams
 from .logmsg import Param
+from .lengths import Length
 from .presentation import Formatter
 from .i18n import GettextTranslator
 from .i18n import MessageKey, P_
@@ -32,7 +33,7 @@ def build_formatters(fmt: Formatter) -> dict[Param, object]:
         Param.DURATION: lambda seconds: (
             _translate(_NOT_AVAILABLE) if seconds is None else fmt.duration(seconds)),
         Param.HEIGHT: lambda height: (
-            _translate(_NOT_AVAILABLE) if height is None else fmt.height(height)),
+            _translate(_NOT_AVAILABLE) if height is None else fmt.height(Length(height))),
         Param.STATE: _state,
         Param.TEXT: lambda value: (
             _translate(_NOT_AVAILABLE) if value is None else str(value)),

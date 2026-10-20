@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from ..core.i18n import pgettext
 from ..core.durations import Duration
+from ..core.lengths import Length
 
 import time
 from datetime import date
@@ -484,7 +485,7 @@ class TrayIcon(QSystemTrayIcon):
             self._presets_menu.addAction(
                 pgettext('tray', "%(name)s (%(height)s)") % {
                     "name": preset_label(name),
-                    "height": fmt.height(presets[name])},
+                    "height": fmt.height(Length(presets[name]))},
                 partial(self._move, self.client.move_to_preset, name))
         self._presets_menu.setEnabled(bool(presets))
 

@@ -24,6 +24,7 @@ from .core.config import (
     load_config,
 )
 from .core.locale_profile import LocaleProfile, resolve_app_locale
+from .core.lengths import Length
 from .core.presentation import (
     Formatter, PresentationContext, daemon_error_message,
 )
@@ -156,7 +157,7 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
     else:
         connection = i18n.pgettext("cli.status", "On demand")
     desk_values = {
-        "height": (fmt.height(snapshot.height) if snapshot.height else
+        "height": (fmt.height(Length(snapshot.height)) if snapshot.height else
                    i18n.pgettext("cli.status", "Unavailable")),
         "position": position,
         "connection": connection,

@@ -35,6 +35,7 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
 )
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
 from idasen_companion.gui.util import fmt_day_heading  # noqa: E402
@@ -64,7 +65,7 @@ def test_spanish_locale_uses_a_comma(locale):
         locale=formatter, translator=EnglishTranslator(),
         unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
-    assert fmt.height(1.105).startswith("110,5")
+    assert fmt.height(Length(1.105)).startswith("110,5")
 
 
 @pytest.mark.parametrize("locale", ["en_US"], indirect=True)

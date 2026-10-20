@@ -46,6 +46,7 @@ from idasen_companion.core.i18n import (  # noqa: E402
 )
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.machine import DeskState  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -201,16 +202,16 @@ def _widget_ctx() -> AppContext:
 
 def test_range_rail_labels_its_presets_in_the_user_language(qapp):
     ctx = _widget_ctx()
-    rail = RangeRail(0.6, 1.2, ctx)
+    rail = RangeRail(Length(0.6), Length(1.2), ctx)
     rail.resize(120, 300)
-    rail.set_presets({"sit": 0.7, "stand": 1.1, "perch": 0.95})
-    rail.set_height(0.7)  # exactly at "sit", so that tick shows the live height
+    rail.set_presets({"sit": Length(0.7), "stand": Length(1.1), "perch": Length(0.95)})
+    rail.set_height(Length(0.7))  # exactly at "sit", so that tick shows the live height
 
     texts = _drawn_texts(rail)
 
     # The live preset ("sit") renders through the shared tick message, with
     # its name already translated -- not the raw dict key.
-    assert ctx.fmt.preset_tick(preset_label("sit"), 0.7) in texts
+    assert ctx.fmt.preset_tick(preset_label("sit"), Length(0.7)) in texts
     # The resting protected preset ("stand") is a bare translated label.
     assert preset_label("stand") in texts
     # A user-named preset is unaffected -- preset_label returns it verbatim.
@@ -361,10 +362,10 @@ def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
     wizard = SetupWizard(client=object(), ctx=ctx)
     wizard.usage_page.automatic.setChecked(True)
 
-    paragraphs = wizard._success_paragraphs(0.75)  # pylint: disable=protected-access
+    paragraphs = wizard._success_paragraphs(Length(0.75))  # pylint: disable=protected-access
 
     assert len(paragraphs) == 3
-    assert ctx.fmt.height(0.75) in paragraphs[0]
+    assert ctx.fmt.height(Length(0.75)) in paragraphs[0]
 
 
 def test_the_out_of_schedule_note_follows_the_clock_format(overview_page):

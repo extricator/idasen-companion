@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.presentation import Formatter
+from ..core.lengths import Length
 from . import service_ctl
 from .context import AppContext
 from .dbus_client import DaemonClient
@@ -272,7 +273,7 @@ class SetupWizard(QWizard):
         return pgettext('setup', "It will not start automatically when you log in — "
                        "you can turn that on in Settings.")
 
-    def _success_paragraphs(self, height: float) -> list[str]:
+    def _success_paragraphs(self, height: Length) -> list[str]:
         """The success dialog's body, as independent whole lines.
 
         Each entry is already a complete, translator-owned sentence, and
@@ -320,7 +321,7 @@ class SetupWizard(QWizard):
                 self.client.set_automation_enabled(False)
             QMessageBox.information(
                 self, pgettext('setup', "Desk connected"),
-                "\n\n".join(self._success_paragraphs(result)))
+                "\n\n".join(self._success_paragraphs(Length(result))))
             super().accept()
         else:
             QMessageBox.warning(
