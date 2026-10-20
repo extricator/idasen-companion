@@ -2,13 +2,14 @@
 
 import random
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.config import AppConfig
 from idasen_companion.core.machine import StateMachine
 from idasen_companion.desk.mock import MockDesk
 
-SIT_H = 0.62
-STAND_H = 1.10
-OFF_CYCLE_H = 0.95  # not within tolerance of either preset target
+SIT_H = Length(0.62)
+STAND_H = Length(1.10)
+OFF_CYCLE_H = Length(0.95)  # not within tolerance of either preset target
 
 
 def make_config(**automation_overrides) -> AppConfig:
@@ -24,7 +25,7 @@ def make_config(**automation_overrides) -> AppConfig:
     a.sync_interval = 5 * 60
     for key, value in automation_overrides.items():
         setattr(a, key, value)
-    cfg.presets = {"sit": SIT_H, "stand": STAND_H}
+    cfg.presets = {"sit": SIT_H.metres, "stand": STAND_H.metres}
     return cfg
 
 

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
 from ...core.durations import Duration
+from ...core.lengths import Length
 from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, DeskState, Status
 from ...core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .. import restyle
@@ -48,12 +49,12 @@ class OverviewPage(Page):
         self._progress_stamp = time.monotonic()
         # The desk's last reported height in metres, kept so the labels that
         # show it can be redrawn without waiting for the next push.
-        self._height = 0.0
+        self._height = Length(0.0)
         # The height the Move button would send, in metres — the spin box's
         # value in the unit-independent form. Held here rather than read back
         # off the box because changing units reshapes the box, and the target
         # has to survive that. Starts where an untouched box does.
-        self._target = MIN_HEIGHT
+        self._target = Length(MIN_HEIGHT)
 
         self._build()
 
@@ -125,7 +126,7 @@ class OverviewPage(Page):
 
         rail_row = QHBoxLayout()
         rail_row.setSpacing(10)
-        self.height_rail = HeightRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
+        self.height_rail = HeightRail(Length(MIN_HEIGHT), Length(MAX_HEIGHT), self.ctx)
         self.height_rail.targetChanged.connect(self._on_rail_target)
         self.height_spin = QDoubleSpinBox()
         self._shape_height_spin()
@@ -340,15 +341,15 @@ class OverviewPage(Page):
         spin.blockSignals(True)
         try:
             spin.setDecimals(fmt.height_decimals())
-            spin.setRange(fmt.to_display_height(MIN_HEIGHT),
-                          fmt.to_display_height(MAX_HEIGHT))
+            spin.setRange(fmt.to_display_height(Length(MIN_HEIGHT)),
+                          fmt.to_display_height(Length(MAX_HEIGHT)))
             spin.setSingleStep(fmt.height_step())
             spin.setSuffix(suffix_height(fmt.unit))
             spin.setValue(fmt.to_display_height(self._target))
         finally:
             spin.blockSignals(False)
 
-    def _set_spin_height(self, meters: float) -> None:
+    def _set_spin_height(self, meters: Length) -> None:
         """Show ``meters`` in the spin box without it reading as a user edit —
         the box's own valueChanged is what moves the rail the other way."""
         self.height_spin.blockSignals(True)
@@ -358,8 +359,8 @@ class OverviewPage(Page):
             self.height_spin.blockSignals(False)
 
     def _on_rail_target(self, meters: float) -> None:
-        self._target = meters
-        self._set_spin_height(meters)
+        self._target = Length(meters)
+        self._set_spin_height(self._target)
 
     def _on_spin_changed(self, value: float) -> None:
         self._target = self.ctx.fmt.from_display_height(value)
@@ -382,16 +383,17 @@ class OverviewPage(Page):
     def _on_height(self, height: float) -> None:
         if height <= 0:
             return
-        self._height = height
-        self.height_label.setText(self.ctx.fmt.height(height))
-        self.height_rail.set_height(height)
+        height_value = Length(height)
+        self._height = height_value
+        self.height_label.setText(self.ctx.fmt.height(height_value))
+        self.height_rail.set_height(height_value)
         # While idle the proposed target follows the desk; while moving,
         # or while the user is adjusting it, it stays put.
         if (not self._moving and not self.height_rail.dragging()
                 and not self.height_spin.hasFocus()):
-            self._target = height
-            self.height_rail.set_target(height)
-            self._set_spin_height(height)
+            self._target = height_value
+            self.height_rail.set_target(height_value)
+            self._set_spin_height(height_value)
 
     def _on_position(self, position: str) -> None:
         self._position = parse_position(position)
@@ -408,7 +410,7 @@ class OverviewPage(Page):
         # page repaints on its own next update; the spin box is configured
         # once at construction, so it needs telling.
         self._shape_height_spin()
-        if self._height > 0:
+        if self._height > Length(0):
             self.height_label.setText(self.ctx.fmt.height(self._height))
         self.height_rail.update()
 
@@ -434,7 +436,7 @@ class OverviewPage(Page):
 
     def _on_presets(self, presets: dict) -> None:
         self.height_rail.set_marks(
-            [(preset_label(name), presets[name])
+            [(preset_label(name), Length(presets[name]))
              for name in PROTECTED_PRESETS if name in presets])
 
     def _on_status(self, status: str) -> None:

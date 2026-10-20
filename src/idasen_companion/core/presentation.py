@@ -52,6 +52,7 @@ from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from .machine import DeskState
 from .state_values import PositionValue, StatusValue, UnknownPosition, UnknownStatus
 from .display_prefs import HeightUnit
+from .lengths import Length
 from .i18n import Translator
 from .i18n import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
@@ -125,13 +126,13 @@ class Formatter:
         """The clock wall-clock times render on, from the injected context."""
         return self._context.time_style
 
-    def to_display_height(self, meters: float) -> float:
+    def to_display_height(self, meters: Length) -> float:
         """Metres as the number the user sees (1.105 -> 110.5 cm / 43.5 in)."""
-        return units.to_display_height(meters, self.unit)
+        return meters.to_display(self.unit)
 
-    def from_display_height(self, value: float) -> float:
+    def from_display_height(self, value: float) -> Length:
         """The inverse of :meth:`to_display_height`, back to metres."""
-        return units.from_display_height(value, self.unit)
+        return Length.from_display(value, self.unit)
 
     def height_decimals(self) -> int:
         """Decimal places a height is shown with, for the injected unit."""
@@ -141,7 +142,7 @@ class Formatter:
         """A single step of a height spin box, in display units."""
         return units.height_step(self.unit)
 
-    def height_value(self, meters: float, trim: bool = False) -> str:
+    def height_value(self, meters: Length, trim: bool = False) -> str:
         """Locale-formatted height *number*, with no unit (1.105 -> '110.5').
 
         Carries no translatable string — it is a bare number, never a unit
@@ -152,7 +153,7 @@ class Formatter:
             self.to_display_height(meters),
             decimals=self.height_decimals(), trim_trailing_zeroes=trim)
 
-    def height(self, meters: float, trim: bool = False) -> str:
+    def height(self, meters: Length, trim: bool = False) -> str:
         """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
 
         One whole translated message per unit, with the formatted number
@@ -167,7 +168,7 @@ class Formatter:
         return self._context.translator.message(
             source, value=self.height_value(meters, trim))
 
-    def preset_tick(self, label: str, meters: float, trim: bool = False) -> str:
+    def preset_tick(self, label: str, meters: Length, trim: bool = False) -> str:
         """A preset tick's name next to its height, e.g. "Sit · 110.5".
 
         The one message every rail renders a preset tick through, so the

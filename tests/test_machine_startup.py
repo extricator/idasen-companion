@@ -1,5 +1,6 @@
 """Startup adoption, target classification and unconfigured lifecycle."""
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.durations import Duration
 
 from idasen_companion.core.machine import (
@@ -72,8 +73,8 @@ async def test_toggle_target_off_cycle_resumes_toward_state_not_position():
     d = Driver(height=SIT_H)
     await d.start()
     assert d.m.state is DeskState.SITTING
-    d.m.last_height = 1.00  # parked high, off-cycle, but came from sitting
-    assert d.m._cycle_state_for_height(1.00) is None
+    d.m.last_height = Length(1.00)  # parked high, off-cycle, but came from sitting
+    assert d.m._cycle_state_for_height(Length(1.00)) is None
     assert d.m.toggle_target_preset() == "stand"
 
 
@@ -100,10 +101,10 @@ async def test_classify_boundary_is_the_preset_midpoint():
     # (a fixed 0.88 threshold would have called it standing).
     cfg = make_config()
     cfg.presets = {"sit": 0.70, "stand": 1.30}
-    d = Driver(cfg=cfg, height=0.95)
+    d = Driver(cfg=cfg, height=Length(0.95))
     await d.start()
-    assert d.m._classify(0.95) is DeskState.SITTING
-    assert d.m._classify(1.05) is DeskState.STANDING
+    assert d.m._classify(Length(0.95)) is DeskState.SITTING
+    assert d.m._classify(Length(1.05)) is DeskState.STANDING
 
 
 # ----- unconfigured (no desk address yet) -----

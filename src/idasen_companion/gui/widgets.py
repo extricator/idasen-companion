@@ -9,6 +9,8 @@ from ..core.i18n import pgettext
 
 from collections.abc import Sequence
 
+from ..core.lengths import Length
+
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap,
@@ -744,14 +746,14 @@ class HeightRail(QWidget):
     _TRACK_Y = 14      # track centerline
     _TRACK_H = 6
 
-    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+    def __init__(self, min_height: Length, max_height: Length, ctx: AppContext,
                  parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = min_height
         self._target = min_height
         self._dragging = False
-        self._marks: list[tuple[str, float]] = []   # (label, meters)
+        self._marks: list[tuple[str, Length]] = []   # (label, meters)
         # ctx, not a stored Formatter: AppContext.fmt is rebuilt on every
         # config change, so paintEvent reads self.ctx.fmt at paint time
         # rather than holding a snapshot that would keep painting the
@@ -765,28 +767,28 @@ class HeightRail(QWidget):
 
     # ----- data -----
 
-    def set_height(self, meters: float) -> None:
+    def set_height(self, meters: Length) -> None:
         self._height = meters
         self.update()
 
-    def set_target(self, meters: float) -> None:
+    def set_target(self, meters: Length) -> None:
         self._target = min(max(meters, self._lo), self._hi)
         self.update()
 
-    def set_marks(self, marks: list[tuple[str, float]]) -> None:
+    def set_marks(self, marks: list[tuple[str, Length]]) -> None:
         """Labeled tick positions, e.g. [("Sit", 0.62), ("Stand", 1.144)]."""
         self._marks = marks
         self.update()
 
     # ----- geometry -----
 
-    def _x(self, meters: float) -> float:
+    def _x(self, meters: Length) -> float:
         span = self.width() - 2 * self._PAD
         frac = (meters - self._lo) / (self._hi - self._lo)
         logical_x = self._PAD + _clamp01(frac) * span
         return self.width() - logical_x if self.isRightToLeft() else logical_x
 
-    def _meters(self, pixel_x: float) -> float:
+    def _meters(self, pixel_x: float) -> Length:
         span = self.width() - 2 * self._PAD
         logical_x = self.width() - pixel_x if self.isRightToLeft() else pixel_x
         frac = (logical_x - self._PAD) / max(1.0, span)
@@ -806,8 +808,8 @@ class HeightRail(QWidget):
         self._dragging = False
 
     def _drag_to(self, pixel_x: float) -> None:
-        self._target = round(self._meters(pixel_x), 3)
-        self.targetChanged.emit(self._target)
+        self._target = Length(round(self._meters(pixel_x).metres, 3))
+        self.targetChanged.emit(float(self._target.metres))
         self.update()
 
     # ----- painting -----

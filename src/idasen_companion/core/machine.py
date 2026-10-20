@@ -62,6 +62,8 @@ from typing import NamedTuple
 
 from .config import AppConfig
 from .durations import Duration
+from .lengths import Length
+from ..desk.port import DeskPort
 from .schedule import is_schedule_active
 
 # A gap between ticks larger than this means the machine was almost certainly
@@ -216,7 +218,7 @@ class TransitionCompleted(Event):
     # "leave"), "undo" (moved back toward the start height) or "retry"
     # (moved toward the target again). Never more than one recovery move.
     recovery: str
-    final_height: float | None  # None = height unreadable, result assumed
+    final_height: Length | None  # None = height unreadable, result assumed
     trigger: str  # "automation"
     # How long the cycle that starts here will run. Stamped by ``tick`` after
     # ``_begin_cycle`` rolls it, since the move resolves before the new cycle
@@ -228,7 +230,7 @@ class TransitionCompleted(Event):
 class StateSynced(Event):
     previous: DeskState
     current: DeskState
-    height: float
+    height: Length
     next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
@@ -236,7 +238,7 @@ class StateSynced(Event):
 class HeldOffCycle(Event):
     """A sync found the desk at an off-cycle position (not within tolerance
     of any cycle preset) and the yield policy paused cycling."""
-    height: float
+    height: Length
 
 
 @dataclass(frozen=True)
@@ -245,7 +247,7 @@ class ResumedOnCycle(Event):
     cycling resumes. ``previous`` is the state held before going off-cycle."""
     previous: DeskState
     current: DeskState
-    height: float
+    height: Length
     next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
@@ -278,7 +280,7 @@ class StateMachine:
     def __init__(
         self,
         config: AppConfig,
-        desk,
+        desk: DeskPort,
         *,
         now: float,
         rng: random.Random | None = None,
@@ -320,7 +322,7 @@ class StateMachine:
         # (command and read-back both failed); cleared by the next move that
         # reaches the desk, automation or manual.
         self.move_failed: bool = False
-        self.last_height: float | None = None
+        self.last_height: Length | None = None
 
         self._enabled = config.automation.enabled
         self._last_check = now
@@ -761,7 +763,7 @@ class StateMachine:
             self.snooze_until = None
         return not is_schedule_active(self._cfg.schedule, datetime.fromtimestamp(now))
 
-    def _classify(self, height: float) -> DeskState:
+    def _classify(self, height: Length) -> DeskState:
         # Split at the midpoint between the two cycle presets, so the boundary
         # tracks the user's actual sit/stand heights instead of a fixed
         # constant. Used only for off-cycle heights (recording/seeding the
@@ -771,7 +773,7 @@ class StateMachine:
                     + self._preset_height(DeskState.STANDING)) / 2
         return DeskState.SITTING if height <= midpoint else DeskState.STANDING
 
-    def _cycle_state_for_height(self, height: float) -> DeskState | None:
+    def _cycle_state_for_height(self, height: Length) -> DeskState | None:
         """The cycle preset (sit/stand) the desk is *at*, within
         ``movement_tolerance`` of that preset's target — or None when the
         desk is off-cycle (an arbitrary height or a non-cycle preset).
@@ -781,14 +783,14 @@ class StateMachine:
         position" from "parked somewhere the user chose". The cycle presets
         are exactly ``sit`` and ``stand`` today; when presets become
         first-class this set grows and the same check extends to it."""
-        tolerance = self._cfg.advanced.movement_tolerance
+        tolerance = Length(self._cfg.advanced.movement_tolerance)
         for state in (DeskState.SITTING, DeskState.STANDING):
             if abs(height - self._preset_height(state)) <= tolerance:
                 return state
         return None
 
-    def _preset_height(self, state: DeskState) -> float:
-        return self._cfg.presets[_PRESET_FOR_STATE[state]]
+    def _preset_height(self, state: DeskState) -> Length:
+        return Length(self._cfg.presets[_PRESET_FOR_STATE[state]])
 
     def toggle_target_preset(self) -> str:
         """Cycle preset name (``"sit"``/``"stand"``) a manual toggle should
@@ -863,7 +865,7 @@ class StateMachine:
         max_minutes = math.ceil(variation / 60)
         return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
-    async def _read_height(self, now: float) -> float | None:
+    async def _read_height(self, now: float) -> Length | None:
         height = await self._desk.get_height()
         if height is not None:
             self.last_height = height
@@ -888,14 +890,14 @@ class StateMachine:
 
     async def _drive_transition(self, now: float) -> list[
             MoveFailed | TransitionCompleted]:
-        tolerance = self._cfg.advanced.movement_tolerance
+        tolerance = Length(self._cfg.advanced.movement_tolerance)
         policy = self._cfg.automation.interruption_policy
         original = self.state
         intended = original.opposite
         intended_h = self._preset_height(intended)
 
         def completed(result: DeskState, *, interrupted: bool, recovery: str,
-                      final_height: float | None
+                      final_height: Length | None
                       ) -> list[MoveFailed | TransitionCompleted]:
             """Land on ``result`` and report the move that got us there."""
             self.state = result
@@ -965,7 +967,7 @@ class StateMachine:
             return [SyncFailed()]
         return self._reconcile(height)
 
-    def _reconcile(self, height: float) -> list[Event]:
+    def _reconcile(self, height: Length) -> list[Event]:
         """Bring internal state in line with a freshly-read desk height.
 
         Three outcomes, keyed on whether the desk is at a *cycle* preset:
@@ -997,7 +999,7 @@ class StateMachine:
         self.target_duration = Duration.from_seconds(0)
         return [HeldOffCycle(height)]
 
-    def _adopt(self, state: DeskState, height: float) -> list[Event]:
+    def _adopt(self, state: DeskState, height: Length) -> list[Event]:
         """Start a fresh cycle in ``state``, reporting how we got there.
 
         A hold always ends with ``ResumedOnCycle``, never ``StateSynced``, so a

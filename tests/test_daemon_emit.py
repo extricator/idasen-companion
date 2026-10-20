@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.core.durations import Duration
 
@@ -106,7 +107,7 @@ async def test_toggle_from_background_never_reads_the_desk():
     d.machine.refresh_height.assert_not_awaited()
 
 
-def _gesture_daemon(*, moving=False, active=None, start_height=0.62,
+def _gesture_daemon(*, moving=False, active=None, start_height=Length(0.62),
                     repeat="reverse"):
     d = Daemon.__new__(Daemon)
     d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
@@ -118,7 +119,7 @@ def _gesture_daemon(*, moving=False, active=None, start_height=0.62,
     d.config = MagicMock()
     d.config.ui.tray_repeat_move = repeat
     d.machine = MagicMock()
-    d.machine.last_height = 0.75
+    d.machine.last_height = Length(0.75)
     d.machine.refresh_height = AsyncMock()  # the START-path pre-decide read
     d.toggle_sit_stand = AsyncMock()
     d.manual_move_to_preset = AsyncMock()
@@ -134,7 +135,7 @@ async def test_gesture_move_idle_starts_and_records_start():
     d.toggle_sit_stand.assert_awaited_once_with(refresh=False)  # no double read
     d.stop_movement.assert_not_awaited()
     assert d._gesture_action == "toggle"
-    assert d._gesture_start_height == 0.75  # captured from machine.last_height
+    assert d._gesture_start_height == Length(0.75)  # captured from machine.last_height
 
 
 async def test_gesture_toggle_start_height_is_fresh_not_stale_cache():
@@ -143,29 +144,29 @@ async def test_gesture_toggle_start_height_is_fresh_not_stale_cache():
     # external move (cache 0.62, desk really at 1.10) is reflected — and the
     # toggle direction and reverse target agree.
     d = _gesture_daemon(moving=False)
-    d.machine.last_height = 0.62  # stale cache
+    d.machine.last_height = Length(0.62)  # stale cache
 
     async def do_refresh(_now):
-        d.machine.last_height = 1.10  # the real position
+        d.machine.last_height = Length(1.10)  # the real position
 
     d.machine.refresh_height = AsyncMock(side_effect=do_refresh)
     await d.gesture_move("toggle")
-    assert d._gesture_start_height == 1.10  # fresh, not the 0.62 cache
+    assert d._gesture_start_height == Length(1.10)  # fresh, not the 0.62 cache
     d.toggle_sit_stand.assert_awaited_once_with(refresh=False)
 
 
 async def test_sit_gesture_also_reads_before_recording_start():
     # Non-toggle gestures get the same fresh reverse target (and move directly).
     d = _gesture_daemon(moving=False)
-    d.machine.last_height = 0.62
+    d.machine.last_height = Length(0.62)
 
     async def do_refresh(_now):
-        d.machine.last_height = 1.10
+        d.machine.last_height = Length(1.10)
 
     d.machine.refresh_height = AsyncMock(side_effect=do_refresh)
     await d.gesture_move("sit")
     d.machine.refresh_height.assert_awaited_once()
-    assert d._gesture_start_height == 1.10
+    assert d._gesture_start_height == Length(1.10)
     d.manual_move_to_preset.assert_awaited_once_with("sit")
 
 
@@ -173,10 +174,10 @@ async def test_sit_gesture_skips_read_when_not_reversing():
     # With repeat != "reverse" the reverse target is never used, so an explicit
     # sit/stand skips the pre-move read and starts moving a round-trip sooner.
     d = _gesture_daemon(moving=False, repeat="stop")
-    d.machine.last_height = 0.75
+    d.machine.last_height = Length(0.75)
     await d.gesture_move("sit")
     d.machine.refresh_height.assert_not_awaited()
-    assert d._gesture_start_height == 0.75  # cached pre-move height
+    assert d._gesture_start_height == Length(0.75)  # cached pre-move height
     d.manual_move_to_preset.assert_awaited_once_with("sit")
 
 
@@ -190,12 +191,12 @@ async def test_toggle_gesture_reads_even_without_reverse():
 
 
 async def test_gesture_move_repeat_reverses_to_start():
-    d = _gesture_daemon(moving=True, active="toggle", start_height=0.62,
+    d = _gesture_daemon(moving=True, active="toggle", start_height=Length(0.62),
                         repeat="reverse")
     await d.gesture_move("toggle")
     # The reverse move is the successor, so the "moving" flag stays up for it.
     d.stop_movement.assert_awaited_once_with(expect_successor=True)
-    d.manual_move_to_height.assert_awaited_once_with(0.62)
+    d.manual_move_to_height.assert_awaited_once_with(Length(0.62))
     assert d._gesture_action is None
 
 
@@ -258,7 +259,7 @@ async def _interruptible_daemon(policy="undo"):
     # emit HeldOffCycle -- whose notification renders through it. __init__ is
     # bypassed here, so run()'s own _build_formatter never fires.
     d.fmt = Daemon._build_formatter(d, cfg)
-    d.desk = MockDesk(height=0.62)
+    d.desk = MockDesk(height=Length(0.62))
     d.machine = StateMachine(cfg, d.desk, now=time.time())
     await d.machine.start(time.time())  # last_height = 0.62, state sitting
     return d
@@ -268,10 +269,10 @@ async def test_manual_preset_move_returns_to_start_on_interruption():
     # Physical paddle stops the toward-stand move at 0.80; the desk should
     # return to where it started (0.62), not park off-cycle.
     d = await _interruptible_daemon("undo")
-    d.desk.interrupt_next_move_at = 0.80
+    d.desk.interrupt_next_move_at = Length(0.80)
     await d.manual_move_to_preset("stand")
-    assert d.desk.move_calls == [1.10, 0.62]
-    assert abs(d.desk.height - 0.62) < 1e-9
+    assert d.desk.move_calls == [Length(1.10), Length(0.62)]
+    assert abs(d.desk.height - Length(0.62)) < Length(1e-9)
 
 
 async def test_manual_move_clears_the_failed_status():
@@ -289,14 +290,14 @@ async def test_manual_preset_move_no_return_when_reaching_target():
     # A clean move to the preset must not issue a spurious return move.
     d = await _interruptible_daemon("undo")
     await d.manual_move_to_preset("stand")
-    assert d.desk.move_calls == [1.10]
+    assert d.desk.move_calls == [Length(1.10)]
 
 
 async def test_manual_preset_move_respects_leave_policy():
     d = await _interruptible_daemon("leave")
-    d.desk.interrupt_next_move_at = 0.80
+    d.desk.interrupt_next_move_at = Length(0.80)
     await d.manual_move_to_preset("stand")
-    assert d.desk.move_calls == [1.10]  # left where the paddle stopped it
+    assert d.desk.move_calls == [Length(1.10)]  # left where the paddle stopped it
 
 
 async def test_manual_preset_move_does_not_retry():
@@ -304,17 +305,17 @@ async def test_manual_preset_move_does_not_retry():
     # hand is a live instruction to stop, so the manual path treats it as
     # "leave" rather than pushing back against the paddle.
     d = await _interruptible_daemon("retry")
-    d.desk.interrupt_next_move_at = 0.80
+    d.desk.interrupt_next_move_at = Length(0.80)
     await d.manual_move_to_preset("stand")
-    assert d.desk.move_calls == [1.10]
+    assert d.desk.move_calls == [Length(1.10)]
 
 
 async def test_manual_move_to_height_does_not_bounce_back():
     # The slider's explicit target (and the reverse gesture) must not return.
     d = await _interruptible_daemon("undo")
-    d.desk.interrupt_next_move_at = 0.80
-    await d.manual_move_to_height(1.05)
-    assert d.desk.move_calls == [1.05]
+    d.desk.interrupt_next_move_at = Length(0.80)
+    await d.manual_move_to_height(Length(1.05))
+    assert d.desk.move_calls == [Length(1.05)]
 
 
 async def test_software_stop_mid_move_does_not_return_to_start():
@@ -322,7 +323,7 @@ async def test_software_stop_mid_move_does_not_return_to_start():
     # _current_move_id during the move; the desk must then stay where it stopped
     # rather than bounce back like a physical interruption would.
     d = await _interruptible_daemon("undo")
-    d.desk.interrupt_next_move_at = 0.80
+    d.desk.interrupt_next_move_at = Length(0.80)
     orig_move_to = d.desk.move_to
 
     async def move_to_then_stop(h):
@@ -332,7 +333,7 @@ async def test_software_stop_mid_move_does_not_return_to_start():
 
     d.desk.move_to = move_to_then_stop
     await d.manual_move_to_preset("stand")
-    assert d.desk.move_calls == [1.10]  # no return move — stayed put
+    assert d.desk.move_calls == [Length(1.10)]  # no return move — stayed put
 
 
 async def test_superseded_move_keeps_moving_flag_and_skips_reconcile():
@@ -364,7 +365,7 @@ def _stopping_daemon(*, moving=True, gesture="stand"):
     d._current_move_id = 5
     d.moving = moving
     d._gesture_action = gesture
-    d._gesture_start_height = 0.62
+    d._gesture_start_height = Length(0.62)
     d._ifaces = {"desk": MagicMock()}
     return d
 
@@ -396,7 +397,7 @@ async def test_stop_then_the_same_gesture_moves_that_way_not_back():
     d = _stopping_daemon(gesture="stand")
     d.config = MagicMock()
     d.config.ui.tray_repeat_move = "reverse"
-    d.machine = MagicMock(last_height=1.10)
+    d.machine = MagicMock(last_height=Length(1.10))
     d.machine.refresh_height = AsyncMock()
     d.manual_move_to_preset = AsyncMock()
     d.manual_move_to_height = AsyncMock()
@@ -439,7 +440,7 @@ def _enable_daemon(tmp_path, enabled=True):
     d.config = cfg
     d.config_file = ConfigFileStore(tmp_path / "config.toml", d.activity_log)
     d.config_file.save(cfg)
-    d.machine = StateMachine(cfg, MockDesk(height=0.62), now=time.time())
+    d.machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=time.time())
     return d, load_config
 
 
@@ -506,7 +507,7 @@ def test_failed_automation_write_restores_state_without_announcing(tmp_path, mon
 async def test_setup_saves_through_the_same_watcher_before_scheduling_sync(tmp_path):
     d, load = _enable_daemon(tmp_path)
     d.mock_mode = True
-    d.desk = MagicMock(get_height=AsyncMock(return_value=0.95))
+    d.desk = MagicMock(get_height=AsyncMock(return_value=Length(0.95)))
     observed = []
 
     async def sync():
@@ -514,7 +515,21 @@ async def test_setup_saves_through_the_same_watcher_before_scheduling_sync(tmp_p
                          d.config_file.poll_changed()))
 
     d._post_setup_sync = sync
-    assert await d.setup_desk(" AA:BB:CC:DD:EE:FF ") == 0.95
+    assert await d.setup_desk(" AA:BB:CC:DD:EE:FF ") == Length(0.95)
     await asyncio.gather(*d._tasks)
 
     assert observed == [("AA:BB:CC:DD:EE:FF", False)]
+
+
+def test_live_height_keeps_domain_cache_and_scalar_bus_payload():
+    from idasen_companion.daemon.service import Desk1
+
+    d = _daemon()
+    d._last_height_emit = -1.0
+    d._ifaces["desk"] = MagicMock()
+    d._on_live_height(Length(1.105))
+    assert d.machine.last_height == Length(1.105)
+    d._ifaces["desk"].HeightChanged.assert_called_once_with(1.105)
+    d._ifaces["desk"].emit_properties_changed.assert_called_once_with(
+        {"Height": 1.105})
+    assert Desk1(d).Height == 1.105

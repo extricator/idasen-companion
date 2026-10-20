@@ -1,24 +1,20 @@
 """The shared height contract and its supported arithmetic."""
 
-import importlib
-
 import pytest
 
 from idasen_companion.core.display_prefs import (
     HeightUnit, from_display_height, to_display_height,
 )
 from idasen_companion.core.durations import Duration
+from idasen_companion.core.lengths import Length
 
 
 def test_length_factories_preserve_conversion_policy():
-    spec = importlib.util.find_spec("idasen_companion.core.lengths")
-    assert spec is not None, "the shared Length height contract must exist"
-    length = importlib.import_module("idasen_companion.core.lengths").Length
-    assert type(length.from_metres(1).metres) is int
-    assert length.from_metres(1.105).metres == 1.105
+    assert type(Length.from_metres(1).metres) is int
+    assert Length.from_metres(1.105).metres == 1.105
     for unit, factory, value in (
-        (HeightUnit.CENTIMETRES, length.from_centimetres, 110.5),
-        (HeightUnit.INCHES, length.from_inches, 43.5),
+        (HeightUnit.CENTIMETRES, Length.from_centimetres, 110.5),
+        (HeightUnit.INCHES, Length.from_inches, 43.5),
     ):
         height = factory(value)
         assert height.metres == from_display_height(value, unit)
@@ -26,8 +22,6 @@ def test_length_factories_preserve_conversion_policy():
 
 
 def test_length_arithmetic_and_typed_zero():
-    from idasen_companion.core.lengths import Length
-
     a, b, zero = Length(2), Length(0.5), Length(0)
     assert a + b == Length(2.5)
     assert b - a == Length(-1.5)
@@ -43,8 +37,6 @@ def test_length_arithmetic_and_typed_zero():
 
 
 def test_length_rejects_mixed_dimensions_and_raw_addition():
-    from idasen_companion.core.lengths import Length
-
     height = Length(1)
     for operation in (
         lambda: height + 1, lambda: height < 1,
@@ -61,8 +53,7 @@ async def test_mock_height_path_has_typed_domain_values():
 
     desk = MockDesk()
     height = await desk.get_height()
-    assert hasattr(height, "metres"), "mock-desk height must use Length"
-    from idasen_companion.core.lengths import Length
+    assert height == Length(0.62)
     from idasen_companion.core.machine import StateMachine
     from machine_helpers import make_config
 

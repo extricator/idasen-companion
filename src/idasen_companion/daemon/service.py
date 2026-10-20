@@ -32,6 +32,7 @@ from dbus_fast.constants import PropertyAccess
 
 from .. import DBUS_NAME
 from ..core.decoded_data import LogEntry
+from ..core.lengths import Length
 
 if TYPE_CHECKING:
     from .main import Daemon
@@ -61,7 +62,8 @@ class Desk1(ServiceInterface):
 
     @dbus_property(access=PropertyAccess.READ)
     def Height(self) -> DBusDouble:  # pylint: disable=invalid-name
-        return self.d.machine.last_height or 0.0
+        height = self.d.machine.last_height
+        return height.metres if height is not None else 0.0
 
     @dbus_property(access=PropertyAccess.READ)
     def Moving(self) -> DBusBool:  # pylint: disable=invalid-name
@@ -100,7 +102,7 @@ class Desk1(ServiceInterface):
 
     @dbus_method()
     async def MoveToHeight(self, height: DBusDouble) -> EmptyResult:  # pylint: disable=invalid-name
-        await self.d.manual_move_to_height(height)
+        await self.d.manual_move_to_height(Length(height))
 
     @dbus_method()
     async def Stop(self) -> EmptyResult:  # pylint: disable=invalid-name
@@ -116,7 +118,7 @@ class Desk1(ServiceInterface):
     async def Setup(self, mac: DBusStr) -> DBusDouble:  # pylint: disable=invalid-name
         """Verified onboarding: connect, pair (best-effort) and read the
         height BEFORE saving the address. Returns the current height."""
-        return await self.d.setup_desk(mac)
+        return (await self.d.setup_desk(mac)).metres
 
     @dbus_signal()
     def HeightChanged(self, height: DBusDouble) -> DBusDouble:  # pylint: disable=invalid-name
@@ -225,11 +227,11 @@ class Presets1(ServiceInterface):
 
     @dbus_method()
     def Save(self, name: DBusStr, height: DBusDouble) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.save_preset(name, height)
+        self.d.save_preset(name, Length(height))
 
     @dbus_method()
     async def CaptureCurrent(self, name: DBusStr) -> DBusDouble:  # pylint: disable=invalid-name
-        return await self.d.capture_current_preset(name)
+        return (await self.d.capture_current_preset(name)).metres
 
     @dbus_method()
     def Rename(self, old: DBusStr, new: DBusStr) -> EmptyResult:  # pylint: disable=invalid-name

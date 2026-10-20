@@ -13,6 +13,7 @@ import inspect
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.desk.ble import BleDesk
 from idasen_companion.desk.mock import MockDesk
 from idasen_companion.desk.port import DeskPort
@@ -66,11 +67,11 @@ async def test_the_mock_can_report_a_reason_for_a_failed_move():
 
     desk.fail_next_move = True
     desk.last_error = "connect timed out"
-    assert await desk.move_to(1.10) is False
+    assert await desk.move_to(Length(1.10)) is False
     assert desk.last_error == "connect timed out"
 
 
 async def test_the_mock_disconnect_is_a_no_op_that_can_be_awaited():
-    desk = MockDesk(height=0.9)
+    desk = MockDesk(height=Length(0.9))
     await desk.disconnect()      # must not raise
-    assert desk.height == 0.9    # and must not disturb anything
+    assert desk.height == Length(0.9)    # and must not disturb anything

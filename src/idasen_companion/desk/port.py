@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from ..core.lengths import Length
+
 
 class DeskPort(Protocol):
-    async def get_height(self) -> float | None:
+    async def get_height(self) -> Length | None:
         """Current height in meters, or None if unavailable."""
         ...
 
-    async def move_to(self, height: float) -> bool:
+    async def move_to(self, height: Length) -> bool:
         """Move to ``height`` (meters). Returns False if the command errored.
 
         A True return does NOT guarantee the target was reached — callers

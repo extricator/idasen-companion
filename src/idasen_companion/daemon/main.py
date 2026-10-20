@@ -39,6 +39,7 @@ from ..core.machine import (
 )
 from ..core.display_prefs import ClockSetting, resolve_clock_style
 from ..core.durations import Duration
+from ..core.lengths import Length
 from ..core.presentation import format_duration_human
 from ..core.presentation import Formatter, PresentationContext
 from ..core.i18n import GettextTranslator
@@ -137,7 +138,7 @@ class Daemon:
         # can reverse back to it). Authoritative here, not in the client, so the
         # decision can't be fooled by lagged movement state.
         self._gesture_action: str | None = None
-        self._gesture_start_height: float | None = None
+        self._gesture_start_height: Length | None = None
         # Bumped whenever a manual move starts *or* is deliberately stopped
         # (Stop, repeat-stop/reverse, or a superseding move). A move only
         # returns to its start on interruption if this hasn't changed during
@@ -349,15 +350,15 @@ class Daemon:
             desk1.emit_properties_changed({"Connected": connected})
             desk1.ConnectedChanged(connected)
 
-    def _on_live_height(self, height: float) -> None:
+    def _on_live_height(self, height: Length) -> None:
         self.machine.last_height = height
         now = time.monotonic()
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
             self._last_height_emit = now
             desk1 = self._ifaces.get("desk")
             if desk1:
-                desk1.emit_properties_changed({"Height": height})
-                desk1.HeightChanged(height)
+                desk1.emit_properties_changed({"Height": height.metres})
+                desk1.HeightChanged(height.metres)
 
     async def _release_desk(self) -> None:
         """Hand the desk back, because this session is no longer in front.
@@ -793,15 +794,15 @@ class Daemon:
         if height is None:
             self.activity_log.emit(logmsg.STARTUP_HEIGHT_UNAVAILABLE)
         elif self.machine.held:
-            self.activity_log.emit(logmsg.STARTUP_STATE_HELD, height=height)
+            self.activity_log.emit(logmsg.STARTUP_STATE_HELD, height=height.metres)
         elif not self.config.automation.enabled:
             # No cycle is scheduled with automation off, so don't report a
             # "first target duration" of zero as if one were.
             self.activity_log.emit(logmsg.STARTUP_STATE_AUTOMATION_OFF,
-                           state=self.machine.state.value, height=height)
+                           state=self.machine.state.value, height=height.metres)
         else:
             self.activity_log.emit(logmsg.STARTUP_STATE,
-                           state=self.machine.state.value, height=height,
+                           state=self.machine.state.value, height=height.metres,
                            next_target=self._scheduled_target())
             # Only on this path: a cycle is actually running, so its clock is
             # the thing that just went back to zero. Not emitted from
@@ -934,11 +935,11 @@ class Daemon:
         elif isinstance(event, StateSynced):
             self.activity_log.emit(logmsg.CYCLE_SYNCED,
                            previous=event.previous.value,
-                           current=event.current.value, height=event.height,
+                           current=event.current.value, height=event.height.metres,
                            next_target=event.next_target_duration.seconds)
             self._record_transition(event.previous, event.current, "external")
         elif isinstance(event, HeldOffCycle):
-            self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height)
+            self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height.metres)
             if self.config.notifications.enabled:
                 self._spawn(self._notifier.send(
                     self.fmt.automation_paused_summary(),
@@ -947,7 +948,7 @@ class Daemon:
         elif isinstance(event, ResumedOnCycle):
             self.activity_log.emit(
                 logmsg.CYCLE_RESUMED_ON, current=event.current.value,
-                height=event.height,
+                height=event.height.metres,
                 next_target=event.next_target_duration.seconds)
             if event.previous is not event.current:
                 self._record_transition(event.previous, event.current, "external")
@@ -1035,13 +1036,15 @@ class Daemon:
 
     def _on_transition(self, event: TransitionCompleted) -> None:
         common = dict(intended=event.intended.value, result=event.result.value,
-                      height=event.final_height,
+                      height=(event.final_height.metres
+                              if event.final_height is not None else None),
                       next_target=event.next_target_duration.seconds)
         if not event.interrupted:
             self.activity_log.emit(logmsg.TRANSITION_COMPLETED,
                            previous=event.previous.value,
                            result=event.result.value,
-                           height=event.final_height,
+                           height=(event.final_height.metres
+                              if event.final_height is not None else None),
                            next_target=event.next_target_duration.seconds)
         elif event.recovery == "undo":
             self.activity_log.emit(
@@ -1094,7 +1097,8 @@ class Daemon:
         self._emit_automation_state()
         desk1 = self._ifaces["desk"]
         position = self.position_string()
-        height = self.machine.last_height or 0.0
+        height = (self.machine.last_height.metres
+                  if self.machine.last_height is not None else 0.0)
         desk1.emit_properties_changed({
             "Position": position,
             "Height": height,
@@ -1252,7 +1256,8 @@ class Daemon:
         await self.machine.start(time.time())
         self.activity_log.emit(
             logmsg.STARTUP_STATE, state=self.machine.state.value,
-            height=self.machine.last_height,
+            height=(self.machine.last_height.metres
+                    if self.machine.last_height is not None else None),
             next_target=self._scheduled_target())
         self._emit_automation_state()
 
@@ -1264,7 +1269,7 @@ class Daemon:
         # A preset/gesture move that's cut short by the physical paddle returns
         # to where the desk was (like the reference script and the automation
         # path), rather than parking off-cycle. Capture that position now.
-        await self._manual_move(height, f"preset '{name}'",
+        await self._manual_move(Length(height), f"preset '{name}'",
                                 return_to=self.machine.last_height)
 
     async def toggle_sit_stand(self, *, refresh: bool = True) -> None:
@@ -1326,15 +1331,15 @@ class Daemon:
         else:
             await self.manual_move_to_preset(action)
 
-    async def manual_move_to_height(self, height: float) -> None:
-        if not (MIN_HEIGHT <= height <= MAX_HEIGHT):
+    async def manual_move_to_height(self, height: Length) -> None:
+        if not (Length(MIN_HEIGHT) <= height <= Length(MAX_HEIGHT)):
             raise DBusError(f"{DBUS_NAME}.Error.OutOfRange",
-                            f"height {height:.3f}m outside "
+                            f"height {height.metres:.3f}m outside "
                             f"{MIN_HEIGHT}-{MAX_HEIGHT}m")
-        await self._manual_move(height, f"{height:.3f}m")
+        await self._manual_move(height, f"{height.metres:.3f}m")
 
-    async def _manual_move(self, height: float, label: str,
-                           *, return_to: float | None = None) -> None:
+    async def _manual_move(self, height: Length, label: str,
+                           *, return_to: Length | None = None) -> None:
         """Move the desk to ``height``. If ``return_to`` is given and the move
         is cut short *on its own* (the physical paddle stops it before the
         target), return once to ``return_to`` — the same interruption handling
@@ -1365,8 +1370,8 @@ class Daemon:
         finally:
             self._desk_lock.release()
 
-    async def _manual_move_locked(self, height: float, label: str,
-                                  *, return_to: float | None = None) -> None:
+    async def _manual_move_locked(self, height: Length, label: str,
+                                  *, return_to: Length | None = None) -> None:
         self._current_move_id += 1
         move_id = self._current_move_id
         self.activity_log.emit(logmsg.MANUAL_MOVE, target=label)
@@ -1401,11 +1406,11 @@ class Daemon:
                     and self.config.automation.interruption_policy == "undo"
                     and move_id == self._current_move_id):
                 actual = await self.desk.get_height()
-                tolerance = self.config.advanced.movement_tolerance
+                tolerance = Length(self.config.advanced.movement_tolerance)
                 if actual is not None and abs(actual - height) > tolerance:
                     self.activity_log.emit(
                         logmsg.MANUAL_INTERRUPTED, target=label,
-                        actual=actual, return_to=return_to)
+                        actual=actual.metres, return_to=return_to.metres)
                     await self.desk.move_to(return_to)
         finally:
             # Only the current move owns the shared "moving" flag. If a newer
@@ -1433,7 +1438,7 @@ class Daemon:
                 if event.previous is not event.current:
                     self.activity_log.emit(
                         logmsg.MANUAL_SYNCED, current=event.current.value,
-                        height=event.height,
+                        height=event.height.metres,
                         next_target=getattr(
                             event, "next_target_duration", Duration.from_seconds(0)
                         ).seconds)
@@ -1483,7 +1488,7 @@ class Daemon:
         first. timeout=0 returns paired devices + cached scan instantly."""
         return await self.bluetooth.discover(timeout, mock_mode=self.mock_mode)
 
-    async def setup_desk(self, desk_mac: str) -> float:
+    async def setup_desk(self, desk_mac: str) -> Length:
         """First-run onboarding: verify we can actually talk to the desk
         (connect, best-effort pair, read height) BEFORE saving the MAC.
         Returns the current height on success."""
@@ -1523,9 +1528,9 @@ class Daemon:
         if not self.mock_mode and desk_mac != previous_mac:
             self._swap_desk()
         self.activity_log.emit(
-            logmsg.SETUP_DESK_CONFIGURED, mac=desk_mac, height=height)
+            logmsg.SETUP_DESK_CONFIGURED, mac=desk_mac, height=height.metres)
         self._spawn(self._post_setup_sync(), "syncing the desk after setup")
-        return float(height)
+        return height
 
     async def _post_setup_sync(self) -> None:
         for event in await self.machine.force_sync(time.time()):
@@ -1542,23 +1547,23 @@ class Daemon:
         # duck-typed check that a new implementation could quietly fail.
         self._spawn(old_desk.disconnect(), "releasing the previous desk")
 
-    async def capture_current_preset(self, name: str) -> float:
+    async def capture_current_preset(self, name: str) -> Length:
         height = await self.desk.get_height()
         if height is None:
             raise DBusError(f"{DBUS_NAME}.Error.NoHeight",
                             "could not read desk height")
-        self.save_preset(name, round(height, 4))
-        return round(height, 4)
+        self.save_preset(name, Length(round(height.metres, 4)))
+        return Length(round(height.metres, 4))
 
-    def save_preset(self, name: str, height: float) -> None:
-        if not name or not (MIN_HEIGHT - 0.01 <= height <= MAX_HEIGHT + 0.01):
+    def save_preset(self, name: str, height: Length) -> None:
+        if not name or not (Length(MIN_HEIGHT - 0.01) <= height <= Length(MAX_HEIGHT + 0.01)):
             raise DBusError(f"{DBUS_NAME}.Error.InvalidPreset",
-                            f"invalid preset {name!r} = {height}")
+                            f"invalid preset {name!r} = {height.metres}")
         self._check_config_file()   # don't clobber a hand edit; see below
         previous = dict(self.config.presets)
-        self.config.presets[name] = round(height, 4)
+        self.config.presets[name] = round(height.metres, 4)
         self._persist_presets(previous)
-        self.activity_log.emit(logmsg.PRESET_SAVED, name=name, height=height)
+        self.activity_log.emit(logmsg.PRESET_SAVED, name=name, height=height.metres)
 
     def rename_preset(self, old_name: str, new_name: str) -> None:
         """Rename in one write, which is what makes it atomic.

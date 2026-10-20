@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ..core.lengths import Length
+
 
 class MockDesk:
     """A desk that teleports to the requested height.
@@ -19,22 +21,22 @@ class MockDesk:
         takes one client at a time).
     """
 
-    def __init__(self, height: float = 0.62):
-        self.height: float = height
-        self.interrupt_next_move_at: float | None = None
+    def __init__(self, height: Length = Length(0.62)):
+        self.height: Length = height
+        self.interrupt_next_move_at: Length | None = None
         self.fail_next_move: bool = False
         self.height_unavailable: bool = False
         self.last_error: str | None = None
-        self.move_calls: list[float] = []
+        self.move_calls: list[Length] = []
         self.get_height_calls: int = 0
 
-    async def get_height(self) -> float | None:
+    async def get_height(self) -> Length | None:
         self.get_height_calls += 1
         if self.height_unavailable:
             return None
         return self.height
 
-    async def move_to(self, height: float) -> bool:
+    async def move_to(self, height: Length) -> bool:
         self.move_calls.append(height)
         if self.fail_next_move:
             self.fail_next_move = False

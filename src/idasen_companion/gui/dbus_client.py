@@ -28,6 +28,7 @@ from PySide6.QtDBus import (
     QDBusVariant,
 )
 
+from ..core.lengths import Length
 from .. import DBUS_NAME, DBUS_PATH
 from ..core.decoded_data import (
     DailyStatRow, LogEntry, TransitionRow, decode_daily_rows, decode_transition_rows,
@@ -394,8 +395,8 @@ class DaemonClient(QObject):
     def move_to_preset(self, name: str) -> None:
         self._async_call(IFACE_DESK, "MoveToPreset", name)
 
-    def move_to_height(self, height: float) -> None:
-        self._async_call(IFACE_DESK, "MoveToHeight", float(height))
+    def move_to_height(self, height: Length) -> None:
+        self._async_call(IFACE_DESK, "MoveToHeight", float(height.metres))
 
     def stop(self) -> None:
         self._async_call(IFACE_DESK, "Stop")
