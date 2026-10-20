@@ -18,8 +18,11 @@ thin D-Bus client plus a tray icon that never touches the desk directly).
 `tick()`/`start()`/`force_sync()` mutate internal state and **return a list of
 `Event` dataclasses** (`StateSynced`, `TransitionCompleted`,
 `TransitionSkipped`, `IdleChanged`, …). It does no logging, no stats, no D-Bus.
-This is why `tests/test_machine.py` can drive it directly and assert on the
-emitted events.
+The state-machine tests drive it directly and assert on the emitted events,
+organized in `tests/test_machine_startup.py`, `tests/test_machine_activity.py`,
+`tests/test_machine_transitions.py`, `tests/test_machine_cycles.py`,
+`tests/test_machine_sync.py`, and `tests/test_machine_controls.py`.
+Their deterministic shared setup lives in `tests/machine_helpers.py`.
 
 The daemon's `_handle_event` (`daemon/main.py`) is the *only* place events
 become side effects (stats rows, ring-log lines, D-Bus signals). When changing
