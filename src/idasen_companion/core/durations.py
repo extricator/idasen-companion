@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from numbers import Real
 
 _UNIT_TO_SECONDS = {"h": 3600, "m": 60, "s": 1}
 _GROUP_RE = re.compile(r"(\d+)\s*([hms])")
@@ -66,7 +65,7 @@ class Duration:
         return other
 
     def _scalar(self, other: object) -> int | float:
-        if isinstance(other, bool) or not isinstance(other, Real):
+        if isinstance(other, bool) or not isinstance(other, (int, float)):
             raise TypeError("duration scaling requires a numeric scalar")
         return other
 

@@ -38,6 +38,7 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.display_prefs import ClockSetting, resolve_clock_style
+from ..core.durations import Duration
 from ..core.presentation import format_duration_human
 from ..core.presentation import Formatter, PresentationContext
 from ..core.i18n import GettextTranslator
@@ -1433,7 +1434,9 @@ class Daemon:
                     self.activity_log.emit(
                         logmsg.MANUAL_SYNCED, current=event.current.value,
                         height=event.height,
-                        next_target=getattr(event, "next_target_duration", 0).seconds)
+                        next_target=getattr(
+                            event, "next_target_duration", Duration.from_seconds(0)
+                        ).seconds)
                     self._record_transition(event.previous, event.current,
                                             "manual")
             else:
