@@ -9,6 +9,8 @@ the Activity Log to show for it.
 """
 
 import asyncio
+from datetime import date
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -16,6 +18,7 @@ import pytest
 from idasen_companion.core.config import AppConfig
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.main import Daemon
+from machine_helpers import Driver
 
 
 def make_daemon(tick):
@@ -62,6 +65,55 @@ async def test_cancellation_still_stops_the_loop():
     d = make_daemon(tick)
     with pytest.raises(asyncio.CancelledError):
         await asyncio.wait_for(d._run_until_stopped(now=1_000_000.0), timeout=5)
+
+
+@pytest.mark.asyncio
+async def test_startup_origin_survives_adoption_setup_reload_and_controls(monkeypatch, tmp_path):
+    from idasen_companion.daemon import main as main_mod
+
+    origin = 1_000_000.0
+    clock = origin - 1000  # construction age must not become active time
+    driver = Driver(now=clock)
+    d = Daemon(tmp_path / "config.toml", mock_desk=True, stats_path=Path(":memory:"))
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.config.automation.check_interval = 1
+    d.config_file.save(d.config)
+    d._idle = MagicMock(get_idle_ms=AsyncMock(return_value=1000))
+    d._lock = MagicMock(is_locked=AsyncMock(return_value=False))
+    d._session = MagicMock(state=AsyncMock(return_value="foreground"))
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    d._emit_automation_state = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+    totals = []
+
+    async def tick():
+        nonlocal clock
+        if not totals:
+            clock = origin + 25
+            await d._initial_read  # real adoption resets the cycle at this later time
+        else:
+            clock += 30
+            await d._start_after_setup()
+            d.reload_config()
+            d.set_automation_enabled(False)
+            d.set_automation_enabled(True)
+            d.pause()
+            d.snooze(5)
+            d.resume()
+            clock += 30
+        await Daemon._tick(d)
+        totals.append(sum(seconds for _, _, seconds in d.stats.daily_totals(
+            date(1970, 1, 1), date(2100, 1, 1))))
+        if len(totals) == 2:
+            d._stop_event.set()
+
+    d._tick = tick
+    try:
+        await asyncio.wait_for(d._run_until_stopped(origin), timeout=5)
+        assert totals == [25, 85]
+    finally:
+        d.stats.close()
 
 
 def sqlite_style_error():

@@ -11,7 +11,7 @@ These drive ``Daemon._tick`` directly through its accounting collaborator:
 """
 
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
@@ -25,6 +25,7 @@ from idasen_companion.daemon.idle import (
 )
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.daemon.stats import Stats
+from machine_helpers import Driver
 
 TICK = 60.0  # check_interval used throughout
 
@@ -167,6 +168,39 @@ async def test_unseeded_accounting_observes_before_crediting(harness):
     assert h.credited() == 0
     await h.tick(5)
     assert h.credited() == pytest.approx(TICK)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("freeze", ["disabled", "paused", "snoozed", "outside-schedule"])
+async def test_real_automation_freezes_leave_active_statistics_running(harness, freeze, monkeypatch):
+    h = harness
+    # Monday before the configured work window, independent of execution date.
+    h.clock = datetime(2026, 1, 5, 8, 0).timestamp()
+    monkeypatch.setattr(time, "time", lambda: h.clock)
+    driver = Driver(now=h.clock)
+    d = h.daemon
+    d.config = driver.cfg
+    d.machine = driver.m
+    d.accounting.start(h.clock)
+    if freeze == "disabled":
+        d.config.automation.enabled = False
+    elif freeze == "paused":
+        d.machine.pause()
+    elif freeze == "snoozed":
+        d.machine.snooze(5, h.clock)
+    else:
+        d.config.schedule.enabled = True
+        d.config.schedule.days = ["mon"]
+        d.config.schedule.start = "09:00"
+        d.config.schedule.end = "17:00"
+    await driver.start()
+
+    await h.tick(5)
+    assert d.machine.active_time == 0
+    assert h.credited() == pytest.approx(TICK)
+    await h.tick(5)
+    assert d.machine.active_time == 0
+    assert h.credited() == pytest.approx(2 * TICK)
 
 
 @pytest.mark.asyncio

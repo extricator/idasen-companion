@@ -116,7 +116,7 @@ def _bare_daemon(monkeypatch):
     d.config_file = MagicMock(spec=ConfigFileStore)
     d.config_file.path = Path("unused-config.toml")
     d.config_file.load_or_bootstrap.return_value = cfg
-    d.accounting = MagicMock(spec=["account", "flush"])
+    d.accounting = MagicMock(spec=["start", "account", "flush"])
     d._stop_event = asyncio.Event()
     d._initial_read = None
     d.config = cfg
@@ -252,6 +252,7 @@ async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monke
     d.stats = Stats(Path(":memory:"))
     d.accounting = ActiveTimeAccounting(d.stats)
     owner = d.accounting
+    owner.start(0.0)
     real_flush = owner.flush
     real_close = d.stats.close
 
