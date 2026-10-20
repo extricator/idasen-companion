@@ -146,15 +146,44 @@ def _formatter_translated_methods(tree):
                      if isinstance(node, ast.ClassDef) and node.name == "Formatter")
     methods = {node.name: node for node in formatter.body
                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
-    reached = {name for name, node in methods.items()
+
+    def owned_nodes(scope, nested=False):
+        """Keep captured self, but discard a scope that binds its own self."""
+        args = getattr(scope, "args", None)
+        if nested and args and any(arg.arg == "self" for arg in [
+                *args.posonlyargs, *args.args, *args.kwonlyargs,
+                *([args.vararg] if args.vararg else []),
+                *([args.kwarg] if args.kwarg else [])]):
+            return
+        pending = [scope.body] if isinstance(scope, ast.Lambda) else list(scope.body)
+        nodes, closures = [], []
+        while pending:
+            child = pending.pop()
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                  ast.ClassDef, ast.Lambda)):
+                if getattr(child, "name", None) == "self":
+                    return
+                closures.append(child)
+                continue
+            if (isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
+                    and child.id == "self"):
+                return
+            nodes.append(child)
+            pending.extend(ast.iter_child_nodes(child))
+        yield from nodes
+        for closure in closures:
+            yield from owned_nodes(closure, nested=True)
+
+    owned = {name: list(owned_nodes(node)) for name, node in methods.items()}
+    reached = {name for name, nodes in owned.items()
                if any(_attribute_path(child) == ("self", "_context", "translator")
-                      for child in ast.walk(node))}
-    edges = {name: {child.func.attr for child in ast.walk(node)
+                      for child in nodes)}
+    edges = {name: {child.func.attr for child in nodes
                     if isinstance(child, ast.Call)
                     and isinstance(child.func, ast.Attribute)
                     and _attribute_path(child.func.value) == ("self",)
                     and child.func.attr in methods}
-             for name, node in methods.items()}
+             for name, nodes in owned.items()}
     return _close_translation_edges(edges, reached)
 
 
@@ -516,6 +545,25 @@ def test_an_unseen_formatter_forwarder_requires_a_real_registry_mark():
 
 def test_translation_reachability_respects_receiver_and_lexical_ownership():
     """Same spellings are insufficient; locale-only owned calls stay clean."""
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse('''
+def captured_sibling(self):
+    return (lambda: self.height(1))()
+
+def captured_translator(self):
+    return (lambda: self._context.translator)()
+
+def shadowed_parameter(self, plain):
+    return (lambda self: (self.height(1), self._context.translator))(plain)
+
+def shadowed_local(self, plain):
+    def inner():
+        self = plain
+        return self.height(1), self._context.translator
+    return inner()
+''').body)
     tree = ast.parse('''
 from idasen_companion.core.presentation import Formatter as F
 from idasen_companion.core import presentation as p
@@ -571,10 +619,22 @@ def closure(fmt: F):
 
 def parameter_shadow(fmt: F):
     return (lambda fmt: fmt.height(1))(None)
+
+def owned_sibling_capture(fmt: F):
+    return fmt.captured_sibling()
+
+def owned_translator_capture(fmt: F):
+    return fmt.captured_translator()
+
+def unrelated_parameter(fmt: F, plain):
+    return fmt.shadowed_parameter(plain)
+
+def unrelated_local(fmt: F, plain):
+    return fmt.shadowed_local(plain)
 ''')
-    assert _reaches_tr(tree) == {
+    assert _reaches_tr(tree, presentation) == {
         "genuine", "aliased", "constructed", "message", "module_forward",
-        "sibling", "closure",
+        "sibling", "closure", "owned_sibling_capture", "owned_translator_capture",
     }
 
 
