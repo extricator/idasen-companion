@@ -30,7 +30,8 @@ from PySide6.QtDBus import (
 
 from .. import DBUS_NAME, DBUS_PATH
 from ..core.decoded_data import (
-    DailyStatRow, TransitionRow, decode_daily_rows, decode_transition_rows,
+    DailyStatRow, LogEntry, TransitionRow, decode_daily_rows, decode_transition_rows,
+    decode_log_entry, decode_log_entries, decode_timestamp,
 )
 from ..core.machine import Status
 from ..core.state_values import StatusValue, parse_status
@@ -184,7 +185,10 @@ class DaemonClient(QObject):
         args = message.arguments()
         if len(args) < 3:
             return
-        entry_timestamp, level = args[0], args[1]
+        entry_timestamp = decode_timestamp(args[0])
+        if entry_timestamp is None:
+            return
+        level = args[1]
         if len(args) >= 6:
             channel, msg_id, params, text = args[2], args[3], args[4], args[5]
         else:
@@ -196,10 +200,12 @@ class DaemonClient(QObject):
             decoded = json.loads(str(params)) if params else {}
         except ValueError:
             decoded = {}
-        if not isinstance(decoded, dict):
-            decoded = {}
-        self.logEntry.emit(float(entry_timestamp), str(level), str(channel), str(msg_id),
-                           decoded, str(text))
+        entry = decode_log_entry({"ts": entry_timestamp, "level": level,
+                                  "channel": channel, "msg_id": msg_id,
+                                  "params": decoded, "text": text})
+        if entry is not None:
+            self.logEntry.emit(entry["ts"], entry["level"], entry["channel"], entry["msg_id"],
+                               entry["params"], entry["text"])
 
     # ----- reads -----
 
@@ -314,14 +320,17 @@ class DaemonClient(QObject):
             return []
         return decode_transition_rows(rows)
 
-    def get_recent_log(self) -> list[dict]:
+    def get_recent_log(self) -> list[LogEntry]:
         """The daemon's in-memory backlog, as entry dicts.
 
         Only what the *running* daemon has seen. History from before it
         started comes from the journal instead (``core.journal.read_recent``),
         which is what makes the Activity Log survive a restart."""
-        rows = self._call_for_json(IFACE_LOG, "GetRecent")
-        return [row for row in rows if isinstance(row, dict)] if rows else []
+        try:
+            rows = self._call_for_json(IFACE_LOG, "GetRecent")
+        except (TypeError, ValueError):
+            return []
+        return decode_log_entries(rows)
 
     def discover(self, timeout: int = 8) -> list:
         """Blocking scan call — run from the wizard with a busy cursor.

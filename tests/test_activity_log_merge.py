@@ -11,6 +11,7 @@ Also covers the other half of the same upgrade: the wire payload changing
 length under a GUI that is already running.
 """
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,6 +20,7 @@ pytest.importorskip("PySide6.QtCore", reason="Activity Log page needs PySide6")
 
 from idasen_companion.gui.dbus_client import DaemonClient  # noqa: E402
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
+from PySide6.QtDBus import QDBusMessage  # noqa: E402
 
 
 def _bare_page(ring_entries=None, available=True, on_screen=()):
@@ -119,11 +121,33 @@ def test_reloading_does_not_double_what_is_already_on_screen():
     assert len(page._entries) == 1
 
 
-def test_the_ring_is_normalized_so_an_older_daemon_cannot_break_rendering():
-    entries = _page(journal_entries=[],
-                    ring_entries=[{"ts": 1.0, "text": "hi"}])
-    assert entries == [{"ts": 1.0, "level": "info", "channel": "activity",
-                        "msg_id": "", "params": {}, "text": "hi"}]
+def _backlog(payload):
+    client = DaemonClient.__new__(DaemonClient)
+    reply = MagicMock(type=lambda: QDBusMessage.MessageType.ReplyMessage,
+                      arguments=lambda: [payload])
+    client._iface = MagicMock(return_value=MagicMock(call=lambda *_: reply))
+    return client.get_recent_log()
+
+
+def test_the_ring_is_decoded_at_client_ingress_for_older_daemons():
+    entries = _backlog(json.dumps([
+        {"ts": 1.0, "text": "hi"}, None,
+        {"ts": "bad", "params": [1], "text": "fallback"},
+        {"ts": -1, "level": " Custom ", "channel": " Future ", "msg_id": " raw ",
+         "params": {"nested": [None, {"enabled": True}]}, "text": "last"},
+    ]))
+    assert entries == [
+        _entry(1.0, "hi"), _entry(0.0, "fallback"),
+        _entry(-1.0, "last", level=" Custom ", channel=" Future ", msg_id=" raw ",
+               params={"nested": [None, {"enabled": True}]}),
+    ]
+    assert _page([], entries) == sorted(entries, key=lambda entry: entry["ts"])
+
+
+def test_gui_log_reply_envelope_failures_are_empty():
+    assert _backlog("not JSON") == []
+    assert _backlog(123) == []
+    assert _backlog('{"not": "a list"}') == []
 
 
 # ----- wire-format skew -----
@@ -149,13 +173,26 @@ def test_a_current_payload_is_unpacked_in_full():
          "Preset 'desk' saved.")]
 
 
-def test_an_older_daemons_three_field_payload_still_renders():
-    assert _emitted([1.0, "info", "Daemon stopping."]) == [
+@pytest.mark.parametrize("extra", [[], ["ignored"], ["ignored", "also ignored"]])
+def test_an_older_daemons_three_to_five_field_payload_still_renders(extra):
+    assert _emitted([1.0, "info", "Daemon stopping.", *extra]) == [
         (1.0, "info", "activity", "", {}, "Daemon stopping.")]
 
 
 def test_a_truncated_payload_is_dropped_not_raised():
     assert _emitted([1.0, "info"]) == []
+
+
+def test_appended_fields_keep_the_current_signal_prefix():
+    assert _emitted([-1, " Custom ", " Future ", " raw ",
+                     '{"nested": [null, {"value": true}]}', "fallback", "extra"]) == [
+        (-1.0, " Custom ", " Future ", " raw ",
+         {"nested": [None, {"value": True}]}, "fallback")]
+
+
+def test_unusable_live_timestamps_are_dropped():
+    for timestamp in (None, "bad", float("inf"), 1e100, 10 ** 1000):
+        assert _emitted([timestamp, "info", "text"]) == []
 
 
 def test_unparsable_params_do_not_lose_the_line():

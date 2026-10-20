@@ -107,12 +107,8 @@ def decode_transition_rows(value: object) -> list[TransitionRow]:
     for row in value:
         if not isinstance(row, (list, tuple)) or len(row) < 5:
             continue
-        try:
-            timestamp = float(row[0])
-            if not isfinite(timestamp):
-                continue
-            datetime.fromtimestamp(timestamp)
-        except (TypeError, ValueError, OverflowError, OSError):
+        timestamp = decode_timestamp(row[0])
+        if timestamp is None:
             continue
         result.append(TransitionRow(timestamp, str(row[1]), str(row[2]),
                                     str(row[3]), bool(row[4])))
