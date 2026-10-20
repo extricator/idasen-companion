@@ -91,8 +91,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Tests
 
-- [ ] **Split state-machine tests and share helpers** — Split cohesive behavior groups and share
-      suitable helpers, coordinating with harness consolidation.
 - [ ] **Consolidate shared daemon and GUI test harnesses** — Share genuinely common builders
       with deterministic defaults.
 - [ ] **Cover the setup wizard's missing behavior** — Test current ScanPage cached/empty
