@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import overload
 
 _UNIT_TO_SECONDS = {"h": 3600, "m": 60, "s": 1}
 _GROUP_RE = re.compile(r"(\d+)\s*([hms])")
@@ -31,7 +32,7 @@ _FULL_RE = re.compile(r"(?:\s*\d+\s*[hms])+\s*")
 SUB_MINUTE_THRESHOLD_SECONDS = 60
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True)
 class Duration:
     """A number-preserving count of seconds used inside timing domains."""
 
@@ -51,55 +52,64 @@ class Duration:
 
     @classmethod
     def from_microseconds(cls, value: int | float) -> "Duration":
-        return cls(value / 1_000_000.0)
+        return cls(value / 1_000_000)
 
     def __bool__(self) -> bool:
         return bool(self.seconds)
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Duration) and self.seconds == other.seconds
-
-    def _other_duration(self, other: object) -> "Duration":
+    def __add__(self, other: "Duration") -> "Duration":
         if not isinstance(other, Duration):
-            raise TypeError("duration arithmetic requires Duration operands")
-        return other
+            return NotImplemented
+        return Duration(self.seconds + other.seconds)
 
-    def _scalar(self, other: object) -> int | float:
-        if isinstance(other, bool) or not isinstance(other, (int, float)):
-            raise TypeError("duration scaling requires a numeric scalar")
-        return other
+    def __sub__(self, other: "Duration") -> "Duration":
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return Duration(self.seconds - other.seconds)
 
-    def __add__(self, other: object) -> "Duration":
-        return Duration(self.seconds + self._other_duration(other).seconds)
+    def __mul__(self, other: int | float) -> "Duration":
+        if not isinstance(other, (int, float)):
+            return NotImplemented
+        return Duration(self.seconds * other)
 
-    def __sub__(self, other: object) -> "Duration":
-        return Duration(self.seconds - self._other_duration(other).seconds)
+    def __rmul__(self, other: int | float) -> "Duration":
+        return self.__mul__(other)
 
-    def __mul__(self, other: object) -> "Duration":
-        return Duration(self.seconds * self._scalar(other))
+    @overload
+    def __truediv__(self, other: "Duration") -> float: ...
 
-    def __rmul__(self, other: object) -> "Duration":
-        return self * other
+    @overload
+    def __truediv__(self, other: int | float) -> "Duration": ...
 
-    def __truediv__(self, other: object) -> "Duration | float":
+    def __truediv__(self, other: "Duration | int | float") -> "Duration | float":
         if isinstance(other, Duration):
             return self.seconds / other.seconds
-        return Duration(self.seconds / self._scalar(other))
+        if not isinstance(other, (int, float)):
+            return NotImplemented
+        return Duration(self.seconds / other)
 
     def __abs__(self) -> "Duration":
         return Duration(abs(self.seconds))
 
-    def __lt__(self, other: object) -> bool:
-        return self.seconds < self._other_duration(other).seconds
+    def __lt__(self, other: "Duration") -> bool:
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return self.seconds < other.seconds
 
-    def __le__(self, other: object) -> bool:
-        return self.seconds <= self._other_duration(other).seconds
+    def __le__(self, other: "Duration") -> bool:
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return self.seconds <= other.seconds
 
-    def __gt__(self, other: object) -> bool:
-        return self.seconds > self._other_duration(other).seconds
+    def __gt__(self, other: "Duration") -> bool:
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return self.seconds > other.seconds
 
-    def __ge__(self, other: object) -> bool:
-        return self.seconds >= self._other_duration(other).seconds
+    def __ge__(self, other: "Duration") -> bool:
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return self.seconds >= other.seconds
 
 
 def parse_duration(text: str) -> int:

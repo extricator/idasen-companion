@@ -101,6 +101,15 @@ def test_duration_keeps_number_kind_and_exposes_only_typed_arithmetic():
     assert not zero
     assert negative
     assert zero != 0
+    assert duration_type.from_milliseconds(1500).seconds == 1.5
+    assert duration_type.from_minutes(2).seconds == 120
+    assert duration_type.from_microseconds(1500000).seconds == 1.5
+
+    class DerivedDuration(duration_type):
+        pass
+
+    assert zero != DerivedDuration(0)
+    assert {duration_type(2): "value"}[duration_type(2)] == "value"
 
     assert (giant + duration_type.from_seconds(1)).seconds == 2**53 + 2
     assert (duration_type.from_seconds(5) - duration_type.from_seconds(2)).seconds == 3
@@ -119,3 +128,11 @@ def test_duration_keeps_number_kind_and_exposes_only_typed_arithmetic():
         _ = 2 < duration_type.from_seconds(1)
     assert duration_type.from_seconds(1) != 1
     assert duration_type.from_seconds(1) != object()
+
+
+def test_duration_allows_python_to_try_a_reflected_operation():
+    class ForeignOperand:
+        def __radd__(self, other):
+            return other.seconds
+
+    assert durations.Duration(3) + ForeignOperand() == 3

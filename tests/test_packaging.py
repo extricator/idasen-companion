@@ -722,7 +722,8 @@ def test_the_portability_probe_reads_the_statistics_it_wrote_back_out():
         "the probe never asks whether the store opened, so it passes on a "
         "machine where every one of its calls is a no-op")
 
-    write = re.search(r"add_active_time\(\s*[^,]+,\s*([^,)]+)", probe)
+    write = re.search(
+        r"add_active_time\(\s*[^,]+,\s*Duration\.from_seconds\(\s*(\w+)\s*\)", probe)
     assert write, "the probe credits no desk time, so it reads back nothing"
     credited = write.group(1).strip()
 
@@ -738,7 +739,8 @@ def test_the_portability_probe_reads_the_statistics_it_wrote_back_out():
             f"the probe reads {reader} and compares it with nothing, which is "
             f"the same evidence as not reading it at all")
         if reader == "daily_totals":
-            assert any("CREDITED_SECONDS" in line for line in compared), (
+            assert any(re.search(rf"\b{re.escape(credited)}\b", line)
+                       for line in compared), (
                 f"the probe compares what {reader} returned against something "
                 f"other than the {credited} it wrote")
 
