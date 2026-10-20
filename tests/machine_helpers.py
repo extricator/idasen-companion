@@ -58,4 +58,3 @@ class Driver:
         for _ in range(n):
             events.extend(await self.tick(**kw))
         return events
-
