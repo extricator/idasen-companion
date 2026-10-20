@@ -55,12 +55,13 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import NamedTuple
 
 from .config import AppConfig
+from .durations import Duration
 from .schedule import is_schedule_active
 
 # A gap between ticks larger than this means the machine was almost certainly
@@ -195,13 +196,13 @@ class TransitionHeldForInput(Event):
 
 @dataclass(frozen=True)
 class TimeJumpDetected(Event):
-    elapsed: float
+    elapsed: Duration
 
 
 @dataclass(frozen=True)
 class TransitionSkipped(Event):
     state: DeskState
-    next_target_duration: int
+    next_target_duration: Duration
 
 
 @dataclass(frozen=True)
@@ -220,7 +221,7 @@ class TransitionCompleted(Event):
     # How long the cycle that starts here will run. Stamped by ``tick`` after
     # ``_begin_cycle`` rolls it, since the move resolves before the new cycle
     # exists; 0 on a directly-constructed event that never restarted a cycle.
-    next_target_duration: int = 0
+    next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
 @dataclass(frozen=True)
@@ -228,7 +229,7 @@ class StateSynced(Event):
     previous: DeskState
     current: DeskState
     height: float
-    next_target_duration: int = 0
+    next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
 @dataclass(frozen=True)
@@ -245,7 +246,7 @@ class ResumedOnCycle(Event):
     previous: DeskState
     current: DeskState
     height: float
-    next_target_duration: int = 0
+    next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
 @dataclass(frozen=True)
@@ -261,7 +262,7 @@ class MoveFailed(Event):
     command-succeeded-but-unverifiable case that assumes the intended state."""
     previous: DeskState  # the state kept, since nothing moved
     intended: DeskState
-    next_target_duration: int = 0
+    next_target_duration: Duration = field(default_factory=lambda: Duration.from_seconds(0))
 
 
 class _Presence(NamedTuple):
@@ -296,8 +297,8 @@ class StateMachine:
         self._on_moving = on_moving
 
         self.state: DeskState = DeskState.SITTING
-        self.active_time: float = 0.0
-        self.target_duration: int = 0
+        self.active_time = Duration.from_seconds(0)
+        self.target_duration = Duration.from_seconds(0)
         self.is_idle: bool = False
         self.is_away: bool = False
         # No graphical session for this account: nothing to automate, and no
@@ -398,7 +399,7 @@ class StateMachine:
         countdown for a cycle that isn't running would contradict the status
         the UI is showing."""
         self.target_duration = (
-            0 if (self.unconfigured or self.held
+            Duration.from_seconds(0) if (self.unconfigured or self.held
                   or not self._cfg.automation.enabled)
             else self._next_target_duration(self.state))
         self._synced_before_decide = False
@@ -437,7 +438,7 @@ class StateMachine:
             self._last_check = now
             return []
 
-        time_elapsed = now - self._last_check
+        time_elapsed = Duration.from_seconds(now - self._last_check)
 
         # Suspend/resume detection by wall-clock jump. ``now`` is wall clock, so
         # the step can also go *backwards* (an NTP correction after a long
@@ -445,7 +446,8 @@ class StateMachine:
         # negative elapsed is never a real tick, and letting it through would
         # subtract from active_time — silently pushing the next move further
         # out, with nothing logged. Treat either direction as a jump.
-        is_time_jump = not (0 <= time_elapsed <= TIME_JUMP_THRESHOLD_SECONDS)
+        is_time_jump = not (Duration.from_seconds(0) <= time_elapsed
+                            <= Duration.from_seconds(TIME_JUMP_THRESHOLD_SECONDS))
         if is_time_jump:
             events.append(TimeJumpDetected(time_elapsed))
             self._reset_accumulator()
@@ -469,12 +471,13 @@ class StateMachine:
 
         def can_act() -> bool:
             return (not frozen and not self.held and recently_active
-                    and self.target_duration > 0)
+                    and self.target_duration > Duration.from_seconds(0))
 
         # Report the gate, once per hold. Only when the move is otherwise ready
         # to go: a hold that nothing was waiting on isn't news, and frozen/held
         # already have their own lines saying why nothing is happening.
-        if (not frozen and not self.held and self.target_duration > 0
+        if (not frozen and not self.held
+                and self.target_duration > Duration.from_seconds(0)
                 and self.active_time >= self.target_duration
                 and not recently_active):
             if not self._held_for_input:
@@ -671,7 +674,7 @@ class StateMachine:
             if not config.automation.enabled:
                 # Nothing is scheduled while off: leave no stale countdown for
                 # the UI to show or an event to report as the "next change".
-                self.target_duration = 0
+                self.target_duration = Duration.from_seconds(0)
             return
         if not self.held and reroll_target:
             self.target_duration = self._next_target_duration(self.state)
@@ -717,8 +720,10 @@ class StateMachine:
             return Status.MOVE_FAILED
         return Status.ACTIVE
 
-    def time_remaining(self) -> float:
-        return max(0.0, self.target_duration - self.active_time)
+    def time_remaining(self) -> Duration:
+        remaining = self.target_duration - self.active_time
+        return (remaining if remaining >= Duration.from_seconds(0)
+                else Duration.from_seconds(0))
 
     def cycle_target(self, now: float) -> int:
         """The cycle length the user is counting toward, or 0 if none is.
@@ -735,7 +740,7 @@ class StateMachine:
         """
         if self.status(now) in NO_CYCLE_STATUSES:
             return 0
-        return int(self.target_duration or 0)
+        return int(self.target_duration.seconds) if self.target_duration else 0
 
     # ----- internals -----
 
@@ -819,7 +824,7 @@ class StateMachine:
         the pre-decide flag is essential: without it a cycle that already
         read the desk before the reset would skip the read on its real due
         transition and move on a stale position."""
-        self.active_time = 0.0
+        self.active_time = Duration.from_seconds(0)
         self.is_idle = False
         self._synced_before_decide = False
 
@@ -828,11 +833,11 @@ class StateMachine:
         new target duration, and re-arm the pre-decide sync."""
         self.state = state
         self.held = False
-        self.active_time = 0.0
+        self.active_time = Duration.from_seconds(0)
         self.target_duration = self._next_target_duration(state)
         self._synced_before_decide = False
 
-    def _sync_lead_time(self) -> float:
+    def _sync_lead_time(self) -> Duration:
         """How far ahead of a due transition to read the real desk height.
 
         With warnings on, at least the notification lead time (so the warning
@@ -845,18 +850,18 @@ class StateMachine:
         on-demand BLE connects once, at the move, instead of lighting up a tick
         early for no user-visible benefit."""
         if not self._cfg.notifications.enabled:
-            return 0.0
-        return max(self._cfg.notifications.lead_time,
-                   self._cfg.automation.check_interval)
+            return Duration.from_seconds(0)
+        return Duration.from_seconds(max(self._cfg.notifications.lead_time,
+                                         self._cfg.automation.check_interval))
 
-    def _next_target_duration(self, state: DeskState) -> int:
+    def _next_target_duration(self, state: DeskState) -> Duration:
         config = self._cfg.automation
         if state is DeskState.SITTING:
             base, variation = config.sit_duration, config.sit_variation
         else:
             base, variation = config.stand_duration, config.stand_variation
         max_minutes = math.ceil(variation / 60)
-        return base + self._rng.randint(0, max_minutes) * 60
+        return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
     async def _read_height(self, now: float) -> float | None:
         height = await self._desk.get_height()
@@ -989,7 +994,7 @@ class StateMachine:
         if self.held:
             return []
         self.held = True
-        self.target_duration = 0
+        self.target_duration = Duration.from_seconds(0)
         return [HeldOffCycle(height)]
 
     def _adopt(self, state: DeskState, height: float) -> list[Event]:

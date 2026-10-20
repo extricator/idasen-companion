@@ -852,7 +852,7 @@ class Daemon:
     async def _maybe_warn(self, now: float) -> None:
         ncfg = self.config.notifications
         remaining = self.machine.time_remaining()
-        if not ncfg.enabled or self.machine.target_duration <= 0:
+        if not ncfg.enabled or not self.machine.target_duration:
             return
         # Arm on the reliable window: at least one check_interval wide, so a tick
         # is guaranteed to land inside it. A bare lead_time window narrower than
@@ -862,7 +862,7 @@ class Daemon:
         # real remaining time). Firing at exactly lead_time regardless of the
         # tick needs the timer-based rework tracked in TODO.md.
         window = max(ncfg.lead_time, self.config.automation.check_interval)
-        if remaining > window:
+        if remaining.seconds > window:
             self._warned_this_cycle = False
             return
         # A failed last move doesn't stop the cycle — the next attempt is
@@ -873,7 +873,7 @@ class Daemon:
             return
         self._warned_this_cycle = True
         to_state = self.machine.state.opposite
-        seconds = max(1, int(remaining))
+        seconds = max(1, int(remaining.seconds))
         self._ifaces["automation"].PreMoveWarning(to_state.value, seconds)
         # Fire and forget: whether a popup was drawn is none of the control
         # loop's business, and awaiting the notification server here puts a
@@ -920,21 +920,21 @@ class Daemon:
         elif isinstance(event, TimeJumpDetected):
             # Forward and backward steps read as different events to a user, so
             # they get different sentences; the parameter is unsigned either way.
-            line = (logmsg.TIME_JUMP if event.elapsed >= 0
+            line = (logmsg.TIME_JUMP if event.elapsed.seconds >= 0
                     else logmsg.TIME_STEPPED_BACK)
-            self.activity_log.emit(line, elapsed=abs(event.elapsed),
+            self.activity_log.emit(line, elapsed=abs(event.elapsed).seconds,
                            next_target=self._scheduled_target())
         elif isinstance(event, TransitionSkipped):
             self.activity_log.emit(
                 logmsg.CYCLE_SKIPPED, state=event.state.value,
-                next_target=event.next_target_duration)
+                next_target=event.next_target_duration.seconds)
         elif isinstance(event, TransitionCompleted):
             self._on_transition(event)
         elif isinstance(event, StateSynced):
             self.activity_log.emit(logmsg.CYCLE_SYNCED,
                            previous=event.previous.value,
                            current=event.current.value, height=event.height,
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
             self._record_transition(event.previous, event.current, "external")
         elif isinstance(event, HeldOffCycle):
             self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height)
@@ -947,7 +947,7 @@ class Daemon:
             self.activity_log.emit(
                 logmsg.CYCLE_RESUMED_ON, current=event.current.value,
                 height=event.height,
-                next_target=event.next_target_duration)
+                next_target=event.next_target_duration.seconds)
             if event.previous is not event.current:
                 self._record_transition(event.previous, event.current, "external")
         elif isinstance(event, SyncFailed):
@@ -967,12 +967,12 @@ class Daemon:
             self.activity_log.emit(logmsg.CYCLE_MOVE_FAILED_REASON,
                            intended=event.intended.value,
                            previous=event.previous.value, reason=str(reason),
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
         else:
             self.activity_log.emit(logmsg.CYCLE_MOVE_FAILED,
                            intended=event.intended.value,
                            previous=event.previous.value,
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
         if not self.config.notifications.problems:
             return
         # The cycle has already restarted, so a whole interval is now at stake
@@ -1035,13 +1035,13 @@ class Daemon:
     def _on_transition(self, event: TransitionCompleted) -> None:
         common = dict(intended=event.intended.value, result=event.result.value,
                       height=event.final_height,
-                      next_target=event.next_target_duration)
+                      next_target=event.next_target_duration.seconds)
         if not event.interrupted:
             self.activity_log.emit(logmsg.TRANSITION_COMPLETED,
                            previous=event.previous.value,
                            result=event.result.value,
                            height=event.final_height,
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
         elif event.recovery == "undo":
             self.activity_log.emit(
                 logmsg.TRANSITION_INTERRUPTED_UNDO, **common)
@@ -1079,15 +1079,15 @@ class Daemon:
         auto.emit_properties_changed({
             "Enabled": self.config.automation.enabled,
             "Status": self.status_string(),
-            "ActiveTime": self.machine.active_time,
-            "TargetDuration": float(self.machine.target_duration),
-            "TimeRemaining": self.machine.time_remaining(),
+            "ActiveTime": self.machine.active_time.seconds,
+            "TargetDuration": self.machine.target_duration.seconds,
+            "TimeRemaining": self.machine.time_remaining().seconds,
             "SnoozeUntil": self.machine.snooze_until or 0.0,
             "SkipNextPending": self.machine.skip_next,
         })
         auto.StatusChanged(self.status_string())
-        auto.ProgressChanged(self.machine.active_time,
-                             float(self.machine.target_duration))
+        auto.ProgressChanged(self.machine.active_time.seconds,
+                             self.machine.target_duration.seconds)
 
     def _emit_periodic_properties(self) -> None:
         self._emit_automation_state()
@@ -1433,7 +1433,7 @@ class Daemon:
                     self.activity_log.emit(
                         logmsg.MANUAL_SYNCED, current=event.current.value,
                         height=event.height,
-                        next_target=getattr(event, "next_target_duration", 0))
+                        next_target=getattr(event, "next_target_duration", 0).seconds)
                     self._record_transition(event.previous, event.current,
                                             "manual")
             else:

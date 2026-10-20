@@ -150,15 +150,15 @@ class Automation1(ServiceInterface):
 
     @dbus_property(access=PropertyAccess.READ)
     def ActiveTime(self) -> DBusDouble:  # pylint: disable=invalid-name
-        return self.d.machine.active_time
+        return self.d.machine.active_time.seconds
 
     @dbus_property(access=PropertyAccess.READ)
     def TargetDuration(self) -> DBusDouble:  # pylint: disable=invalid-name
-        return float(self.d.machine.target_duration)
+        return self.d.machine.target_duration.seconds
 
     @dbus_property(access=PropertyAccess.READ)
     def TimeRemaining(self) -> DBusDouble:  # pylint: disable=invalid-name
-        return self.d.machine.time_remaining()
+        return self.d.machine.time_remaining().seconds
 
     @dbus_property(access=PropertyAccess.READ)
     def SnoozeUntil(self) -> DBusDouble:  # pylint: disable=invalid-name

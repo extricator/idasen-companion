@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.daemon.main import Daemon
+from idasen_companion.core.durations import Duration
 
 
 def _daemon():
@@ -21,8 +22,8 @@ def _daemon():
     d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
     d.activity_log = MagicMock()
     d.machine = MagicMock()
-    d.machine.active_time = 120.0
-    d.machine.target_duration = 300.0
+    d.machine.active_time = Duration.from_seconds(120.0)
+    d.machine.target_duration = Duration.from_seconds(300.0)
     d.machine.snooze_until = 0.0
     d.machine.skip_next = False
     d.machine.status.return_value = MagicMock(value="active")
@@ -468,8 +469,8 @@ def test_set_automation_enabled_is_a_no_op_when_unchanged(tmp_path):
 def test_turning_automation_back_on_starts_a_fresh_cycle(tmp_path):
     d, _ = _enable_daemon(tmp_path, enabled=False)
     d.set_automation_enabled(True)
-    assert d.machine.target_duration > 0
-    assert d.machine.active_time == 0
+    assert d.machine.target_duration > Duration.from_seconds(0)
+    assert d.machine.active_time == Duration.from_seconds(0)
 
 
 def test_an_automation_write_consumes_its_own_revision(tmp_path):
