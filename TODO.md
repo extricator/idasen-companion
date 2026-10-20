@@ -96,8 +96,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       usage/autostart outcomes.
 - [ ] **Gate Spanish Activity Log message rendering** — Exercise the compiled Spanish catalog
       and matching formatter across substitutions, plurals, cycle and fallback branches.
-- [ ] **Resolve translator receivers in concatenation guard** — Resolve receivers or use another
-      independent identification method.
 - [ ] **Clarify translated-return marker semantics** — Define the marker contract and retain
       bad-sentence detection.
 - [ ] **Pin outside-schedule statistics accounting with a regression test** — Add a real
