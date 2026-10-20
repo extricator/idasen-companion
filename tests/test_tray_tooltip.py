@@ -43,6 +43,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 import dataclasses  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -53,6 +54,7 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.core.machine import Status  # noqa: E402
 from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
+from idasen_companion.gui import tray as tray_mod  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -165,6 +167,20 @@ def standing_and_active(icon):
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
+
+
+def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):
+    icon, _ = tray
+    icon._on_status("active")
+    icon._on_progress(2580.0, 3240.0)
+
+    assert isinstance(icon._remaining, Duration)
+    assert isinstance(icon._elapsed, Duration)
+
+    monkeypatch.setattr(tray_mod.time, "monotonic",
+                        lambda: icon._progress_stamp + 0.25)
+    assert isinstance(icon._since_progress(), Duration)
+    assert icon._shown_remaining() == 660.0
 
 
 def test_position_signal_preserves_tray_labels_and_direction(tray):
