@@ -383,6 +383,7 @@ from datetime import date
 from pathlib import Path
 
 from idasen_companion.daemon.stats import Stats
+from idasen_companion.core.durations import Duration
 
 CREDITED_STATE = "standing"
 CREDITED_SECONDS = 1234.5
@@ -395,7 +396,7 @@ if not store.available:
     sys.exit(1)
 
 today = date.today()
-store.add_active_time(CREDITED_STATE, CREDITED_SECONDS, today)
+store.add_active_time(CREDITED_STATE, Duration.from_seconds(CREDITED_SECONDS), today)
 store.record_transition(FROM_STATE, TO_STATE, TRIGGER, False)
 totals = {state: seconds for _, state, seconds in store.daily_totals(today, today)}
 transitions = store.recent_transitions(5)

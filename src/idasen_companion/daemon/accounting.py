@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from ..core.durations import Duration
 from ..core.machine import TIME_JUMP_THRESHOLD_SECONDS
 from .stats import Stats
 
@@ -18,7 +19,7 @@ class ActiveTimeAccounting:
     def __init__(self, stats: Stats):
         self._stats = stats
         self._last_observation: float | None = None
-        self._pending_credit: dict[tuple[date, str], float] = {}
+        self._pending_credit: dict[tuple[date, str], Duration] = {}
 
     def start(self, now: float) -> None:
         """Seed the observation clock from the daemon's startup origin."""
@@ -46,25 +47,27 @@ class ActiveTimeAccounting:
         self._last_observation = now
         if last_observation is None:
             return
-        elapsed = now - last_observation
+        elapsed = Duration.from_seconds(now - last_observation)
         # Don't credit a suspend-sized gap to sit/stand totals (the stats-side
         # twin of the machine's time-jump reset); shared absolute threshold, and
         # the same both-directions rule — a backward clock step would otherwise
         # write negative seconds into a daily row, permanently.
-        elapsed_is_plausible = 0 <= elapsed <= TIME_JUMP_THRESHOLD_SECONDS
+        elapsed_is_plausible = (Duration.from_seconds(0) <= elapsed
+                                <= Duration.from_seconds(TIME_JUMP_THRESHOLD_SECONDS))
         idle_threshold_ms = idle_threshold_seconds * 1000
         if not elapsed_is_plausible or absent or idle_ms >= idle_threshold_ms:
             self._pending_credit.clear()
         elif held:
             pass  # off-cycle: the desk is at neither preset, so neither gets it
-        elif idle_ms / 1000.0 < elapsed:
+        elif Duration.from_milliseconds(idle_ms) < elapsed:
             # Input landed inside this window: the user is here now, which
             # settles the silence leading up to it as time at the desk.
             self.flush()
             self._stats.add_active_time(state, elapsed)
         else:
             key = (date.today(), state)
-            self._pending_credit[key] = self._pending_credit.get(key, 0.0) + elapsed
+            self._pending_credit[key] = (
+                self._pending_credit.get(key, Duration.from_seconds(0)) + elapsed)
 
     def flush(self) -> None:
         """Commit held time to the day and state it was actually spent in."""

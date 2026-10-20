@@ -20,9 +20,9 @@ def make_stats():
 
 def test_stored_named_rows_keep_stats1_json_order_and_meaning():
     with closing(make_stats()) as stats:
-        stats.add_active_time(" Custom ", 12.5, date(2026, 7, 17))
-        stats.add_active_time("standing", 7, date(2026, 7, 16))
-        stats.add_active_time("z-other", 3, date(2026, 7, 17))
+        stats.add_active_time(" Custom ", Duration.from_seconds(12.5), date(2026, 7, 17))
+        stats.add_active_time("standing", Duration.from_seconds(7), date(2026, 7, 16))
+        stats.add_active_time("z-other", Duration.from_seconds(3), date(2026, 7, 17))
         stats.record_transition(" Custom ", "", " Future trigger ", True, timestamp=200)
         stats.record_transition("standing", " Custom ", "manual", False, timestamp=100)
         service = Stats1(SimpleNamespace(stats=stats))
@@ -55,9 +55,9 @@ def test_stored_named_rows_keep_stats1_json_order_and_meaning():
 def test_active_time_accumulates_per_day_and_state():
     s = make_stats()
     day = date(2026, 7, 17)
-    s.add_active_time("sitting", 60, day)
-    s.add_active_time("sitting", 30, day)
-    s.add_active_time("standing", 45, day)
+    s.add_active_time("sitting", Duration.from_seconds(60), day)
+    s.add_active_time("sitting", Duration.from_seconds(30), day)
+    s.add_active_time("standing", Duration.from_seconds(45), day)
     rows = s.daily_totals(day, day)
     assert ("2026-07-17", "sitting", 90.0) in rows
     assert ("2026-07-17", "standing", 45.0) in rows
@@ -65,9 +65,9 @@ def test_active_time_accumulates_per_day_and_state():
 
 def test_daily_totals_range_filter():
     s = make_stats()
-    s.add_active_time("sitting", 10, date(2026, 7, 1))
-    s.add_active_time("sitting", 20, date(2026, 7, 15))
-    s.add_active_time("sitting", 30, date(2026, 8, 1))
+    s.add_active_time("sitting", Duration.from_seconds(10), date(2026, 7, 1))
+    s.add_active_time("sitting", Duration.from_seconds(20), date(2026, 7, 15))
+    s.add_active_time("sitting", Duration.from_seconds(30), date(2026, 8, 1))
     rows = s.daily_totals(date(2026, 7, 1), date(2026, 7, 31))
     assert [r[2] for r in rows] == [10.0, 20.0]
 
@@ -110,7 +110,7 @@ def test_rows_survive_close_and_reopen(tmp_path):
 
     s = Stats(path)
     assert path.exists()  # parent directory created
-    s.add_active_time("sitting", 90, day)
+    s.add_active_time("sitting", Duration.from_seconds(90), day)
     s.record_transition("sitting", "standing", "automation", False, timestamp=100.0)
     s.close()
 
@@ -118,7 +118,7 @@ def test_rows_survive_close_and_reopen(tmp_path):
     assert reopened.available
     assert ("2026-07-17", "sitting", 90.0) in reopened.daily_totals(day, day)
     assert reopened.recent_transitions(10)[0][0] == 100.0
-    reopened.add_active_time("sitting", 10, day)
+    reopened.add_active_time("sitting", Duration.from_seconds(10), day)
     assert ("2026-07-17", "sitting", 100.0) in reopened.daily_totals(day, day)
 
 
@@ -134,7 +134,7 @@ def test_a_corrupt_database_is_reported_and_disabled(tmp_path):
     assert not s.available
     assert len(errors) == 1
     # ...and every operation is a no-op rather than a raise.
-    s.add_active_time("sitting", 60)
+    s.add_active_time("sitting", Duration.from_seconds(60))
     s.record_transition("sitting", "standing", "automation", False)
     assert s.daily_totals(date(2026, 7, 1), date(2026, 7, 2)) == []
     assert s.recent_transitions(10) == []
@@ -151,8 +151,8 @@ def test_a_write_failure_is_reported_once_and_swallowed(tmp_path):
     with pytest.raises(sqlite3.Error):
         s._db.execute("SELECT 1")  # the failure is real, not simulated
 
-    s.add_active_time("sitting", 60)
-    s.add_active_time("standing", 60)
+    s.add_active_time("sitting", Duration.from_seconds(60))
+    s.add_active_time("standing", Duration.from_seconds(60))
     s.record_transition("sitting", "standing", "automation", False)
     assert s.daily_totals(date(2026, 7, 1), date(2026, 7, 2)) == []
 
@@ -189,7 +189,7 @@ def test_an_unstamped_existing_database_is_adopted(tmp_path):
     path = tmp_path / "stats.sqlite"
 
     s = Stats(path)
-    s.add_active_time("sitting", 60, date(2026, 7, 17))
+    s.add_active_time("sitting", Duration.from_seconds(60), date(2026, 7, 17))
     s.close()
     with sq.connect(str(path)) as db:      # pretend it predates the stamp
         db.execute("PRAGMA user_version = 0")

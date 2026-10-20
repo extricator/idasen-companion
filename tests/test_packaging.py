@@ -738,7 +738,7 @@ def test_the_portability_probe_reads_the_statistics_it_wrote_back_out():
             f"the probe reads {reader} and compares it with nothing, which is "
             f"the same evidence as not reading it at all")
         if reader == "daily_totals":
-            assert any(credited in line for line in compared), (
+            assert any("CREDITED_SECONDS" in line for line in compared), (
                 f"the probe compares what {reader} returned against something "
                 f"other than the {credited} it wrote")
 

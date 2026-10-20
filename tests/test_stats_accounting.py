@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.core.durations import Duration
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.idle import (
     SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE,
@@ -196,10 +197,10 @@ async def test_real_automation_freezes_leave_active_statistics_running(harness, 
     await driver.start()
 
     await h.tick(5)
-    assert d.machine.active_time == 0
+    assert d.machine.active_time == Duration.from_seconds(0)
     assert h.credited() == pytest.approx(TICK)
     await h.tick(5)
-    assert d.machine.active_time == 0
+    assert d.machine.active_time == Duration.from_seconds(0)
     assert h.credited() == pytest.approx(2 * TICK)
 
 

@@ -296,6 +296,7 @@ async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
     """An unreachable desk must not hold the daemon in startup: it used to
     block for ~8 minutes while reporting Status="active" with every timer at 0,
     which is what the UI rendered as a permanent "0m left"."""
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
 
     reached_loop = asyncio.Event()
@@ -312,7 +313,7 @@ async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
     await asyncio.wait_for(d._run_until_stopped(0.0), 1.0)
     assert reached_loop.is_set(), "control loop never started"
     # A seeded cycle, not the constructed 0 that can never fire.
-    assert d.machine.target_duration > 0
+    assert d.machine.target_duration > Duration.from_seconds(0)
     d._initial_read.cancel()
 
 
@@ -323,6 +324,7 @@ async def _set_and_stop(event, daemon):
 
 async def test_seeded_cycle_is_replaced_once_the_desk_answers():
     """The background read still adopts the real position when it lands."""
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.core.config import AppConfig
     from idasen_companion.desk.mock import MockDesk
@@ -332,7 +334,7 @@ async def test_seeded_cycle_is_replaced_once_the_desk_answers():
     machine = StateMachine(cfg, MockDesk(height=1.10), now=0.0)
     machine.start_without_desk_read(0.0)
     seeded = machine.target_duration
-    assert seeded > 0 and machine.state.value == "sitting"  # the default
+    assert seeded > Duration.from_seconds(0) and machine.state.value == "sitting"  # the default
 
     await machine.start(0.0)
     assert machine.state.value == "standing", "real position was never adopted"
@@ -341,10 +343,10 @@ async def test_seeded_cycle_is_replaced_once_the_desk_answers():
     # seed above was the sitting default, the desk is standing. The target is a
     # random draw within the configured variation, hence the range.
     a = cfg.automation
-    assert a.stand_duration <= machine.target_duration <= (
-        a.stand_duration + a.stand_variation)
-    assert not (a.sit_duration <= machine.target_duration
-                <= a.sit_duration + a.sit_variation), "still on the sit cycle"
+    assert Duration.from_seconds(a.stand_duration) <= machine.target_duration <= (
+        Duration.from_seconds(a.stand_duration + a.stand_variation))
+    assert not (Duration.from_seconds(a.sit_duration) <= machine.target_duration
+                <= Duration.from_seconds(a.sit_duration + a.sit_variation)), "still on the sit cycle"
 
 
 # ----- a shared desk is expected, not an anomaly -----
@@ -545,6 +547,7 @@ async def test_seeding_respects_automation_being_switched_off():
     seeding predates [automation] enabled. Seeding a live countdown while the
     UI reports "Automation off" would contradict itself."""
     from idasen_companion.core.config import AppConfig
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.desk.mock import MockDesk
 
@@ -553,9 +556,9 @@ async def test_seeding_respects_automation_being_switched_off():
     cfg.automation.enabled = False
     machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
     machine.start_without_desk_read(0.0)
-    assert machine.target_duration == 0
+    assert machine.target_duration == Duration.from_seconds(0)
 
     cfg.automation.enabled = True
     machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
     machine.start_without_desk_read(0.0)
-    assert machine.target_duration > 0
+    assert machine.target_duration > Duration.from_seconds(0)

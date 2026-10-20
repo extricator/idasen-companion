@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from ..core.decoded_data import DailyStatRow, TransitionRow
+from ..core.durations import Duration
 
 DEFAULT_DB_PATH = Path(
     os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")
@@ -124,7 +125,8 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not close the statistics database", error)
 
-    def add_active_time(self, state: str, seconds: float, day: date | None = None) -> None:
+    def add_active_time(self, state: str, elapsed: Duration,
+                        day: date | None = None) -> None:
         if self._db is None:
             return
         day_str = (day or date.today()).isoformat()
@@ -132,7 +134,7 @@ class Stats:
             self._db.execute(
                 """INSERT INTO daily (day, state, seconds) VALUES (?, ?, ?)
                    ON CONFLICT (day, state) DO UPDATE SET seconds = seconds + excluded.seconds""",
-                (day_str, state, seconds),
+                (day_str, state, elapsed.seconds),
             )
             self._db.commit()
         except sqlite3.Error as error:
