@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core import activity_log
 from idasen_companion.core.presentation import Formatter  # noqa: E402
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -198,6 +199,17 @@ def test_the_row_stamp_reads_to_the_second(page):
     page._redraw()
 
     assert _last_row(page).startswith("14:32:05  INFO")
+
+
+def test_scalar_height_log_renders_zero_absence_and_mixed_version_fallback(page):
+    params = {"mac": "mock", "height": 0.0}
+    assert activity_log.render("setup.desk_configured", params, "wire", fmt=page.ctx.fmt) == (
+        "Desk configured: mock (height 0.0 cm).")
+    params["height"] = None
+    assert activity_log.render("setup.desk_configured", params, "wire", fmt=page.ctx.fmt) == (
+        "Desk configured: mock (height N/A).")
+    assert activity_log.render("future.height", params, "wire", fmt=page.ctx.fmt) == "wire"
+    assert params == {"mac": "mock", "height": None}
 
 
 def test_the_row_stamp_follows_the_clock_format(page):
