@@ -41,9 +41,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       warning/moving/failure feedback, priorities and clearing.
 - [ ] **Decide Activity Log history-range and paging improvements** — Decide useful ranges and
       retrieval/display limits before adding controls or paging.
-- [ ] **Add a schedule option for outside-hours statistics** — Define the config key/polarity,
-      effect on durations versus transitions and spent-time treatment across
-      schedule/config/pending-credit boundaries.
 
 ## Interaction and behavior
 
