@@ -147,39 +147,74 @@ def _formatter_translated_methods(tree):
     methods = {node.name: node for node in formatter.body
                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
+    nested_scopes = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+    comprehensions = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+    def enclosing_expressions(scope):
+        """Inputs evaluated before a nested scope's body takes ownership."""
+        expressions = list(getattr(scope, "decorator_list", []))
+        args = getattr(scope, "args", None)
+        if args:
+            expressions.extend(args.defaults)
+            expressions.extend(value for value in args.kw_defaults if value is not None)
+        if isinstance(scope, ast.ClassDef):
+            expressions.extend(scope.bases)
+            expressions.extend(keyword.value for keyword in scope.keywords)
+        return expressions
+
+    def comprehension_body(node):
+        values = [node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt]
+        return [*values, *(condition for gen in node.generators for condition in gen.ifs),
+                *(gen.iter for gen in node.generators[1:])]
+
+    def local_nodes(roots):
+        """Find bindings in one callable, excluding comprehension loop targets.
+
+        Assignment expressions inside a comprehension still bind this callable;
+        nested callable bodies have their own locals, but their defaults do not.
+        """
+        pending = list(roots)
+        while pending:
+            child = pending.pop()
+            yield child
+            if isinstance(child, nested_scopes):
+                pending.extend(enclosing_expressions(child))
+            elif isinstance(child, comprehensions):
+                pending.extend([child.generators[0].iter, *comprehension_body(child)])
+            else:
+                pending.extend(ast.iter_child_nodes(child))
+
+    def owned_expressions(roots):
+        for child in roots:
+            if isinstance(child, nested_scopes):
+                yield from owned_expressions(enclosing_expressions(child))
+                yield from owned_nodes(child, nested=True)
+            elif isinstance(child, comprehensions):
+                # Only the first iterable runs outside the comprehension scope.
+                yield from owned_expressions([child.generators[0].iter])
+                if not any(isinstance(target, ast.Name) and isinstance(target.ctx, ast.Store)
+                           and target.id == "self"
+                           for gen in child.generators for target in ast.walk(gen.target)):
+                    yield from owned_expressions(comprehension_body(child))
+            else:
+                yield child
+                yield from owned_expressions(ast.iter_child_nodes(child))
+
     def owned_nodes(scope, nested=False):
-        """Keep captured self, but discard a scope that binds its own self."""
+        """Keep captures unless this callable itself binds another self."""
         args = getattr(scope, "args", None)
         if nested and args and any(arg.arg == "self" for arg in [
                 *args.posonlyargs, *args.args, *args.kwonlyargs,
                 *([args.vararg] if args.vararg else []),
                 *([args.kwarg] if args.kwarg else [])]):
             return
-        pending = [scope.body] if isinstance(scope, ast.Lambda) else list(scope.body)
-        nodes, closures = [], []
-        while pending:
-            child = pending.pop()
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                  ast.ClassDef, ast.Lambda)):
-                if getattr(child, "name", None) == "self":
-                    return
-                closures.append(child)
-                # Defaults/decorators run here, before entering the new scope.
-                pending.extend(getattr(child, "decorator_list", []))
-                child_args = getattr(child, "args", None)
-                if child_args:
-                    pending.extend(child_args.defaults)
-                    pending.extend(value for value in child_args.kw_defaults
-                                   if value is not None)
-                continue
-            if (isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
-                    and child.id == "self"):
-                return
-            nodes.append(child)
-            pending.extend(ast.iter_child_nodes(child))
-        yield from nodes
-        for closure in closures:
-            yield from owned_nodes(closure, nested=True)
+        roots = [scope.body] if isinstance(scope, ast.Lambda) else scope.body
+        if any((isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
+                and child.id == "self")
+               or (isinstance(child, nested_scopes) and getattr(child, "name", None) == "self")
+               for child in local_nodes(roots)):
+            return
+        yield from owned_expressions(roots)
 
     owned = {name: list(owned_nodes(node)) for name, node in methods.items()}
     reached = {name for name, nodes in owned.items()
@@ -565,6 +600,33 @@ def test_a_formatter_default_capture_requires_a_real_registry_mark():
     with pytest.raises(AssertionError, match=(
             r"no @returns_translated mark.*\['fmt_default_capture'\]")):
         _assert_translation_registry(facade, set(), presentation)
+
+
+def test_formatter_comprehension_bindings_preserve_receiver_ownership():
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse('''
+def outside_comprehension(self):
+    numbers = [self for self in range(2)]
+    return self.height(1)
+
+def captured_in_comprehension(self):
+    return [self.height(value) for value in range(2)]
+
+def shadowed_in_comprehension(self, plain):
+    return [self.height(1) for self in plain]
+''').body)
+    facade = ast.parse('''
+from idasen_companion.core.presentation import Formatter
+def fmt_outside(fmt: Formatter):
+    return fmt.outside_comprehension()
+def fmt_captured(fmt: Formatter):
+    return fmt.captured_in_comprehension()
+def fmt_shadowed(fmt: Formatter, plain):
+    return fmt.shadowed_in_comprehension(plain)
+''')
+    assert _reaches_tr(facade, presentation) == {"fmt_outside", "fmt_captured"}
 
 
 def test_translation_reachability_respects_receiver_and_lexical_ownership():
