@@ -187,9 +187,12 @@ def _reaches_tr(tree, presentation_tree=None):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 name, value = node.name, node
             elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        register(target.id, node.value, scope, owner)
+                names = [target.id for target in node.targets
+                         if isinstance(target, ast.Name)]
+                if not names:
+                    names = [f"<lambda@{node.value.lineno}:{node.value.col_offset}>"]
+                for name in names:
+                    register(name, node.value, scope, owner)
                 continue
             elif isinstance(node, ast.Lambda):
                 register(f"<lambda@{node.lineno}:{node.col_offset}>", node,
@@ -425,6 +428,14 @@ def test_a_name_bound_to_a_lambda_reaches_tr():
     tree = ast.parse("g = lambda k: _tr(k)\n")
     assert _reaches_tr(tree) == {"g"}
     assert _lambda_definitions(tree) == {"g"}
+
+
+def test_an_attribute_bound_callback_reaches_its_enclosing_function():
+    tree = ast.parse(
+        "def f(holder):\n"
+        "    holder.callback = lambda: _tr('x')\n"
+        "    return holder.callback()\n")
+    assert _reaches_tr(tree) == {"f"}
 
 
 def test_a_def_is_not_reported_as_undecoratable():
