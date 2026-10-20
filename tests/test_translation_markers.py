@@ -164,6 +164,13 @@ def _formatter_translated_methods(tree):
                 if getattr(child, "name", None) == "self":
                     return
                 closures.append(child)
+                # Defaults/decorators run here, before entering the new scope.
+                pending.extend(getattr(child, "decorator_list", []))
+                child_args = getattr(child, "args", None)
+                if child_args:
+                    pending.extend(child_args.defaults)
+                    pending.extend(value for value in child_args.kw_defaults
+                                   if value is not None)
                 continue
             if (isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
                     and child.id == "self"):
@@ -541,6 +548,23 @@ def test_an_unseen_formatter_forwarder_requires_a_real_registry_mark():
     with pytest.raises(AssertionError, match=(
             r"no @returns_translated mark.*\['fmt_new_whole_message'\]")):
         _assert_translation_registry(util, RETURNS_TRANSLATED, presentation)
+
+
+def test_a_formatter_default_capture_requires_a_real_registry_mark():
+    """The default captures the owner even when the lambda parameter shadows it."""
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse(
+        "def default_capture(self):\n"
+        "    return (lambda self=self.height(1): self)()\n").body)
+    facade = ast.parse(
+        "from idasen_companion.core.presentation import Formatter\n"
+        "def fmt_default_capture(fmt: Formatter):\n"
+        "    return fmt.default_capture()\n")
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['fmt_default_capture'\]")):
+        _assert_translation_registry(facade, set(), presentation)
 
 
 def test_translation_reachability_respects_receiver_and_lexical_ownership():
