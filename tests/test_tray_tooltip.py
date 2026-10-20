@@ -52,6 +52,7 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
 from idasen_companion.core.machine import Status  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
@@ -77,7 +78,7 @@ class FakeClient(QObject):
         # when the daemon is unavailable, so the summary line is unreachable
         # without this.
         self.available = available
-        self.daily_rows = list(daily_rows)
+        self.daily_rows = [DailyStatRow(*row) for row in daily_rows]
 
     def get_daily_stats(self, start, end):
         # A real method rather than the __getattr__ fallback below, which

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (  # noqa: E402
 )
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.decoded_data import TransitionRow  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import main_window as mw  # noqa: E402
 from idasen_companion.gui import restyle, service_ctl  # noqa: E402
@@ -961,8 +962,8 @@ def test_a_switch_does_not_change_the_reported_automation_status(qapp):
 _PRESETS = {"sit": 0.62, "perch": 0.95, "stand": 1.14}
 _PRESETS_REBUILT = {"sit": 0.62, "lean": 0.80, "stand": 1.14}
 _TRANSITIONS = [
-    (1_700_000_000.0, "sitting", "standing", "manual", False),
-    (1_700_000_500.0, "standing", "sitting", "automation", True),
+    TransitionRow(1_700_000_000.0, "sitting", "standing", "manual", False),
+    TransitionRow(1_700_000_500.0, "standing", "sitting", "automation", True),
 ]
 
 
@@ -973,7 +974,7 @@ class _StatsFakeClient(FakeClient):
 
     def __init__(self):
         super().__init__()
-        self.transitions: list[tuple] = list(_TRANSITIONS)
+        self.transitions: list[TransitionRow] = list(_TRANSITIONS)
 
     def get_daily_stats(self, start, end):
         return []

@@ -466,8 +466,8 @@ class TrayIcon(QSystemTrayIcon):
             return ""
         today = date.today().isoformat()
         totals = {"sitting": 0.0, "standing": 0.0}
-        for _, state, seconds in self.client.get_daily_stats(today, today):
-            totals[state] = seconds
+        for daily in self.client.get_daily_stats(today, today):
+            totals[daily.state] = daily.seconds
         if totals["sitting"] or totals["standing"]:
             fmt = self._fmt()
             return (pgettext('tray', "Today: %(sitting)s sitting / %(standing)s standing")

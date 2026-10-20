@@ -50,6 +50,7 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
     LocaleProfile,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
 from idasen_companion.gui.sni import (RichTooltip, StatusNotifierItem,  # noqa: E402
                                       find_tray_connection)
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
@@ -68,7 +69,7 @@ class FakeClient(QObject):
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
         self.available = available
-        self.daily_rows = list(daily_rows)
+        self.daily_rows = [DailyStatRow(*row) for row in daily_rows]
 
     def get_daily_stats(self, start, end):
         return self.daily_rows
