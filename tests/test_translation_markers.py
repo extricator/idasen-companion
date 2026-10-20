@@ -253,6 +253,17 @@ def _reaches_tr(tree, presentation_tree=None):
     classes = {}
     owners = {}
 
+    def enclosing_expressions(node):
+        expressions = list(getattr(node, "decorator_list", []))
+        args = getattr(node, "args", None)
+        if args:
+            expressions.extend(args.defaults)
+            expressions.extend(value for value in args.kw_defaults if value is not None)
+        if isinstance(node, ast.ClassDef):
+            expressions.extend(node.bases)
+            expressions.extend(keyword.value for keyword in node.keywords)
+        return expressions
+
     def collect(body, scope=(), owner=None):
         for node in body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -275,6 +286,8 @@ def _reaches_tr(tree, presentation_tree=None):
             register(name, value, scope, owner)
 
     def register(name, node, scope, owner):
+        # A lambda in a default/decorator captures this enclosing scope too.
+        collect(enclosing_expressions(node), scope, owner)
         key = scope + (name,)
         bindings[scope][name] = ("definition", key)
         bindings[key] = {}
@@ -330,6 +343,7 @@ def _reaches_tr(tree, presentation_tree=None):
             child = pending.pop()
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
                                   ast.ClassDef, ast.Lambda)):
+                pending.extend(enclosing_expressions(child))
                 continue
             yield child
             pending.extend(ast.iter_child_nodes(child))
@@ -583,6 +597,16 @@ def test_an_unseen_formatter_forwarder_requires_a_real_registry_mark():
     with pytest.raises(AssertionError, match=(
             r"no @returns_translated mark.*\['fmt_new_whole_message'\]")):
         _assert_translation_registry(util, RETURNS_TRANSLATED, presentation)
+
+
+def test_a_gui_default_capture_requires_a_real_registry_mark():
+    """A lambda inside a default still contributes to its enclosing facade."""
+    facade = ast.parse(
+        "def gui_default_capture():\n"
+        "    return (lambda text=(lambda: _tr('x'))(): text)()\n")
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['gui_default_capture'\]")):
+        _assert_translation_registry(facade, set())
 
 
 def test_a_formatter_default_capture_requires_a_real_registry_mark():
