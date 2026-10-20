@@ -481,6 +481,92 @@ def _assert_translation_registry(tree, marked, presentation_tree=None):
         f"{sorted(spurious_mark)}")
 
 
+def test_an_unseen_formatter_forwarder_requires_a_real_registry_mark():
+    """A new owned sibling wrapper must fail the actual registry assertion."""
+    from idasen_companion.gui.util import (  # pylint: disable=import-outside-toplevel
+        RETURNS_TRANSLATED,
+    )
+
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse(
+        "def new_whole_message(self, value):\n"
+        "    return self.height(value)\n").body)
+    util = ast.parse((SRC / "gui" / "util.py").read_text())
+    util.body.extend(ast.parse(
+        "def fmt_new_whole_message(fmt: Formatter, value):\n"
+        "    return fmt.new_whole_message(value)\n").body)
+
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['fmt_new_whole_message'\]")):
+        _assert_translation_registry(util, RETURNS_TRANSLATED, presentation)
+
+
+def test_translation_reachability_respects_receiver_and_lexical_ownership():
+    """Same spellings are insufficient; locale-only owned calls stay clean."""
+    tree = ast.parse('''
+from idasen_companion.core.presentation import Formatter as F
+from idasen_companion.core import presentation as p
+
+def genuine(fmt: F):
+    return fmt.height(1)
+
+def aliased(fmt: "F"):
+    local = fmt
+    return local.duration_verbose(60)
+
+def constructed():
+    local = p.Formatter(None)
+    return local.height(1)
+
+def locale_only(fmt: F):
+    return fmt.clock(0), fmt.height_value(1), fmt.context.locale
+
+def unrelated(fmt):
+    return fmt.height(1), fmt.day_and_clock(0), fmt.context.translator
+
+def ordinary_strings():
+    literal = "not a valid Python expression"
+    fake_type = "F"
+    fake = fake_type(None)
+    return literal, fake.height(1)
+
+def message():
+    return _tr('x')
+
+def module_forward():
+    return message()
+
+class Plain:
+    def message(self):
+        return 0
+    def clean(self):
+        return self.message()
+
+class Translated:
+    def message(self):
+        return _tr('x')
+    def sibling(self):
+        return self.message()
+
+def lexical_shadow():
+    def message():
+        return 0
+    return message()
+
+def closure(fmt: F):
+    return (lambda: fmt.height(1))()
+
+def parameter_shadow(fmt: F):
+    return (lambda fmt: fmt.height(1))(None)
+''')
+    assert _reaches_tr(tree) == {
+        "genuine", "aliased", "constructed", "message", "module_forward",
+        "sibling", "closure",
+    }
+
+
 # ---------------------------------------------------------------------------
 # A sentence assembled from translated pieces is a sentence no translator can
 # reorder, and the two halves ship looking fine in English -- the parts read
