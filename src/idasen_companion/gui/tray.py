@@ -8,6 +8,7 @@ window. gui.main decides whether to construct this at all.
 from __future__ import annotations
 
 from ..core.i18n import pgettext
+from ..core.durations import Duration
 
 import time
 from datetime import date
@@ -60,8 +61,8 @@ class TrayIcon(QSystemTrayIcon):
         # countdown is a real state ("Due now"), not the absence of one. A
         # falsy 0.0 conflated the two, so the countdown clause vanished
         # outright once the clock ran out — for as long as the move waited.
-        self._remaining: float | None = None
-        self._elapsed: float | None = None
+        self._remaining: Duration | None = None
+        self._elapsed: Duration | None = None
         # When those two were last true, so the ticker below can age them.
         self._progress_stamp = time.monotonic()
         # The day's totals, cached: see _refresh_texts for why the ticker
@@ -229,10 +230,10 @@ class TrayIcon(QSystemTrayIcon):
         self._refresh_texts()
 
     def _on_progress(self, active_time: float, target: float) -> None:
-        self._remaining = max(0.0, target - active_time)
+        self._remaining = max(Duration(0.0), Duration(target - active_time))
         # The other half of the same number: how long this position has been
         # held. Both sides of the cycle are worth a line in the tooltip.
-        self._elapsed = max(0.0, active_time)
+        self._elapsed = max(Duration(0.0), Duration(active_time))
         self._progress_stamp = time.monotonic()
         self._refresh_texts()
 
@@ -267,7 +268,7 @@ class TrayIcon(QSystemTrayIcon):
         """
         if self._remaining is None:
             return None
-        return max(0.0, round(self._remaining - self._since_progress()))
+        return max(0.0, round((self._remaining - self._since_progress()).seconds))
 
     def _cycle_stopped(self) -> bool:
         """Whether the active-time clock is frozen with no scheduled thaw.
@@ -283,10 +284,10 @@ class TrayIcon(QSystemTrayIcon):
         """How long this position has been held, aged the same way."""
         if self._elapsed is None:
             return None
-        return float(round(self._elapsed + self._since_progress()))
+        return float(round((self._elapsed + self._since_progress()).seconds))
 
-    def _since_progress(self) -> float:
-        return time.monotonic() - self._progress_stamp
+    def _since_progress(self) -> Duration:
+        return Duration(time.monotonic() - self._progress_stamp)
 
     def _time_left(self, remaining: float) -> str:
         """The remaining time as a word: '11m', '45s'.

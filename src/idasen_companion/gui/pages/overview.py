@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
+from ...core.durations import Duration
 from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, DeskState, Status
 from ...core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .. import restyle
@@ -39,7 +40,7 @@ _SNOOZE_MINUTES = 10
 class OverviewPage(Page):
     def __init__(self, ctx):
         super().__init__(ctx)
-        self._remaining = 0.0
+        self._remaining = Duration(0.0)
         self._status: StatusValue = parse_status("")
         self._connected = False
         self._position: PositionValue = parse_position("")
@@ -532,19 +533,20 @@ class OverviewPage(Page):
                                else icon("media-playback-pause"))
 
     def _on_progress(self, active_time: float, target: float) -> None:
-        self._remaining = max(0.0, target - active_time)
+        self._remaining = max(Duration(0.0), Duration(target - active_time))
         self._progress_stamp = time.monotonic()
         self.countdown_bar.setMaximum(max(1, int(target)))
         self._update_countdown_text()
 
     def _tick_countdown(self) -> None:
-        if self._status in COUNTDOWN_STATUSES and self._remaining > 0:
-            elapsed = time.monotonic() - self._progress_stamp
-            shown = max(0.0, self._remaining - elapsed)
+        if self._status in COUNTDOWN_STATUSES and self._remaining > Duration(0.0):
+            elapsed = Duration(time.monotonic() - self._progress_stamp)
+            shown = max(Duration(0.0), self._remaining - elapsed)
             self._update_countdown_text(shown)
 
-    def _update_countdown_text(self, remaining: float | None = None) -> None:
+    def _update_countdown_text(self, remaining: Duration | None = None) -> None:
         remaining = self._remaining if remaining is None else remaining
+        remaining_seconds = remaining.seconds
         next_pos = ({DeskState.SITTING: preset_label("stand"),
                      DeskState.STANDING: preset_label("sit")}.get(self._position)
                     if isinstance(self._position, DeskState) else None)
@@ -556,13 +558,13 @@ class OverviewPage(Page):
         # visible after saving a shorter interval than the time already
         # accumulated, which lands the cycle at zero the moment it reloads.
         # Rounded the same way fmt_countdown rounds, so "0:00" is never shown.
-        due = int(remaining) <= 0
+        due = int(remaining_seconds) <= 0
         self.countdown_in_lbl.setVisible(not due)
         self.countdown_of_lbl.setVisible(not due)
         self.countdown_time_word.setText(
-            due_now_label() if due else fmt_countdown(self.ctx.fmt, remaining))
+            due_now_label() if due else fmt_countdown(self.ctx.fmt, remaining_seconds))
         total = self.countdown_bar.maximum()
-        elapsed = max(0, min(total, int(total - remaining)))
+        elapsed = max(0, min(total, int(total - remaining_seconds)))
         self.countdown_bar.setValue(elapsed)
         self.progress_caption.setText(
             pgettext('overview', "%s%% of this interval elapsed")
