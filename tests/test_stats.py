@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from idasen_companion.core.durations import Duration
+
 from idasen_companion.daemon.stats import Stats
 from idasen_companion.daemon.service import Stats1
 from idasen_companion.core.decoded_data import decode_daily_rows, decode_transition_rows
@@ -220,3 +222,10 @@ def test_a_newer_database_is_refused_not_half_read(tmp_path):
     assert len(errors) == 1
     assert "newer version" in errors[0]
     assert s.daily_totals(date(2026, 7, 1), date(2026, 7, 2)) == []
+
+
+def test_active_time_accepts_duration_and_keeps_the_stored_scalar():
+    stats = Stats(Path(":memory:"))
+    day = date(2026, 7, 17)
+    stats.add_active_time("sitting", Duration.from_seconds(12.5), day)
+    assert stats.daily_totals(day, day) == [(day.isoformat(), "sitting", 12.5)]
