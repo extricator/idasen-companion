@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
     HeldOffCycle,
@@ -46,11 +47,11 @@ async def test_disabled_outranks_pause_and_schedule():
 async def test_disabled_never_moves_the_desk():
     d = Driver(cfg=_disabled())
     await d.start()
-    assert d.m.target_duration == 0
+    assert d.m.target_duration == Duration.from_seconds(0)
     events = await d.run_active_ticks(60)  # an hour of active use
     assert not any(isinstance(e, TransitionCompleted) for e in events)
     assert d.desk.move_calls == []
-    assert d.m.active_time == 0  # the clock never starts
+    assert d.m.active_time == Duration.from_seconds(0)  # the clock never starts
 
 
 async def test_disabled_still_tracks_where_the_desk_is():
@@ -84,16 +85,16 @@ async def test_enabling_starts_a_fresh_cycle_not_an_overdue_one():
     d = Driver()
     await d.start()
     await d.run_active_ticks(40)
-    assert d.m.active_time > 0
+    assert d.m.active_time > Duration.from_seconds(0)
     d.cfg.automation.enabled = False
     d.m.update_config(d.cfg)
-    assert d.m.active_time == 0
-    assert d.m.target_duration == 0
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert d.m.target_duration == Duration.from_seconds(0)
 
     d.cfg.automation.enabled = True
     d.m.update_config(d.cfg)
-    assert d.m.active_time == 0
-    assert d.m.target_duration == 45 * 60
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert d.m.target_duration == Duration.from_seconds(45 * 60)
     assert d.m.status(d.now) is not Status.DISABLED
 
 
@@ -115,12 +116,12 @@ async def test_pause_freezes_clock_and_blocks_transitions():
     await d.run_active_ticks(10)
     d.m.pause()
     await d.run_active_ticks(60)
-    assert d.m.active_time == 600  # frozen, not reset
+    assert d.m.active_time == Duration.from_seconds(600)  # frozen, not reset
     assert d.desk.move_calls == []
     assert d.m.status(d.now) is Status.PAUSED
     d.m.resume()
     await d.run_active_ticks(1)
-    assert d.m.active_time == 660
+    assert d.m.active_time == Duration.from_seconds(660)
     assert d.m.status(d.now) is Status.ACTIVE
 
 
@@ -130,10 +131,10 @@ async def test_snooze_freezes_until_expiry():
     await d.run_active_ticks(5)
     d.m.snooze(10, d.now)
     await d.run_active_ticks(9)  # 9 min < 10 min snooze
-    assert d.m.active_time == 300
+    assert d.m.active_time == Duration.from_seconds(300)
     assert d.m.status(d.now) is Status.SNOOZED
     await d.run_active_ticks(2)  # snooze expired mid-way
-    assert d.m.active_time > 300
+    assert d.m.active_time > Duration.from_seconds(300)
     assert d.m.status(d.now) is Status.ACTIVE
 
 
@@ -158,14 +159,14 @@ async def test_out_of_schedule_freezes():
     d = Driver(cfg=cfg, now=friday_noon)
     await d.start()
     await d.run_active_ticks(10)
-    assert d.m.active_time == 600
+    assert d.m.active_time == Duration.from_seconds(600)
     assert d.m.status(d.now) is Status.ACTIVE
 
     # ...then step to Saturday, outside the schedule.
     d.now = datetime(2026, 7, 18, 12, 0).timestamp()
     d.m._last_check = d.now
     await d.run_active_ticks(10)
-    assert d.m.active_time == 600, "out-of-schedule reset the cycle, not froze it"
+    assert d.m.active_time == Duration.from_seconds(600), "out-of-schedule reset the cycle, not froze it"
     assert d.desk.move_calls == []
     assert d.m.status(d.now) is Status.OUT_OF_SCHEDULE
 
@@ -177,7 +178,7 @@ async def test_in_schedule_runs_normally():
     d = Driver(cfg=cfg, now=friday_ten)
     await d.start()
     await d.run_active_ticks(10)
-    assert d.m.active_time == 600
+    assert d.m.active_time == Duration.from_seconds(600)
 
 
 async def test_skip_next_consumes_one_transition():
@@ -189,7 +190,7 @@ async def test_skip_next_consumes_one_transition():
     assert any(isinstance(e, TransitionSkipped) for e in events)
     assert d.desk.move_calls == []
     assert d.m.state is DeskState.SITTING
-    assert d.m.active_time == 0
+    assert d.m.active_time == Duration.from_seconds(0)
     assert d.m.skip_next is False
     # The following cycle transitions normally.
     d.m.active_time = d.m.target_duration

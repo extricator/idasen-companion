@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import DeskState, Status
 from idasen_companion.daemon.dbus_util import DBusCallError
 from idasen_companion.daemon.main import Daemon
@@ -149,8 +150,8 @@ def warn_daemon(*, remaining, target=1500, status="active",
     d.config.notifications.lead_time = lead_time
     d.config.automation.check_interval = check_interval
     d.machine = MagicMock()
-    d.machine.time_remaining.return_value = remaining
-    d.machine.target_duration = target
+    d.machine.time_remaining.return_value = Duration.from_seconds(remaining)
+    d.machine.target_duration = Duration.from_seconds(target)
     d.machine.state = state
     # A real Status, not a MagicMock: _maybe_warn compares against
     # COUNTDOWN_STATUSES, and a stand-in matches nothing.
@@ -190,10 +191,10 @@ async def test_warning_does_not_repeat_within_the_same_cycle():
 async def test_warning_rearms_once_the_cycle_moves_out_of_the_window():
     d = warn_daemon(remaining=45)
     await d._maybe_warn(0.0)
-    d.machine.time_remaining.return_value = 900      # new cycle, far out
+    d.machine.time_remaining.return_value = Duration.from_seconds(900)  # new cycle, far out
     await d._maybe_warn(0.0)
     assert d._warned_this_cycle is False
-    d.machine.time_remaining.return_value = 45
+    d.machine.time_remaining.return_value = Duration.from_seconds(45)
     await d._maybe_warn(0.0)
     await drain()
     assert d._ifaces["automation"].PreMoveWarning.call_count == 2

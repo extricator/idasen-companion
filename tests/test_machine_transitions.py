@@ -2,6 +2,7 @@
 
 import pytest
 
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
     MoveFailed,
@@ -32,8 +33,8 @@ async def test_transition_fires_when_recently_active():
     assert completed[0].result is DeskState.STANDING
     assert d.desk.move_calls == [STAND_H]
     assert d.m.state is DeskState.STANDING
-    assert d.m.active_time == 0
-    assert d.m.target_duration == 25 * 60
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert d.m.target_duration == Duration.from_seconds(25 * 60)
 
 
 async def test_desk_does_not_move_in_ambiguous_idle_window():
@@ -86,7 +87,7 @@ async def test_no_hold_reported_before_the_transition_is_due():
 async def test_desk_does_not_move_while_locked():
     d = Driver()
     await d.start()
-    d.m.active_time = 10_000  # past target
+    d.m.active_time = Duration.from_seconds(10_000)  # past target
     await d.tick(idle_ms=0, locked=True)
     assert d.desk.move_calls == []
 
@@ -211,7 +212,7 @@ async def test_failed_move_is_retried_on_the_next_cycle():
     d.desk.fail_next_move = True
     d.desk.height_unavailable = True
     await d.tick()
-    assert d.m.active_time == 0  # fresh cycle, still sitting
+    assert d.m.active_time == Duration.from_seconds(0)  # fresh cycle, still sitting
     d.desk.height_unavailable = False
     d.m.active_time = d.m.target_duration
     events = await d.tick()

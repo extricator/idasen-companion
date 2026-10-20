@@ -1,5 +1,7 @@
 """Cycle variation, restart events, remaining time and status contracts."""
 
+from idasen_companion.core.durations import Duration
+
 from idasen_companion.core.machine import (
     DeskState,
     MoveFailed,
@@ -24,11 +26,11 @@ async def test_variation_adds_up_to_max_whole_minutes():
     cfg = make_config(sit_variation=10 * 60, stand_variation=5 * 60)
     d = Driver(cfg=cfg, rng=MaxRng())
     await d.start()
-    assert d.m.target_duration == 45 * 60 + 10 * 60  # sit base + max variation
+    assert d.m.target_duration == Duration.from_seconds(45 * 60 + 10 * 60)  # sit base + max variation
     d.m.active_time = d.m.target_duration
     await d.tick()
     assert d.m.state is DeskState.STANDING
-    assert d.m.target_duration == 25 * 60 + 5 * 60
+    assert d.m.target_duration == Duration.from_seconds(25 * 60 + 5 * 60)
 
 
 async def test_variation_rounds_partial_minutes_up():
@@ -36,7 +38,7 @@ async def test_variation_rounds_partial_minutes_up():
     cfg = make_config(sit_variation=90)
     d = Driver(cfg=cfg, rng=MaxRng())
     await d.start()
-    assert d.m.target_duration == 45 * 60 + 2 * 60
+    assert d.m.target_duration == Duration.from_seconds(45 * 60 + 2 * 60)
 
 
 # ----- the new cycle's length rides along on every restart -----
@@ -49,7 +51,7 @@ async def test_completed_transition_reports_the_new_cycle_length():
     d.m.active_time = d.m.target_duration
     events = await d.tick()
     completed = [e for e in events if isinstance(e, TransitionCompleted)][0]
-    assert completed.next_target_duration == 25 * 60  # now standing
+    assert completed.next_target_duration == Duration.from_seconds(25 * 60)  # now standing
     assert completed.next_target_duration == d.m.target_duration
 
 
@@ -67,7 +69,7 @@ async def test_failed_move_reports_the_new_cycle_length():
     d.desk.move_to = refuse
     events = await d.tick()
     failed = [e for e in events if isinstance(e, MoveFailed)][0]
-    assert failed.next_target_duration == 45 * 60  # still sitting
+    assert failed.next_target_duration == Duration.from_seconds(45 * 60)  # still sitting
 
 
 async def test_adopted_external_move_reports_the_new_cycle_length():
@@ -77,7 +79,7 @@ async def test_adopted_external_move_reports_the_new_cycle_length():
     d.desk.height = STAND_H  # someone used the paddle
     events = await d.tick(dt=5 * 60)
     synced = [e for e in events if isinstance(e, StateSynced)][0]
-    assert synced.next_target_duration == 25 * 60
+    assert synced.next_target_duration == Duration.from_seconds(25 * 60)
 
 
 async def test_resume_from_held_reports_the_new_cycle_length():
@@ -89,7 +91,7 @@ async def test_resume_from_held_reports_the_new_cycle_length():
     d.desk.height = STAND_H
     events = await d.tick(dt=5 * 60)
     resumed = [e for e in events if isinstance(e, ResumedOnCycle)][0]
-    assert resumed.next_target_duration == 25 * 60
+    assert resumed.next_target_duration == Duration.from_seconds(25 * 60)
 
 
 # ----- status extras -----
@@ -109,7 +111,7 @@ async def test_time_remaining_countdown():
     d = Driver()
     await d.start()
     await d.run_active_ticks(10)
-    assert d.m.time_remaining() == 45 * 60 - 600
+    assert d.m.time_remaining() == Duration.from_seconds(45 * 60 - 600)
 
 
 async def test_config_hot_reload_recomputes_target_keeps_active_time():
@@ -119,8 +121,8 @@ async def test_config_hot_reload_recomputes_target_keeps_active_time():
     new_cfg = make_config(sit_duration=30 * 60)
     new_cfg.presets = dict(d.cfg.presets)
     d.m.update_config(new_cfg)
-    assert d.m.active_time == 600  # kept
-    assert d.m.target_duration == 30 * 60  # new duration effective now
+    assert d.m.active_time == Duration.from_seconds(600)  # kept
+    assert d.m.target_duration == Duration.from_seconds(30 * 60)  # new duration effective now
 
 
 # ----- the status sets the GUI shares -----

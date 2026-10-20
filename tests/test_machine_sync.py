@@ -1,5 +1,7 @@
 """Desk synchronization, external movement and held recovery."""
 
+from idasen_companion.core.durations import Duration
+
 from idasen_companion.core.machine import (
     DeskState,
     HeldOffCycle,
@@ -31,8 +33,8 @@ async def test_sync_adopts_external_change_and_resets_timers():
     assert len(synced) == 1
     assert synced[0].current is DeskState.STANDING
     assert d.m.state is DeskState.STANDING
-    assert d.m.active_time == 0
-    assert d.m.target_duration == 25 * 60
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert d.m.target_duration == Duration.from_seconds(25 * 60)
 
 
 async def test_sync_failure_keeps_internal_state():
@@ -59,14 +61,14 @@ async def test_sync_before_decide_sync_skips_redundant_move_when_already_there()
     redundant move — the stale-position bug."""
     d = Driver()
     await d.start()
-    d.m.active_time = d.m.target_duration - 90  # within the lead window after +60
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(90)  # within the lead window after +60
     d.desk.height = STAND_H  # someone stood the desk via the panel
     events = await d.tick()
     assert any(isinstance(e, StateSynced) for e in events)
     assert not any(isinstance(e, TransitionCompleted) for e in events)
     assert d.desk.move_calls == []  # automation issued no move
     assert d.m.state is DeskState.STANDING
-    assert d.m.active_time == 0
+    assert d.m.active_time == Duration.from_seconds(0)
 
 
 async def test_sync_before_decide_sync_holds_when_parked_off_cycle():
@@ -74,7 +76,7 @@ async def test_sync_before_decide_sync_holds_when_parked_off_cycle():
     hold and don't move it away from where the user put it."""
     d = Driver()
     await d.start()
-    d.m.active_time = d.m.target_duration - 90
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(90)
     d.desk.height = OFF_CYCLE_H
     events = await d.tick()
     assert any(isinstance(e, HeldOffCycle) for e in events)
@@ -87,7 +89,7 @@ async def test_start_holds_when_off_cycle_under_yield():
     d = Driver(height=OFF_CYCLE_H)
     await d.start()
     assert d.m.held is True
-    assert d.m.target_duration == 0
+    assert d.m.target_duration == Duration.from_seconds(0)
     assert d.m.status(d.now) is Status.HELD
 
 
@@ -126,7 +128,7 @@ async def test_held_resumes_when_desk_returns_to_preset():
     assert resumed[0].current is DeskState.STANDING
     assert d.m.held is False
     assert d.m.state is DeskState.STANDING
-    assert d.m.target_duration == 25 * 60
+    assert d.m.target_duration == Duration.from_seconds(25 * 60)
 
 
 async def test_held_polls_even_when_sync_interval_disabled():
@@ -135,7 +137,7 @@ async def test_held_polls_even_when_sync_interval_disabled():
     await d.start()
     d.desk.height = OFF_CYCLE_H
     # No periodic poll, but a due transition triggers the pre-decide read.
-    d.m.active_time = d.m.target_duration - 90
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(90)
     await d.tick()
     assert d.m.held is True
     # With polling off, a held desk still polls at HELD_POLL_INTERVAL so a
@@ -161,11 +163,11 @@ async def test_sync_lead_time_is_the_larger_of_lead_time_and_check_interval():
 
     cfg.notifications.lead_time = 120     # lead time is the larger
     d = Driver(cfg=cfg)
-    assert d.m._sync_lead_time() == 120
+    assert d.m._sync_lead_time() == Duration.from_seconds(120)
 
     cfg.notifications.lead_time = 30      # check interval is the larger
     d = Driver(cfg=cfg)
-    assert d.m._sync_lead_time() == 60
+    assert d.m._sync_lead_time() == Duration.from_seconds(60)
 
 
 async def test_a_long_lead_time_reads_the_desk_early_enough_to_warn_on():
@@ -180,7 +182,7 @@ async def test_a_long_lead_time_reads_the_desk_early_enough_to_warn_on():
 
     # Each tick advances active_time by one check_interval (60s), so seed
     # 240 out to land at 180 remaining — outside a 120s window.
-    d.m.active_time = d.m.target_duration - 240
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(240)
     await d.tick()
     assert d.m._synced_before_decide is False
 
@@ -201,7 +203,7 @@ async def test_sync_before_decide_read_deferred_when_notifications_off():
     await d.start()
     # Land inside what would be the lead window (remaining 30 after +60) but
     # short of due. With warnings off, no early read fires.
-    d.m.active_time = d.m.target_duration - 90
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(90)
     d.desk.height = STAND_H  # external move mid-cycle
     events = await d.tick()  # remaining 30 > window(0): no read
     assert d.m._synced_before_decide is False
@@ -227,7 +229,7 @@ async def test_sync_before_decide_rearms_after_idle_reset():
     d = Driver(cfg=cfg)
     await d.start()
     # Climb into the lead window so the pre-decide read fires once.
-    d.m.active_time = d.m.target_duration - 90
+    d.m.active_time = d.m.target_duration - Duration.from_seconds(90)
     await d.tick()  # remaining 30 <= window -> pre-decide sync (desk at sit)
     assert d.m._synced_before_decide is True
     # Go idle, then return: activity-after-idle resets the accumulator AND the

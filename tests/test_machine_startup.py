@@ -1,5 +1,7 @@
 """Startup adoption, target classification and unconfigured lifecycle."""
 
+from idasen_companion.core.durations import Duration
+
 from idasen_companion.core.machine import (
     DeskState,
     StateSynced,
@@ -21,7 +23,7 @@ async def test_start_classifies_current_height():
     d = Driver(height=STAND_H)
     await d.start()
     assert d.m.state is DeskState.STANDING
-    assert d.m.target_duration == 25 * 60
+    assert d.m.target_duration == Duration.from_seconds(25 * 60)
 
 
 async def test_start_adopts_state_without_emitting_transition():
@@ -39,7 +41,7 @@ async def test_start_with_unreadable_height_keeps_default():
     d.desk.height_unavailable = True
     await d.start()
     assert d.m.state is DeskState.SITTING
-    assert d.m.target_duration == 45 * 60
+    assert d.m.target_duration == Duration.from_seconds(45 * 60)
 
 
 # ----- toggle target (tray left-click / --toggle shortcut) -----
@@ -117,13 +119,13 @@ async def test_unconfigured_machine_stays_inert():
     d = Driver()
     d.m.unconfigured = True
     await d.start()
-    assert d.m.target_duration == 0
+    assert d.m.target_duration == Duration.from_seconds(0)
     assert d.m.status(d.now) is Status.UNCONFIGURED
 
     events = await d.run_active_ticks(200, idle_ms=0)
     assert events == []
-    assert d.m.active_time == 0
-    assert d.m.target_duration == 0
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert d.m.target_duration == Duration.from_seconds(0)
     assert d.m.last_height is None  # never even read the desk
 
 
@@ -140,10 +142,10 @@ async def test_clearing_unconfigured_lets_the_cycle_start():
     d = Driver()
     d.m.unconfigured = True
     await d.start()
-    assert d.m.target_duration == 0
+    assert d.m.target_duration == Duration.from_seconds(0)
 
     d.m.unconfigured = False
     await d.m.start(d.now)
-    assert d.m.target_duration == 45 * 60
+    assert d.m.target_duration == Duration.from_seconds(45 * 60)
     assert d.m.last_height == SIT_H
     assert d.m.status(d.now) is Status.ACTIVE
