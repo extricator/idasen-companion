@@ -37,6 +37,7 @@ from PySide6.QtWidgets import QLabel  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.core.presentation import Formatter  # noqa: E402
@@ -67,7 +68,7 @@ class FakeClient(QObject):
         # 2026-08-17 in that case — after which the row is dropped before it
         # reaches the chart and these tests keep passing while asserting
         # nothing about the render.
-        return [[date.today().isoformat(), "sitting", self.seconds]]
+        return [DailyStatRow(date.today().isoformat(), "sitting", self.seconds)]
 
     def get_transitions(self, limit: int = 50) -> list:
         return []
@@ -100,7 +101,7 @@ def test_a_rebuilt_formatter_reaches_the_next_transitions_redraw(qapp, tmp_path,
     client = FakeClient()
     occurred_at = datetime(2026, 8, 17, 14, 32).timestamp()
     client.get_transitions = lambda limit=50: [
-        [occurred_at, "sitting", "standing", "automation", False]]
+        TransitionRow(occurred_at, "sitting", "standing", "automation", False)]
     page = StatisticsPage(AppContext(client, tray_available=True))
 
     page.on_shown()

@@ -29,6 +29,9 @@ from PySide6.QtDBus import (
 )
 
 from .. import DBUS_NAME, DBUS_PATH
+from ..core.decoded_data import (
+    DailyStatRow, TransitionRow, decode_daily_rows, decode_transition_rows,
+)
 from ..core.machine import Status
 from ..core.state_values import StatusValue, parse_status
 
@@ -297,13 +300,19 @@ class DaemonClient(QObject):
         return ({name: float(h) for name, h in presets.items()}
                 if isinstance(presets, dict) else {})
 
-    def get_daily_stats(self, start: str, end: str) -> list:
-        rows = self._call_for_json(IFACE_STATS, "GetDaily", start, end)
-        return [tuple(row) for row in rows] if rows else []
+    def get_daily_stats(self, start: str, end: str) -> list[DailyStatRow]:
+        try:
+            rows = self._call_for_json(IFACE_STATS, "GetDaily", start, end)
+        except (TypeError, ValueError):
+            return []
+        return decode_daily_rows(rows)
 
-    def get_transitions(self, limit: int = 50) -> list:
-        rows = self._call_for_json(IFACE_STATS, "GetTransitions", limit)
-        return [tuple(row) for row in rows] if rows else []
+    def get_transitions(self, limit: int = 50) -> list[TransitionRow]:
+        try:
+            rows = self._call_for_json(IFACE_STATS, "GetTransitions", limit)
+        except (TypeError, ValueError):
+            return []
+        return decode_transition_rows(rows)
 
     def get_recent_log(self) -> list[dict]:
         """The daemon's in-memory backlog, as entry dicts.

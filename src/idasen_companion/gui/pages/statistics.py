@@ -118,9 +118,9 @@ class StatisticsPage(Page):
         end_date = date.today()
         start = end_date - timedelta(days=13)
         by_day: dict[str, dict[str, float]] = {}
-        for day_str, state, seconds in self.client.get_daily_stats(
+        for daily in self.client.get_daily_stats(
                 start.isoformat(), end_date.isoformat()):
-            by_day.setdefault(day_str, {})[state] = seconds
+            by_day.setdefault(daily.day, {})[daily.state] = daily.seconds
 
         # One bar per calendar day, oldest first / today last.
         rows = []
@@ -145,13 +145,14 @@ class StatisticsPage(Page):
         self.stats_footer.setText(footer)
 
         clear_layout(self._trans_rows)
-        for i, (occurred_at, from_state, to_state, trigger, interrupted) in enumerate(
+        for i, transition in enumerate(
                 self.client.get_transitions(50)):
             if i:
                 self._trans_rows.addWidget(separator())
             self._trans_rows.addWidget(
-                self._make_transition_row(occurred_at, from_state, to_state,
-                                          trigger, interrupted))
+                self._make_transition_row(
+                    transition.timestamp, transition.from_state, transition.to_state,
+                    transition.trigger, transition.interrupted))
 
     def _make_transition_row(self, occurred_at: float, from_state: str, to_state: str,
                              trigger: str, interrupted: bool) -> QWidget:

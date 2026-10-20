@@ -37,6 +37,7 @@ from PySide6.QtGui import QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -122,7 +123,7 @@ class _FakeStatisticsClient(QObject):
 
     def __init__(self, daily_stats):
         super().__init__()
-        self._daily_stats = daily_stats
+        self._daily_stats = [DailyStatRow(*row) for row in daily_stats]
 
     def get_daily_stats(self, start: str, end: str) -> list:
         return self._daily_stats
@@ -271,8 +272,8 @@ def test_transition_row_renders_position_words_as_one_message(
 def test_history_positions_are_formatted_without_changing_raw_rows(
         qapp, tmp_path, monkeypatch):
     page = _statistics_page(qapp, tmp_path, monkeypatch, [])
-    history = [[0.0, "sitting", " Future-POSITION \t", "manual", False],
-               [1.0, "", "SITTING", "automation", False]]
+    history = [TransitionRow(0.0, "sitting", " Future-POSITION \t", "manual", False),
+               TransitionRow(1.0, "", "SITTING", "automation", False)]
     original = [row[:] for row in history]
     monkeypatch.setattr(page.client, "get_transitions", lambda limit: history)
     page.on_shown()
