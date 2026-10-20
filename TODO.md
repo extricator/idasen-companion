@@ -73,8 +73,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Refactoring and design
 
-- [ ] **Assess distinct internal height and duration types** — Assess concrete benefits of
-      distinct height/duration/timestamp types before broad conversion.
 - [ ] **Decide the next CLI extensions** — Choose the next CLI scope among config operations,
       JSON status, reconnecting watch, man/completion and terminal-output rules.
 - [ ] **Reassess stable translation IDs against contextual gettext** — Measure real rewording
