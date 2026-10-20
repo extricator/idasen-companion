@@ -21,6 +21,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.idle import SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.stats import Stats
@@ -331,7 +332,7 @@ async def test_seeded_cycle_is_replaced_once_the_desk_answers():
 
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
-    machine = StateMachine(cfg, MockDesk(height=1.10), now=0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(1.10)), now=0.0)
     machine.start_without_desk_read(0.0)
     seeded = machine.target_duration
     assert seeded > Duration.from_seconds(0) and machine.state.value == "sitting"  # the default
@@ -533,7 +534,7 @@ async def test_a_move_asked_for_from_the_background_does_no_desk_io(monkeypatch)
     monkeypatch.setattr(d, "_emit_periodic_properties", MagicMock())
 
     with pytest.raises(DBusError):
-        await d._manual_move(1.10, "stand")
+        await d._manual_move(Length(1.10), "stand")
     d.desk.move_to.assert_not_awaited()
     d.desk.disconnect.assert_not_called()
 
@@ -554,11 +555,11 @@ async def test_seeding_respects_automation_being_switched_off():
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
     cfg.automation.enabled = False
-    machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=0.0)
     machine.start_without_desk_read(0.0)
     assert machine.target_duration == Duration.from_seconds(0)
 
     cfg.automation.enabled = True
-    machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=0.0)
     machine.start_without_desk_read(0.0)
     assert machine.target_duration > Duration.from_seconds(0)

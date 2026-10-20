@@ -15,6 +15,7 @@ machine itself is unchanged by this work.
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.machine import (
     DeskState, HeldOffCycle, MoveFailed, SyncFailed,
 )
@@ -158,11 +159,11 @@ async def test_automation_paused_still_rides_the_announcements_setting():
     explaining itself, not reporting a fault. Moving it onto `problems` would
     also silently change behaviour for anyone who already unticked `enabled`."""
     d = _daemon(problems=True, enabled=False)
-    d._handle_event(HeldOffCycle(0.95), "automation")
+    d._handle_event(HeldOffCycle(Length(0.95)), "automation")
     await _settle()
     d._notifier.send.assert_not_called()
 
     d = _daemon(problems=False, enabled=True)
-    d._handle_event(HeldOffCycle(0.95), "automation")
+    d._handle_event(HeldOffCycle(Length(0.95)), "automation")
     await _settle()
     d._notifier.send.assert_called_once()

@@ -2,6 +2,7 @@
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
@@ -94,7 +95,7 @@ async def test_desk_does_not_move_while_locked():
 
 # ----- interruption detection and the interruption policy -----
 
-async def _interrupted_transition(policy, at=0.95):
+async def _interrupted_transition(policy, at=Length(0.95)):
     """Run one due transition that the paddle stops at ``at`` metres under
     ``interruption_policy``, and hand back the driver plus the event."""
     cfg = make_config()
@@ -132,7 +133,7 @@ async def test_retry_policy_moves_toward_the_target_again():
     assert completed.interrupted is True
     assert completed.recovery == "retry"
     assert completed.result is DeskState.STANDING  # reached on the second try
-    assert completed.final_height == pytest.approx(STAND_H)
+    assert completed.final_height.metres == pytest.approx(STAND_H.metres)
     assert d.desk.move_calls == [STAND_H, STAND_H]
     assert d.m.state is DeskState.STANDING
 
@@ -147,14 +148,14 @@ async def test_second_interruption_is_accepted_not_fought(policy, recovered):
     d = Driver(cfg=cfg)
     await d.start()
     d.m.active_time = d.m.target_duration
-    d.desk.interrupt_next_move_at = 0.95
+    d.desk.interrupt_next_move_at = Length(0.95)
 
     # First move lands at 0.95; make the recovery move also land off-target.
     original_move_to = d.desk.move_to
 
     async def move_to(height):
         if d.desk.move_calls:  # this is the recovery move
-            d.desk.interrupt_next_move_at = 0.90
+            d.desk.interrupt_next_move_at = Length(0.90)
         return await original_move_to(height)
 
     d.desk.move_to = move_to
@@ -298,7 +299,7 @@ async def test_move_within_tolerance_counts_as_completed():
     d = Driver()
     await d.start()
     d.m.active_time = d.m.target_duration
-    d.desk.interrupt_next_move_at = STAND_H - 0.015  # within ±0.02
+    d.desk.interrupt_next_move_at = STAND_H - Length(0.015)  # within ±0.02
     events = await d.tick()
     completed = [e for e in events if isinstance(e, TransitionCompleted)][0]
     assert completed.interrupted is False
@@ -349,3 +350,22 @@ async def test_no_moving_signal_when_no_transition_happens():
     await d.m.start(d.now)
     await d.run_active_ticks(5)           # nowhere near due
     assert seen == []
+
+
+async def test_arrival_tolerance_includes_exact_edge_and_rejects_next_float():
+    import math
+
+    cfg = make_config(interruption_policy="leave")
+    # A supported binary-exact tolerance isolates inclusivity from subtraction
+    # roundoff; the default 0.02 is covered by the existing near-target case.
+    cfg.advanced.movement_tolerance = 0.03125
+    d = Driver(cfg=cfg)
+    edge = cfg.presets["stand"] - cfg.advanced.movement_tolerance
+    d.desk.interrupt_next_move_at = Length(edge)
+    exact, = await d.m._execute_transition(d.now)
+    assert exact.interrupted is False
+    d.m.state = DeskState.SITTING
+    d.desk.interrupt_next_move_at = Length(math.nextafter(edge, -math.inf))
+    outside, = await d.m._execute_transition(d.now)
+    assert outside.interrupted is True
+    assert len(d.desk.move_calls) == 2  # leave never adds a recovery

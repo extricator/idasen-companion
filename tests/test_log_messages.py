@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core import logmsg
 from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
@@ -63,11 +64,11 @@ def _lines(d):
 @pytest.mark.parametrize("event", [
     TransitionCompleted(DeskState.SITTING, DeskState.STANDING,
                         DeskState.STANDING, interrupted=False, recovery="none",
-                        final_height=1.10, trigger="automation",
+                        final_height=Length(1.10), trigger="automation",
                         next_target_duration=Duration.from_seconds(TARGET)),
-    StateSynced(DeskState.SITTING, DeskState.STANDING, 1.10,
+    StateSynced(DeskState.SITTING, DeskState.STANDING, Length(1.10),
                 Duration.from_seconds(TARGET)),
-    ResumedOnCycle(DeskState.SITTING, DeskState.STANDING, 1.10,
+    ResumedOnCycle(DeskState.SITTING, DeskState.STANDING, Length(1.10),
                     Duration.from_seconds(TARGET)),
     MoveFailed(DeskState.SITTING, DeskState.STANDING,
                Duration.from_seconds(45 * 60)),
@@ -150,7 +151,7 @@ def test_interrupted_transition_still_says_when_the_next_change_is_due():
     d = _daemon()
     d._handle_event(TransitionCompleted(
         DeskState.SITTING, DeskState.STANDING, DeskState.SITTING,
-        interrupted=True, recovery="undo", final_height=0.95,
+        interrupted=True, recovery="undo", final_height=Length(0.95),
         trigger="automation", next_target_duration=Duration.from_seconds(45 * 60)), "automation")
     assert "Next change after 45.0 minutes of active time." in _lines(d)[0]
 
@@ -186,3 +187,23 @@ def test_failed_move_carries_the_reason_from_the_desk_layer():
                                Duration.from_seconds(TARGET)),
                     "automation")
     assert "connect timed out" in _lines(d)[0]
+
+
+def test_typed_height_events_keep_numeric_and_optional_json_parameters():
+    import json
+    from idasen_companion.core.machine import HeldOffCycle
+    from idasen_companion.daemon.ringlog import RingLog
+
+    d = _daemon()
+    d.activity_log = RingLog()
+    for height in (Length(0.95), None):
+        d._handle_event(TransitionCompleted(
+            DeskState.SITTING, DeskState.STANDING, DeskState.STANDING,
+            interrupted=False, recovery="none", final_height=height,
+            trigger="automation"), "automation")
+    d._handle_event(HeldOffCycle(Length(0)), "automation")
+    entries = d.activity_log.entries()
+    assert [e.params["height"] for e in entries] == [0.95, None, 0]
+    assert "0.9500m" in entries[0].text
+    assert "N/A" in entries[1].text
+    assert json.loads(json.dumps([e.as_dict() for e in entries]))[2]["params"]["height"] == 0

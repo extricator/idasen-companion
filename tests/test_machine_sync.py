@@ -1,5 +1,6 @@
 """Desk synchronization, external movement and held recovery."""
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.durations import Duration
 
 from idasen_companion.core.machine import (
@@ -252,7 +253,7 @@ async def test_adopt_resume_from_held_emits_no_phantom_statesynced():
     """Switching to 'adopt' while held, then reconciling an off-cycle height
     that classifies to the held state, must resume via ResumedOnCycle (X->X,
     ignored by the daemon) rather than a phantom StateSynced(X, X)."""
-    d = Driver(height=0.70)  # off-cycle (0.08 m from sit), classifies as sitting
+    d = Driver(height=Length(0.70))  # off-cycle (0.08 m from sit), classifies as sitting
     await d.start()
     assert d.m.held is True and d.m.state is DeskState.SITTING
     new = make_config(external_move_policy="adopt")

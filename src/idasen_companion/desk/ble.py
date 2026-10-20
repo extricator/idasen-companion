@@ -25,6 +25,8 @@ import struct
 import time
 from typing import TYPE_CHECKING, Awaitable, Callable
 
+from ..core.lengths import Length
+
 if TYPE_CHECKING:
     # Runtime import stays inside _default_desk_factory — importing idasen
     # pulls in bleak, which the mock and --help paths never need.
@@ -55,9 +57,9 @@ READ_TIMEOUT = 30.0
 CONNECT_TIMEOUT = 30.0
 
 
-def _decode_height(data: bytes) -> float:
+def _decode_height(data: bytes) -> Length:
     raw = struct.unpack("<H", data[:2])[0]
-    return raw / 10_000 + MIN_HEIGHT
+    return Length(raw / 10_000 + MIN_HEIGHT)
 
 
 def _default_desk_factory(mac: str, disconnected_callback):
@@ -83,7 +85,7 @@ class BleDesk:
         read_timeout: float = READ_TIMEOUT,
         connect_timeout: float = CONNECT_TIMEOUT,
         desk_factory: Callable = _default_desk_factory,
-        on_height: Callable[[float], None] | None = None,
+        on_height: Callable[[Length], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
         on_error: Callable[[str], None] | None = None,
         on_connect_exhausted: Callable[[], Awaitable[None]] | None = None,
@@ -333,7 +335,7 @@ class BleDesk:
 
     # ----- DeskPort -----
 
-    async def get_height(self) -> float | None:
+    async def get_height(self) -> Length | None:
         async with self._lock:
             try:
                 height = await asyncio.wait_for(self._read_height_locked(),
@@ -357,12 +359,13 @@ class BleDesk:
             self._on_height(height)
         return height
 
-    async def _read_height_locked(self) -> float | None:
+    async def _read_height_locked(self) -> Length | None:
         if not await self._ensure_connected():
             return None
-        return await self._handle.get_height()
+        height = await self._handle.get_height()
+        return Length(height) if height is not None else None
 
-    async def move_to(self, height: float) -> bool:
+    async def move_to(self, height: Length) -> bool:
         # If the desk is already being driven to a target, cancel that first so
         # the new target takes over at once instead of queuing behind it
         # (last-write-wins). stop() ends the in-flight move_to_target
@@ -400,12 +403,12 @@ class BleDesk:
                     return False
                 self._move_in_flight = True
                 try:
-                    await self._handle.move_to_target(height)
+                    await self._handle.move_to_target(height.metres)
                 finally:
                     self._move_in_flight = False
                 return True
             except Exception as exc:
-                self._report_error(f"move_to {height:.4f}m", exc)
+                self._report_error(f"move_to {height.metres:.4f}m", exc)
                 return False
             finally:
                 self._schedule_release()
@@ -463,9 +466,9 @@ async def discover_desks(timeout: float = 8.0) -> list[tuple[str, str]]:
 async def _smoke(mac: str) -> None:
     """Manual hardware smoke test: connect, read height, disconnect."""
     logging.basicConfig(level=logging.DEBUG)
-    desk = BleDesk(mac, on_height=lambda h: print(f"  height update: {h:.4f} m"))
+    desk = BleDesk(mac, on_height=lambda h: print(f"  height update: {h.metres:.4f} m"))
     height = await desk.get_height()
-    print(f"height: {'N/A' if height is None else f'{height:.4f} m'}")
+    print(f"height: {'N/A' if height is None else f'{height.metres:.4f} m'}")
     print(f"connected: {desk.connected} (will linger {desk.linger}s then drop)")
     await desk.disconnect()
 
