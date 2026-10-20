@@ -20,6 +20,7 @@ import pytest
 from dbus_fast import DBusError
 
 from idasen_companion.core import logmsg
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.config import AppConfig, ConfigError, load_config, save_config
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.daemon.config_file import ConfigFileStore
@@ -135,7 +136,7 @@ def test_saving_a_preset_does_not_revert_a_concurrent_hand_edit(daemon):
     daemon.config_file.path.write_text(edited)
     os.utime(daemon.config_file.path, (daemon.config_file.path.stat().st_mtime + 10,) * 2)
 
-    daemon.save_preset("lean", 0.95)
+    daemon.save_preset("lean", Length(0.95))
 
     reloaded = load_config(daemon.config_file.path)
     assert reloaded.automation.idle_threshold == 7 * 60, "hand edit was reverted"
@@ -156,7 +157,7 @@ def test_a_failed_write_leaves_the_presets_as_they_were(daemon, monkeypatch, ope
     monkeypatch.setattr(config_file_mod, "save_config", boom)
     with pytest.raises(DBusError) as raised:
         if operation == "save":
-            daemon.save_preset("lean", 0.95)
+            daemon.save_preset("lean", Length(0.95))
         elif operation == "rename":
             daemon.rename_preset("perch", "lean")
         else:
@@ -190,7 +191,7 @@ def test_rename_uses_the_latest_on_disk_preset_height(daemon):
 @pytest.mark.parametrize("operation", ["save", "rename", "delete"])
 def test_each_preset_write_consumes_its_own_revision(daemon, operation):
     if operation == "save":
-        daemon.save_preset("lean", 0.95)
+        daemon.save_preset("lean", Length(0.95))
     elif operation == "rename":
         daemon.rename_preset("perch", "lean")
     else:

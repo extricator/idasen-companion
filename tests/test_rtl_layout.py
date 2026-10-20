@@ -28,6 +28,7 @@ from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E40
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
 from idasen_companion.gui.theme import CONTROL_RADIUS  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.gui.widgets import (  # noqa: E402
     DailyBarsChart, HeightRail, RangeRail, segment_css,
 )
@@ -152,20 +153,20 @@ def test_joined_segments_map_outer_corners_and_shared_edge():
 
 
 def test_height_rail_paint_and_hit_mapping_mirror_together(app_context):
-    rail = HeightRail(0.6, 1.2, app_context)
+    rail = HeightRail(Length(0.6), Length(1.2), app_context)
     rail.resize(300, 46)
     rail.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-    assert rail._x(0.6) < rail._x(1.2)  # pylint: disable=protected-access
-    assert rail._meters(10) == pytest.approx(0.6)  # pylint: disable=protected-access
+    assert rail._x(Length(0.6)) < rail._x(Length(1.2))  # pylint: disable=protected-access
+    assert rail._meters(10).metres == pytest.approx(0.6)  # pylint: disable=protected-access
 
     rail.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    assert rail._x(0.6) > rail._x(1.2)  # pylint: disable=protected-access
-    assert rail._meters(290) == pytest.approx(0.6)  # pylint: disable=protected-access
-    assert rail._meters(10) == pytest.approx(1.2)  # pylint: disable=protected-access
+    assert rail._x(Length(0.6)) > rail._x(Length(1.2))  # pylint: disable=protected-access
+    assert rail._meters(290).metres == pytest.approx(0.6)  # pylint: disable=protected-access
+    assert rail._meters(10).metres == pytest.approx(1.2)  # pylint: disable=protected-access
 
 
 def test_vertical_range_rail_moves_to_logical_leading(app_context):
-    rail = RangeRail(0.6, 1.2, app_context)
+    rail = RangeRail(Length(0.6), Length(1.2), app_context)
     rail.resize(156, 240)
     rail.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
     assert rail._track_x() == 10  # pylint: disable=protected-access

@@ -21,6 +21,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 import os
+import math
 
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -34,6 +35,7 @@ from idasen_companion.core.lengths import Length
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
+from idasen_companion.gui.widgets import HeightRail, RangeRail
 
 PRESETS = {"sit": 0.62, "stand": 1.14}
 
@@ -165,3 +167,52 @@ def test_raw_presets_are_decoded_before_height_formatting(qapp, tmp_path, monkey
     page = PresetsPage(ctx)
     page._on_presets({"custom": 0.90123})
     assert received == [Length(0.90123), Length(0.90123)]
+
+
+def test_live_preset_match_includes_the_edge_only(page):
+    page.client.presetsChanged.emit({"edge": 0.015})
+    page.client.heightChanged.emit(0.0075)
+    assert _lit_presets(page) == 1
+    page.client.heightChanged.emit(math.nextafter(0.0075, 0))
+    assert _lit_presets(page) == 0
+
+
+def test_range_labels_keep_equal_height_order_and_strict_spacing(page, monkeypatch):
+    rail = RangeRail(Length(0), Length(0.1), page.ctx)
+    rail.resize(156, 240)
+    labels = []
+    ticks = []
+    formatter_type = type(page.ctx.fmt)
+    original_height = formatter_type.height
+    original_tick = formatter_type.preset_tick
+
+    def height(fmt, value, trim=False):
+        labels.append(value)
+        return original_height(fmt, value, trim)
+
+    def tick(fmt, name, value, trim=False):
+        ticks.append(name)
+        return original_tick(fmt, name, value, trim)
+
+    monkeypatch.setattr(formatter_type, "height", height)
+    monkeypatch.setattr(formatter_type, "preset_tick", tick)
+    rail.set_height(Length(0.03))
+    rail.set_presets({"first": Length(0.03), "second": Length(0.03)})
+    rail.grab()
+    assert ticks == ["first", "second"]
+    assert labels == [Length(0.1), Length(0)]
+    labels.clear()
+    rail.set_presets({"near": Length(math.nextafter(0.03, 0))})
+    rail.grab()
+    assert labels == [Length(0.1)]
+
+
+def test_drag_emits_three_decimal_primitive_metres(page):
+    rail = HeightRail(Length(0.62), Length(1.27), page.ctx)
+    rail.resize(300, 46)
+    targets = []
+    rail.targetChanged.connect(targets.append)
+    rail._drag_to(123.4)
+    expected = round(0.62 + ((123.4 - 10) / 280) * (1.27 - 0.62), 3)
+    assert targets == [expected]
+    assert type(targets[0]) is float

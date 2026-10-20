@@ -868,29 +868,29 @@ class RangeRail(QWidget):
 
     _PAD = 14
     _TRACK_X = 10
-    MATCH = 0.0075  # meters within which the desk counts as "at" a preset
+    MATCH = Length(0.0075)  # distance within which the desk counts as "at" a preset
 
-    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+    def __init__(self, min_height: Length, max_height: Length, ctx: AppContext,
                  parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
-        self._height = 0.0
-        self._presets: dict[str, float] = {}
+        self._height = Length(0.0)
+        self._presets: dict[str, Length] = {}
         # See HeightRail.__init__ for why this holds the context rather
         # than a stored Formatter.
         self.ctx = ctx
         self.setMinimumWidth(96)
         self.setMinimumHeight(180)
 
-    def set_height(self, meters: float) -> None:
+    def set_height(self, meters: Length) -> None:
         self._height = meters
         self.update()
 
-    def set_presets(self, presets: dict[str, float]) -> None:
+    def set_presets(self, presets: dict[str, Length]) -> None:
         self._presets = dict(presets)
         self.update()
 
-    def _y(self, meters: float) -> float:
+    def _y(self, meters: Length) -> float:
         span = self.height() - 2 * self._PAD
         frac = (self._hi - meters) / (self._hi - self._lo)
         return self._PAD + _clamp01(frac) * span
@@ -928,7 +928,7 @@ class RangeRail(QWidget):
         metrics = painter.fontMetrics()
         for meters, label_y in ((self._hi, metrics.ascent()),
                                 (self._lo, self.height() - metrics.descent())):
-            if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
+            if any(abs(pm - meters) < Length(0.03) for pm in self._presets.values()):
                 continue
             label = self.ctx.fmt.height(meters, trim=True)
             label_x = (0 if self.isRightToLeft()
@@ -937,9 +937,9 @@ class RangeRail(QWidget):
 
         live_shown = False
         for name, meters in sorted(self._presets.items(),
-                                   key=lambda kv: -kv[1]):
+                                   key=lambda kv: kv[1].metres, reverse=True):
             tick_y = self._y(meters)
-            at_preset = (self._height > 0
+            at_preset = (self._height > Length(0)
                   and abs(meters - self._height) <= self.MATCH)
             color = tokens.accent_text if at_preset else tokens.muted
             painter.setPen(QPen(tokens.accent if at_preset else tokens.muted, 2))
@@ -958,7 +958,7 @@ class RangeRail(QWidget):
                 text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
             live_shown = live_shown or at_preset
 
-        if self._height > 0 and not live_shown:
+        if self._height > Length(0) and not live_shown:
             tick_y = self._y(self._height)
             painter.setPen(QPen(tokens.accent, 2))
             painter.drawLine(QPointF(track_x - 5, tick_y), QPointF(track_x + 5, tick_y))

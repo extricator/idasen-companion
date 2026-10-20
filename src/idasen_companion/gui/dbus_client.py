@@ -416,8 +416,8 @@ class DaemonClient(QObject):
     def reload_config(self) -> None:
         self._async_call(IFACE_AUTO, "ReloadConfig")
 
-    def save_preset(self, name: str, height: float) -> None:
-        self._async_call(IFACE_PRESETS, "Save", name, float(height))
+    def save_preset(self, name: str, height: Length) -> None:
+        self._async_call(IFACE_PRESETS, "Save", name, float(height.metres))
 
     def rename_preset_sync(self, old: str, new: str) -> tuple[bool, str]:
         """Blocking Rename — one daemon-side write, so it cannot half-happen.
