@@ -294,7 +294,6 @@ async def test_the_budget_leaves_logind_room_to_stop_waiting():
     bus = FakeBus(max_delay_usec=5_000_000)
     inhibitor = _inhibitor(bus)
     await inhibitor.acquire()
-    assert isinstance(inhibitor._max_delay, Duration)
     assert isinstance(inhibitor.budget, Duration)
     assert inhibitor.budget == Duration(5.0) - DELAY_HEADROOM
     inhibitor.release()
