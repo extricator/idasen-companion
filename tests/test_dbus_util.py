@@ -62,7 +62,7 @@ async def test_error_reply_raises():
 async def test_silent_peer_times_out_instead_of_hanging():
     bus = FakeBus(hang=True)
     with pytest.raises(DBusCallError, match="no reply within"):
-        await call(bus, DEST, PATH, IFACE, "Method", timeout=0.05)
+        await call(bus, DEST, PATH, IFACE, "Method", timeout=Duration(0.05))
     # The pending call is abandoned, not left dangling on the bus.
     assert bus.cancelled
 
@@ -73,5 +73,5 @@ async def test_timeout_is_bounded_by_the_deadline():
     loop = asyncio.get_running_loop()
     started = loop.time()
     with pytest.raises(DBusCallError):
-        await call(bus, DEST, PATH, IFACE, "Method", timeout=0.05)
+        await call(bus, DEST, PATH, IFACE, "Method", timeout=Duration(0.05))
     assert loop.time() - started < 1.0

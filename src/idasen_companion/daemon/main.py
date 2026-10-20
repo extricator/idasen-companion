@@ -551,11 +551,11 @@ class Daemon:
         """
         budget = self._sleep_inhibitor.budget
         try:
-            await asyncio.wait_for(self.desk.disconnect(), budget)
+            await asyncio.wait_for(self.desk.disconnect(), budget.seconds)
         except asyncio.TimeoutError:
             self.activity_log.diag(
                 "warning",
-                f"Could not hand the desk back within {budget:g}s of the "
+                f"Could not hand the desk back within {budget.seconds:g}s of the "
                 f"system announcing a sleep; the link may survive it, and "
                 f"will be checked on resume.")
         except Exception as error:

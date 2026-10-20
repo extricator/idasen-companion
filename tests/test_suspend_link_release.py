@@ -28,12 +28,12 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.core.durations import Duration
 from idasen_companion.daemon import main as main_mod
 from idasen_companion.daemon.bluetooth import BluetoothSupport
 from idasen_companion.daemon.inhibit import (
     DELAY_HEADROOM, MAX_BUDGET, MIN_BUDGET, SleepInhibitor,
 )
-from idasen_companion.core.durations import Duration
 
 DESK_MAC = "E1:B2:C3:D4:E5:F6"
 
@@ -41,7 +41,7 @@ DESK_MAC = "E1:B2:C3:D4:E5:F6"
 class FakeInhibitor:
     """A sleep-delay lock that records the sequence instead of taking one."""
 
-    def __init__(self, budget=0.05):
+    def __init__(self, budget=Duration(0.05)):
         self.budget = budget
         self.acquires = 0
         self.releases = 0
@@ -296,7 +296,7 @@ async def test_the_budget_leaves_logind_room_to_stop_waiting():
     await inhibitor.acquire()
     assert isinstance(inhibitor._max_delay, Duration)
     assert isinstance(inhibitor.budget, Duration)
-    assert inhibitor.budget == 5.0 - DELAY_HEADROOM
+    assert inhibitor.budget == Duration(5.0) - DELAY_HEADROOM
     inhibitor.release()
 
 
@@ -330,7 +330,7 @@ async def test_no_bus_degrades_to_delaying_nothing():
     inhibitor = _inhibitor(None)
     assert await inhibitor.acquire() is False
     assert not inhibitor.held
-    assert inhibitor.budget > 0
+    assert inhibitor.budget > Duration(0.0)
     inhibitor.release()  # must not raise
 
 
