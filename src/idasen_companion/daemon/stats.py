@@ -16,6 +16,8 @@ from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
+from ..core.decoded_data import DailyStatRow, TransitionRow
+
 DEFAULT_DB_PATH = Path(
     os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")
 ) / "idasen-companion" / "stats.sqlite"
@@ -151,7 +153,7 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not record a desk transition", error)
 
-    def daily_totals(self, start: date, end: date) -> list[tuple[str, str, float]]:
+    def daily_totals(self, start: date, end: date) -> list[DailyStatRow]:
         """Rows of (day, state, seconds) between start and end inclusive."""
         if self._db is None:
             return []
@@ -164,9 +166,9 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not read daily desk totals", error)
             return []
-        return [(d, s, float(sec)) for d, s, sec in rows]
+        return [DailyStatRow(d, s, float(sec)) for d, s, sec in rows]
 
-    def recent_transitions(self, limit: int = 50) -> list[tuple[float, str, str, str, bool]]:
+    def recent_transitions(self, limit: int = 50) -> list[TransitionRow]:
         # Clamped: the limit arrives from a D-Bus caller, and a negative one
         # becomes SQLite's "LIMIT -1", i.e. the whole table serialized to JSON.
         limit = max(1, min(int(limit), 1000))
@@ -181,4 +183,4 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not read recent desk transitions", error)
             return []
-        return [(float(ts), f, t, trig, bool(i)) for ts, f, t, trig, i in rows]
+        return [TransitionRow(float(ts), f, t, trig, bool(i)) for ts, f, t, trig, i in rows]

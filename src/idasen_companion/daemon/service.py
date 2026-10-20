@@ -244,6 +244,8 @@ class Presets1(ServiceInterface):
 
 
 class Stats1(ServiceInterface):
+    """Statistics named rows retain their field order as JSON arrays."""
+
     def __init__(self, daemon: Daemon) -> None:
         super().__init__(f"{DBUS_NAME}.Stats1")
         self.d = daemon
