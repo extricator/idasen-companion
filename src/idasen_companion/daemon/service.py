@@ -31,6 +31,7 @@ from dbus_fast.service import ServiceInterface, dbus_property, dbus_method, dbus
 from dbus_fast.constants import PropertyAccess
 
 from .. import DBUS_NAME
+from ..core.decoded_data import LogEntry
 
 if TYPE_CHECKING:
     from .main import Daemon
@@ -269,7 +270,8 @@ class Log1(ServiceInterface):
     def GetRecent(self) -> DBusStr:  # pylint: disable=invalid-name
         # Safe unguarded: entry params are made JSON-serializable when the
         # line is recorded (see ringlog.Entry).
-        return json.dumps([e.as_dict() for e in self.d.activity_log.entries()])
+        entries: list[LogEntry] = [e.as_dict() for e in self.d.activity_log.entries()]
+        return json.dumps(entries)
 
     @dbus_signal()
     def Entry(self, timestamp: DBusDouble, level: DBusStr, channel: DBusStr, msg_id: DBusStr,  # pylint: disable=invalid-name

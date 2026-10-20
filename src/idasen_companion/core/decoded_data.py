@@ -4,7 +4,56 @@ from __future__ import annotations
 
 from datetime import datetime
 from math import isfinite
-from typing import NamedTuple
+from typing import NamedTuple, TypeAlias, TypedDict, cast
+
+JSONValue: TypeAlias = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
+LogParams: TypeAlias = dict[str, JSONValue]
+
+
+class LogEntry(TypedDict):
+    """Decoded wall time, open severity/audience/id, JSON params and fallback text."""
+
+    ts: float
+    level: str
+    channel: str
+    msg_id: str
+    params: LogParams
+    text: str
+
+
+def decode_timestamp(value: object, default: float | None = None) -> float | None:
+    """Coerce finite, locally renderable seconds; retain negative/zero history."""
+    try:
+        timestamp = float(value)  # type: ignore[arg-type]
+        if isfinite(timestamp):
+            datetime.fromtimestamp(timestamp)
+            return timestamp
+    except (TypeError, ValueError, OverflowError, OSError):
+        pass
+    return default
+
+
+def decode_log_entry(value: object) -> LogEntry | None:
+    """Decode a JSON object with legacy ring defaults and safe per-field recovery."""
+    if not isinstance(value, dict):
+        return None
+    timestamp = decode_timestamp(value.get("ts", 0.0), 0.0)
+    params = value.get("params")
+    return LogEntry(
+        ts=timestamp if timestamp is not None else 0.0,
+        level=str(value.get("level", "info")),
+        channel=str(value.get("channel", "activity")),
+        msg_id=str(value.get("msg_id", "")),
+        params=cast(LogParams, params) if isinstance(params, dict) else {},
+        text=str(value.get("text", "")),
+    )
+
+
+def decode_log_entries(value: object) -> list[LogEntry]:
+    """Decode a JSON list, retaining usable objects beside malformed neighbors."""
+    if not isinstance(value, list):
+        return []
+    return [entry for raw in value if (entry := decode_log_entry(raw)) is not None]
 
 
 class DailyStatRow(NamedTuple):

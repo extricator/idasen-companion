@@ -55,7 +55,7 @@ from .idle import (
 )
 from .inhibit import SleepInhibitor
 from .notify import Notifier
-from .ringlog import RingLog
+from .ringlog import Entry, RingLog
 from .service import Automation1, Desk1, Log1, Presets1, Stats1
 from .stats import Stats
 
@@ -599,7 +599,7 @@ class Daemon:
             return 0
         return self.machine.cycle_target(time.time())
 
-    def _emit_log_entry(self, entry) -> None:
+    def _emit_log_entry(self, entry: Entry) -> None:
         log1 = self._ifaces.get("log")
         if log1:
             log1.Entry(entry.ts, entry.level, entry.channel, entry.msg_id,

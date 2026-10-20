@@ -1,8 +1,32 @@
 """Decoded boundary behavior, including historical and extended records."""
 
 from idasen_companion.core.decoded_data import (
-    DailyStatRow, TransitionRow, decode_daily_rows, decode_transition_rows,
+    DailyStatRow, TransitionRow, decode_daily_rows, decode_transition_rows, decode_log_entries,
 )
+
+
+def test_ring_log1_json_keeps_order_nested_params_and_fallback():
+    import json
+    from types import SimpleNamespace
+
+    from idasen_companion.core import logmsg
+    from idasen_companion.daemon.ringlog import RingLog
+    from idasen_companion.daemon.service import Log1
+
+    ring = RingLog(clock=lambda: -1.0)
+    params = {"nested": {"items": [None, True, 1, 2.5, "raw", {"child": []}]}}
+    ring.emit(logmsg.AUTOMATION_PAUSED, **params)
+    ring.diag(" Custom LEVEL ", "fallback <text>")
+    service = Log1(SimpleNamespace(activity_log=ring))
+    payload = Log1.GetRecent.__wrapped__(service)
+    raw = json.loads(payload)
+    assert list(raw[0]) == ["ts", "level", "channel", "msg_id", "params", "text"]
+    entries = decode_log_entries(raw)
+    assert entries == [entry.as_dict() for entry in ring.entries()]
+    assert entries[0]["params"] == params
+    assert entries[0]["text"] == "Automation paused."
+    assert entries[1]["level"] == " Custom LEVEL "
+    assert entries[1]["text"] == "fallback <text>"
 
 
 def test_daily_rows_keep_supported_values_and_recover_per_row():
