@@ -12,6 +12,7 @@ from idasen_companion.core.lengths import Length
 def test_length_factories_preserve_conversion_policy():
     assert type(Length.from_metres(1).metres) is int
     assert Length.from_metres(1.105).metres == 1.105
+    assert Length.from_metres(10**400).metres == 10**400
     for unit, factory, value in (
         (HeightUnit.CENTIMETRES, Length.from_centimetres, 110.5),
         (HeightUnit.INCHES, Length.from_inches, 43.5),
@@ -39,7 +40,8 @@ def test_length_arithmetic_and_typed_zero():
 def test_length_rejects_mixed_dimensions_and_raw_addition():
     height = Length(1)
     for operation in (
-        lambda: height + 1, lambda: height < 1,
+        lambda: height + 1, lambda: 1 + height, lambda: height < 1,
+        lambda: Duration(1) < height,
         lambda: height - Duration(1), lambda: height * Duration(1),
         lambda: height / Duration(1), lambda: 1 / height,
         lambda: 1 - height, lambda: sum([height]),

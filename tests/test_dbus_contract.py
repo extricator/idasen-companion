@@ -362,3 +362,28 @@ def test_every_cli_member_exists_on_the_daemon():
         methods, properties, _signals = members_of(cls)
         assert wanted["methods"] <= methods
         assert wanted["properties"] <= properties
+def test_gui_length_commands_and_success_envelopes_stay_scalar(monkeypatch):
+    from types import SimpleNamespace
+    from idasen_companion.core.lengths import Length
+    from idasen_companion.gui import dbus_client
+
+    sent = []
+    client = SimpleNamespace(_async_call=lambda *args: sent.append(args))
+    dbus_client.DaemonClient.move_to_height(client, Length(0.90123))
+    dbus_client.DaemonClient.save_preset(client, "custom", Length(0.90123))
+    assert sent == [
+        (dbus_client.IFACE_DESK, "MoveToHeight", 0.90123),
+        (dbus_client.IFACE_PRESETS, "Save", "custom", 0.90123),
+    ]
+    assert all(type(args[-1]) is float for args in sent)
+
+    reply = SimpleNamespace(errorMessage=lambda: "read failed")
+    iface = SimpleNamespace(setTimeout=lambda value: None, call=lambda *args: reply)
+    client._iface = lambda name: iface
+    values = [0.75]
+    monkeypatch.setattr(dbus_client, "_reply_args", lambda message: values)
+    assert dbus_client.DaemonClient.setup(client, "mock") == (True, 0.75)
+    assert dbus_client.DaemonClient.capture_preset(client, "custom") == (True, 0.75)
+    values.clear()
+    assert dbus_client.DaemonClient.setup(client, "mock") == (False, "read failed")
+    assert dbus_client.DaemonClient.capture_preset(client, "custom") == (False, "read failed")

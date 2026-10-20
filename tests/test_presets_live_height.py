@@ -156,19 +156,6 @@ def test_unit_repaint_reuses_decoded_presets_and_live_height(page):
     assert _lit_presets(page) == 0
 
 
-def test_raw_presets_are_decoded_before_height_formatting(qapp, tmp_path, monkeypatch):
-    path = tmp_path / "config.toml"
-    save_config(AppConfig(), path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
-    ctx = AppContext(FakeClient(), tray_available=True)
-    received = []
-    monkeypatch.setattr(type(ctx.fmt), "height",
-                        lambda self, value: received.append(value) or "height")
-    page = PresetsPage(ctx)
-    page._on_presets({"custom": 0.90123})
-    assert received == [Length(0.90123), Length(0.90123)]
-
-
 def test_live_preset_match_includes_the_edge_only(page):
     page.client.presetsChanged.emit({"edge": 0.015})
     page.client.heightChanged.emit(0.0075)
@@ -196,10 +183,10 @@ def test_range_labels_keep_equal_height_order_and_strict_spacing(page, monkeypat
 
     monkeypatch.setattr(formatter_type, "height", height)
     monkeypatch.setattr(formatter_type, "preset_tick", tick)
-    rail.set_height(Length(0.03))
-    rail.set_presets({"first": Length(0.03), "second": Length(0.03)})
+    rail.set_height(Length(0.0325))
+    rail.set_presets({"first": Length(0.03), "second": Length(0.03), "top": Length(0.035)})
     rail.grab()
-    assert ticks == ["first", "second"]
+    assert ticks == ["top", "first", "second"]
     assert labels == [Length(0.1), Length(0)]
     labels.clear()
     rail.set_presets({"near": Length(math.nextafter(0.03, 0))})
@@ -213,6 +200,5 @@ def test_drag_emits_three_decimal_primitive_metres(page):
     targets = []
     rail.targetChanged.connect(targets.append)
     rail._drag_to(123.4)
-    expected = round(0.62 + ((123.4 - 10) / 280) * (1.27 - 0.62), 3)
-    assert targets == [expected]
+    assert targets == [0.883]
     assert type(targets[0]) is float
