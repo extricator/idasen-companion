@@ -22,8 +22,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Features and preferences
 
-- [ ] **Add a clear statistics / history button** — Add daemon storage and Stats1 operations
-      plus a confirmed GUI action.
 - [ ] **In-app Light / Dark / System theme control** — Add a validated setting and Settings
       control that apply the selected scheme and restore desktop following for System.
 - [ ] **Add a date-format preference** — Decide supported date choices, then resolve them once
