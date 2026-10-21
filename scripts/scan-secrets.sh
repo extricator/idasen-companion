@@ -110,6 +110,13 @@ strip_ansi() {
     sed -e 's/\x1b\[[0-9;]*m//g' "$1"
 }
 
+# v8.30.1 can log failed/partial reads yet return success and an empty
+# report. A canary in another directory cannot certify this real input.
+real_scan_diagnostics_ok() {
+    ! strip_ansi "$1" | grep -Eq \
+        '(^|[[:space:]])ERR([[:space:]]|$)|(^|[[:space:]])WRN[[:space:]].*(permission denied|issue reading file|could not read|failed to read|unable to read|skipping($|[[:space:]]+error=))'
+}
+
 echo ">> Mode: $MODE"
 echo ">> Evidence directory: $OUTPUT_DIR"
 
@@ -423,6 +430,11 @@ fi
 # ---------------------------------------------------------------------------
 
 echo
+if ! real_scan_diagnostics_ok "$REAL_LOG"; then
+    echo "FAILED: scanner errors or unread input; inspect $REAL_LOG" >&2
+    exit 1
+fi
+
 if [ "$MODE" = "history" ] && [ "$WALK_OK" -ne 1 ]; then
     echo "FAILED: the history was not walked, or not all of it was in scope." >&2
     echo "Nothing here says the repository is clean." >&2
