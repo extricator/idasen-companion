@@ -85,6 +85,10 @@ bypasses it, and that is deliberate — it is for a false positive in a hurry,
 not an escape route, since the same scan runs in CI where nothing bypasses
 it.
 
+Shared scanner rules do not imply identical input coverage. See the
+[coverage and cost assessment](docs/SECRET-SCANNING-ASSESSMENT.md) for the
+distinct staged, history, worktree and hosted checks and their limits.
+
 `docs/ARCHITECTURE.md` explains why the code is shaped the way it is; read it
 before changing the shape of something rather than working within it.
 
