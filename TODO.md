@@ -89,8 +89,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       and matching formatter across substitutions, plurals, cycle and fallback branches.
 - [ ] **Clarify translated-return marker semantics** — Define the marker contract and retain
       bad-sentence detection.
-- [ ] **Pin outside-schedule statistics accounting with a regression test** — Add a real
-      state-machine/accounting regression case showing daily credit while OUT_OF_SCHEDULE.
 
 ## Repository maintenance
 
