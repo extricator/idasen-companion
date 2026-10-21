@@ -1,4 +1,7 @@
-# Portal color preference representation
+# Portal color and contrast preference representations
+
+This document records separate color (Phase 33) and contrast (Phase 34)
+representation decisions.
 
 **Decision: retain the validated raw `int | None` boundary.** Phase 33 evaluated
 the current color path at baseline
@@ -61,6 +64,48 @@ replies, independent key validity, diagnostic logging, and unchanged theme
 tokens. Phase 33 runs that retained file freshly offscreen on a private session
 bus; disposable AST and receipt-integrity audits live under `/tmp`.
 
-This decision adds documentation only. Production code, tests, dependencies,
-configuration, and appearance behavior remain unchanged. Contrast evaluation
-belongs to Phase 34.
+These representation decisions add documentation only. Production code, tests,
+dependencies, configuration, and appearance behavior remain unchanged.
+
+## Contrast preference decision (Phase 34)
+
+**Decision: retain the validated raw `int | None` contrast boundary.** Phase 34
+independently evaluated contrast at baseline
+`3a4eab33eb1b41294c9c6517776e87ef7d699bee`. In
+`src/idasen_companion/gui/appearance_portal.py`, `_read_one` accepts bare scalar
+replies or unwraps one `QDBusVariant` layer, rejects `bool` and non-integer
+payloads, and checks `_VALID_VALUES["contrast"] == (0, 1)` before returning the
+original integer. Code `0` means normal contrast and code `1` means high
+contrast. Code `2` is invalid for contrast even though it is valid for color.
+Invalid types, unknown codes, missing/empty replies and failed portal reads
+remain `None`; valid `0` remains distinct from absence.
+
+`read_appearance_preferences()` stores the result in
+`AppearancePreferences.contrast: int | None` and logs `contrast={contrast!r}`
+using raw repr. The all-absent debug diagnostic also remains unchanged. The
+independent production reference search again finds the sole read at
+`gui/main.py:102`, a discarded expression after the single-instance gate. No
+production contrast-field consumer retains or acts on the result; references
+to text contrast elsewhere in styling are unrelated to this portal preference.
+A plain `Enum` would therefore introduce an unused internal vocabulary and
+conversion without helping a current consumer. The validated external integer
+already expresses this adapter boundary.
+
+The supported GUI dependency is `PySide6>=6.5` in `pyproject.toml`.
+As documented in the semantic assessment's I15 comparison,
+`Qt.ContrastPreference` was introduced in Qt 6.10 and is unavailable at the
+Qt 6.5 minimum. It cannot be used unconditionally at that floor. A substitute
+adapter would also have no current consumer, so neither a native enum nor an
+adapter is introduced by this decision. No Qt floor change is selected.
+
+Reconsider contrast when a real production consumer retains or acts on it,
+together with an explicit appearance policy and a representation compatible
+with the supported Qt floor. Preserve the existing validation, absence and
+diagnostic contracts before decoding into any needed internal vocabulary.
+The existing high-contrast feature todo remains open: this representation
+decision adds no appearance behavior or rendering policy.
+
+Phase 34 freshly runs all 16 existing portal tests offscreen on a private
+session bus. The retained cases include normal `0`, high `1` with unchanged
+theme tokens, invalid `2`, bare/wrapped decoding, bool/non-integer and unknown
+rejection, absence and logging. No test is added, expanded or removed.
