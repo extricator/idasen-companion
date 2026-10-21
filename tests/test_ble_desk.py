@@ -6,8 +6,10 @@ idasen.IdasenDesk via the desk_factory injection point.
 
 import asyncio
 import struct
+from types import SimpleNamespace
 
 from idasen_companion.desk.ble import BleDesk, _decode_height
+from idasen_companion.core.clocks import MonotonicInstant
 from idasen_companion.core.lengths import Length
 
 
@@ -313,6 +315,31 @@ async def test_read_then_move_does_not_rewake():
     assert fake.wakeup_calls == 1    # from connect() only
     assert fake.connect_calls == 1
     assert fake.moves == [1.10]
+
+
+async def test_zero_awake_stamp_grace_equality_and_disconnect(monkeypatch):
+    from idasen_companion.desk import ble as ble_mod
+
+    clock = 0.0
+    monkeypatch.setattr(ble_mod, "time", SimpleNamespace(monotonic=lambda: clock))
+    desk, fake = make_desk(connection_mode="persistent", wakeup_grace=2.0)
+    assert desk._awake_since is None
+    await desk.get_height()
+    assert desk._awake_since == MonotonicInstant(0.0)
+
+    clock = 1.75
+    await desk.move_to(Length(1.10))
+    assert fake.wakeup_calls == 1
+    clock = 2.0
+    await desk.move_to(Length(0.70))
+    assert fake.wakeup_calls == 2
+    assert desk._awake_since == MonotonicInstant(2.0)
+    assert fake.connect_calls == 1
+    assert fake.moves == [1.10, 0.70]
+
+    await desk.disconnect()
+    assert desk._awake_since is None
+    assert not desk._controller_awake
 
 
 async def test_callbacks_fire():

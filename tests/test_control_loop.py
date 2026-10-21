@@ -11,6 +11,7 @@ the Activity Log to show for it.
 import asyncio
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -66,6 +67,39 @@ async def test_cancellation_still_stops_the_loop():
     d = make_daemon(tick)
     with pytest.raises(asyncio.CancelledError):
         await asyncio.wait_for(d._run_until_stopped(now=WallInstant(1_000_000.0)), timeout=5)
+
+
+@pytest.mark.asyncio
+async def test_loop_interval_equality_overrun_and_scalar_wait(monkeypatch):
+    from idasen_companion.daemon import main as main_mod
+
+    d = make_daemon(AsyncMock())
+    d.config.automation.check_interval = 2
+    readings = iter((10.0, 12.0, 20.0, 22.25))
+    monkeypatch.setattr(main_mod, "time", SimpleNamespace(monotonic=lambda: next(readings)))
+    waits = []
+
+    async def wait_for(awaitable, *, timeout):
+        awaitable.close()
+        waits.append(timeout)
+        if len(waits) == 1:
+            d.activity_log.diag.assert_not_called()
+        else:
+            d._stop_event.set()
+
+    monkeypatch.setattr(main_mod, "asyncio", SimpleNamespace(
+        ensure_future=asyncio.ensure_future, CancelledError=asyncio.CancelledError,
+        TimeoutError=asyncio.TimeoutError, wait_for=wait_for))
+    formatter = MagicMock(wraps=main_mod.format_duration_human)
+    monkeypatch.setattr(main_mod, "format_duration_human", formatter)
+    await d._run_until_stopped(WallInstant(1_000_000.0))
+    await d._initial_read
+
+    assert waits == [2, 2] and all(type(interval) is int for interval in waits)
+    assert [call.args[0] for call in formatter.call_args_list] == [2.25, 2]
+    d.activity_log.diag.assert_called_once_with(
+        "warning", "Control loop tick took 2 seconds (check interval is 2 seconds); "
+        "automation was stalled for that long.")
 
 
 @pytest.mark.asyncio

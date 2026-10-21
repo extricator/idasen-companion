@@ -7,10 +7,11 @@ out on the next periodic tick (up to check_interval = 60s later).
 
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
+from types import SimpleNamespace
 
 import pytest
 
-from idasen_companion.core.clocks import WallInstant
+from idasen_companion.core.clocks import MonotonicInstant, WallInstant
 from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.core.durations import Duration
@@ -545,18 +546,43 @@ async def test_setup_saves_through_the_same_watcher_before_scheduling_sync(tmp_p
     assert observed == [("AA:BB:CC:DD:EE:FF", False)]
 
 
-def test_live_height_keeps_domain_cache_and_scalar_bus_payload():
+def test_live_height_keeps_domain_cache_and_scalar_bus_payload(tmp_path, monkeypatch):
+    from idasen_companion.daemon import main as main_mod
     from idasen_companion.daemon.service import Desk1
 
-    d = _daemon()
-    d._last_height_emit = -1.0
-    d._ifaces["desk"] = MagicMock()
-    d._on_live_height(Length(1.105))
-    assert d.machine.last_height == Length(1.105)
-    d._ifaces["desk"].HeightChanged.assert_called_once_with(1.105)
-    d._ifaces["desk"].emit_properties_changed.assert_called_once_with(
-        {"Height": 1.105})
-    assert Desk1(d).Height == 1.105
+    d = Daemon(tmp_path / "config.toml", mock_desk=True, stats_path=tmp_path / "stats.sqlite")
+    d.machine = MagicMock()
+    clock = 0.499
+    monkeypatch.setattr(main_mod, "time", SimpleNamespace(monotonic=lambda: clock))
+    iface = MagicMock()
+
+    class Interfaces(dict):
+        def get(self, key):
+            # Throttle admission advances the stamp before interface lookup.
+            assert d._last_height_emit == MonotonicInstant(clock)
+            return super().get(key)
+
+    d._ifaces = Interfaces(desk=iface)
+    try:
+        assert d._last_height_emit == MonotonicInstant(0.0)
+        d._on_live_height(Length(0.95))
+        assert d.machine.last_height == Length(0.95)
+        iface.HeightChanged.assert_not_called()
+        assert d._last_height_emit == MonotonicInstant(0.0)
+
+        clock = 0.5
+        d._on_live_height(Length(1.105))
+        assert d.machine.last_height == Length(1.105)
+        iface.HeightChanged.assert_called_once_with(1.105)
+        iface.emit_properties_changed.assert_called_once_with({"Height": 1.105})
+        assert Desk1(d).Height == 1.105
+
+        d._ifaces.clear()
+        clock = 1.0
+        d._on_live_height(Length(1.12))
+        assert d._last_height_emit == MonotonicInstant(1.0)
+    finally:
+        d.stats.close()
 
 
 async def test_direct_height_bounds_remain_inclusive_and_do_not_accept_slack(tmp_path):
