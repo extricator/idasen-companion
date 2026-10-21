@@ -14,6 +14,7 @@ from dbus_fast import MessageType, Variant
 from dbus_fast.errors import DBusError
 
 from idasen_companion.core import logmsg
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.daemon import main as main_mod
 from idasen_companion.daemon import bluetooth as bluetooth_mod
 from idasen_companion.daemon.bluetooth import BluetoothSupport
@@ -98,6 +99,15 @@ async def test_zero_timeout_without_cache_returns_only_paired(discovery):
     assert await daemon.discover(0) == [PAIRED]
     assert daemon.bluetooth._scan_cache is None
     scanner.assert_not_awaited()
+
+
+async def test_backward_wall_step_keeps_typed_scan_cache_fresh(discovery):
+    daemon, clock, scanner = discovery
+    await daemon.discover(2)
+    assert daemon.bluetooth._scan_cache[0] == WallInstant(clock.now)
+    clock.now -= 5
+    assert await daemon.discover(0) == [PAIRED, SCANNED]
+    assert scanner.await_count == 1
 
 
 async def test_failed_positive_scan_replaces_success_with_fresh_empty_cache(discovery):
