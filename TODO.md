@@ -75,7 +75,7 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 - [ ] **Decide the next CLI extensions** — Choose the next CLI scope among config operations,
       JSON status, reconnecting watch, man/completion and terminal-output rules.
-- [ ] **Reassess stable translation IDs against contextual gettext** — Measure real rewording
+- [x] **Reassess stable translation IDs against contextual gettext** — Measure real rewording
       churn against stable-ID migration/maintenance costs.
 - [ ] **Remove unused GUI clock forwarder** — Remove the forwarder and update actual
       test/docstring references while preserving formatting assertions.
