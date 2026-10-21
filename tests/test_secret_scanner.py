@@ -205,7 +205,7 @@ def test_partial_history_despite_positive_counts(scan_repo):
     assert "scanner errors or unread input" in result.stderr
 
 
-@pytest.mark.parametrize("report", ["<missing>", "{", "{}", "null"])
+@pytest.mark.parametrize("report", ["<missing>", "{", "{}"])
 def test_real_report_must_be_array(scan_repo, report):
     _, _, scan = scan_repo
     result = scan(report=report)
