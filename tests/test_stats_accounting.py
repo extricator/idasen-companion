@@ -21,6 +21,7 @@ import pytest
 from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import AppConfig
 from idasen_companion.core.durations import Duration
+from idasen_companion.core.machine import Status
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.idle import (
     SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE,
@@ -196,13 +197,23 @@ async def test_real_automation_freezes_leave_active_statistics_running(harness, 
         d.config.schedule.start = "09:00"
         d.config.schedule.end = "17:00"
     await driver.start()
+    if freeze == "outside-schedule":
+        assert d.machine.status(WallInstant(h.clock)) is Status.OUT_OF_SCHEDULE
 
     await h.tick(5)
     assert d.machine.active_time == Duration.from_seconds(0)
     assert h.credited() == pytest.approx(TICK)
+    if freeze == "outside-schedule":
+        assert h.stats.daily_totals(date(2026, 1, 5), date(2026, 1, 5)) == [
+            ("2026-01-05", "sitting", TICK),
+        ]
     await h.tick(5)
     assert d.machine.active_time == Duration.from_seconds(0)
     assert h.credited() == pytest.approx(2 * TICK)
+    if freeze == "outside-schedule":
+        assert h.stats.daily_totals(date(2026, 1, 5), date(2026, 1, 5)) == [
+            ("2026-01-05", "sitting", 2 * TICK),
+        ]
 
 
 @pytest.mark.asyncio
