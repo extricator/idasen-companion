@@ -388,7 +388,7 @@ set -e
 echo "exit: $SCAN_STATUS" >> "$REAL_LOG"
 
 FINDINGS=$(python3 -c \
-    'import json,sys; report=json.load(open(sys.argv[1])); assert isinstance(report,list); print(len(report))' \
+    'import json,sys; report=json.load(open(sys.argv[1])); print(len(report) if isinstance(report,list) else -1)' \
     "$REAL_REPORT" 2>/dev/null || echo -1)
 
 # ---------------------------------------------------------------------------
