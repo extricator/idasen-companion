@@ -29,6 +29,8 @@ from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
 from idasen_companion.gui.theme import CONTROL_RADIUS  # noqa: E402
 from idasen_companion.core.lengths import Length
+from idasen_companion.core.durations import Duration
+from idasen_companion.gui.chart_data import DailyChartRow
 from idasen_companion.gui.widgets import (  # noqa: E402
     DailyBarsChart, HeightRail, RangeRail, segment_css,
 )
@@ -177,7 +179,7 @@ def test_vertical_range_rail_moves_to_logical_leading(app_context):
     assert rail._tick_text_x(30) < rail._track_x()  # pylint: disable=protected-access
 
 
-def test_daily_bar_rectangles_mirror_without_changing_size(app_context):
+def test_daily_bar_rectangles_mirror_without_changing_size(app_context, monkeypatch):
     chart = DailyBarsChart(app_context)
     chart.resize(400, 100)
     logical = QRectF(64, 4, 120, 12)
@@ -187,6 +189,36 @@ def test_daily_bar_rectangles_mirror_without_changing_size(app_context):
     chart.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
     visual = chart._visual_rect(logical)  # pylint: disable=protected-access
     assert visual == QRectF(216, 4, 120, 12)
+
+    # Empty input and a single semantic row use the real Qt paint path.
+    chart.set_rows([])
+    assert not chart.grab().isNull()
+    chart.set_rows([DailyChartRow(
+        label="Today", sitting=Duration(3600.0), standing=Duration(1800.0), is_today=True)])
+    segments = []
+    draw_segment = chart._draw_segment
+
+    def record_segment(painter, rect, round_left=False, round_right=False):
+        segments.append((QRectF(rect), round_left, round_right))
+        draw_segment(painter, rect, round_left, round_right)
+
+    monkeypatch.setattr(chart, "_draw_segment", record_segment)
+    chart.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+    assert not chart.grab().isNull()
+    span = 400 - chart.SHARE_W - 8 - (chart.LABEL_W + 8)
+    sitting_width = span * 3600.0 / 5400.0
+    standing_width = span * 1800.0 / 5400.0
+    assert segments == [
+        (QRectF(64, 4, sitting_width, 12), True, False),
+        (QRectF(64 + sitting_width + chart.GAP, 4,
+                standing_width - chart.GAP, 12), False, True)]
+    ltr_segments = segments[:]
+    segments.clear()
+    chart.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    assert not chart.grab().isNull()
+    assert segments == [(QRectF(400 - rect.x() - rect.width(), rect.y(),
+                               rect.width(), rect.height()), right, left)
+                        for rect, left, right in ltr_segments]
 
 
 def test_arabic_layout_keeps_babels_observed_numbering_behavior():

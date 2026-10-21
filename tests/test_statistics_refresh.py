@@ -18,7 +18,7 @@ Skipped where PySide6 is missing, since the RPM lists it as a runtime
 this suite without it.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -38,6 +38,8 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
+from idasen_companion.core.durations import Duration  # noqa: E402
+from idasen_companion.gui.chart_data import DailyChartRow  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.core.presentation import Formatter  # noqa: E402
@@ -181,12 +183,48 @@ def test_the_growing_total_actually_reaches_the_chart(page):
 
     rows = page.daily_chart._rows
     assert len(rows) == 14, "the chart always draws a full 14-day window"
-    _label, sit, stand, is_today = rows[-1]  # oldest first, today last
-    assert is_today
-    assert sit == 3600.0, f"today's total never reached the chart: {rows[-1]}"
-    assert stand == 0.0
+    row = rows[-1]  # oldest first, today last
+    assert isinstance(row, DailyChartRow)
+    assert row.is_today
+    assert row.sitting == Duration(3600.0)
+    assert row.standing == Duration(0.0)
+    label, sitting, standing, is_today = row
+    assert (label, sitting, standing, is_today) == (
+        row.label, row.sitting, row.standing, row.is_today)
+    assert row[1] == row.sitting and row[2] == row.standing
 
     # ...and it tracks a later read rather than sticking at the first value.
     page.client.seconds = 7200.0
     page.on_shown()
-    assert page.daily_chart._rows[-1][1] == 7200.0
+    assert page.daily_chart._rows[-1].sitting == Duration(7200.0)
+
+
+@pytest.mark.parametrize("sitting,standing", [
+    (-1.25, 2.5),  # accepted signed history has an unclamped 200% share
+    (0.0, 0.0),   # exact zero retains the no-average branch
+    (1e100, 1e100),  # huge finite, equal durations remain a 50% share
+])
+def test_chart_preserves_numeric_history_and_day_order(page, monkeypatch, sitting, standing):
+    today = date.today()
+    oldest = today - timedelta(days=13)
+    # Reverse input order; equal totals must not reorder calendar bars.
+    source = [DailyStatRow(day.isoformat(), state, seconds)
+              for day in (today, oldest)
+              for state, seconds in (("sitting", sitting), ("standing", standing))]
+    monkeypatch.setattr(page.client, "get_daily_stats", lambda *_: source)
+    page.on_shown()
+    rows = page.daily_chart._rows
+    assert all(type(daily.seconds) is float for daily in source)
+    assert [row.is_today for row in rows] == [False] * 13 + [True]
+    assert rows[0].label != rows[-1].label
+    for row in (rows[0], rows[-1]):
+        assert row.sitting == Duration(sitting)
+        assert row.standing == Duration(standing)
+        assert (row.sitting + row.standing).seconds == sitting + standing
+    assert all(not (row.sitting or row.standing) for row in rows[1:-1])
+    overall = (sitting + sitting) + (standing + standing)
+    if overall:
+        share = page.ctx.fmt.context.locale.percent((standing + standing) / overall)
+        assert f"14-day average: {share}." in page.stats_footer.text()
+    else:
+        assert "14-day average" not in page.stats_footer.text()

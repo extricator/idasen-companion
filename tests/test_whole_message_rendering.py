@@ -220,11 +220,14 @@ def test_range_rail_labels_its_presets_in_the_user_language(qapp):
 
 
 def test_daily_chart_tooltip_is_translated(qapp):
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.gui.chart_data import DailyChartRow
+
     ctx = _widget_ctx()
     chart = DailyBarsChart(ctx)
     chart.set_rows([
-        ("Mon 17", 3600, 1800, False),  # has data
-        ("Tue 18", 0, 0, False),        # no data
+        DailyChartRow(label="Mon 17", sitting=Duration(3600), standing=Duration(1800), is_today=False),
+        DailyChartRow(label="Tue 18", sitting=Duration(0), standing=Duration(0), is_today=False),
     ])
 
     with_data = chart._tooltip_for(0)  # pylint: disable=protected-access
@@ -234,6 +237,8 @@ def test_daily_chart_tooltip_is_translated(qapp):
         "Mon 17: sitting %s, standing %s"
         % (ctx.fmt.duration_hm(3600), ctx.fmt.duration_hm(1800)))
     assert no_data == "Tue 18: no data"
+    chart.resize(400, 100)
+    assert ctx.fmt.context.locale.percent(1800 / 5400) in _drawn_texts(chart)
 
 
 def test_statistics_footer_with_tracked_time_is_one_message(qapp, tmp_path, monkeypatch):
