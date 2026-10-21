@@ -32,7 +32,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QStyle, QStyleFactory, QStyleOption,
+    QStyle, QStyleFactory, QStyleOption,
 )
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -58,11 +58,6 @@ _DARK = {
     QPalette.ColorRole.WindowText: QColor("#fcfcfc"),
     QPalette.ColorRole.Text: QColor("#fcfcfc"),
 }
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

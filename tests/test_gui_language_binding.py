@@ -22,15 +22,9 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QLocale, Qt  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.gui.i18n import apply_language  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

@@ -23,7 +23,6 @@ import shiboken6  # noqa: E402
 from PySide6.QtCore import (  # noqa: E402
     QCoreApplication, QLocale, QObject, QTranslator, Signal,
 )
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.lengths import Length
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
@@ -36,11 +35,6 @@ from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

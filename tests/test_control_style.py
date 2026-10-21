@@ -57,7 +57,7 @@ from PySide6.QtGui import (  # noqa: E402
     QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPalette, QPixmap,
 )
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QCheckBox, QComboBox, QLineEdit, QPushButton, QSpinBox,
+    QCheckBox, QComboBox, QLineEdit, QPushButton, QSpinBox,
     QStyle, QStyleFactory, QStyleOption, QStyleOptionButton,
     QStyleOptionComboBox, QStyleOptionSpinBox, QVBoxLayout, QWidget,
 )
@@ -87,11 +87,6 @@ _DARK = {
     QPalette.ColorRole.WindowText: QColor("#fcfcfc"),
     QPalette.ColorRole.Text: QColor("#fcfcfc"),
 }
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

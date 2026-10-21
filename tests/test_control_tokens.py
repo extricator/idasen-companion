@@ -48,7 +48,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtGui import QColor, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QComboBox, QPushButton, QStyle, QStyleOptionButton,
+    QComboBox, QPushButton, QStyle, QStyleOptionButton,
 )
 
 from idasen_companion.gui.style import ControlStyle  # noqa: E402
@@ -127,11 +127,6 @@ _MAX_SURFACE_STEP = 0.035
 # control's colour without flattening it, which is the state that reads as
 # a second kind of button rather than as an unusable one.
 _MAX_DISABLED_SHARE = 0.5
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
 
 @pytest.fixture(autouse=True)
 def _restored_palette(qapp):
