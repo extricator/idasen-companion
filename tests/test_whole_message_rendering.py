@@ -36,6 +36,7 @@ from PySide6.QtCore import QLocale, QObject, Signal  # noqa: E402
 from PySide6.QtGui import QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
 
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -96,7 +97,7 @@ class _FakeOverviewClient(QObject):
     # the honest thing to pin here -- the "Snoozed until later" transient is
     # a known, accepted gap (see CONTEXT.md's deferred list), not something
     # this fixture should hide by seeding a fake real deadline.
-    def snooze_until(self): return 0.0
+    def snooze_until(self): return WallInstant(0.0)
 
 
 @pytest.fixture

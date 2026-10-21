@@ -42,6 +42,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import dataclasses  # noqa: E402
 
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -73,7 +74,7 @@ class FakeClient(QObject):
 
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
-        self._snooze_until = 0.0
+        self._snooze_until = WallInstant(0.0)
         self.stats_calls = 0
         # An instance attribute, not the class-level ``available = False`` the
         # other tray tests get away with: _today_summary returns "" outright
@@ -100,7 +101,7 @@ class FakeClient(QObject):
         Test-only helper; ``DaemonClient`` does this from its async property
         fetch (``dbus_client.py`` ``_set_snooze_until``).
         """
-        self._snooze_until = value
+        self._snooze_until = WallInstant(value)
         self.snoozeUntilChanged.emit(value)
 
     def __getattr__(self, name):

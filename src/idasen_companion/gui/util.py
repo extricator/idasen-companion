@@ -24,6 +24,7 @@ from ..core.presentation import Formatter
 from ..core.i18n import GettextTranslator
 from ..core.i18n import MessageKey, P_
 from ..core.display_prefs import HeightUnit
+from ..core.clocks import WallInstant
 from ..core.state_values import PositionValue, StatusValue
 
 # The automation engine moves to these; they can't be deleted or renamed.
@@ -258,10 +259,10 @@ def daemon_error_message(name: str, detail: str = "") -> str:
 
 
 @returns_translated
-def snooze_line(fmt: Formatter, until: float) -> str:
+def snooze_line(fmt: Formatter, until: WallInstant) -> str:
     """"Snoozed until 14:32", or "…until later" before the deadline arrives.
 
-    ``until`` is a unix timestamp, or 0 when it is not known yet: the client
+    ``until`` is a wall instant, or false zero when it is not known yet: the client
     fetches ``SnoozeUntil`` asynchronously on the snoozed announcement, so the
     first render has no time to show.
 
@@ -270,7 +271,7 @@ def snooze_line(fmt: Formatter, until: float) -> str:
     clock the user chose reaches this line like every other. It stays one
     whole message with the time substituted in; nothing is joined here.
     """
-    when = (fmt.clock(datetime.fromtimestamp(until)) if until
+    when = (fmt.clock(datetime.fromtimestamp(until.epoch_seconds)) if until
             else fmt.later_label())
     return fmt.snooze_line(when)
 

@@ -59,7 +59,7 @@ def client(qapp):
     """
     obj = DaemonClient.__new__(DaemonClient)
     QObject.__init__(obj)
-    obj._snooze_until = 0.0
+    obj._snooze_until = WallInstant(0.0)
     obj.requests = []
     obj.get_property_async = lambda iface, name, then: obj.requests.append(
         (name, then))
@@ -70,7 +70,8 @@ def test_a_snoozed_status_asks_for_the_deadline(client):
     client._note_status(Status.SNOOZED)
     assert [name for name, _ in client.requests] == ["SnoozeUntil"]
     # Asked, not yet answered: nothing to report until the reply lands.
-    assert client.snooze_until() == 0.0
+    assert client.snooze_until() == WallInstant(0.0)
+    assert not client.snooze_until()
 
 
 def test_the_reply_lands_in_the_cache(client):
@@ -113,7 +114,7 @@ def test_a_second_snooze_extends_it(client):
     client.requests[0][1](1800.0)
     client._note_status(Status.SNOOZED)
     client.requests[1][1](2400.0)
-    assert client.snooze_until() == 2400.0
+    assert client.snooze_until() == WallInstant(2400.0)
     assert seen == [1800.0, 2400.0]
 
 
@@ -123,7 +124,8 @@ def test_leaving_the_snooze_clears_it_without_asking(client):
     seen = []
     client.snoozeUntilChanged.connect(seen.append)
     client._note_status(Status.ACTIVE)
-    assert client.snooze_until() == 0.0
+    assert client.snooze_until() == WallInstant(0.0)
+    assert not client.snooze_until()
     assert seen == [0.0]
     # A status that isn't snoozed has no deadline to fetch.
     assert len(client.requests) == 1
@@ -151,15 +153,15 @@ def test_status_paths_update_snooze_cache_before_emitting_raw_strings(
             client.refresh_all()
 
     announce("snoozed")
-    assert observed[-1] == ("snoozed", str, 1, 0.0)
+    assert observed[-1] == ("snoozed", str, 1, WallInstant(0.0))
     client.requests[-1][1](1800.0)
     announce("snoozed")
-    assert observed[-1] == ("snoozed", str, 2, 1800.0)
+    assert observed[-1] == ("snoozed", str, 2, WallInstant(1800.0))
     client.requests[-1][1](2400.0)
 
     for raw in ("active", " Future Status ", ""):
         announce(raw)
-        assert observed[-1] == (raw, str, 2, 0.0)
+        assert observed[-1] == (raw, str, 2, WallInstant(0.0))
 
     if entry == "refresh":
         before = (len(observed), len(client.requests))
@@ -187,13 +189,13 @@ class FakeClient(QObject):
 
     def __init__(self):
         super().__init__()
-        self._snooze_until = 0.0
+        self._snooze_until = WallInstant(0.0)
 
     def snooze_until(self):
         return self._snooze_until
 
     def deliver_snooze_until(self, value):
-        self._snooze_until = value
+        self._snooze_until = WallInstant(value)
         self.snoozeUntilChanged.emit(value)
 
     def sit(self): ...

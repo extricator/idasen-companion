@@ -39,6 +39,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core import i18n as register  # noqa: E402
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -292,9 +293,9 @@ def _cycle_cases() -> dict[str, str]:
         # The "later" branch renders no clock at all, so both recordings of
         # it are identical by construction -- kept per clock anyway, so the
         # day one of them stops being identical the diff says so.
-        cases[f"snooze_later_{clock}"] = util.snooze_line(fmt, 0)
+        cases[f"snooze_later_{clock}"] = util.snooze_line(fmt, WallInstant(0))
         cases[f"snooze_specific_{clock}"] = util.snooze_line(
-            fmt, _SNOOZE_UNTIL)
+            fmt, WallInstant(_SNOOZE_UNTIL))
     return cases
 
 

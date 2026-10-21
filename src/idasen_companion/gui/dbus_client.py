@@ -29,6 +29,7 @@ from PySide6.QtDBus import (
 )
 
 from ..core.lengths import Length
+from ..core.clocks import WallInstant
 from .. import DBUS_NAME, DBUS_PATH
 from ..core.decoded_data import (
     DailyStatRow, LogEntry, TransitionRow, decode_daily_rows, decode_transition_rows,
@@ -94,7 +95,7 @@ class DaemonClient(QObject):
         super().__init__(parent)
         self.bus = QDBusConnection.sessionBus()
         self.available = False
-        self._snooze_until = 0.0
+        self._snooze_until = WallInstant(0.0)
 
         self._watcher = QDBusServiceWatcher(
             DBUS_NAME, self.bus,
@@ -287,13 +288,13 @@ class DaemonClient(QObject):
             self._set_snooze_until(0.0)
 
     def _set_snooze_until(self, value) -> None:
-        value = float(value or 0.0)
-        if value != self._snooze_until:
-            self._snooze_until = value
-            self.snoozeUntilChanged.emit(value)
+        until = WallInstant(float(value or 0.0))
+        if until != self._snooze_until:
+            self._snooze_until = until
+            self.snoozeUntilChanged.emit(until.epoch_seconds)
 
-    def snooze_until(self) -> float:
-        """Cached, never a round-trip — see ``_note_status``. 0.0 when the
+    def snooze_until(self) -> WallInstant:
+        """Cached, never a round-trip — see ``_note_status``. False zero when the
         cycle isn't snoozed, and briefly when a snooze has just been announced
         but its deadline hasn't arrived yet; ``snoozeUntilChanged`` says when
         it has."""
