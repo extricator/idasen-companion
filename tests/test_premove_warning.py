@@ -24,6 +24,7 @@ from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import DeskState, Status
 from idasen_companion.daemon.dbus_util import DBusCallError
 from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.notify import NOTIFY_IFACE, Notifier
 
 
@@ -142,9 +143,7 @@ async def test_unrelated_signals_are_left_alone(monkeypatch):
 def warn_daemon(*, remaining, target=1500, status="active",
                 lead_time=30, check_interval=60, enabled=True,
                 state=DeskState.SITTING):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.config = AppConfig()
     d.config.notifications.enabled = enabled
     d.config.notifications.lead_time = lead_time

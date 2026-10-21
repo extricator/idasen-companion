@@ -28,12 +28,9 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import Signal  # noqa: E402
 from PySide6.QtCore import QObject  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.config import AppConfig  # noqa: E402
 from idasen_companion.core.lengths import Length
-from idasen_companion.gui import context as context_mod  # noqa: E402
-from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
 from idasen_companion.gui.widgets import HeightRail, RangeRail
 
@@ -54,13 +51,8 @@ class FakeClient(QObject):
         raise AssertionError("should not nudge an unavailable daemon")
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
-def page(qapp, tmp_path, monkeypatch):
+def page(make_app_context):
     config = AppConfig()
     # Pinned explicitly rather than left at "system": the labels below are
     # about the live-height marker, not about units, and "system" would
@@ -69,12 +61,8 @@ def page(qapp, tmp_path, monkeypatch):
     # pin does not reach), making these assertions depend on whatever $LANG
     # the suite happens to run under.
     config.ui.units = "cm"
-    path = tmp_path / "config.toml"
-    save_config(config, path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
     client = FakeClient()
-    ctx = AppContext(client, tray_available=True)
-    ctx.reload_config()
+    ctx = make_app_context(client, config, load_config=True, tray_available=True)
     page = PresetsPage(ctx)
     client.presetsChanged.emit(PRESETS)
     return page

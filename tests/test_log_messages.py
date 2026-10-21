@@ -9,7 +9,6 @@ lines that most need it: they tell the user the clock went back to zero and
 then decline to say what it is counting toward.
 """
 
-import asyncio
 from unittest.mock import MagicMock
 
 import pytest
@@ -21,16 +20,14 @@ from idasen_companion.core.machine import (
     AwayChanged, DeskState, IdleChanged, MoveFailed, ResumedOnCycle,
     SeatChanged, StateSynced, TimeJumpDetected, TransitionCompleted,
 )
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.ringlog import FORMATTERS
 
 TARGET = 25 * 60
 
 
 def _daemon(target: int = TARGET):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.desk = MagicMock(last_error=None)

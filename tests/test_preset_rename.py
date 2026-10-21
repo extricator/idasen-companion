@@ -13,7 +13,6 @@ it.
 """
 
 import os
-import asyncio
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,7 +21,7 @@ from dbus_fast import DBusError
 from idasen_companion.core import logmsg
 from idasen_companion.core.lengths import Length
 from idasen_companion.core.config import AppConfig, ConfigError, load_config, save_config
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.config_file import ConfigFileStore
 
 PRESETS = {"sit": 0.62, "perch": 0.95, "stand": 1.14}
@@ -39,9 +38,7 @@ def daemon(tmp_path):
     that the rename reaches disk in one write, which a mocked writer could not
     show.
     """
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.config = AppConfig()
     d.config.presets = dict(PRESETS)
@@ -209,7 +206,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QLineEdit, QMessageBox,
+    QLineEdit, QMessageBox,
 )
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -242,11 +239,6 @@ class FakeClient(QObject):
 
     def delete_preset(self, name):  # pragma: no cover - as above
         raise AssertionError("a rename is a Rename, not a Save plus a Delete")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

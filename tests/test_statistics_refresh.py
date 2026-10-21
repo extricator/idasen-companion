@@ -34,7 +34,6 @@ from datetime import datetime  # noqa: E402
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import QLabel  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
@@ -76,17 +75,10 @@ class FakeClient(QObject):
         return []
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
-def page(qapp, tmp_path, monkeypatch):
-    path = tmp_path / "config.toml"
-    save_config(AppConfig(), path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
-    return StatisticsPage(AppContext(FakeClient(), tray_available=True))
+def page(make_app_context):
+    return StatisticsPage(make_app_context(
+        FakeClient(), AppConfig(), load_config=False, tray_available=True))
 
 
 def test_a_rebuilt_formatter_reaches_the_next_transitions_redraw(qapp, tmp_path,

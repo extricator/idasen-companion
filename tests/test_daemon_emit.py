@@ -14,15 +14,14 @@ import pytest
 from idasen_companion.core.clocks import MonotonicInstant, WallInstant
 from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.core.durations import Duration
 
 
 def _daemon():
     """A Daemon with just the collaborators the control ops touch, bypassing
     the real __init__ (which builds a RingLog, D-Bus service, desk, ...)."""
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.machine = MagicMock()
     d.machine.active_time = Duration.from_seconds(120.0)
@@ -85,9 +84,7 @@ def test_progress_uses_current_machine_values(op):
 async def test_toggle_moves_to_machine_chosen_preset():
     # Desk1.Toggle delegates the "which way?" decision to the machine and
     # moves there — the tray click and --toggle shortcut both ride this path.
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.machine = MagicMock()
     d.machine.refresh_height = AsyncMock()
     d.machine.toggle_target_preset.return_value = "stand"
@@ -111,9 +108,7 @@ async def test_toggle_from_background_never_reads_the_desk():
 
 def _gesture_daemon(*, moving=False, active=None, start_height=Length(0.62),
                     repeat="reverse"):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.moving = moving
     d._gesture_action = active
@@ -358,9 +353,7 @@ async def test_superseded_move_keeps_moving_flag_and_skips_reconcile():
 
 
 def _stopping_daemon(*, moving=True, gesture="stand"):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.desk = MagicMock()
     d.desk.stop = AsyncMock()

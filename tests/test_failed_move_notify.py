@@ -29,15 +29,13 @@ from idasen_companion.core.i18n import (
 )
 from idasen_companion.core.locale_profile import LocaleProfile
 from idasen_companion.core.display_prefs import HeightUnit
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 
 TARGET = 45 * 60
 
 
 def _daemon(*, problems: bool = True, enabled: bool = False):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.desk = MagicMock(last_error=None)
