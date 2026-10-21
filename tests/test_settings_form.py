@@ -22,7 +22,6 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -66,19 +65,12 @@ class WindowClient(QObject):
         return lambda *args, **kwargs: None
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
-def ctx(qapp, tmp_path, monkeypatch):
-    path = tmp_path / "config.toml"
+def ctx(make_app_context):
     cfg = AppConfig()
     cfg.desk.mac = MAC
-    save_config(cfg, path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
-    return AppContext(FakeClient(), tray_available=True)
+    return make_app_context(FakeClient(), cfg, load_config=False,
+                            tray_available=True)
 
 
 def _edit(page):

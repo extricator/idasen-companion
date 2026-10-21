@@ -21,12 +21,11 @@ from idasen_companion.core.config import AppConfig
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.main import Daemon
 from machine_helpers import Driver
+from daemon_helpers import make_daemon_shell
 
 
 def make_daemon(tick):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.config = AppConfig()
     d.config.automation.check_interval = 0  # don't wait between ticks
     d.activity_log = MagicMock()

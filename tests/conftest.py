@@ -23,6 +23,35 @@ from idasen_companion.core import journal
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
+@pytest.fixture(scope="session")
+def qapp():
+    pytest.importorskip("PySide6.QtWidgets")
+    from PySide6.QtWidgets import QApplication
+
+    return QApplication.instance() or QApplication([])
+
+
+@pytest.fixture
+def make_app_context(qapp, tmp_path, monkeypatch):
+    """Build a context from caller-owned state with explicit loading intent."""
+    from idasen_companion.core.config import save_config
+    from idasen_companion.gui import context as context_mod
+
+    def create(client, config, *, load_config, tray_available, path=None):
+        config_path = tmp_path / "config.toml" if path is None else path
+        config_path = config_path.resolve()
+        if not config_path.is_relative_to(tmp_path.resolve()):
+            raise ValueError("test config path must be below tmp_path")
+        save_config(config, config_path)
+        monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", config_path)
+        context = context_mod.AppContext(client, tray_available=tray_available)
+        if load_config:
+            context.reload_config()
+        return context
+
+    return create
+
+
 @pytest.fixture(autouse=True)
 def no_real_journal_writes(monkeypatch):
     monkeypatch.setattr(journal, "send", lambda *a, **kw: True)

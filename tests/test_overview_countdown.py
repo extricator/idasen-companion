@@ -27,14 +27,11 @@ from types import SimpleNamespace
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.config import AppConfig  # noqa: E402
 from idasen_companion.core.clocks import MonotonicInstant  # noqa: E402
 from idasen_companion.core.durations import Duration  # noqa: E402
-from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.pages import overview as overview_mod  # noqa: E402
-from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.theme import theme  # noqa: E402
 
@@ -67,17 +64,10 @@ class FakeClient(QObject):
     def idle_provider(self): return "none"
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
-def page(qapp, tmp_path, monkeypatch):
-    path = tmp_path / "config.toml"
-    save_config(AppConfig(), path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
-    page = OverviewPage(AppContext(FakeClient(), tray_available=True))
+def page(make_app_context):
+    page = OverviewPage(make_app_context(
+        FakeClient(), AppConfig(), load_config=False, tray_available=True))
     page.client.statusChanged.emit("active")
     page.client.positionChanged.emit("sitting")
     return page

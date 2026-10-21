@@ -13,7 +13,6 @@ silently re-randomizes the cycle the user is already in.
 
 import os
 from pathlib import Path
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,7 +20,7 @@ import pytest
 from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import ConfigError, load_config
 from idasen_companion.core.durations import Duration
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.config_file import ConfigFileStore
 
 CONFIG = """
@@ -40,9 +39,7 @@ stand_variation = "5m"
 def daemon(tmp_path: Path):
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
@@ -148,9 +145,7 @@ def test_the_target_survives_repeated_no_op_reloads(tmp_path: Path):
 
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
@@ -178,9 +173,7 @@ async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: P
     hot-reloads.
     """
     path = tmp_path / "config.toml"
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)          # defaults; no file on disk
     d.activity_log = MagicMock()
@@ -201,9 +194,7 @@ async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: P
 
 async def test_later_edits_are_picked_up_too(tmp_path: Path):
     path = tmp_path / "config.toml"
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
@@ -229,9 +220,7 @@ async def test_later_edits_are_picked_up_too(tmp_path: Path):
 def test_an_unchanged_file_is_not_reloaded_every_tick(tmp_path: Path):
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
