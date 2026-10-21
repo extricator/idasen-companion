@@ -108,8 +108,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Supply chain and packaging
 
-- [ ] **Review secret scanner coverage and simplification** — Compare callers and simplify only
-      with concrete benefit.
 - [ ] **Monitor bundled runtime and build dependencies** — Define component inventory,
       review/triage and coordinated pin/metadata updates, including embedded interpreter
       libraries.
