@@ -110,7 +110,10 @@ def test_staged_incomplete_read(scan_repo):
     repo, git, scan = scan_repo
     (repo / "added.txt").write_text("ordinary staged text\n")
     git("add", "added.txt")
-    result = scan(log="12:00PM ERR [git] fatal: unable to read staged input")
+    # Enough following progress to exceed a pipe buffer: a quiet grep can
+    # close early, give sed SIGPIPE under pipefail, and invert the verdict.
+    result = scan(log="12:00PM ERR [git] fatal: unable to read staged input\n" +
+                  "12:00PM INF ordinary progress\n" * 2500)
     assert result.returncode != 0, result.stdout + result.stderr
     assert "scanner errors or unread input" in result.stderr
 

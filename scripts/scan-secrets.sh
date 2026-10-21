@@ -111,8 +111,11 @@ strip_ansi() {
 # v8.30.1 can log failed/partial reads yet return success and an empty
 # report. A canary in another directory cannot certify this real input.
 real_scan_diagnostics_ok() {
-    ! strip_ansi "$1" | grep -Eq \
-        '(^|[[:space:]])ERR([[:space:]]|$)|(^|[[:space:]])WRN[[:space:]].*(permission denied|issue reading file|could not read|failed to read|unable to read|partial scan completed|skipping($|[[:space:]]+error=))'
+    # Consume the whole pipe: grep -q can give sed SIGPIPE under pipefail,
+    # accidentally turning an early error in a large log into success.
+    ! strip_ansi "$1" | grep -E \
+        '(^|[[:space:]])ERR([[:space:]]|$)|(^|[[:space:]])WRN[[:space:]].*(permission denied|issue reading file|could not read|failed to read|unable to read|partial scan completed|skipping($|[[:space:]]+error=))' \
+        >/dev/null
 }
 
 # Parse only the pinned summary, not arbitrary numbers in findings/paths.
