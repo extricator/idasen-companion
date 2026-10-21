@@ -42,7 +42,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import dataclasses  # noqa: E402
 
-from idasen_companion.core.clocks import WallInstant  # noqa: E402
+from idasen_companion.core.clocks import MonotonicInstant, WallInstant  # noqa: E402
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -172,16 +172,25 @@ def standing_and_active(icon):
 
 def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):
     icon, _ = tray
+    clock = 10.0
+    monkeypatch.setattr(tray_mod, "time", SimpleNamespace(monotonic=lambda: clock))
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
 
     assert isinstance(icon._remaining, Duration)
     assert isinstance(icon._elapsed, Duration)
+    assert icon._progress_stamp == MonotonicInstant(10.0)
 
-    monkeypatch.setattr(tray_mod.time, "monotonic",
-                        lambda: icon._progress_stamp + 0.25)
-    assert isinstance(icon._since_progress(), Duration)
+    clock += 0.25
+    assert icon._since_progress() == Duration(0.25)
     assert icon._shown_remaining() == 660.0
+    assert icon._shown_elapsed() == 2580.0
+
+    # The two renderers each obtain a fresh reading and keep their rounding.
+    readings = iter((10.75, 11.75))
+    monkeypatch.setattr(tray_mod, "time", SimpleNamespace(monotonic=lambda: next(readings)))
+    assert icon._shown_remaining() == 659.0
+    assert icon._shown_elapsed() == 2582.0
 
 
 def test_position_signal_preserves_tray_labels_and_direction(tray):
@@ -485,7 +494,7 @@ def test_countdown_ticks_between_daemon_pushes(tray):
     # was given, the way Overview already does.
     icon, _ = tray
     standing_and_active(icon)
-    icon._progress_stamp -= 630.0
+    icon._progress_stamp -= Duration(630.0)
 
     icon._tick()
 
@@ -500,7 +509,7 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
     # be there.
     icon, client = tray_with_stats
     standing_and_active(icon)
-    icon._progress_stamp -= 630.0
+    icon._progress_stamp -= Duration(630.0)
     before = client.stats_calls
 
     icon._tick()
@@ -526,7 +535,7 @@ def test_ticker_does_no_work_when_there_is_no_countdown(tray, status):
 
     # Set directly: _on_status would re-render through the spy itself.
     icon._status = Status.ACTIVE
-    icon._progress_stamp -= 660.0
+    icon._progress_stamp -= Duration(660.0)
     icon._tick()
     assert renders == []
 

@@ -47,7 +47,7 @@ class OverviewPage(Page):
         self._connected = False
         self._position: PositionValue = parse_position("")
         self._moving = False
-        self._progress_stamp = MonotonicInstant(time.monotonic())
+        self._progress_stamp: MonotonicInstant = MonotonicInstant(time.monotonic())
         # The desk's last reported height in metres, kept so the labels that
         # show it can be redrawn without waiting for the next push.
         self._height = Length(0.0)

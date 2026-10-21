@@ -21,6 +21,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 import os
+from types import SimpleNamespace
 
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -29,6 +30,7 @@ from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.clocks import MonotonicInstant  # noqa: E402
 from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.pages import overview as overview_mod  # noqa: E402
@@ -131,17 +133,22 @@ def test_a_fresh_cycle_puts_the_clock_back(page):
 
 
 def test_progress_receipt_ages_as_a_duration_before_widgets(page, monkeypatch):
+    clock = 10.0
+    monkeypatch.setattr(overview_mod, "time", SimpleNamespace(monotonic=lambda: clock))
     page.client.progressChanged.emit(1500.0, 1800.0)
-    assert isinstance(page._remaining, Duration)
+    assert page._remaining == Duration(300.0)
+    assert page._progress_stamp == MonotonicInstant(10.0)
 
     shown = []
-    monkeypatch.setattr(overview_mod.time, "monotonic",
-                        lambda: page._progress_stamp + 0.25)
+    clock += 0.25
+    render = page._update_countdown_text
     monkeypatch.setattr(page, "_update_countdown_text",
-                        lambda remaining=None: shown.append(remaining))
+                        lambda remaining=None: (shown.append(remaining), render(remaining)))
     page._tick_countdown()
 
-    assert isinstance(shown[-1], Duration)
+    assert shown == [Duration(299.75)]
+    assert page.countdown_time_word.text() == "4:59"
+    assert page.countdown_bar.value() == 1500
 
 
 def test_position_signal_preserves_labels_and_direction(page):
