@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
+from ...core.clocks import MonotonicInstant
 from ...core.durations import Duration
 from ...core.lengths import Length
 from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, DeskState, Status
@@ -46,7 +47,7 @@ class OverviewPage(Page):
         self._connected = False
         self._position: PositionValue = parse_position("")
         self._moving = False
-        self._progress_stamp = time.monotonic()
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         # The desk's last reported height in metres, kept so the labels that
         # show it can be redrawn without waiting for the next push.
         self._height = Length(0.0)
@@ -536,13 +537,13 @@ class OverviewPage(Page):
 
     def _on_progress(self, active_time: float, target: float) -> None:
         self._remaining = max(Duration(0.0), Duration(target - active_time))
-        self._progress_stamp = time.monotonic()
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         self.countdown_bar.setMaximum(max(1, int(target)))
         self._update_countdown_text()
 
     def _tick_countdown(self) -> None:
         if self._status in COUNTDOWN_STATUSES and self._remaining > Duration(0.0):
-            elapsed = Duration(time.monotonic() - self._progress_stamp)
+            elapsed = MonotonicInstant(time.monotonic()) - self._progress_stamp
             shown = max(Duration(0.0), self._remaining - elapsed)
             self._update_countdown_text(shown)
 

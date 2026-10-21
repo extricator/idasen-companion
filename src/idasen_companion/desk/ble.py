@@ -25,6 +25,8 @@ import struct
 import time
 from typing import TYPE_CHECKING, Awaitable, Callable
 
+from ..core.clocks import MonotonicInstant
+from ..core.durations import Duration
 from ..core.lengths import Length
 
 if TYPE_CHECKING:
@@ -94,7 +96,7 @@ class BleDesk:
         self.connection_mode = connection_mode
         self.linger = linger
         self._retry_delays = retry_delays
-        self._wakeup_grace = wakeup_grace
+        self._wakeup_grace = Duration(wakeup_grace)
         self._disconnect_timeout = disconnect_timeout
         self._read_timeout = read_timeout
         self._connect_timeout = connect_timeout
@@ -115,7 +117,7 @@ class BleDesk:
         # Monotonic time the controller was last known awake — set by a
         # successful connect (idasen's connect() wakes it) and by an explicit
         # _wakeup(). None means "assume asleep". See _controller_awake.
-        self._awake_since: float | None = None
+        self._awake_since: MonotonicInstant | None = None
         # True only while a move_to_target is actively driving the desk, so a
         # second move can preempt it (rather than queue behind the lock).
         self._move_in_flight = False
@@ -158,7 +160,7 @@ class BleDesk:
         doze timeout, so a genuine linger reuse still re-wakes.
         """
         return (self._awake_since is not None
-                and time.monotonic() - self._awake_since < self._wakeup_grace)
+                and MonotonicInstant(time.monotonic()) - self._awake_since < self._wakeup_grace)
 
     def _report_error(self, context: str, exc: Exception) -> None:
         message = f"{context}: {exc.__class__.__name__}: {exc}"
@@ -219,7 +221,7 @@ class BleDesk:
                     await asyncio.sleep(self._retry_delays[attempt])
                 continue
             # idasen's connect() issues the full controller wakeup itself.
-            self._awake_since = time.monotonic()
+            self._awake_since = MonotonicInstant(time.monotonic())
             if self._on_connection_change:
                 self._on_connection_change(True)
             # Subscribe to live heights off the critical path: the first move
@@ -436,7 +438,7 @@ class BleDesk:
         except Exception as exc:
             self._report_error("wakeup", exc)
         else:
-            self._awake_since = time.monotonic()
+            self._awake_since = MonotonicInstant(time.monotonic())
 
     async def pair(self) -> bool:
         async with self._lock:

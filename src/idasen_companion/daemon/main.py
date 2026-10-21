@@ -38,7 +38,7 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.display_prefs import ClockSetting, resolve_clock_style
-from ..core.clocks import WallInstant
+from ..core.clocks import MonotonicInstant, WallInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
 from ..core.presentation import format_duration_human
@@ -73,7 +73,7 @@ logger = logging.getLogger(__name__)
 # button, the tray's Snooze submenu and Overview's Snooze button all call
 # Automation1.Snooze, and the app names one action one way.
 SNOOZE_MINUTES = 5
-HEIGHT_EMIT_INTERVAL = 0.5  # throttle for live height PropertiesChanged
+HEIGHT_EMIT_INTERVAL = Duration(0.5)  # throttle for live height PropertiesChanged
 MANUAL_LOCK_TIMEOUT = 30.0
 
 
@@ -161,7 +161,7 @@ class Daemon:
         self._system_bus: MessageBus | None = None
         self._ifaces: dict = {}
         self._warned_this_cycle = False
-        self._last_height_emit = 0.0
+        self._last_height_emit = MonotonicInstant(0.0)
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
         # Whether this daemon's own link was up when the system last announced
@@ -353,7 +353,7 @@ class Daemon:
 
     def _on_live_height(self, height: Length) -> None:
         self.machine.last_height = height
-        now = time.monotonic()
+        now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
             self._last_height_emit = now
             desk1 = self._ifaces.get("desk")
@@ -713,7 +713,7 @@ class Daemon:
 
         while not self._stop_event.is_set():
             interval = self.config.automation.check_interval
-            started = time.monotonic()
+            started = MonotonicInstant(time.monotonic())
             try:
                 await self._tick()
             except asyncio.CancelledError:
@@ -732,12 +732,12 @@ class Daemon:
             # A tick that outruns its own interval means automation was
             # stalled — nothing moved, nothing was logged, and previously
             # the only trace was a bogus "time jump" once it recovered.
-            overrun = time.monotonic() - started
-            if overrun > interval:
+            overrun = MonotonicInstant(time.monotonic()) - started
+            if overrun > Duration(interval):
                 self.activity_log.diag(
                     "warning",
                     f"Control loop tick took "
-                    f"{format_duration_human(overrun)} (check interval is "
+                    f"{format_duration_human(overrun.seconds)} (check interval is "
                     f"{format_duration_human(interval)}); automation was "
                     f"stalled for that long.")
             with contextlib.suppress(asyncio.TimeoutError):

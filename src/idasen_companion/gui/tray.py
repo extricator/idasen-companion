@@ -8,6 +8,7 @@ window. gui.main decides whether to construct this at all.
 from __future__ import annotations
 
 from ..core.i18n import pgettext
+from ..core.clocks import MonotonicInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
 
@@ -65,7 +66,7 @@ class TrayIcon(QSystemTrayIcon):
         self._remaining: Duration | None = None
         self._elapsed: Duration | None = None
         # When those two were last true, so the ticker below can age them.
-        self._progress_stamp = time.monotonic()
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         # The day's totals, cached: see _refresh_texts for why the ticker
         # must not re-fetch them.
         self._today = ""
@@ -235,7 +236,7 @@ class TrayIcon(QSystemTrayIcon):
         # The other half of the same number: how long this position has been
         # held. Both sides of the cycle are worth a line in the tooltip.
         self._elapsed = max(Duration(0.0), Duration(active_time))
-        self._progress_stamp = time.monotonic()
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         self._refresh_texts()
 
     def _tick(self) -> None:
@@ -288,7 +289,7 @@ class TrayIcon(QSystemTrayIcon):
         return float(round((self._elapsed + self._since_progress()).seconds))
 
     def _since_progress(self) -> Duration:
-        return Duration(time.monotonic() - self._progress_stamp)
+        return MonotonicInstant(time.monotonic()) - self._progress_stamp
 
     def _time_left(self, remaining: float) -> str:
         """The remaining time as a word: '11m', '45s'.
