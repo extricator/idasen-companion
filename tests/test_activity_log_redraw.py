@@ -41,16 +41,10 @@ from datetime import datetime  # noqa: E402
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QImage  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import log_catalog, restyle  # noqa: E402
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class FakeClient(QObject):

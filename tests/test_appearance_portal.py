@@ -34,16 +34,10 @@ import os  # noqa: E402
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtDBus import QDBus, QDBusMessage, QDBusVariant  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core import journal  # noqa: E402
 from idasen_companion.core.logmsg import Channel  # noqa: E402
 from idasen_companion.gui import appearance_portal as ap  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class _FakeReply:

@@ -27,7 +27,6 @@ import os  # noqa: E402
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core import presentation as english  # noqa: E402
@@ -47,11 +46,6 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def _config(clock_format: str) -> AppConfig:

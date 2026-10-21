@@ -26,7 +26,7 @@ from PySide6.QtGui import (  # noqa: E402
     QColor, QFontMetrics, QFontMetricsF, QIcon, QPixmap,
 )
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QPushButton, QStyle, QStyleOptionButton,
+    QPushButton, QStyle, QStyleOptionButton,
 )
 
 from language_context import installed_language as _language  # noqa: E402
@@ -41,11 +41,6 @@ from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa:
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
 from idasen_companion.gui.theme import extra_icon_gap, theme  # noqa: E402
 from idasen_companion.gui.widgets import emphasize  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class FakeClient(QObject):

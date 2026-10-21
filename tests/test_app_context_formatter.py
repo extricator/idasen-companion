@@ -16,7 +16,6 @@ import os  # noqa: E402
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QLocale  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
@@ -33,11 +32,6 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

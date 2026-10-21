@@ -35,7 +35,6 @@ pytest.importorskip("PySide6")
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QLocale  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core import i18n as register  # noqa: E402
@@ -68,11 +67,6 @@ GOLDEN_DIR = Path(__file__).parent / "goldens"
 #: Only its text outputs are recorded here, so the color values themselves
 #: are never inspected.
 _THEME = SimpleNamespace(success="success", error="error", muted="muted")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 # ----------------------------------------------------------------------
