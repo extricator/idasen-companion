@@ -37,8 +37,12 @@ def make_app_context(qapp, tmp_path, monkeypatch):
     from idasen_companion.core.config import save_config
     from idasen_companion.gui import context as context_mod
 
+    created = 0
+
     def create(client, config, *, load_config, tray_available, path=None):
-        config_path = tmp_path / "config.toml" if path is None else path
+        nonlocal created
+        config_path = tmp_path / f"config-{created}.toml" if path is None else path
+        created += 1
         config_path = config_path.resolve()
         if not config_path.is_relative_to(tmp_path.resolve()):
             raise ValueError("test config path must be below tmp_path")
