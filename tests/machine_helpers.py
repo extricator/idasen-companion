@@ -2,6 +2,8 @@
 
 import random
 
+from idasen_companion.core.clocks import WallInstant
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.lengths import Length
 from idasen_companion.core.config import AppConfig
 from idasen_companion.core.machine import StateMachine
@@ -43,7 +45,7 @@ class Driver:
     def __init__(self, cfg=None, height: Length = SIT_H, rng=None, now=1_000_000.0):
         self.cfg = cfg or make_config()
         self.desk = MockDesk(height)
-        self.now = now
+        self.now = WallInstant(now)
         self.m = StateMachine(self.cfg, self.desk, now=self.now, rng=rng or ZeroRng())
 
     async def start(self):
@@ -51,7 +53,7 @@ class Driver:
 
     async def tick(self, dt=60, idle_ms=1000, locked=False, away=False,
                    seatless=False):
-        self.now += dt
+        self.now += Duration.from_seconds(dt)
         return await self.m.tick(self.now, idle_ms, locked, away, seatless)
 
     async def run_active_ticks(self, n, **kw):

@@ -2,6 +2,7 @@
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.display_prefs import (
     HeightUnit, from_display_height, to_display_height,
 )
@@ -59,8 +60,8 @@ async def test_mock_height_path_has_typed_domain_values():
     from idasen_companion.core.machine import StateMachine
     from machine_helpers import make_config
 
-    machine = StateMachine(make_config(), desk, now=0)
-    await machine.start(0)
+    machine = StateMachine(make_config(), desk, now=WallInstant(0))
+    await machine.start(WallInstant(0))
     assert machine.last_height == Length(0.62)
     assert await desk.move_to(Length(1.1)) is True
     assert desk.move_calls == [Length(1.1)]

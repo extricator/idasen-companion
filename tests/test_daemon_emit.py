@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.main import Daemon
 from idasen_companion.core.durations import Duration
@@ -25,7 +26,7 @@ def _daemon():
     d.machine = MagicMock()
     d.machine.active_time = Duration.from_seconds(120.0)
     d.machine.target_duration = Duration.from_seconds(300.0)
-    d.machine.snooze_until = 0.0
+    d.machine.snooze_until = None
     d.machine.skip_next = False
     d.machine.status.return_value = MagicMock(value="active")
     d.config = MagicMock()
@@ -260,8 +261,8 @@ async def _interruptible_daemon(policy="undo"):
     # bypassed here, so run()'s own _build_formatter never fires.
     d.fmt = Daemon._build_formatter(d, cfg)
     d.desk = MockDesk(height=Length(0.62))
-    d.machine = StateMachine(cfg, d.desk, now=time.time())
-    await d.machine.start(time.time())  # last_height = 0.62, state sitting
+    d.machine = StateMachine(cfg, d.desk, now=WallInstant(time.time()))
+    await d.machine.start(WallInstant(time.time()))  # last_height = 0.62, state sitting
     return d
 
 
@@ -440,7 +441,7 @@ def _enable_daemon(tmp_path, enabled=True):
     d.config = cfg
     d.config_file = ConfigFileStore(tmp_path / "config.toml", d.activity_log)
     d.config_file.save(cfg)
-    d.machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=time.time())
+    d.machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=WallInstant(time.time()))
     return d, load_config
 
 
@@ -448,8 +449,31 @@ def test_set_automation_enabled_persists_to_config(tmp_path):
     d, load = _enable_daemon(tmp_path)
     d.set_automation_enabled(False)
     assert load(d.config_file.path).automation.enabled is False
-    assert d.machine.status(0.0).value == "disabled"
+    assert d.machine.status(WallInstant(0.0)).value == "disabled"
     _assert_announced(d)
+
+
+def test_snooze_deadline_adapters_keep_scalar_zero_and_clamped_minutes(tmp_path, monkeypatch):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.daemon.service import Automation1
+
+    d, _ = _enable_daemon(tmp_path)
+    interface = Automation1(d)
+    assert d.machine.snooze_until is None
+    assert interface.SnoozeUntil == 0.0
+    monkeypatch.setattr(main_mod.time, "time", lambda: 0.0)
+    d.snooze(0)
+    assert d.machine.snooze_until == WallInstant(60.0)
+    assert d.activity_log.emit.call_args.kwargs == {"minutes": 1, "duration": 60}
+    for deadline, expected in ((WallInstant(60.0), 60.0),
+                               (WallInstant(0.0), 0.0),
+                               (WallInstant(-2.5), -2.5), (None, 0.0)):
+        d.machine.snooze_until = deadline
+        d._emit_automation_state()
+        payload = d._ifaces["automation"].emit_properties_changed.call_args.args[0]
+        assert interface.SnoozeUntil == payload["SnoozeUntil"] == expected
+        assert type(interface.SnoozeUntil) is float
+        assert type(payload["SnoozeUntil"]) is float
 
 
 def test_set_automation_enabled_is_a_no_op_when_unchanged(tmp_path):
@@ -487,7 +511,7 @@ def test_failed_automation_write_restores_state_without_announcing(tmp_path, mon
     from idasen_companion.daemon import config_file as config_file_mod
 
     d, load = _enable_daemon(tmp_path)
-    before_status = d.machine.status(0.0)
+    before_status = d.machine.status(WallInstant(0.0))
     error = ConfigError("invalid") if error_kind == "config" else OSError("disk full")
     monkeypatch.setattr(config_file_mod, "save_config", MagicMock(side_effect=error))
 
@@ -497,7 +521,7 @@ def test_failed_automation_write_restores_state_without_announcing(tmp_path, mon
     assert raised.value.type.endswith(".Error.ConfigWriteFailed")
     assert d.config.automation.enabled is True
     assert load(d.config_file.path).automation.enabled is True
-    assert d.machine.status(0.0) == before_status
+    assert d.machine.status(WallInstant(0.0)) == before_status
     d.activity_log.emit.assert_not_called()
     d._ifaces["automation"].StatusChanged.assert_not_called()
     d._ifaces["automation"].emit_properties_changed.assert_not_called()

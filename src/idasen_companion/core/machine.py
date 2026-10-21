@@ -61,6 +61,7 @@ from enum import StrEnum
 from typing import NamedTuple
 
 from .config import AppConfig
+from .clocks import WallInstant
 from .durations import Duration
 from .lengths import Length
 from .schedule import is_schedule_active
@@ -281,7 +282,7 @@ class StateMachine:
         config: AppConfig,
         desk,
         *,
-        now: float,
+        now: WallInstant,
         rng: random.Random | None = None,
         on_moving: Callable[[bool], None] | None = None,
     ):
@@ -306,7 +307,7 @@ class StateMachine:
         # claim on a desk that belongs to whoever does have one.
         self.is_seatless: bool = False
         self.paused: bool = False
-        self.snooze_until: float | None = None
+        self.snooze_until: WallInstant | None = None
         self.skip_next: bool = False
         # Held off-cycle: the desk is parked away from sit/stand and the
         # yield policy has paused cycling until it returns to a preset.
@@ -335,14 +336,14 @@ class StateMachine:
         self._last_seatless = False
         # When the current absence began (None while present). Decides whether
         # returning keeps the accumulated cycle or starts over — see ``tick``.
-        self._idle_since: float | None = None
+        self._idle_since: WallInstant | None = None
         # Whether this cycle has already had its pre-decide height read (so
         # we sync once, not every tick, inside the lead window).
         self._synced_before_decide = False
 
     # ----- lifecycle -----
 
-    async def start(self, now: float) -> list[Event]:
+    async def start(self, now: WallInstant) -> list[Event]:
         """Adopt the desk's actual position as the initial state.
 
         This is *initialization*, not a transition: we seed ``state`` from
@@ -381,7 +382,7 @@ class StateMachine:
         self._seed_cycle(now)
         return []
 
-    def start_without_desk_read(self, now: float) -> None:
+    def start_without_desk_read(self, now: WallInstant) -> None:
         """Initialize without reading the desk — the same end state ``start``
         reaches on an unreadable height, minus the read.
 
@@ -391,7 +392,7 @@ class StateMachine:
         permanent "0m left" in the UI."""
         self._seed_cycle(now)
 
-    def _seed_cycle(self, now: float) -> None:
+    def _seed_cycle(self, now: WallInstant) -> None:
         """Arm the first cycle and the tick/sync clocks, shared by both
         ``start`` paths so they cannot drift.
 
@@ -407,7 +408,7 @@ class StateMachine:
         self._last_check = now
         self._last_sync = now
 
-    async def tick(self, now: float, idle_ms: int, locked: bool,
+    async def tick(self, now: WallInstant, idle_ms: int, locked: bool,
                    away: bool = False, seatless: bool = False) -> list[Event]:
         """One iteration of the control loop. Call every check_interval.
 
@@ -439,7 +440,7 @@ class StateMachine:
             self._last_check = now
             return []
 
-        time_elapsed = Duration.from_seconds(now - self._last_check)
+        time_elapsed = now - self._last_check
 
         # Suspend/resume detection by wall-clock jump. ``now`` is wall clock, so
         # the step can also go *backwards* (an NTP correction after a long
@@ -522,7 +523,7 @@ class StateMachine:
         self._last_check = now
         return events
 
-    def _update_presence(self, now: float, idle_ms: int, locked: bool,
+    def _update_presence(self, now: WallInstant, idle_ms: int, locked: bool,
                          away: bool, seatless: bool) -> _Presence:
         """Fold this tick's presence inputs into the idle/away/seat state, and
         report the edges the rest of the tick and the log care about."""
@@ -557,7 +558,7 @@ class StateMachine:
             # Plain idleness is only spotted once idle_ms crosses the threshold,
             # so it is already that far in the past; a lock or a session switch
             # is seen the moment it happens.
-            self._idle_since = now - (
+            self._idle_since = now - Duration.from_seconds(
                 0.0 if (locked or unentitled) else idle_ms / 1000.0)
             if not unentitled_edge:
                 events.append(IdleChanged(True, idle_ms))
@@ -570,8 +571,9 @@ class StateMachine:
             # because lock and away flip the idle flag instantly with no
             # duration attached. Plain idleness is unaffected either way: it
             # cannot be noticed until it has already run past the threshold.
-            absence = now - self._idle_since if self._idle_since is not None else 0.0
-            progress_reset = absence >= config.idle_threshold
+            absence = (now - self._idle_since if self._idle_since is not None
+                       else Duration.from_seconds(0.0))
+            progress_reset = absence >= Duration.from_seconds(config.idle_threshold)
             if progress_reset:
                 self._reset_accumulator()
             else:
@@ -590,7 +592,7 @@ class StateMachine:
 
         return _Presence(currently_idle, unentitled, unentitled_edge, events)
 
-    async def _periodic_sync(self, now: float, presence: _Presence) -> list[Event]:
+    async def _periodic_sync(self, now: WallInstant, presence: _Presence) -> list[Event]:
         """Poll the actual desk height on the sync interval (``sync_interval``
         0 disables it, but a held desk still polls at ``HELD_POLL_INTERVAL`` so
         it can notice a return to a preset and resume).
@@ -615,7 +617,7 @@ class StateMachine:
             # return to a preset, whether periodic polling is off (0) or set
             # slower than HELD_POLL_INTERVAL.
             interval = HELD_POLL_INTERVAL
-        if interval > 0 and now - self._last_sync >= interval:
+        if interval > 0 and now - self._last_sync >= Duration.from_seconds(interval):
             return await self._sync(now)
         return []
 
@@ -629,8 +631,8 @@ class StateMachine:
         self.paused = False
         self.snooze_until = None
 
-    def snooze(self, minutes: int, now: float) -> None:
-        self.snooze_until = now + minutes * 60
+    def snooze(self, minutes: int, now: WallInstant) -> None:
+        self.snooze_until = now + Duration.from_minutes(minutes)
 
     def request_skip_next(self) -> None:
         self.skip_next = True
@@ -640,7 +642,7 @@ class StateMachine:
         effect as the time-jump heuristic, just triggered deterministically."""
         self._reset_accumulator()
 
-    async def force_sync(self, now: float) -> list[Event]:
+    async def force_sync(self, now: WallInstant) -> list[Event]:
         """Immediate height sync (used by the daemon after manual moves so
         internal state and timers adopt the new position right away)."""
         return await self._sync(now)
@@ -682,7 +684,7 @@ class StateMachine:
 
     # ----- introspection -----
 
-    def status(self, now: float) -> Status:
+    def status(self, now: WallInstant) -> Status:
         # Outranks everything: with no desk address there is nothing to pause,
         # snooze or schedule, and reporting "active" would be a lie.
         if self.unconfigured:
@@ -696,7 +698,8 @@ class StateMachine:
             return Status.PAUSED
         if self.snooze_until is not None and now < self.snooze_until:
             return Status.SNOOZED
-        if not is_schedule_active(self._cfg.schedule, datetime.fromtimestamp(now)):
+        if not is_schedule_active(
+                self._cfg.schedule, datetime.fromtimestamp(now.epoch_seconds)):
             return Status.OUT_OF_SCHEDULE
         if self.held:
             return Status.HELD
@@ -726,7 +729,7 @@ class StateMachine:
         return (remaining if remaining >= Duration.from_seconds(0)
                 else Duration.from_seconds(0))
 
-    def cycle_target(self, now: float) -> int:
+    def cycle_target(self, now: WallInstant) -> int:
         """The cycle length the user is counting toward, or 0 if none is.
 
         The one thing a log line needs before it can say "next change after
@@ -745,7 +748,7 @@ class StateMachine:
 
     # ----- internals -----
 
-    def _frozen(self, now: float) -> bool:
+    def _frozen(self, now: WallInstant) -> bool:
         """Whether the active-time clock and transitions are suspended.
 
         Deliberately *not* a reason to skip the periodic sync: a frozen
@@ -760,7 +763,8 @@ class StateMachine:
             if now < self.snooze_until:
                 return True
             self.snooze_until = None
-        return not is_schedule_active(self._cfg.schedule, datetime.fromtimestamp(now))
+        return not is_schedule_active(
+                self._cfg.schedule, datetime.fromtimestamp(now.epoch_seconds))
 
     def _classify(self, height: Length) -> DeskState:
         # Split at the midpoint between the two cycle presets, so the boundary
@@ -811,7 +815,7 @@ class StateMachine:
                 base = at_preset
         return _PRESET_FOR_STATE[base.opposite]
 
-    async def refresh_height(self, now: float) -> None:
+    async def refresh_height(self, now: WallInstant) -> None:
         """Read the desk height into ``last_height`` with no other side effects,
         so a manual decision (which way to toggle) is made from the desk's real
         position — the manual counterpart of the automation pre-decide sync."""
@@ -864,13 +868,13 @@ class StateMachine:
         max_minutes = math.ceil(variation / 60)
         return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
-    async def _read_height(self, now: float) -> Length | None:
+    async def _read_height(self, now: WallInstant) -> Length | None:
         height = await self._desk.get_height()
         if height is not None:
             self.last_height = height
         return height
 
-    async def _execute_transition(self, now: float) -> list[
+    async def _execute_transition(self, now: WallInstant) -> list[
             MoveFailed | TransitionCompleted]:
         """Port of the reference script's run_command(): move, verify against
         the preset target within tolerance, and on interruption apply
@@ -887,7 +891,7 @@ class StateMachine:
         if self._on_moving is not None:
             self._on_moving(moving)
 
-    async def _drive_transition(self, now: float) -> list[
+    async def _drive_transition(self, now: WallInstant) -> list[
             MoveFailed | TransitionCompleted]:
         tolerance = Length(self._cfg.advanced.movement_tolerance)
         policy = self._cfg.automation.interruption_policy
@@ -953,7 +957,7 @@ class StateMachine:
         return completed(landed, interrupted=True, recovery=policy,
                          final_height=height)
 
-    async def _sync(self, now: float) -> list[Event]:
+    async def _sync(self, now: WallInstant) -> list[Event]:
         """Read the desk and reconcile against it, restarting the sync clock.
 
         The stamp lives here rather than at each call site: every caller —

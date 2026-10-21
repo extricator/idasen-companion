@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from ..core.clocks import WallInstant
 from ..core.durations import Duration
 from ..core.machine import TIME_JUMP_THRESHOLD_SECONDS
 from .stats import Stats
@@ -18,14 +19,14 @@ class ActiveTimeAccounting:
 
     def __init__(self, stats: Stats):
         self._stats = stats
-        self._last_observation: float | None = None
+        self._last_observation: WallInstant | None = None
         self._pending_credit: dict[tuple[date, str], Duration] = {}
 
-    def start(self, now: float) -> None:
+    def start(self, now: WallInstant) -> None:
         """Seed the observation clock from the daemon's startup origin."""
         self._last_observation = now
 
-    def account(self, state: str, now: float, *, held: bool,
+    def account(self, state: str, now: WallInstant, *, held: bool,
                 idle_ms: int, absent: bool, idle_threshold_seconds: int) -> None:
         """Attribute the window ending at ``now`` to ``state``'s daily total.
 
@@ -47,7 +48,7 @@ class ActiveTimeAccounting:
         self._last_observation = now
         if last_observation is None:
             return
-        elapsed = Duration.from_seconds(now - last_observation)
+        elapsed = now - last_observation
         # Don't credit a suspend-sized gap to sit/stand totals (the stats-side
         # twin of the machine's time-jump reset); shared absolute threshold, and
         # the same both-directions rule — a backward clock step would otherwise

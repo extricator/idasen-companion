@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
@@ -168,7 +169,7 @@ async def test_out_of_schedule_freezes():
     assert d.m.status(d.now) is Status.ACTIVE
 
     # ...then step to Saturday, outside the schedule.
-    d.now = datetime(2026, 7, 18, 12, 0).timestamp()
+    d.now = WallInstant(datetime(2026, 7, 18, 12, 0).timestamp())
     d.m._last_check = d.now
     await d.run_active_ticks(10)
     assert d.m.active_time == Duration.from_seconds(600), "out-of-schedule reset the cycle, not froze it"

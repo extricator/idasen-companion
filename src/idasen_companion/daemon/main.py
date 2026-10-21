@@ -38,6 +38,7 @@ from ..core.machine import (
     TransitionHeldForInput, TransitionSkipped,
 )
 from ..core.display_prefs import ClockSetting, resolve_clock_style
+from ..core.clocks import WallInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
 from ..core.presentation import format_duration_human
@@ -599,7 +600,7 @@ class Daemon:
         """
         if self.machine is None:
             return 0
-        return self.machine.cycle_target(time.time())
+        return self.machine.cycle_target(WallInstant(time.time()))
 
     def _emit_log_entry(self, entry: Entry) -> None:
         log1 = self._ifaces.get("log")
@@ -639,7 +640,7 @@ class Daemon:
             self.activity_log.emit(logmsg.SETUP_NO_DESK)
 
         self.desk = self._make_desk()
-        now = time.time()
+        now = WallInstant(time.time())
         self.machine = StateMachine(self.config, self.desk, now=now,
                                     on_moving=self._set_moving)
         self.machine.unconfigured = self._unconfigured()
@@ -691,7 +692,7 @@ class Daemon:
                 self.activity_log.diag("warning",
                                f"Could not finish {what} while stopping.")
 
-    async def _run_until_stopped(self, now: float) -> None:
+    async def _run_until_stopped(self, now: WallInstant) -> None:
         """Adopt the desk's position, then run the control loop until stopped.
 
         Split out of ``run`` so that all of it — the initial read included —
@@ -782,7 +783,7 @@ class Daemon:
             self.activity_log.emit(logmsg.STARTUP_DESK_NOT_OURS)
             return
         try:
-            await self.machine.start(time.time())
+            await self.machine.start(WallInstant(time.time()))
         except asyncio.CancelledError:
             raise
         except Exception as error:
@@ -814,7 +815,7 @@ class Daemon:
     async def _tick(self) -> None:
         self._check_config_file()
 
-        tick_time = time.time()
+        tick_time = WallInstant(time.time())
         idle_ms = await self._idle.get_idle_ms()
         locked = await self._lock.is_locked()
         # This session's claim on the seat. A backgrounded session (VT switch /
@@ -851,7 +852,7 @@ class Daemon:
         if self.config_file.poll_changed():
             self.reload_config()
 
-    async def _maybe_warn(self, now: float) -> None:
+    async def _maybe_warn(self, now: WallInstant) -> None:
         ncfg = self.config.notifications
         remaining = self.machine.time_remaining()
         if not ncfg.enabled or not self.machine.target_duration:
@@ -1080,13 +1081,15 @@ class Daemon:
         clients update within the D-Bus round-trip instead of waiting up to a
         full ``check_interval`` for the next periodic tick."""
         auto = self._ifaces["automation"]
+        deadline = self.machine.snooze_until
         auto.emit_properties_changed({
             "Enabled": self.config.automation.enabled,
             "Status": self.status_string(),
             "ActiveTime": self.machine.active_time.seconds,
             "TargetDuration": self.machine.target_duration.seconds,
             "TimeRemaining": self.machine.time_remaining().seconds,
-            "SnoozeUntil": self.machine.snooze_until or 0.0,
+            "SnoozeUntil": (deadline.epoch_seconds or 0.0
+                            if deadline is not None else 0.0),
             "SkipNextPending": self.machine.skip_next,
         })
         auto.StatusChanged(self.status_string())
@@ -1111,7 +1114,7 @@ class Daemon:
     # ----- control operations (called from D-Bus interfaces) -----
 
     def status_string(self) -> str:
-        return self.machine.status(time.time()).value
+        return self.machine.status(WallInstant(time.time())).value
 
     def position_string(self) -> str:
         """Wire desk position. Empty while held off-cycle: the desk isn't at a
@@ -1183,7 +1186,7 @@ class Daemon:
 
     def snooze(self, minutes: int) -> None:
         minutes = max(1, int(minutes))
-        self.machine.snooze(minutes, time.time())
+        self.machine.snooze(minutes, WallInstant(time.time()))
         # Param.DURATION is a seconds kind, so each side renders it with its
         # own formatter rather than the sentence spelling out "minutes" itself.
         # Keep the released ``minutes`` wire field for N-1 readers while the
@@ -1253,7 +1256,7 @@ class Daemon:
         self._emit_automation_state()
 
     async def _start_after_setup(self) -> None:
-        await self.machine.start(time.time())
+        await self.machine.start(WallInstant(time.time()))
         self.activity_log.emit(
             logmsg.STARTUP_STATE, state=self.machine.state.value,
             height=(self.machine.last_height.metres
@@ -1281,7 +1284,7 @@ class Daemon:
         skips that read when the caller (``gesture_move``) already did it."""
         await self._require_manual_entitlement()
         if refresh:
-            await self.machine.refresh_height(time.time())
+            await self.machine.refresh_height(WallInstant(time.time()))
         await self.manual_move_to_preset(self.machine.toggle_target_preset())
 
     async def gesture_move(self, action: str) -> None:
@@ -1324,7 +1327,7 @@ class Daemon:
         # sooner, using the cached pre-move height as the (unused) start point.
         needs_read = action == "toggle" or self.config.ui.tray_repeat_move == "reverse"
         if needs_read:
-            await self.machine.refresh_height(time.time())
+            await self.machine.refresh_height(WallInstant(time.time()))
         self._gesture_start_height = self.machine.last_height
         if action == "toggle":
             await self.toggle_sit_stand(refresh=False)
@@ -1428,7 +1431,7 @@ class Daemon:
             # off-cycle ("automation paused"); the move that replaced us reads
             # the real final position and reports it.
             return
-        for event in await self.machine.force_sync(time.time()):
+        for event in await self.machine.force_sync(WallInstant(time.time())):
             # A manual move that changes the classified position (adopting a
             # new state, or resuming from a hold) is an intentional transition,
             # not an "external" one — record it as such. ResumedOnCycle may
@@ -1533,7 +1536,7 @@ class Daemon:
         return height
 
     async def _post_setup_sync(self) -> None:
-        for event in await self.machine.force_sync(time.time()):
+        for event in await self.machine.force_sync(WallInstant(time.time())):
             self._handle_event(event, trigger="setup")
         self._emit_periodic_properties()
 

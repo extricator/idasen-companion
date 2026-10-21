@@ -164,7 +164,10 @@ class Automation1(ServiceInterface):
 
     @dbus_property(access=PropertyAccess.READ)
     def SnoozeUntil(self) -> DBusDouble:  # pylint: disable=invalid-name
-        return self.d.machine.snooze_until or 0.0
+        deadline = self.d.machine.snooze_until
+        if deadline is None:
+            return 0.0
+        return deadline.epoch_seconds or 0.0
 
     @dbus_property(access=PropertyAccess.READ)
     def SkipNextPending(self) -> DBusBool:  # pylint: disable=invalid-name

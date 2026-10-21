@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import ConfigError, load_config
 from idasen_companion.core.durations import Duration
 from idasen_companion.daemon.main import Daemon
@@ -155,7 +156,7 @@ def test_the_target_survives_repeated_no_op_reloads(tmp_path: Path):
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
     d._ifaces = {"automation": MagicMock()}
-    d.machine = StateMachine(d.config, MockDesk(), now=0.0)
+    d.machine = StateMachine(d.config, MockDesk(), now=WallInstant(0.0))
     d.machine.start_without_desk_read(0.0)
 
     target = d.machine.target_duration

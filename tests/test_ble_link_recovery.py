@@ -21,6 +21,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.idle import SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
@@ -253,7 +254,7 @@ async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monke
     d.stats = Stats(Path(":memory:"))
     d.accounting = ActiveTimeAccounting(d.stats)
     owner = d.accounting
-    owner.start(0.0)
+    owner.start(WallInstant(0.0))
     real_flush = owner.flush
     real_close = d.stats.close
 
@@ -271,7 +272,7 @@ async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monke
     async def run_until_stopped(now):
         d._initial_read = asyncio.create_task(initial_read())
         await asyncio.sleep(0)
-        owner.account("sitting", 60, held=False, idle_ms=60000, absent=False,
+        owner.account("sitting", WallInstant(60), held=False, idle_ms=60000, absent=False,
                       idle_threshold_seconds=600)
         assert d.stats.daily_totals(date.today(), date.today()) == []
         raise asyncio.CancelledError
@@ -307,11 +308,11 @@ async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
             await asyncio.sleep(3600)   # never answers
 
     d = _bare_daemon(monkeypatch)
-    d.machine = StateMachine(_cfg_for(d), Hanging(), now=0.0)
+    d.machine = StateMachine(_cfg_for(d), Hanging(), now=WallInstant(0.0))
     d.machine.unconfigured = False
     monkeypatch.setattr(d, "_tick", lambda: _set_and_stop(reached_loop, d))
 
-    await asyncio.wait_for(d._run_until_stopped(0.0), 1.0)
+    await asyncio.wait_for(d._run_until_stopped(WallInstant(0.0)), 1.0)
     assert reached_loop.is_set(), "control loop never started"
     # A seeded cycle, not the constructed 0 that can never fire.
     assert d.machine.target_duration > Duration.from_seconds(0)
@@ -332,12 +333,12 @@ async def test_seeded_cycle_is_replaced_once_the_desk_answers():
 
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
-    machine = StateMachine(cfg, MockDesk(height=Length(1.10)), now=0.0)
-    machine.start_without_desk_read(0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(1.10)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
     seeded = machine.target_duration
     assert seeded > Duration.from_seconds(0) and machine.state.value == "sitting"  # the default
 
-    await machine.start(0.0)
+    await machine.start(WallInstant(0.0))
     assert machine.state.value == "standing", "real position was never adopted"
     # Was `!= seeded or True`, a tautology. The real property is that adopting
     # the true position re-seeds the cycle from *that* state's duration: the
@@ -555,11 +556,11 @@ async def test_seeding_respects_automation_being_switched_off():
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
     cfg.automation.enabled = False
-    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=0.0)
-    machine.start_without_desk_read(0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
     assert machine.target_duration == Duration.from_seconds(0)
 
     cfg.automation.enabled = True
-    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=0.0)
-    machine.start_without_desk_read(0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
     assert machine.target_duration > Duration.from_seconds(0)
