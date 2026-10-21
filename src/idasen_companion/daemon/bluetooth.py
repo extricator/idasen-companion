@@ -13,6 +13,8 @@ from dbus_fast.aio import MessageBus
 from dbus_fast.errors import DBusError
 
 from ..core import logmsg
+from ..core.clocks import WallInstant
+from ..core.durations import Duration
 from .bluez import merge_devices, parse_paired_desks
 from .dbus_util import DBusCallError, call
 from .ringlog import RingLog
@@ -28,7 +30,7 @@ class BluetoothSupport:
                  system_bus: MessageBus | None = None):
         self.activity_log = activity_log
         self._system_bus = system_bus
-        self._scan_cache: tuple[float, list[tuple[str, str]]] | None = None
+        self._scan_cache: tuple[WallInstant, list[tuple[str, str]]] | None = None
 
     def bind_bus(self, bus: MessageBus | None) -> None:
         """Borrow the bus after daemon setup; its lifetime stays with Daemon."""
@@ -45,7 +47,8 @@ class BluetoothSupport:
             cache = self._scan_cache
             scanned = (cache[1]
                        if cache is not None
-                       and time.time() - cache[0] < SCAN_CACHE_SECONDS
+                       and WallInstant(time.time()) - cache[0]
+                       < Duration.from_seconds(SCAN_CACHE_SECONDS)
                        else [])
         else:
             from ..desk.ble import discover_desks
@@ -58,7 +61,7 @@ class BluetoothSupport:
                 scanned = []
             else:
                 self.activity_log.emit(logmsg.SCAN_FINISHED, count=len(scanned))
-            self._scan_cache = (time.time(), scanned)
+            self._scan_cache = (WallInstant(time.time()), scanned)
         return merge_devices(known, scanned)
 
     async def _known_desks(self) -> list[tuple[str, str]]:

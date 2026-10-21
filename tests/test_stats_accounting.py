@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import AppConfig
 from idasen_companion.core.durations import Duration
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
@@ -56,7 +57,7 @@ class Harness:
         d.config.automation.recent_input_threshold = recent_input_threshold
         d.stats = self.stats
         d.accounting = ActiveTimeAccounting(d.stats)
-        d.accounting.start(self.clock)
+        d.accounting.start(WallInstant(self.clock))
         d.activity_log = MagicMock()
         d.machine = MagicMock()
         d.machine.state = MagicMock(value="sitting")
@@ -129,8 +130,8 @@ async def test_constructed_daemon_can_save_config_account_time_and_discover(tmp_
         assert d.config_file.load() == config
         assert not d.config_file.poll_changed()
 
-        d.accounting.start(0.0)
-        d.accounting.account("sitting", TICK, held=False, idle_ms=60000,
+        d.accounting.start(WallInstant(0.0))
+        d.accounting.account("sitting", WallInstant(TICK), held=False, idle_ms=60000,
                              absent=False, idle_threshold_seconds=600)
         d.accounting.flush()
         assert d.stats.daily_totals(date.today(), date.today()) == [
@@ -155,7 +156,7 @@ async def test_cycle_clock_reset_does_not_change_active_time(harness):
     h = harness
     await h.tick(5)
     # A cycle restart between observations must not shorten the next window.
-    h.daemon.machine._last_check = h.clock + TICK / 2
+    h.daemon.machine._last_check = WallInstant(h.clock + TICK / 2)
     await h.tick(5)
     await h.tick(5)
     assert h.credited() == pytest.approx(3 * TICK)
@@ -182,13 +183,13 @@ async def test_real_automation_freezes_leave_active_statistics_running(harness, 
     d = h.daemon
     d.config = driver.cfg
     d.machine = driver.m
-    d.accounting.start(h.clock)
+    d.accounting.start(WallInstant(h.clock))
     if freeze == "disabled":
         d.config.automation.enabled = False
     elif freeze == "paused":
         d.machine.pause()
     elif freeze == "snoozed":
-        d.machine.snooze(5, h.clock)
+        d.machine.snooze(5, WallInstant(h.clock))
     else:
         d.config.schedule.enabled = True
         d.config.schedule.days = ["mon"]
@@ -216,7 +217,7 @@ async def test_tick_accounts_captured_position_after_unlock_before_events(harnes
         order.append("machine")
         d.machine.state = MagicMock(value="standing")
         d.machine.held = True
-        d.machine._last_check = h.clock
+        d.machine._last_check = WallInstant(h.clock)
         return ["transition"]
 
     def account(*args, **kwargs):
@@ -229,7 +230,7 @@ async def test_tick_accounts_captured_position_after_unlock_before_events(harnes
     await h.tick(5)
 
     d.accounting.account.assert_called_once_with(
-        "sitting", h.clock, held=False, idle_ms=5000, absent=False,
+        "sitting", WallInstant(h.clock), held=False, idle_ms=5000, absent=False,
         idle_threshold_seconds=600)
     assert order == ["machine", "account", "event"]
 
@@ -327,6 +328,27 @@ async def test_suspend_sized_gap_discards_held_back_time(harness):
     await h.tick(3600, elapsed=3600)
     await h.tick(2)
     assert h.credited() == pytest.approx(2 * TICK)
+
+
+def test_exact_jump_boundary_discards_pending_credit_and_recovers(harness):
+    h = harness
+    owner = h.daemon.accounting
+    now = WallInstant(2**30)
+    owner.start(now)
+
+    def observe(elapsed, idle_ms):
+        nonlocal now
+        now += Duration.from_seconds(elapsed)
+        owner.account("sitting", now, held=False, idle_ms=idle_ms,
+                      absent=False, idle_threshold_seconds=600)
+
+    observe(300, 0)
+    assert h.credited() == 300
+    observe(60, 60000)  # provisional silence must be discarded with the jump
+    observe(300 + 2**-22, 0)
+    assert h.credited() == 300
+    observe(60, 0)
+    assert h.credited() == 360
 
 
 @pytest.mark.asyncio

@@ -130,7 +130,8 @@ async def test_small_backward_step_is_still_a_jump():
     await d.start()
     await d.run_active_ticks(10)
     events = await d.tick(dt=-5)
-    assert any(isinstance(e, TimeJumpDetected) for e in events)
+    jump = next(event for event in events if isinstance(event, TimeJumpDetected))
+    assert jump.elapsed == Duration.from_seconds(-5)
     assert d.m.active_time == Duration.from_seconds(0)
 
 

@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import AppConfig
 from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.main import Daemon
@@ -48,7 +49,7 @@ async def test_a_failing_tick_does_not_stop_the_loop():
         d._stop_event.set()
 
     d = make_daemon(tick)
-    await asyncio.wait_for(d._run_until_stopped(now=1_000_000.0), timeout=5)
+    await asyncio.wait_for(d._run_until_stopped(now=WallInstant(1_000_000.0)), timeout=5)
 
     assert len(calls) == 4  # kept going through all three failures
     levels = [c.args[0] for c in d.activity_log.diag.call_args_list]
@@ -64,7 +65,7 @@ async def test_cancellation_still_stops_the_loop():
 
     d = make_daemon(tick)
     with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(d._run_until_stopped(now=1_000_000.0), timeout=5)
+        await asyncio.wait_for(d._run_until_stopped(now=WallInstant(1_000_000.0)), timeout=5)
 
 
 @pytest.mark.asyncio
@@ -110,7 +111,7 @@ async def test_startup_origin_survives_adoption_setup_reload_and_controls(monkey
 
     d._tick = tick
     try:
-        await asyncio.wait_for(d._run_until_stopped(origin), timeout=5)
+        await asyncio.wait_for(d._run_until_stopped(WallInstant(origin)), timeout=5)
         assert totals == [25, 85]
     finally:
         d.stats.close()

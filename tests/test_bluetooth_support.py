@@ -60,10 +60,10 @@ def discovery(monkeypatch):
 
 async def test_positive_timeout_always_scans_and_replaces_fresh_cache(discovery):
     daemon, clock, scanner = discovery
-    daemon.bluetooth._scan_cache = (clock.now - 1, [OLD])
+    daemon.bluetooth._scan_cache = (WallInstant(clock.now - 1), [OLD])
     assert await daemon.discover(99) == [PAIRED, SCANNED]
     scanner.assert_awaited_once_with(30)
-    assert daemon.bluetooth._scan_cache == (clock.now, [SCANNED])
+    assert daemon.bluetooth._scan_cache == (WallInstant(clock.now), [SCANNED])
     daemon.activity_log.emit.assert_any_call(logmsg.SCAN_STARTED)
     daemon.activity_log.emit.assert_any_call(logmsg.SCAN_FINISHED, count=1)
 
@@ -72,7 +72,7 @@ async def test_positive_timeout_always_scans_and_replaces_fresh_cache(discovery)
 async def test_zero_timeout_uses_fresh_cache_without_importing_scanner(
         discovery, monkeypatch, timeout):
     daemon, clock, scanner = discovery
-    daemon.bluetooth._scan_cache = (clock.now - 59, [SCANNED])
+    daemon.bluetooth._scan_cache = (WallInstant(clock.now - 59), [SCANNED])
     original_import = builtins.__import__
 
     def forbid_scanner(name, *args, **kwargs):
@@ -82,12 +82,12 @@ async def test_zero_timeout_uses_fresh_cache_without_importing_scanner(
     monkeypatch.setattr(builtins, "__import__", forbid_scanner)
     assert await daemon.discover(timeout) == [PAIRED, SCANNED]
     scanner.assert_not_awaited()
-    assert daemon.bluetooth._scan_cache == (clock.now - 59, [SCANNED])
+    assert daemon.bluetooth._scan_cache == (WallInstant(clock.now - 59), [SCANNED])
 
 
 async def test_expired_zero_timeout_returns_only_paired_and_keeps_cache(discovery):
     daemon, clock, scanner = discovery
-    cache = (clock.now - 60, [OLD])
+    cache = (WallInstant(clock.now - 60), [OLD])
     daemon.bluetooth._scan_cache = cache
     assert await daemon.discover(0) == [PAIRED]
     assert daemon.bluetooth._scan_cache is cache
@@ -116,7 +116,7 @@ async def test_failed_positive_scan_replaces_success_with_fresh_empty_cache(disc
     clock.now += 10
     scanner.side_effect = OSError("scan failed")
     assert await daemon.discover(3) == [PAIRED]
-    assert daemon.bluetooth._scan_cache == (clock.now, [])
+    assert daemon.bluetooth._scan_cache == (WallInstant(clock.now), [])
     daemon.activity_log.emit.assert_any_call(logmsg.SCAN_FAILED, error="scan failed")
     assert await daemon.discover(0) == [PAIRED]
     assert scanner.await_args_list[-1].args == (3,)
