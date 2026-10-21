@@ -16,14 +16,12 @@
 #                `git commit` would record right now, with no prior commit
 #                required.
 #
-# A clean result from an unproven scanner is not evidence. `gitleaks git`
-# treats any stderr from the `git log -p` underneath it as fatal: it stops,
-# walks nothing, and still exits 0 reporting no leaks (upstream gitleaks#2129).
-# A run that saw no commits is byte-identical to a run that saw everything and
-# found nothing. The canary below is the only thing that tells those two apart,
-# which is why it runs first and the real scan does not start unless it fired
-# -- for every mode, not only history, because each mode walks its input a
-# different way and a canary proven in one says nothing about another.
+# A clean result from an unproven scanner is not evidence. Pinned v8.30.1
+# can report Git/read errors yet exit 0 with an empty report, even after a
+# partial scan (upstream gitleaks#2129). Each mode first proves detection in
+# an isolated canary. The real run must separately demonstrate input through
+# diagnostics, a byte receipt and mode-specific scope checks. These checks
+# corroborate input; positive bytes do not prove every file was read.
 #
 # This is a committed script because the procedure has been needed twice now,
 # and both times it lived in a planning document outside git and had to be
@@ -114,7 +112,56 @@ strip_ansi() {
 # report. A canary in another directory cannot certify this real input.
 real_scan_diagnostics_ok() {
     ! strip_ansi "$1" | grep -Eq \
-        '(^|[[:space:]])ERR([[:space:]]|$)|(^|[[:space:]])WRN[[:space:]].*(permission denied|issue reading file|could not read|failed to read|unable to read|skipping($|[[:space:]]+error=))'
+        '(^|[[:space:]])ERR([[:space:]]|$)|(^|[[:space:]])WRN[[:space:]].*(permission denied|issue reading file|could not read|failed to read|unable to read|partial scan completed|skipping($|[[:space:]]+error=))'
+}
+
+# Parse only the pinned summary, not arbitrary numbers in findings/paths.
+# The exact counter precedes a humanized value (including unitless zero).
+# Return just positivity so even a uint64 counter never enters shell arithmetic.
+read_scan_bytes() {
+    strip_ansi "$1" | python3 -c '
+import re, sys
+receipts = re.findall(
+    r"^\S+ (?:INF|WRN) scanned ~([0-9]+) bytes "
+    r"\((?:0|[0-9]+(?:\.[0-9]+)? (?:bytes|KB|MB|GB))\)(?: in .+)?$",
+    sys.stdin.read(), re.MULTILINE,
+)
+if len(receipts) != 1 or int(receipts[0]) > 2**64 - 1:
+    sys.exit(1)
+print(int(int(receipts[0]) > 0))
+'
+}
+
+staged_input_expected() {
+    python3 - "$1" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+data = Path(sys.argv[1]).read_bytes()
+if data and not data.endswith(b"\0"):
+    sys.exit("invalid numstat terminator")
+records = data.split(b"\0")[:-1]
+positive = False
+i = 0
+while i < len(records):
+    fields = records[i].split(b"\t", 2)
+    i += 1
+    if len(fields) != 3:
+        sys.exit("invalid numstat fields")
+    added, deleted, path = fields
+    if added == deleted == b"-":
+        pass
+    elif re.fullmatch(rb"[0-9]+", added) and re.fullmatch(rb"[0-9]+", deleted):
+        positive |= int(added) > 0
+    else:
+        sys.exit("invalid numstat counts")
+    if not path:  # -z rename/copy header has two following path records.
+        if i + 1 >= len(records) or not records[i] or not records[i + 1]:
+            sys.exit("invalid numstat rename/copy paths")
+        i += 2
+print(int(positive))
+PY
 }
 
 echo ">> Mode: $MODE"
@@ -294,6 +341,34 @@ echo ">> Canary fired: $CANARY_FINDINGS finding(s), exit $CANARY_STATUS -- the s
 REAL_REPORT="$OUTPUT_DIR/$MODE-gitleaks.json"
 REAL_LOG="$OUTPUT_DIR/$MODE-gitleaks.log"
 
+INPUT_EXPECTED=1
+case "$MODE" in
+    staged)
+        # Capture success independently; a failed Git command is never empty
+        # input. Keep NUL bytes in a file, not a shell variable, and disable
+        # textconv/external diff so repository attributes cannot alter counts.
+        STAGED_NUMSTAT="$OUTPUT_DIR/staged-numstat.bin"
+        if ! git diff --staged --numstat -z --no-ext-diff --no-textconv -- . \
+            > "$STAGED_NUMSTAT"; then
+            echo "FAILED: cannot establish staged input metadata." >&2
+            exit 1
+        fi
+        if ! INPUT_EXPECTED=$(staged_input_expected "$STAGED_NUMSTAT"); then
+            echo "FAILED: invalid staged input metadata." >&2
+            exit 1
+        fi
+        ;;
+    worktree)
+        # Bounded project invariant: this wrapper scans its own nonempty shell
+        # source, a path not excluded by the pinned defaults. This is not an
+        # arbitrary-directory or per-file completeness check.
+        if [ ! -f scripts/scan-secrets.sh ] || [ ! -s scripts/scan-secrets.sh ]; then
+            echo "FAILED: expected nonempty project scanner input is absent." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 case "$MODE" in
     history)  echo ">> Scanning this repository's full history..." ;;
     worktree) echo ">> Scanning the working tree on disk..." ;;
@@ -313,7 +388,7 @@ set -e
 echo "exit: $SCAN_STATUS" >> "$REAL_LOG"
 
 FINDINGS=$(python3 -c \
-    'import json,sys; print(len(json.load(open(sys.argv[1]))))' \
+    'import json,sys; report=json.load(open(sys.argv[1])); assert isinstance(report,list); print(len(report))' \
     "$REAL_REPORT" 2>/dev/null || echo -1)
 
 # ---------------------------------------------------------------------------
@@ -325,12 +400,9 @@ FINDINGS=$(python3 -c \
 #
 #    The other two modes have no walk to cross-check. `worktree` never
 #    invokes git at all, so there is no commit count to compare against.
-#    `staged` reads the index rather than the log, and reports having looked
-#    at no commits on every single successful run -- the same line that would
-#    be fatal for history mode is the ordinary case here, so porting this
-#    check to it would fail every clean run. Those two modes are trusted by
-#    their own canary above plus their own scan's exit code and finding count
-#    below, and by nothing else.
+#    `staged` reads the index rather than the log and ordinarily reports no
+#    commits. Its independently established text additions can legitimately
+#    be zero. All modes also require diagnostics/byte/report/status checks.
 # ---------------------------------------------------------------------------
 
 WALK_OK=1
@@ -435,6 +507,15 @@ if ! real_scan_diagnostics_ok "$REAL_LOG"; then
     exit 1
 fi
 
+if ! SCANNED_POSITIVE=$(read_scan_bytes "$REAL_LOG"); then
+    echo "FAILED: missing or malformed scanner byte receipt; inspect $REAL_LOG" >&2
+    exit 1
+fi
+if [ "$INPUT_EXPECTED" -eq 1 ] && [ "$SCANNED_POSITIVE" -ne 1 ]; then
+    echo "FAILED: scanner read zero bytes despite independently expected input." >&2
+    exit 1
+fi
+
 if [ "$MODE" = "history" ] && [ "$WALK_OK" -ne 1 ]; then
     echo "FAILED: the history was not walked, or not all of it was in scope." >&2
     echo "Nothing here says the repository is clean." >&2
@@ -442,7 +523,7 @@ if [ "$MODE" = "history" ] && [ "$WALK_OK" -ne 1 ]; then
 fi
 
 if [ "$FINDINGS" -lt 0 ]; then
-    echo "FAILED: no report was written; the scan did not complete (exit $SCAN_STATUS)." >&2
+    echo "FAILED: no valid JSON-array report; the scan did not complete (exit $SCAN_STATUS)." >&2
     exit 1
 fi
 
