@@ -31,6 +31,7 @@ from PySide6.QtDBus import QDBusMessage  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.machine import Status  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -78,8 +79,9 @@ def test_the_reply_lands_in_the_cache(client):
     client._note_status(Status.SNOOZED)
     _, deliver = client.requests[0]
     deliver(1800.0)
-    assert client.snooze_until() == 1800.0
+    assert client.snooze_until() == WallInstant(1800.0)
     assert seen == [1800.0]
+    assert type(seen[0]) is float
 
 
 def test_reading_the_deadline_is_never_a_round_trip(client):
