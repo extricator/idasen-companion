@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+import pytest
+
 from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
@@ -130,10 +132,13 @@ async def test_snooze_freezes_until_expiry():
     await d.start()
     await d.run_active_ticks(5)
     d.m.snooze(10, d.now)
+    with pytest.raises(TypeError):
+        d.m.snooze_until + 1
     await d.run_active_ticks(9)  # 9 min < 10 min snooze
     assert d.m.active_time == Duration.from_seconds(300)
     assert d.m.status(d.now) is Status.SNOOZED
-    await d.run_active_ticks(2)  # snooze expired mid-way
+    await d.tick()  # equality is expired, not another snoozed tick
+    assert d.m.snooze_until is None
     assert d.m.active_time > Duration.from_seconds(300)
     assert d.m.status(d.now) is Status.ACTIVE
 
