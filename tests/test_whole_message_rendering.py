@@ -34,7 +34,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QLocale, QObject, Signal  # noqa: E402
 from PySide6.QtGui import QPainter  # noqa: E402
-from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
+from PySide6.QtWidgets import QLabel  # noqa: E402
 
 from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -60,11 +60,6 @@ from idasen_companion.gui.service_ctl import AutostartState  # noqa: E402
 from idasen_companion.gui.setup_wizard import SetupWizard  # noqa: E402
 from idasen_companion.gui.util import position_label, preset_label  # noqa: E402
 from idasen_companion.gui.widgets import DailyBarsChart, RangeRail  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class _FakeOverviewClient(QObject):

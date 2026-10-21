@@ -40,7 +40,7 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, QTime, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
+from PySide6.QtWidgets import QPushButton  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -60,11 +60,6 @@ from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.automation import AutomationPage  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.tray import SNOOZE_CHOICES, TrayIcon  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def _plain_formatter() -> Formatter:

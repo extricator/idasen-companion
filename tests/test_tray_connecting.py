@@ -29,7 +29,6 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -91,11 +90,6 @@ class FakeWindow:
                 locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
                 unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)))
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

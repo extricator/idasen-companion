@@ -33,7 +33,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QPushButton, QVBoxLayout, QWidget,
+    QPushButton, QVBoxLayout, QWidget,
 )
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -63,11 +63,6 @@ class FakeClient(QObject):
 
     def __getattr__(self, name):
         return lambda *args, **kwargs: None
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

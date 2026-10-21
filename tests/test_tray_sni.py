@@ -39,7 +39,6 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -113,11 +112,6 @@ class Recorder:
     @property
     def last(self):
         return self.calls[-1]
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def _make_tray(client):

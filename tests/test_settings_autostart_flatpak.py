@@ -23,7 +23,7 @@ import os  # noqa: E402
 # Forced, not defaulted -- see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
+from PySide6.QtWidgets import QMessageBox  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import background_portal  # noqa: E402
@@ -38,11 +38,6 @@ class FakeClient:
     """Enough DaemonClient for AppContext: never available, so no D-Bus."""
 
     available = False
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

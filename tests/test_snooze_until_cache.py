@@ -28,7 +28,6 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtDBus import QDBusMessage  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.clocks import WallInstant  # noqa: E402
@@ -38,11 +37,6 @@ from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.dbus_client import DaemonClient  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.util import fmt_clock  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 # ----- the client's cache -----

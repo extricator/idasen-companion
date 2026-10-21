@@ -21,7 +21,6 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from datetime import datetime  # noqa: E402
 
 from PySide6.QtCore import QLocale  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.i18n import (  # noqa: E402
@@ -39,11 +38,6 @@ from idasen_companion.core.lengths import Length
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui.pages.settings_form import SettingsFormPage  # noqa: E402
 from idasen_companion.gui.util import fmt_day_heading  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture
