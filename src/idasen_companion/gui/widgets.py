@@ -10,6 +10,7 @@ from ..core.i18n import pgettext
 from collections.abc import Sequence
 
 from ..core.lengths import Length
+from ..core.durations import Duration
 
 from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from . import restyle
 from .context import AppContext
+from .chart_data import DailyChartRow
 from .theme import (
     BORDER_WIDTH, BUTTON_PADDING_H, BUTTON_PADDING_V, CONTROL_RADIUS,
     NAV_ICON_SIZE, NAV_ICON_TEXT_GAP, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H,
@@ -986,8 +988,7 @@ class DailyBarsChart(QWidget):
 
     def __init__(self, ctx: AppContext, parent: QWidget | None = None):
         super().__init__(parent)
-        # rows: (label, sit_seconds, stand_seconds, is_today)
-        self._rows: list[tuple[str, float, float, bool]] = []
+        self._rows: list[DailyChartRow] = []
         # See HeightRail.__init__ for why this holds the context rather
         # than a stored Formatter.
         self.ctx = ctx
@@ -1003,18 +1004,18 @@ class DailyBarsChart(QWidget):
             return QColor("#5a6068"), QColor("#6ba7dd")
         return QColor("#c5cdd6"), QColor("#5b9bd1")
 
-    def set_rows(self, rows: list[tuple[str, float, float, bool]]) -> None:
+    def set_rows(self, rows: list[DailyChartRow]) -> None:
         self._rows = rows
         self.setMinimumHeight(self.ROW_H * max(1, len(rows)))
         self.update()
 
     def _tooltip_for(self, index: int) -> str:
-        label, sit, stand, _ = self._rows[index]
-        if sit or stand:
+        row = self._rows[index]
+        if row.sitting or row.standing:
             return pgettext('statistics.chart', "%(day)s: sitting %(sit)s, standing %(stand)s") % {
-                "day": label, "sit": self.ctx.fmt.duration_hm(sit),
-                "stand": self.ctx.fmt.duration_hm(stand)}
-        return pgettext('statistics.chart', "%(day)s: no data") % {"day": label}
+                "day": row.label, "sit": self.ctx.fmt.duration_hm(row.sitting.seconds),
+                "stand": self.ctx.fmt.duration_hm(row.standing.seconds)}
+        return pgettext('statistics.chart', "%(day)s: no data") % {"day": row.label}
 
     def _visual_rect(self, logical: QRectF) -> QRectF:
         """Map a logical LTR painter rectangle through this widget's direction."""
@@ -1044,22 +1045,22 @@ class DailyBarsChart(QWidget):
         left = self.LABEL_W + 8
         right = self.width() - self.SHARE_W - 8
         span = max(1, right - left)
-        max_total = max((sit + stand for _, sit, stand, _ in self._rows),
-                        default=0) or 1
+        max_total = max((row.sitting + row.standing for row in self._rows),
+                        default=Duration(0)) or Duration(1)
 
-        for i, (label, sit_seconds, stand, is_today) in enumerate(self._rows):
+        for i, row in enumerate(self._rows):
             bar_y = i * self.ROW_H + (self.ROW_H - self.BAR_H) / 2
             baseline = i * self.ROW_H + self.ROW_H / 2 \
                 + painter.fontMetrics().ascent() / 2 - 1
 
-            painter.setFont(today_font if is_today else small)
-            painter.setPen(tokens.accent_text if is_today else tokens.secondary)
-            label_width = painter.fontMetrics().horizontalAdvance(label)
+            painter.setFont(today_font if row.is_today else small)
+            painter.setPen(tokens.accent_text if row.is_today else tokens.secondary)
+            label_width = painter.fontMetrics().horizontalAdvance(row.label)
             label_x = self.width() - 4 - label_width if self.isRightToLeft() else 4
-            painter.drawText(QPointF(label_x, baseline), label)
+            painter.drawText(QPointF(label_x, baseline), row.label)
 
-            sit_w = span * sit_seconds / max_total
-            stand_w = span * stand / max_total
+            sit_w = (span * row.sitting) / max_total
+            stand_w = (span * row.standing) / max_total
             painter.setPen(Qt.PenStyle.NoPen)
             if sit_w > 0:
                 # Round the baseline (outer) end; the inner end facing the
@@ -1080,10 +1081,10 @@ class DailyBarsChart(QWidget):
                     round_left=(True if self.isRightToLeft() else sit_w <= 0),
                     round_right=(sit_w <= 0 if self.isRightToLeft() else True))
 
-            total = sit_seconds + stand
+            total = row.sitting + row.standing
             painter.setFont(small)
             painter.setPen(tokens.secondary if total else tokens.muted)
-            share = (self.ctx.fmt.context.locale.percent(stand / total)
+            share = (self.ctx.fmt.context.locale.percent(row.standing / total)
                      if total else "—")
             share_w = painter.fontMetrics().horizontalAdvance(share)
             share_x = 2 if self.isRightToLeft() else self.width() - share_w - 2

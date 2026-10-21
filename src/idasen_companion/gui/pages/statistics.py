@@ -9,8 +9,10 @@ from datetime import date, datetime, timedelta
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ...core.machine import DeskState
+from ...core.durations import Duration
 from ...core.state_values import parse_position
 from .. import restyle
+from ..chart_data import DailyChartRow
 from ..theme import css, theme
 from ..util import (
     fmt_day_and_clock, fmt_day_label, position_label, trigger_label,
@@ -123,17 +125,19 @@ class StatisticsPage(Page):
             by_day.setdefault(daily.day, {})[daily.state] = daily.seconds
 
         # One bar per calendar day, oldest first / today last.
-        rows = []
-        total_sit = total_stand = 0.0
+        rows: list[DailyChartRow] = []
+        total_sit = total_stand = Duration(0.0)
         for offset in range(14):
             window_day = start + timedelta(days=offset)
             data = by_day.get(window_day.isoformat(), {})
-            sit = data.get("sitting", 0.0)
-            stand = data.get("standing", 0.0)
+            sit = Duration(data.get("sitting", 0.0))
+            stand = Duration(data.get("standing", 0.0))
             total_sit += sit
             total_stand += stand
-            rows.append((fmt_day_label(self.ctx.fmt, datetime(window_day.year, window_day.month, window_day.day)),
-                         sit, stand, window_day == end_date))
+            rows.append(DailyChartRow(
+                label=fmt_day_label(self.ctx.fmt, datetime(
+                    window_day.year, window_day.month, window_day.day)),
+                sitting=sit, standing=stand, is_today=window_day == end_date))
         self.daily_chart.set_rows(rows)
         overall = total_sit + total_stand
         if overall:
