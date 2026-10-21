@@ -82,8 +82,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Tests
 
-- [ ] **Consolidate shared daemon and GUI test harnesses** — Share genuinely common builders
-      with deterministic defaults.
 - [ ] **Cover the setup wizard's missing behavior** — Test current ScanPage cached/empty
       discovery, stale hints, selection and verified success/failure, including relevant
       usage/autostart outcomes.
