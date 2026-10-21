@@ -71,7 +71,6 @@ def test_a_snoozed_status_asks_for_the_deadline(client):
     assert [name for name, _ in client.requests] == ["SnoozeUntil"]
     # Asked, not yet answered: nothing to report until the reply lands.
     assert client.snooze_until() == WallInstant(0.0)
-    assert not client.snooze_until()
 
 
 def test_the_reply_lands_in_the_cache(client):
@@ -125,7 +124,6 @@ def test_leaving_the_snooze_clears_it_without_asking(client):
     client.snoozeUntilChanged.connect(seen.append)
     client._note_status(Status.ACTIVE)
     assert client.snooze_until() == WallInstant(0.0)
-    assert not client.snooze_until()
     assert seen == [0.0]
     # A status that isn't snoozed has no deadline to fetch.
     assert len(client.requests) == 1

@@ -157,7 +157,7 @@ def test_the_target_survives_repeated_no_op_reloads(tmp_path: Path):
     d.config_file = ConfigFileStore(path, d.activity_log)
     d._ifaces = {"automation": MagicMock()}
     d.machine = StateMachine(d.config, MockDesk(), now=WallInstant(0.0))
-    d.machine.start_without_desk_read(0.0)
+    d.machine.start_without_desk_read(WallInstant(0.0))
 
     target = d.machine.target_duration
     for _ in range(20):
