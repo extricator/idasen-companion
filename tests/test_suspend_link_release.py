@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Handing the desk back across a suspend.
 
 The defect: nothing released the BLE link on the way into a sleep. logind's

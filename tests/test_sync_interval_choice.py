@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The "Check desk position every" dropdown on the Automation page.
 
 The control offers a short list of polling cadences instead of the free

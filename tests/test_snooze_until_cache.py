@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The snooze deadline is cached, not fetched on the GUI thread.
 
 ``SnoozeUntil`` is a D-Bus *property*, and the Overview used to read it with a

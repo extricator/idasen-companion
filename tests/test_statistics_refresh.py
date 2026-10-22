@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """When the Statistics page re-reads the daemon.
 
 The daily totals are not a transition log. The daemon accrues active time on

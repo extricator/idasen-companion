@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``STATUS_LABELS`` must not drift from ``Status``.
 
 ``core/i18n.py`` maps every wire-format status value to a

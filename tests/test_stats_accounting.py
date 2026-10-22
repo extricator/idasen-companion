@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Which elapsed time the daemon credits as sit/stand time.
 
 Presence is a guess whenever there's no input: a silent stretch is either the
