@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The vocabulary before-picture: ``gui/util.py`` rendered today, whole.
 
 Phases 13-15 move every formatter this file exercises out of ``gui/util.py``

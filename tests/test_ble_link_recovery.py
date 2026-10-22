@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Startup robustness and connect-failure handling.
 
 Written after a desk went unreachable for 45 minutes. Two real defects were

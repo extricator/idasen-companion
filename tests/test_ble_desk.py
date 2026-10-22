@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BleDesk connection-policy tests using a fake idasen library desk.
 
 No hardware or BLE stack involved: the fake stands in for

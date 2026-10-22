@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``AppContext.fmt``: a built ``Formatter``, rebuilt before every signal.
 
 Skipped where PySide6 is missing, and forces the offscreen platform before

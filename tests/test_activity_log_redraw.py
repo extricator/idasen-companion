@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rebuilding the Activity Log costs one document write, not one per row.
 
 The page used to redraw by calling ``QTextEdit.append`` once per visible

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the Flatpak login-autostart portal module.
 
 Mocked at the D-Bus boundary this module itself calls
