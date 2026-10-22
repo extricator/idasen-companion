@@ -54,6 +54,8 @@ class Harness:
 
         d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
         d.config = AppConfig()
+        d.desk = MagicMock()
+        d._current_move_id = 0
         d.config.automation.check_interval = int(TICK)
         d.config.automation.idle_threshold = idle_threshold
         d.config.automation.recent_input_threshold = recent_input_threshold

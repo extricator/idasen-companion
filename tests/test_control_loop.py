@@ -28,6 +28,8 @@ from daemon_helpers import make_daemon_shell
 def make_daemon(tick):
     d = make_daemon_shell()
     d.config = AppConfig()
+    d.desk = MagicMock()
+    d._current_move_id = 0
     d.config.automation.check_interval = 0  # don't wait between ticks
     d.activity_log = MagicMock()
     d.accounting = MagicMock()
@@ -349,3 +351,70 @@ async def test_stop_is_not_blocked_by_a_move_holding_the_lock():
 
     d.desk.stop.assert_awaited_once()
     assert d.moving is False
+
+
+@pytest.mark.asyncio
+async def test_automated_move_refreshes_presence_at_the_ble_command_boundary(monkeypatch):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.core.machine import StateMachine, TransitionCompleted
+    from test_ble_desk import make_desk
+
+    driver = Driver()
+    desk, fake = make_desk(connection_mode="persistent")
+    d = make_daemon(AsyncMock())
+    d.config, d.desk = driver.cfg, desk
+    d._current_move_id = 0
+    d.machine = StateMachine(d.config, desk, now=driver.now)
+    await d.machine.start(driver.now)
+    d.machine.active_time = d.machine.target_duration
+    target = d.machine.target_duration
+    clock = driver.now.epoch_seconds
+    idle = 0
+    observed = asyncio.Event()
+    order = []
+
+    async def get_idle():
+        order.append("idle")
+        observed.set()
+        return idle
+
+    async def unlocked():
+        order.append("lock")
+        return False
+
+    async def foreground():
+        order.append("seat")
+        return "foreground"
+
+    d._check_config_file = MagicMock()
+    d._idle = SimpleNamespace(get_idle_ms=get_idle)
+    d._lock = SimpleNamespace(is_locked=unlocked)
+    d._session = SimpleNamespace(state=foreground)
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+
+    await d._desk_lock.acquire()
+    tick = asyncio.create_task(Daemon._tick(d))
+    try:
+        await asyncio.wait_for(observed.wait(), 2)
+        idle = d.config.automation.recent_input_threshold * 1000
+        clock += 1
+    finally:
+        d._desk_lock.release()
+    try:
+        await asyncio.wait_for(tick, 2)
+        assert fake.moves == [], "stale pre-lock input authorized a physical command"
+        assert order[-3:] == ["lock", "seat", "idle"]
+        assert d.machine.target_duration == target
+        assert d.machine.active_time == target
+        assert not any(isinstance(c.args[0], TransitionCompleted)
+                       for c in d._handle_event.call_args_list)
+        idle -= 1  # adjacent eligible millisecond, not a new cycle
+        await asyncio.wait_for(Daemon._tick(d), 2)
+        assert fake.moves == [1.10]
+        assert d.machine.active_time == Duration.from_seconds(0)
+    finally:
+        await desk.disconnect()

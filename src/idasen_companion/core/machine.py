@@ -55,8 +55,8 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Callable
-from dataclasses import dataclass, field, replace
+from collections.abc import Awaitable, Callable
+from dataclasses import astuple, dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import NamedTuple
@@ -80,6 +80,21 @@ TIME_JUMP_THRESHOLD_SECONDS = 300
 # ``sync_interval`` is disabled (0), so the desk returning to a preset is
 # still noticed and automation can resume without app interaction.
 HELD_POLL_INTERVAL = 5 * 60
+
+
+@dataclass(frozen=True)
+class FreshPresence:
+    """Current platform observations; the daemon owns their acquisition."""
+
+    now: WallInstant
+    idle_ms: int
+    locked: bool
+    away: bool = False
+    seatless: bool = False
+    valid: bool = True
+
+
+RefreshPresence = Callable[[], Awaitable[FreshPresence]]
 
 
 # StrEnum, not `str, Enum`: under the latter `str(DeskState.SITTING)` yields
@@ -410,7 +425,8 @@ class StateMachine:
         self._last_sync = now
 
     async def tick(self, now: WallInstant, idle_ms: int, locked: bool,
-                   away: bool = False, seatless: bool = False) -> list[Event]:
+                   away: bool = False, seatless: bool = False, *,
+                   refresh_presence: RefreshPresence | None = None) -> list[Event]:
         """One iteration of the control loop. Call every check_interval.
 
         ``away`` — the user switched to another session (VT / fast-user-switch).
@@ -464,6 +480,8 @@ class StateMachine:
                 and not self.held):
             self.active_time += time_elapsed
 
+        guard = self._movement_guard(refresh_presence) if refresh_presence is not None else None
+
         # Transition check: gated by the strict recent-input threshold and
         # not while frozen/held, or while this session isn't entitled to the
         # desk. Seatless also means idle_ms is meaningless (every provider is
@@ -508,7 +526,13 @@ class StateMachine:
                 self._begin_cycle(self.state)
                 events.append(TransitionSkipped(self.state, self.target_duration))
             else:
-                moved = await self._execute_transition(now)
+                moved = (await self._execute_transition(now) if guard is None
+                         else await self._execute_transition(now, guard=guard))
+                if moved is None:
+                    # No command was issued. Preserve the pending cycle and
+                    # prior failure, and do not read the desk on stale presence.
+                    self._last_check = now
+                    return events
                 self._begin_cycle(self.state)
                 # A move's events are stamped with the new cycle length here,
                 # not at construction: the cycle can only be rolled once the
@@ -749,6 +773,29 @@ class StateMachine:
 
     # ----- internals -----
 
+    def _admission_snapshot(self) -> tuple:
+        """Immutable policy/control values, including in-place config edits."""
+        schedule = self._cfg.schedule
+        return (id(self._cfg), id(self._desk), astuple(self._cfg.automation),
+                astuple(self._cfg.advanced), schedule.enabled, tuple(schedule.days),
+                schedule.start, schedule.end, tuple(sorted(self._cfg.presets.items())),
+                self.state, self.target_duration, self.active_time,
+                self.paused, self.snooze_until, self.skip_next, self.held, self.unconfigured)
+
+    def _movement_guard(self, refresh: RefreshPresence) -> Callable[[], Awaitable[bool]]:
+        snapshot = self._admission_snapshot()
+
+        async def admit() -> bool:
+            current = await refresh()
+            return (current.valid and snapshot == self._admission_snapshot()
+                    and not current.locked and not current.away and not current.seatless
+                    and current.idle_ms < self._cfg.automation.recent_input_threshold * 1000
+                    and not self._frozen(current.now) and not self.held and not self.unconfigured
+                    and not self.skip_next and self.target_duration > Duration.from_seconds(0)
+                    and self.active_time >= self.target_duration)
+
+        return admit
+
     def _frozen(self, now: WallInstant) -> bool:
         """Whether the active-time clock and transitions are suspended.
 
@@ -875,8 +922,9 @@ class StateMachine:
             self.last_height = height
         return height
 
-    async def _execute_transition(self, now: WallInstant) -> list[
-            MoveFailed | TransitionCompleted]:
+    async def _execute_transition(self, now: WallInstant, *,
+                                  guard: Callable[[], Awaitable[bool]] | None = None) -> list[
+            MoveFailed | TransitionCompleted] | None:
         """Port of the reference script's run_command(): move, verify against
         the preset target within tolerance, and on interruption apply
         ``interruption_policy`` — "undo" back to the original (start) height
@@ -884,7 +932,7 @@ class StateMachine:
         "retry" once more toward the target."""
         self._note_moving(True)
         try:
-            return await self._drive_transition(now)
+            return await self._drive_transition(now, guard=guard)
         finally:
             self._note_moving(False)
 
@@ -892,8 +940,9 @@ class StateMachine:
         if self._on_moving is not None:
             self._on_moving(moving)
 
-    async def _drive_transition(self, now: WallInstant) -> list[
-            MoveFailed | TransitionCompleted]:
+    async def _drive_transition(self, now: WallInstant, *,
+                                guard: Callable[[], Awaitable[bool]] | None = None) -> list[
+            MoveFailed | TransitionCompleted] | None:
         tolerance = Length(self._cfg.advanced.movement_tolerance)
         policy = self._cfg.automation.interruption_policy
         original = self.state
@@ -911,7 +960,10 @@ class StateMachine:
                                         final_height=final_height,
                                         trigger="automation")]
 
-        moved = await self._desk.move_to(intended_h)
+        moved = (await self._desk.move_to(intended_h) if guard is None
+                 else await self._desk.move_to(intended_h, guard=guard))
+        if moved is None:
+            return None
         height = await self._read_height(now)
         # Single derived assignment so set and clear can never drift apart:
         # every path below this point is a move that reached the desk (the

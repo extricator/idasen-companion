@@ -7,9 +7,12 @@ Implementations: BleDesk (real desk over BLE) and MockDesk
 
 from __future__ import annotations
 
-from typing import Protocol
+from collections.abc import Awaitable, Callable
+from typing import Protocol, overload
 
 from ..core.lengths import Length
+
+MoveGuard = Callable[[], Awaitable[bool]]
 
 
 class DeskPort(Protocol):
@@ -17,12 +20,22 @@ class DeskPort(Protocol):
         """Current height in meters, or None if unavailable."""
         ...
 
-    async def move_to(self, height: Length) -> bool:
+    @overload
+    async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
+
+    @overload
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
         """Move to ``height`` (meters). Returns False if the command errored.
 
         A True return does NOT guarantee the target was reached — callers
         verify by reading the height back, exactly like the reference
         script does with the CLI.
+
+        A guard runs after preparation, immediately before the first command.
+        None means admission was deferred before issuing any command; ordinary
+        unguarded callers retain their bool result.
         """
         ...
 

@@ -24,11 +24,12 @@ import asyncio
 import logging
 import struct
 import time
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable, overload
 
 from ..core.clocks import MonotonicInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
+from .port import MoveGuard
 
 if TYPE_CHECKING:
     # Runtime import stays inside _default_desk_factory — importing idasen
@@ -368,7 +369,13 @@ class BleDesk:
         height = await self._handle.get_height()
         return Length(height) if height is not None else None
 
-    async def move_to(self, height: Length) -> bool:
+    @overload
+    async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
+
+    @overload
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
         # If the desk is already being driven to a target, cancel that first so
         # the new target takes over at once instead of queuing behind it
         # (last-write-wins). stop() ends the in-flight move_to_target
@@ -393,7 +400,7 @@ class BleDesk:
                     return False
                 if stop_generation != self._stop_generation:
                     await self._disconnect_locked()
-                    return False
+                    return None if guard is not None else False
                 # A controller woken moments ago (by idasen's connect(), or by
                 # the read that a tray gesture does first) needs no second
                 # wakeup; only re-wake when the link has been idle long enough
@@ -403,7 +410,13 @@ class BleDesk:
                     await self._wakeup()
                 if stop_generation != self._stop_generation:
                     await self._disconnect_locked()
-                    return False
+                    return None if guard is not None else False
+                if guard is not None and not await guard():
+                    return None
+                # Stop can run while the presence guard yields. Nothing may
+                # yield between this comparison and invoking the driver.
+                if stop_generation != self._stop_generation:
+                    return None if guard is not None else False
                 self._move_in_flight = True
                 try:
                     await self._handle.move_to_target(height.metres)
