@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Which interpreter compiled the bytecode this package installs, whether there
 # is any, and what it is checked against.
 #

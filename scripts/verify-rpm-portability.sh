@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Install a built RPM in throwaway rootless containers, then start the daemon
 # in each one and require it to still be there afterwards.
 #

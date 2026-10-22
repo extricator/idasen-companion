@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-free command-line front end for the Idasen Companion daemon."""
 
 from __future__ import annotations

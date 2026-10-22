@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Idasen Companion — automatic sit/stand companion for the IKEA Idåsen desk."""
 
 __version__ = "1.3.1"

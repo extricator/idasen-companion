@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Validate and smoke-test the complete five-asset release set.
 set -euo pipefail
 
