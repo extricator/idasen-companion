@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, overload
 from ..core.clocks import MonotonicInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
-from .port import MoveGuard
+from .port import MoveFailure, MoveGuard
 
 if TYPE_CHECKING:
     # Runtime import stays inside _default_desk_factory — importing idasen
@@ -373,9 +373,10 @@ class BleDesk:
     async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
 
     @overload
-    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | MoveFailure | None: ...
 
-    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None
+                      ) -> bool | MoveFailure | None:
         # If the desk is already being driven to a target, cancel that first so
         # the new target takes over at once instead of queuing behind it
         # (last-write-wins). stop() ends the in-flight move_to_target
@@ -383,6 +384,7 @@ class BleDesk:
         if self._move_in_flight:
             await self.stop()
         stop_generation = self._stop_generation
+        command_issued = False
         async with self._lock:
             try:
                 try:
@@ -395,9 +397,9 @@ class BleDesk:
                             f"no reply within {self._connect_timeout:g}s"))
                     await self._disconnect_locked()
                     self.forget_handle()
-                    return False
+                    return MoveFailure.NOT_ISSUED if guard is not None else False
                 if not connected:
-                    return False
+                    return MoveFailure.NOT_ISSUED if guard is not None else False
                 if stop_generation != self._stop_generation:
                     await self._disconnect_locked()
                     return None if guard is not None else False
@@ -419,12 +421,15 @@ class BleDesk:
                     return None if guard is not None else False
                 self._move_in_flight = True
                 try:
+                    command_issued = True
                     await self._handle.move_to_target(height.metres)
                 finally:
                     self._move_in_flight = False
                 return True
             except Exception as exc:
                 self._report_error(f"move_to {height.metres:.4f}m", exc)
+                if guard is not None and not command_issued:
+                    return MoveFailure.NOT_ISSUED
                 return False
             finally:
                 self._schedule_release()

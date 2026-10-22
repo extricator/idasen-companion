@@ -25,6 +25,53 @@ from machine_helpers import (
     ZeroRng,
     Driver,
 )
+from test_ble_desk import make_desk
+
+
+async def test_first_recovery_command_after_connect_failure_refreshes_admission():
+    config = make_config(interruption_policy="retry", sync_interval=0)
+    desk, fake = make_desk(connection_mode="persistent", retry_delays=())
+    d = Driver(cfg=config)
+    d.m = StateMachine(config, desk, now=d.now, rng=ZeroRng())
+    locked = True
+    refreshes = []
+
+    async def refresh():
+        refreshes.append(locked)
+        return FreshPresence(d.now, 0, locked)
+
+    try:
+        await d.start()
+        d.m.active_time = d.m.target_duration
+        d.m._synced_before_decide = True
+        d.m.move_failed = True
+        target = d.m.target_duration
+        fake.is_connected = False
+        fake.connect_failures = 1
+
+        events = await asyncio.wait_for(
+            d.m.tick(d.now, 0, False, refresh_presence=refresh), 2)
+        assert fake.connect_calls == 3  # startup, failed move, successful read reconnect
+        assert refreshes == [True]
+        assert fake.moves == [] and events == []
+        assert (d.m.state, d.m.active_time, d.m.target_duration, d.m.move_failed) == (
+            DeskState.SITTING, target, target, True)
+
+        locked = False
+        fake.is_connected = False
+        fake.connect_failures = 1
+        events = await asyncio.wait_for(
+            d.m.tick(d.now, 0, False, refresh_presence=refresh), 2)
+        assert refreshes == [True, False]
+        assert fake.connect_calls == 5
+        assert fake.moves == [STAND_H.metres]
+        assert len(events) == 1 and isinstance(events[0], TransitionCompleted)
+        assert events[0].recovery == "retry"
+        assert d.m.state is DeskState.STANDING
+        assert d.m.active_time == Duration.from_seconds(0)
+        assert not d.m.move_failed
+    finally:
+        await asyncio.wait_for(desk.disconnect(), 2)
 
 
 async def test_height_sync_expiry_defers_without_effects_and_retries():

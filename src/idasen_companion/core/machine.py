@@ -61,6 +61,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import NamedTuple
 
+from ..desk.port import MoveFailure
 from .config import AppConfig
 from .clocks import WallInstant
 from .durations import Duration
@@ -948,6 +949,7 @@ class StateMachine:
         original = self.state
         intended = original.opposite
         intended_h = self._preset_height(intended)
+        prior_failure = self.move_failed
 
         def completed(result: DeskState, *, interrupted: bool, recovery: str,
                       final_height: Length | None
@@ -964,13 +966,11 @@ class StateMachine:
                  else await self._desk.move_to(intended_h, guard=guard))
         if moved is None:
             return None
+        command_issued = moved is not MoveFailure.NOT_ISSUED
         height = await self._read_height(now)
-        # Single derived assignment so set and clear can never drift apart:
-        # every path below this point is a move that reached the desk (the
-        # command went through, or the height read-back proves it), so the
-        # same assignment that sets the flag on the both-failed case is what
-        # clears it on every other path.
-        self.move_failed = height is None and not moved
+        # A readable desk or a successful command supplies evidence; an enum
+        # describing failed preparation must not count as a successful move.
+        self.move_failed = height is None and moved is not True
         if self.move_failed:
             # Both the command and the read-back failed — nothing says the
             # desk moved, and it usually means it was unreachable. Assuming
@@ -1000,7 +1000,19 @@ class StateMachine:
         # next sync then holds automation there, which is the right end state.
         recovery_h = self._preset_height(original) if policy == "undo" else intended_h
         recovered = original if policy == "undo" else intended
-        await self._desk.move_to(recovery_h)
+        # Preparation can fail before admission or a driver invocation. In
+        # that case recovery would issue the first command, so it must pass
+        # admission after its own preparation. Already-issued recovery keeps
+        # the established interruption policy.
+        recovery = (await self._desk.move_to(recovery_h)
+                    if command_issued or guard is None
+                    else await self._desk.move_to(recovery_h, guard=guard))
+        if recovery is None:
+            self.move_failed = prior_failure
+            return None
+        if recovery is MoveFailure.NOT_ISSUED:
+            self.move_failed = True
+            return [MoveFailed(original, intended)]
         height = await self._read_height(now)
         if height is None:
             return completed(recovered, interrupted=True, recovery=policy,

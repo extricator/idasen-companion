@@ -8,11 +8,18 @@ Implementations: BleDesk (real desk over BLE) and MockDesk
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from enum import Enum
 from typing import Protocol, overload
 
 from ..core.lengths import Length
 
 MoveGuard = Callable[[], Awaitable[bool]]
+
+
+class MoveFailure(Enum):
+    """A guarded attempt failed before invoking the movement driver."""
+
+    NOT_ISSUED = "not_issued"
 
 
 class DeskPort(Protocol):
@@ -24,9 +31,10 @@ class DeskPort(Protocol):
     async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
 
     @overload
-    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | MoveFailure | None: ...
 
-    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None
+                      ) -> bool | MoveFailure | None:
         """Move to ``height`` (meters). Returns False if the command errored.
 
         A True return does NOT guarantee the target was reached — callers
@@ -34,8 +42,10 @@ class DeskPort(Protocol):
         script does with the CLI.
 
         A guard runs after preparation, immediately before the first command.
-        None means admission was deferred before issuing any command; ordinary
-        unguarded callers retain their bool result.
+        None means admission was deferred before issuing any command.
+        MoveFailure.NOT_ISSUED means preparation failed before invoking the
+        driver; False means the invoked driver errored. Ordinary unguarded
+        callers retain their bool result.
         """
         ...
 
