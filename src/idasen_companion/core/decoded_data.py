@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Shared decoded records; transport adapters own JSON and failure policy."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-free entry point for the shared GUI and daemon command."""
 
 from __future__ import annotations

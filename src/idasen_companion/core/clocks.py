@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Number-preserving operational readings with separate clock domains."""
 
 from __future__ import annotations

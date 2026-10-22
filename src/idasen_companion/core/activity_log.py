@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-free reader-side rendering for structured Activity Log entries."""
 
 from __future__ import annotations
