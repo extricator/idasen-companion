@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Live session-bus smoke for the standalone CLI.
 
 Run this file behind ``dbus-run-session --`` so it cannot touch a user's bus.

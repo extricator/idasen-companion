@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``[ui] clock_format`` reaching both processes, and staying out of a third.
 
 The window and the daemon share no process state — they communicate only over

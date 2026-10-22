@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Discovery transitions characterized against Daemon before extraction.
 
 All platform inputs are fake: these tests never contact BlueZ or scan BLE.

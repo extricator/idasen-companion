@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Command and rendering contract for the Qt-free CLI."""
 
 from __future__ import annotations

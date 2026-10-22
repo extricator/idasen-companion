@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Babel-backed resolution of the independent hour-cycle preference."""
 
 import pytest
