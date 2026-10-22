@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The first-run wizard has to open on an actual first run.
 
 A fresh RPM install ships the systemd unit present but *disabled* (Fedora

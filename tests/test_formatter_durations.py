@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``Formatter.duration_verbose``/``duration``/``duration_hm`` -- the merged
 PRES-03/D-01/D-02 duration policy.
 

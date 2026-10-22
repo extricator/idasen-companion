@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Height arithmetic on the ``Formatter`` facade — the first real methods.
 
 Built against the real :class:`LocaleProfile` because these methods produce

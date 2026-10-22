@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A failed move comes and tells you.
 
 ``MoveFailed`` means the desk ignored the app for a quarter of a minute across
