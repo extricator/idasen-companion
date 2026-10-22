@@ -322,8 +322,9 @@ def test_openssl_notice_subset_uses_only_reviewed_build_selection(tool, tree):
         tool["verify_metadata"](tree)
 
 
-def test_fetcher_checks_metadata_before_curl_or_output_creation(tree, tmp_path):
+def test_fetcher_checks_metadata_before_curl_or_output_creation(package_tree, tmp_path):
     """Run only the isolated shell preflight, ending at a refusing curl sentinel."""
+    tree = package_tree
     for relative in ("scripts/verify-interpreter-metadata.py", "src/idasen_companion/__init__.py"):
         target = tree / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -351,3 +352,19 @@ def test_fetcher_checks_metadata_before_curl_or_output_creation(tree, tmp_path):
     assert "fetcher identity disagrees" in stale.stderr
     assert not called.exists()
     assert not stale_output.exists()
+    fetcher.write_text(text)
+    (tree / "packaging/licenses/interpreter/LICENSE.sqlite.txt").write_bytes(b"wrong source text")
+    stale = run_process(["bash", str(fetcher), str(stale_output)],
+                        capture_output=True, text=True, check=False, env=env, timeout=15)
+    assert stale.returncode == 1, stale.stderr
+    assert "sqlite" in stale.stderr
+    assert not called.exists()
+    assert not stale_output.exists()
+
+
+def test_source_manifest_carries_every_offline_verifier_input():
+    manifest = (ROOT / "MANIFEST.in").read_text().splitlines()
+    for relative in ("scripts/verify-interpreter-metadata.py", "packaging/interpreter/PYTHON.json",
+                     "packaging/interpreter/PROVENANCE.json"):
+        assert "include " + relative in manifest
+    assert "recursive-include packaging/licenses/interpreter *.txt" in manifest

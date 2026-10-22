@@ -55,8 +55,9 @@ include packaging/idasen-companion-bundled.spec
 # The self-contained build installs these out of the unpacked tarball — the
 # entry point it puts in place of a generated console script, and a license
 # text for each component that ships inside the package without one of its own:
-# Qt, whose wheel carries none, and the eight C libraries linked into the
-# bundled interpreter, whose tarball carries none either. Leave a line out and
+# Qt, whose wheel carries none, and generic terms for the C libraries linked
+# into the bundled interpreter. Exact component notices are included below.
+# Leave a line out and
 # rpmbuild fails partway through, while every local build passes because the
 # files are sitting right there in the working tree. A packaging test also
 # reads this directory back, so a text absent from the sdist fails collection
@@ -71,6 +72,11 @@ include packaging/licenses/LICENSE.BSD-2-Clause.txt
 include packaging/licenses/LICENSE.0BSD.txt
 include packaging/licenses/LICENSE.Zlib.txt
 include packaging/licenses/LICENSE.bzip2-1.0.6.txt
+# Exact reviewed build inputs and verbatim component notice sources. These
+# bounded directories are consumed by the offline verifier and RPM staging.
+include packaging/interpreter/PYTHON.json
+include packaging/interpreter/PROVENANCE.json
+recursive-include packaging/licenses/interpreter *.txt
 include packaging/idasen-companion.spec
 include packaging/python-bleak.spec
 include packaging/python-idasen.spec
@@ -132,6 +138,7 @@ include scripts/trim-pyside6.py
 # still passes, because the file is sitting right there in the working tree.
 include scripts/trim-cpython.py
 include scripts/fetch-bundled-runtime.sh
+include scripts/verify-interpreter-metadata.py
 # The strip pass %install runs by hand, out of the unpacked tarball like the
 # two trimmers above, for the same reason and with the same consequence for
 # leaving the line out.
