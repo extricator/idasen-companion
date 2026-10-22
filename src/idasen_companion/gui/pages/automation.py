@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Automation page: the sit/stand cycle, its schedule, and its warnings.
 
 How the automation *behaves*, as opposed to how the app is set up (Settings).

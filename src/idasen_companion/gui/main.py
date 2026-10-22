@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """idasen-companion — the GUI application.
 
 Single-instance: a second launch activates the existing window via

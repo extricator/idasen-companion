@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Main-window pages, one QWidget subclass per sidebar entry."""
 
 from __future__ import annotations

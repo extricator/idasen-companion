@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Activity Log page: the daemon's log, filtered by audience and severity.
 
 Two controls, because there are two questions (``docs/LOGGING.md``): *who is
