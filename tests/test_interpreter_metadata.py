@@ -1,0 +1,237 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Offline exact-build interpreter metadata and refresh boundaries."""
+
+import io
+import json
+import runpy
+import tarfile
+from pathlib import Path
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts/verify-interpreter-metadata.py"
+
+
+@pytest.fixture
+def tool():
+    return runpy.run_path(str(SCRIPT))
+
+
+@pytest.fixture
+def tree(tmp_path):
+    """Only the repository inputs the offline command actually reads."""
+    for relative in (
+        "scripts/fetch-bundled-runtime.sh", "scripts/trim-cpython.py",
+        "packaging/idasen-companion-bundled.spec",
+        "packaging/interpreter/PYTHON.json", "packaging/interpreter/PROVENANCE.json",
+    ):
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / relative).read_bytes())
+    return tmp_path
+
+
+def change_json(path, change):
+    data = json.loads(path.read_bytes())
+    change(data)
+    path.write_text(json.dumps(data))
+
+
+def archive_bytes(entries):
+    output = io.BytesIO()
+    with tarfile.open(fileobj=output, mode="w:gz") as archive:
+        for name, contents, kind in entries:
+            member = tarfile.TarInfo(name)
+            member.type = kind
+            member.size = len(contents) if kind == tarfile.REGTYPE else 0
+            if kind == tarfile.SYMTYPE:
+                member.linkname = "elsewhere"
+            archive.addfile(member, io.BytesIO(contents))
+    return output.getvalue()
+
+
+def test_current_snapshot_verifies(capsys):
+    assert SCRIPT.is_file(), "offline metadata verifier is missing"
+    tool = runpy.run_path(str(SCRIPT))
+    assert tool["main"](["verify-metadata"]) == 0
+    output = capsys.readouterr().out
+    assert "16 retained extensions" in output
+    assert "12 terms" in output
+
+
+def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
+    metadata, provenance = tool["load_snapshot"]()
+    inventory = tool["derive_components"](metadata, provenance["install_members"], provenance["trim_patterns"])
+    assert len(inventory["components"]) == 16
+    assert inventory["components"]["_ssl"]["shared_lib"] is None
+    assert inventory["components"]["_dbm"]["shared_lib"]
+    assert inventory["components"]["_sqlite3"]["licenses"] == []
+    assert inventory["components"]["_sqlite3"]["license_public_domain"] is True
+    assert set(inventory["excluded"]) == {"_tkinter"}
+    assert inventory["build_only"] == ["setuptools"]
+    assert "TCL" not in inventory["terms"]
+    assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "zstd"
+    assert "licenses/LICENSE.zlib-ng.txt" not in provenance["notices"]
+
+
+@pytest.mark.parametrize("pin", ["URL", "ASSET", "SHA256"])
+def test_each_fetcher_pin_is_bound_to_snapshot(tool, tree, pin):
+    fetcher = tree / "scripts/fetch-bundled-runtime.sh"
+    text = fetcher.read_text()
+    old = next(line for line in text.splitlines() if line.startswith(f"INTERPRETER_{pin}="))
+    fetcher.write_text(text.replace(old, old[:-1] + "0\""))
+    with pytest.raises(tool["MetadataError"]):
+        tool["verify_metadata"](tree)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("version", "9"), ("build_options", "debug"),
+    ("python_version", "3.14.8"), ("target_triple", "aarch64-unknown-linux-gnu"),
+    ("build_info", {"extensions": []}),
+])
+def test_metadata_identity_and_schema_fail_closed(tool, field, value):
+    metadata, provenance = tool["load_snapshot"]()
+    metadata[field] = value
+    with pytest.raises(tool["MetadataError"]):
+        tool["validate_metadata"](metadata, provenance["identity"])
+
+
+def test_raw_metadata_hash_and_duplicate_json_keys_are_rejected(tool, tree):
+    raw = tree / "packaging/interpreter/PYTHON.json"
+    raw.write_bytes(raw.read_bytes() + b" ")
+    with pytest.raises(tool["MetadataError"], match="hash/size"):
+        tool["load_snapshot"](tree)
+    with pytest.raises(tool["MetadataError"], match="duplicate JSON"):
+        tool["read_json"](b'{"version":"8","version":"9"}')
+
+
+@pytest.mark.parametrize("state", [None, False])
+def test_empty_licenses_require_explicit_public_domain(tool, state):
+    metadata, provenance = tool["load_snapshot"]()
+    record = metadata["build_info"]["extensions"]["_sqlite3"][0]
+    if state is None:
+        del record["license_public_domain"]
+    else:
+        record["license_public_domain"] = state
+    with pytest.raises(tool["MetadataError"], match="unknown licensing"):
+        tool["derive_components"](metadata, provenance["install_members"], provenance["trim_patterns"])
+
+
+def test_shared_extension_requires_install_evidence(tool):
+    metadata, provenance = tool["load_snapshot"]()
+    members = [member for member in provenance["install_members"] if "/_dbm." not in member]
+    with pytest.raises(tool["MetadataError"], match="missing installed shared extension: _dbm"):
+        tool["derive_components"](metadata, members, provenance["trim_patterns"])
+
+
+def test_builtin_requires_installed_interpreter(tool):
+    metadata, provenance = tool["load_snapshot"]()
+    members = [member for member in provenance["install_members"] if "/bin/" not in member]
+    with pytest.raises(tool["MetadataError"], match="missing installed interpreter"):
+        tool["derive_components"](metadata, members, provenance["trim_patterns"])
+
+
+@pytest.mark.parametrize("mutation", ["component", "term", "trim", "backend", "notice"])
+def test_reviewed_inventory_and_owned_shipping_rules_are_checked(tool, tree, mutation):
+    provenance = tree / "packaging/interpreter/PROVENANCE.json"
+    if mutation == "component":
+        change_json(provenance, lambda data: data["inventory"]["components"].pop("_ssl"))
+    elif mutation == "term":
+        change_json(provenance, lambda data: data["inventory"]["terms"].append("TCL"))
+    elif mutation == "notice":
+        change_json(provenance, lambda data: data["notices"].pop("licenses/LICENSE.zlib.txt"))
+    else:
+        path = tree / ("scripts/trim-cpython.py" if mutation == "trim" else "packaging/idasen-companion-bundled.spec")
+        before = path.read_text()
+        path.write_text(before.replace("_tkinter*.so", "other*.so") if mutation == "trim"
+                        else before.replace("--no-deps --no-warn-script-location build-backend", "--target shipping --no-deps --no-warn-script-location build-backend"))
+    with pytest.raises(tool["MetadataError"]):
+        tool["verify_metadata"](tree)
+
+
+@pytest.mark.parametrize("entries,limit", [
+    ([("../escape", b"", tarfile.REGTYPE)], 8),
+    ([("/absolute", b"", tarfile.REGTYPE)], 8),
+    ([("python/notice", b"x", tarfile.REGTYPE)] * 2, 8),
+    ([("python/notice", b"too long", tarfile.REGTYPE)], 3),
+    ([("python/notice", b"", tarfile.SYMTYPE)], 8),
+    ([("python/device", b"", tarfile.CHRTYPE)], 8),
+])
+def test_archive_rejects_unsafe_duplicate_oversized_and_nonregular_evidence(tool, tmp_path, entries, limit):
+    path = tmp_path / "input.tar.gz"
+    path.write_bytes(archive_bytes(entries))
+    with pytest.raises(tool["MetadataError"]):
+        tool["read_archive"](path, {"python/notice": limit})
+
+
+def test_archive_ignores_unrelated_links_without_resolving_them(tool, tmp_path):
+    path = tmp_path / "input.tar.gz"
+    path.write_bytes(archive_bytes([
+        ("python/unrelated", b"", tarfile.SYMTYPE),
+        ("python/notice", b"exact bytes", tarfile.REGTYPE),
+    ]))
+    found, _ = tool["read_archive"](path, {"python/notice": 100})
+    assert found == {"python/notice": b"exact bytes"}
+
+
+def test_complete_archive_digest_is_required_before_member_use(tool, tmp_path):
+    path = tmp_path / "input.tar.gz"
+    data = archive_bytes([("python/notice", b"exact bytes", tarfile.REGTYPE)])
+    path.write_bytes(data)
+    with pytest.raises(tool["MetadataError"], match="archive hash"):
+        tool["checked_archive"](path, "0" * 64, len(data), "reviewed.tar.gz")
+    path.write_bytes(data[:-10])
+    with pytest.raises(tool["MetadataError"], match="archive size"):
+        tool["checked_archive"](path, tool["digest"](data), len(data), "reviewed.tar.gz")
+    with pytest.raises((EOFError, tarfile.TarError)):
+        tool["read_archive"](path, {"python/notice": 100})
+
+
+def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, tree, tmp_path):
+    """Small local archives exercise the real refresh pipeline without decoders."""
+    metadata, provenance = tool["load_snapshot"]()
+    raw = (ROOT / "packaging/interpreter/PYTHON.json").read_bytes()
+    install = archive_bytes([(name, b"not executable", tarfile.REGTYPE)
+                             for name in provenance["install_members"]])
+    full = archive_bytes([("python/PYTHON.json", raw, tarfile.REGTYPE)] + [
+        (notice["member"], path.encode(), tarfile.REGTYPE)
+        for path, notice in provenance["notices"].items() if notice["archive"] == "full"
+    ])
+    source_notice = b"exact reviewed source bytes"
+    source = archive_bytes([(tool["ZSTD_MEMBER"], source_notice, tarfile.REGTYPE)])
+    argv = ["--root", str(tree), "refresh"]
+    for name, contents in (("install", install), ("full", full), ("zstd", source)):
+        path = tmp_path / f"{name}.tar.gz"
+        path.write_bytes(contents)
+        argv += [f"--{name}-archive", str(path), f"--{name}-sha256", tool["digest"](contents),
+                 f"--{name}-size", str(len(contents))]
+    fetcher = tree / "scripts/fetch-bundled-runtime.sh"
+    fetcher.write_text(fetcher.read_text().replace(provenance["identity"]["sha256"], tool["digest"](install)))
+    output = tree / "packaging/interpreter"
+    argv += ["--metadata-sha256", tool["digest"](raw), "--metadata-size", str(len(raw)),
+             "--zstd-license-sha256", tool["digest"](source_notice), "--release", "20260814",
+             "--source-commit", provenance["source_commit"], "--output", str(output)]
+    assert tool["main"](argv) == 0
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    assert before["PYTHON.json"] == raw
+    inventory, _ = tool["verify_metadata"](tree)
+    assert inventory == provenance["inventory"]
+    assert tool["main"](argv) == 0
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+    argv[argv.index("--metadata-sha256") + 1] = "0" * 64
+    assert tool["main"](argv) == 1
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+
+
+def test_notice_subset_checks_exact_bytes_and_unknown_components(tool, tree):
+    metadata, provenance = tool["load_snapshot"]()
+    notice = provenance["notices"][metadata["license_path"]]
+    path = tree / notice["file"]
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"substituted notice")
+    with pytest.raises(tool["MetadataError"], match="source notice bytes disagree"):
+        tool["verify_notice_sources"](tree, ["cpython"])
+    with pytest.raises(tool["MetadataError"], match="unknown retained component"):
+        tool["verify_notice_sources"](tree, ["setuptools"])

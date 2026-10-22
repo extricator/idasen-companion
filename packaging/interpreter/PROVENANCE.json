@@ -1,0 +1,450 @@
+{
+  "archives": {
+    "full": {
+      "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+      "sha256": "e7118e0773e047a9d732146216d1d162ba80673a13db434520cd4a9be49c912c",
+      "size": 126591133
+    },
+    "install": {
+      "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533",
+      "size": 35857286
+    },
+    "zstd": {
+      "asset": "zstd-1.5.7.tar.gz",
+      "sha256": "f24b52470d12f466e9fa4fcc94e6c530625ada51d7b36de7fdc6ed7e6f499c8e",
+      "size": 2440298
+    }
+  },
+  "identity": {
+    "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+    "build_options": "pgo+lto",
+    "full_asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+    "python_version": "3.14.7",
+    "release": "20260814",
+    "sha256": "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533",
+    "target_triple": "x86_64-unknown-linux-gnu",
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.14.7%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+  },
+  "install_members": [
+    "python/bin/python3.14",
+    "python/lib/python3.14/lib-dynload/_dbm.cpython-314-x86_64-linux-gnu.so",
+    "python/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so"
+  ],
+  "inventory": {
+    "build_only": [
+      "setuptools"
+    ],
+    "components": {
+      "_bz2": {
+        "dependencies": [
+          "bz2"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.bzip2.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "bzip2-1.0.6"
+        ],
+        "shared_lib": null
+      },
+      "_ctypes": {
+        "dependencies": [
+          "ffi"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.libffi.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "MIT"
+        ],
+        "shared_lib": null
+      },
+      "_curses": {
+        "dependencies": [
+          "ncursesw"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.ncurses.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "X11"
+        ],
+        "shared_lib": null
+      },
+      "_curses_panel": {
+        "dependencies": [
+          "ncursesw",
+          "panelw"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.ncurses.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "X11"
+        ],
+        "shared_lib": null
+      },
+      "_dbm": {
+        "dependencies": [
+          "db"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.bdb.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "Sleepycat"
+        ],
+        "shared_lib": "install/lib/python3.14/lib-dynload/_dbm.cpython-314-x86_64-linux-gnu.so"
+      },
+      "_decimal": {
+        "dependencies": [
+          "mpdec"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.mpdecimal.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "BSD-2-Clause"
+        ],
+        "shared_lib": null
+      },
+      "_elementtree": {
+        "dependencies": [
+          "expat"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.expat.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "MIT"
+        ],
+        "shared_lib": null
+      },
+      "_hashlib": {
+        "dependencies": [
+          "crypto"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.openssl-1.1.txt",
+          "licenses/LICENSE.openssl-3.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "Apache-2.0",
+          "OpenSSL"
+        ],
+        "shared_lib": null
+      },
+      "_lzma": {
+        "dependencies": [
+          "lzma"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.liblzma.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "0BSD"
+        ],
+        "shared_lib": null
+      },
+      "_sqlite3": {
+        "dependencies": [
+          "sqlite3"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.sqlite.txt"
+        ],
+        "license_public_domain": true,
+        "licenses": [],
+        "shared_lib": null
+      },
+      "_ssl": {
+        "dependencies": [
+          "crypto",
+          "ssl"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.openssl-1.1.txt",
+          "licenses/LICENSE.openssl-3.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "Apache-2.0",
+          "OpenSSL"
+        ],
+        "shared_lib": null
+      },
+      "_uuid": {
+        "dependencies": [
+          "uuid"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.libuuid.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "shared_lib": null
+      },
+      "_zstd": {
+        "dependencies": [
+          "zstd"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.zstd.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "shared_lib": null
+      },
+      "pyexpat": {
+        "dependencies": [
+          "expat"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.expat.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "MIT"
+        ],
+        "shared_lib": null
+      },
+      "readline": {
+        "dependencies": [
+          "edit",
+          "ncursesw"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.libedit.txt",
+          "licenses/LICENSE.ncurses.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "BSD-3-Clause",
+          "X11"
+        ],
+        "shared_lib": null
+      },
+      "zlib": {
+        "dependencies": [
+          "z"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.zlib-ng.txt",
+          "licenses/LICENSE.zlib.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "Zlib"
+        ],
+        "shared_lib": null
+      }
+    },
+    "cpython": {
+      "license_path": "licenses/LICENSE.cpython.txt",
+      "licenses": [
+        "Python-2.0",
+        "CNRI-Python"
+      ]
+    },
+    "excluded": {
+      "_tkinter": {
+        "dependencies": [
+          "X11",
+          "Xau",
+          "xcb"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.libX11.txt",
+          "licenses/LICENSE.libXau.txt",
+          "licenses/LICENSE.libxcb.txt",
+          "licenses/LICENSE.tcl.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "MIT",
+          "TCL",
+          "X11"
+        ],
+        "shared_lib": "install/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so",
+        "trim_patterns": [
+          "lib/python3.*/lib-dynload/_tkinter*.so"
+        ]
+      }
+    },
+    "terms": [
+      "0BSD",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "CNRI-Python",
+      "MIT",
+      "OpenSSL",
+      "Python-2.0",
+      "Sleepycat",
+      "X11",
+      "Zlib",
+      "bzip2-1.0.6"
+    ]
+  },
+  "limitations": [
+    "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
+    "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
+    "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "Source associations identify exact notices, not legal substitutability or a compliance finding."
+  ],
+  "metadata": {
+    "member": "python/PYTHON.json",
+    "sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
+    "size": 128283
+  },
+  "notices": {
+    "licenses/LICENSE.bdb.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.bdb.txt",
+      "member": "python/licenses/LICENSE.bdb.txt",
+      "sha256": "3bdff06e69991c94664f2ef5c5f8096f60b7dbec071756ea6cc26b445e06ec5b",
+      "size": 7293
+    },
+    "licenses/LICENSE.bzip2.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.bzip2.txt",
+      "member": "python/licenses/LICENSE.bzip2.txt",
+      "sha256": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+      "size": 1743
+    },
+    "licenses/LICENSE.cpython.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.cpython.txt",
+      "member": "python/licenses/LICENSE.cpython.txt",
+      "sha256": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+      "size": 36164
+    },
+    "licenses/LICENSE.expat.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.expat.txt",
+      "member": "python/licenses/LICENSE.expat.txt",
+      "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+      "size": 1144
+    },
+    "licenses/LICENSE.libedit.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.libedit.txt",
+      "member": "python/licenses/LICENSE.libedit.txt",
+      "sha256": "29cea33c32bbc9785142386377915612a2fa786482c46843383384aded2e09b1",
+      "size": 1614
+    },
+    "licenses/LICENSE.libffi.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.libffi.txt",
+      "member": "python/licenses/LICENSE.libffi.txt",
+      "sha256": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+      "size": 1132
+    },
+    "licenses/LICENSE.liblzma.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.liblzma.txt",
+      "member": "python/licenses/LICENSE.liblzma.txt",
+      "sha256": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+      "size": 660
+    },
+    "licenses/LICENSE.libuuid.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.libuuid.txt",
+      "member": "python/licenses/LICENSE.libuuid.txt",
+      "sha256": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+      "size": 1432
+    },
+    "licenses/LICENSE.mpdecimal.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.mpdecimal.txt",
+      "member": "python/licenses/LICENSE.mpdecimal.txt",
+      "sha256": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+      "size": 1284
+    },
+    "licenses/LICENSE.ncurses.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.ncurses.txt",
+      "member": "python/licenses/LICENSE.ncurses.txt",
+      "sha256": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
+      "size": 1447
+    },
+    "licenses/LICENSE.openssl-1.1.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.openssl-1.1.txt",
+      "member": "python/licenses/LICENSE.openssl-1.1.txt",
+      "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
+      "size": 6120
+    },
+    "licenses/LICENSE.openssl-3.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.openssl-3.txt",
+      "member": "python/licenses/LICENSE.openssl-3.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "size": 10175
+    },
+    "licenses/LICENSE.sqlite.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.sqlite.txt",
+      "member": "python/licenses/LICENSE.sqlite.txt",
+      "sha256": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+      "size": 1481
+    },
+    "licenses/LICENSE.zlib.txt": {
+      "archive": "full",
+      "file": "packaging/licenses/interpreter/LICENSE.zlib.txt",
+      "member": "python/licenses/LICENSE.zlib.txt",
+      "sha256": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+      "size": 995
+    },
+    "licenses/LICENSE.zstd.txt": {
+      "archive": "zstd",
+      "file": "packaging/licenses/interpreter/LICENSE.zstd.txt",
+      "member": "cpython-source-deps-zstd-1.5.7/LICENSE",
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "size": 1549
+    }
+  },
+  "schema": 1,
+  "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
+  "source_url": "https://github.com/astral-sh/python-build-standalone/tree/38d35dcf0e212ca02eed8ebc11d0c92906387d56",
+  "trim_patterns": [
+    "lib/libpython3*.so*",
+    "lib/libtcl*.so",
+    "lib/tcl*",
+    "lib/tk*",
+    "lib/itcl*",
+    "lib/thread*",
+    "lib/python3.*/tkinter",
+    "lib/python3.*/lib-dynload/_tkinter*.so",
+    "lib/python3.*/site-packages/pip",
+    "lib/python3.*/site-packages/pip-*.dist-info",
+    "lib/python3.*/ensurepip",
+    "lib/python3.*/idlelib",
+    "lib/python3.*/pydoc_data",
+    "lib/python3.*/turtledemo",
+    "include",
+    "share",
+    "bin/pip*",
+    "bin/idle3*",
+    "bin/pydoc3*",
+    "lib/pkgconfig",
+    "bin/python*-config",
+    "lib/python3.*/config-*",
+    "lib/python3.*/venv"
+  ],
+  "zstd_source_url": "https://github.com/python/cpython-source-deps/archive/refs/tags/zstd-1.5.7.tar.gz"
+}
