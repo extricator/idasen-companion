@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Verify shipped SVG theme sizes and optical masters through real Qt lookup."""
 from configparser import ConfigParser
 from pathlib import Path

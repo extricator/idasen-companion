@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Showing heights in inches: the ``[ui] units`` setting.
 
 A display-layer setting only. What these pin down is that the *stored* height

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``apply_language`` binds app gettext, QLocale and Qtbase together.
 
 Proves a config language binds the app catalog and native Qt locale from one

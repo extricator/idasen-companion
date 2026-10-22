@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """IdleMonitor fallback-chain behavior with fake providers."""
 
 from idasen_companion.daemon import idle as idle_mod
