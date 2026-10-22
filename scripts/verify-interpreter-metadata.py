@@ -266,6 +266,111 @@ def verify_notice_sources(root=ROOT, components=()):
     return len(paths)
 
 
+QT_EXPRESSION = "(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)"
+FLAVOR_SELECTOR = '''%global release_flavor %{?release_flavor}%{!?release_flavor:full}
+%if "%{release_flavor}" == "headless"
+%global package_name idasen-companion-headless
+%global with_gui 0
+%else
+%global package_name idasen-companion
+%global with_gui 1
+%endif'''
+NOTICE_STAGING = '''for text in packaging/licenses/interpreter/*.txt; do
+    cp "$text" "$(basename "$text")"
+done'''
+CPYTHON_COPY = "cp python/lib/python%{bundled_minor}/LICENSE.txt LICENSE.cpython"
+
+
+def effective_source_spec(text, flavor):
+    """Only this spec's fixed selector and literal with_gui branches, no macros."""
+    require(flavor in ("full", "headless"), f"unsupported flavor: {flavor}")
+    require(text.count(FLAVOR_SELECTOR) == 1, "release_flavor/with_gui selector changed; review adapter")
+    text = text.replace(FLAVOR_SELECTOR, "")
+    result, branch = [], None
+    for line in text.splitlines():
+        if line.startswith("%if"):
+            require(branch is None and line in ("%if %{with_gui}", "%if ! %{with_gui}"),
+                    f"unsupported spec conditional: {line}")
+            branch = (flavor == "full") == (line == "%if %{with_gui}")
+        elif line == "%else":
+            require(branch is not None, "unmatched spec else")
+            branch = not branch
+        elif line == "%endif":
+            require(branch is not None, "unmatched spec endif")
+            branch = None
+        else:
+            require(not re.match(r"%global (?:release_flavor|with_gui|package_name)\b", line),
+                    "unexpected flavor selector redefinition")
+            if branch is not False:
+                result.append(line)
+    require(branch is None, "unterminated spec conditional")
+    return "\n".join(result)
+
+
+def parse_effective_spec(text):
+    """Read literal License/%license observations from an effective spec."""
+    expressions = re.findall(r"^License:\s+(.+)$", text, re.M)
+    require(len(expressions) == 1, "effective spec must state exactly one License declaration")
+    expression = expressions[0].strip()
+    terms = re.findall(r"[A-Za-z0-9][A-Za-z0-9.+-]*", expression)
+    identifiers = [term for term in terms if term not in ("AND", "OR")]
+    require(identifiers and len(set(identifiers)) == len(identifiers), "invalid/repeated license identifiers")
+    files = []
+    for line in re.findall(r"^%license\s+(.+)$", text, re.M):
+        files.extend(line.split())
+    require(files and len(files) == len(set(files))
+            and all(re.fullmatch(r"LICENSE(?:\.[A-Za-z0-9_.+-]+)?", name) for name in files),
+            "unsupported/repeated effective %license filenames")
+    return {"expression": expression, "terms": set(identifiers), "licenses": set(files)}
+
+
+def verify_package_variants(root=ROOT):
+    """Reconcile independent terms and component texts in both current variants."""
+    root = Path(root)
+    inventory, provenance = verify_metadata(root)
+    cpython_path = inventory["cpython"]["license_path"]
+    notices = {path: entry for path, entry in provenance["notices"].items() if path != cpython_path}
+    directory = root / "packaging/licenses/interpreter"
+    actual = {path.name for path in directory.iterdir()} if directory.is_dir() else set()
+    expected = {PurePosixPath(entry["file"]).name for entry in notices.values()}
+    require(actual == expected, f"missing/unexpected component source texts: {sorted(actual ^ expected)}")
+    flat = {path.name for path in (root / "packaging/licenses").glob("*.txt")}
+    require(not expected & flat, "component notice basename collides with generic text")
+    for path, entry in notices.items():
+        raw = (root / entry["file"]).read_bytes()
+        require(len(raw) == entry["size"] and digest(raw) == entry["sha256"],
+                f"component source notice bytes disagree: {path}")
+    source = (root / "packaging/idasen-companion-bundled.spec").read_text()
+    variants = {}
+    for flavor in ("full", "headless"):
+        effective = effective_source_spec(source, flavor)
+        observed = parse_effective_spec(effective)
+        sections = re.findall(r"^%install\n(.*?)^%check\n", effective, re.M | re.S)
+        require(len(sections) == 1, f"{flavor}: expected one install/check staging section")
+        staging = sections[0]
+        require(staging.count(NOTICE_STAGING) == 1, f"{flavor}: component notice staging changed")
+        require(staging.splitlines().count(CPYTHON_COPY) == 1, f"{flavor}: cpython source copy changed")
+        for component, record in dict(inventory["components"], cpython=inventory["cpython"]).items():
+            paths = [record["license_path"]] if component == "cpython" else record["license_paths"]
+            paths = selected_notice_paths(paths, provenance["metadata"]["sha256"], provenance["source_commit"])
+            paths.discard("licenses/LICENSE.zlib-ng.txt")
+            for path in paths:
+                name = "LICENSE.cpython" if path == cpython_path else PurePosixPath(notices[path]["file"]).name
+                require(name in observed["licenses"], f"{flavor}: {component} missing installed notice {name}")
+        variants[flavor] = observed
+    full, headless = variants["full"], variants["headless"]
+    # The only common non-interpreter identifiers here belong to the app/wheels.
+    require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.+-]*(?: AND [A-Za-z0-9][A-Za-z0-9.+-]*)*", headless["expression"])
+            and headless["terms"] == set(inventory["terms"]) | {"GPL-3.0-or-later", "PSF-2.0"},
+            "headless: package terms disagree with interpreter plus app/wheel terms")
+    require(full["expression"] == headless["expression"] + " AND " + QT_EXPRESSION,
+            "full: expected exact Qt expression delta from headless")
+    require(full["licenses"] == headless["licenses"] | {"LICENSE.LGPL-3.0.txt"}
+            and "LICENSE.LGPL-3.0.txt" not in headless["licenses"],
+            "full/headless: expected exact Qt notice delta")
+    return variants
+
+
 @contextmanager
 def archive_stream(path):
     """Only explicit refresh calls this; offline verification imports no decoder."""
@@ -397,6 +502,10 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=ROOT)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("verify-metadata")
+    commands.add_parser("verify")
+    expanded = commands.add_parser("verify-expanded")
+    expanded.add_argument("--full-spec", type=Path, required=True)
+    expanded.add_argument("--headless-spec", type=Path, required=True)
     notices = commands.add_parser("verify-notices")
     notices.add_argument("--component", action="append", required=True)
     update = commands.add_parser("refresh")
@@ -418,6 +527,14 @@ def main(argv=None):
         elif args.command == "verify-notices":
             count = verify_notice_sources(args.root, args.component)
             print(f"Verified {count} exact source notices")
+        elif args.command in ("verify", "verify-expanded"):
+            variants = verify_package_variants(args.root)
+            if args.command == "verify-expanded":
+                for flavor in ("full", "headless"):
+                    observed = parse_effective_spec(getattr(args, f"{flavor}_spec").read_text())
+                    require(observed == variants[flavor], f"{flavor}: expanded spec disagrees with offline adapter")
+            print("Verified exact metadata, component texts and full/headless package variants"
+                  + (" against expanded specs" if args.command == "verify-expanded" else " (offline)"))
         else:
             inventory, _ = verify_metadata(args.root)
             print(f"Verified exact interpreter metadata: {len(inventory['components'])} retained extensions, {len(inventory['terms'])} terms; notice bytes checked separately")

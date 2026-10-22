@@ -98,15 +98,15 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # *package contents*, which is what a distribution asks for here — not just
 # the app's own terms. Four groups, in the order they appear: this app; the
 # nine bundled distributions, each of which ships its own text; the interpreter
-# and the C libraries compiled into it, none of which ships a text anywhere in
-# its tarball; and last, parenthesised, PySide6's and Qt's, used under the LGPL
-# arm whose text ships alongside the GPL one.
+# and the C libraries compiled into it, with exact component notices reviewed
+# against its build metadata; and last, parenthesised, PySide6's and Qt's,
+# used under the LGPL arm whose text ships alongside the GPL one.
 #
 # The third group is the one bundling an interpreter added. Its terms are the
 # ones the interpreter build's own metadata records for the components it links
-# statically, cross-checked against the versions the shipped binary reports for
-# each. Every term below has its text installed under %%license, several of
-# them vendored from this repository because upstream ships none.
+# statically, cross-checked against the exact optimized build and install
+# inventory. Generic term texts and component-specific notices are separate
+# checks; SQLite's public-domain source notice adds no licence identifier.
 #
 # The Tcl binding would add one more term and does not appear: the interpreter
 # trim removes the module that would need it, and that removal is a recorded
@@ -405,8 +405,7 @@ for info in %{buildroot}%{bundled_libraries}/*.dist-info; do
 done
 # The texts that have to come from this repository, because the thing they
 # cover ships without one. Qt's and PySide6's wheels carry no license file at
-# all — neither a licenses directory nor a plain one — and neither does the
-# interpreter tarball for any of the C libraries compiled into it. Copied as a
+# all — neither a licenses directory nor a plain one. Copied as a
 # directory rather than named one by one, since %%files names each of them: a
 # text that stops being vendored fails the build there instead of quietly
 # leaving a declared term with nothing behind it.
@@ -414,7 +413,15 @@ for text in packaging/licenses/*.txt; do
     cp "$text" "$(basename "$text")"
 done
 
-# The interpreter's own text, which is the one thing its tarball does ship.
+# Exact interpreter component notices, independently associated with the
+# reviewed optimized build. Zstandard's absent full-archive notice comes from
+# its checksum-pinned source archive; all other bytes come from the full build.
+# Basenames are distinct from the generic term/wheel texts above.
+for text in packaging/licenses/interpreter/*.txt; do
+    cp "$text" "$(basename "$text")"
+done
+
+# The interpreter's own text, carried in the install-only tarball.
 # Taken from the extraction %%prep left beside the sources rather than from the
 # build root: the trim runs over the build-root copy, and hanging a license
 # install off the internals of a delete is how it silently stops happening.
@@ -627,6 +634,9 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %license LICENSE.Apache-2.0.txt LICENSE.OpenSSL.txt LICENSE.X11.txt
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt
+%license LICENSE.bdb.txt LICENSE.bzip2.txt LICENSE.expat.txt LICENSE.libedit.txt
+%license LICENSE.libffi.txt LICENSE.liblzma.txt LICENSE.libuuid.txt LICENSE.mpdecimal.txt
+%license LICENSE.ncurses.txt LICENSE.openssl-3.txt LICENSE.sqlite.txt LICENSE.zlib.txt LICENSE.zstd.txt
 %doc README.md
 %{_bindir}/idasen-companion
 %{_bindir}/idasen-companiond

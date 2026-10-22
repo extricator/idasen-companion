@@ -36,6 +36,67 @@ def tree(tmp_path):
     return tmp_path
 
 
+@pytest.fixture
+def package_tree(tree):
+    for source in (ROOT / "packaging/licenses").rglob("*.txt"):
+        target = tree / source.relative_to(ROOT)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+    return tree
+
+
+def test_complete_package_verification_and_effective_variants(tool):
+    variants = tool["verify_package_variants"]()
+    assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt"}
+    assert "LICENSE.sqlite.txt" in variants["headless"]["licenses"]
+    assert "LICENSE.cpython" in variants["headless"]["licenses"]
+    assert tool["main"](["verify"]) == 0
+
+
+@pytest.mark.parametrize("state", ["missing", "empty", "wrong-bytes"])
+def test_component_notice_requires_exact_source_bytes(tool, package_tree, state):
+    path = package_tree / "packaging/licenses/interpreter/LICENSE.sqlite.txt"
+    if state == "missing":
+        path.unlink()
+    else:
+        path.write_bytes(b"" if state == "empty" else b"substitute public-domain text")
+    with pytest.raises(tool["MetadataError"], match="sqlite"):
+        tool["verify_package_variants"](package_tree)
+
+
+@pytest.mark.parametrize("old,new,error", [
+    (" AND bzip2-1.0.6", "", "headless.*terms"),
+    (" AND bzip2-1.0.6", " AND bzip2-1.0.6 AND TCL", "headless.*terms"),
+    ("(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)", "LGPL-3.0-only", "full.*Qt"),
+    ('%if "%{release_flavor}" == "headless"', '%if "%{release_flavor}" == "minimal"', "selector"),
+    ("packaging/licenses/interpreter/*.txt", "packaging/licenses/absent/*.txt", "full.*staging"),
+    (" LICENSE.sqlite.txt", "", "full.*_sqlite3.*sqlite"),
+    ("cp python/lib/python%{bundled_minor}/LICENSE.txt LICENSE.cpython", "", "full.*cpython.*copy"),
+])
+def test_effective_package_rejects_declaration_selector_and_staging_drift(tool, package_tree, old, new, error):
+    path = package_tree / "packaging/idasen-companion-bundled.spec"
+    original = path.read_text()
+    assert old in original
+    path.write_text(original.replace(old, new))
+    with pytest.raises(tool["MetadataError"], match=error):
+        tool["verify_package_variants"](package_tree)
+
+
+def test_expanded_specs_must_match_offline_observations(tool, tmp_path):
+    variants = tool["verify_package_variants"]()
+    paths = []
+    for flavor in ("full", "headless"):
+        observed = variants[flavor]
+        path = tmp_path / flavor
+        path.write_text("License: " + observed["expression"] + "\n%license "
+                        + " ".join(sorted(observed["licenses"])) + "\n")
+        paths.append(str(path))
+    argv = ["verify-expanded", "--full-spec", paths[0], "--headless-spec", paths[1]]
+    assert tool["main"](argv) == 0
+    path.write_text(path.read_text().replace(" LICENSE.sqlite.txt", ""))
+    assert tool["main"](argv) == 1
+
+
 def change_json(path, change):
     data = json.loads(path.read_bytes())
     change(data)

@@ -9,6 +9,7 @@ silently — which is how the COPR spec ended up not installing the tray icon.
 import fnmatch
 import importlib.util
 import re
+import runpy
 import subprocess
 import tomllib
 import zipfile
@@ -1289,7 +1290,14 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
                if term in LICENCE_TEXT_FOR_TERM}
     per_distribution = {f"LICENSE.{pin.replace('-', '_')}"
                         for pin in bundled_pins()}
-    orphaned = sorted(installed_licence_files() - covered - per_distribution)
+    # Component ownership and public-domain evidence are independent of this
+    # term-to-text map. Delegate only the exact inventory-verified notices.
+    verifier = runpy.run_path(str(ROOT / "scripts/verify-interpreter-metadata.py"))
+    verifier["verify_package_variants"]()
+    inventory, provenance = verifier["verify_metadata"]()
+    components = {Path(notice["file"]).name for path, notice in provenance["notices"].items()
+                  if path != inventory["cpython"]["license_path"]}
+    orphaned = sorted(installed_licence_files() - covered - per_distribution - components)
     assert not orphaned, (
         f"the package installs a licence text answering no term the licence "
         f"expression claims: {orphaned}")
