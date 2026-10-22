@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Presets page's "and the desk is here right now" layer.
 
 The page draws a live marker on whichever preset the desk is currently at, a

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Release promotion rejects unproved runs and altered asset sets."""
 
 import hashlib

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The pre-move warning and its Snooze / Skip buttons.
 
 The most-seen output the app produces, and it sat at zero coverage:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Renaming a preset is one operation, on the wire and on disk.
 
 It used to be two calls — Save under the new name, then Delete the old — with

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Whether the Qt-free path stays Qt-free is measured, in a process that has
 never imported Qt -- not asserted in-process.
 

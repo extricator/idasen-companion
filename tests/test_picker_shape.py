@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Each of the five picker surfaces reads one shape, pinned separately.
 
 Three renderings of one concept — a spelled-out unit in the Automation
