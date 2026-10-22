@@ -78,9 +78,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Tests
 
-- [ ] **Cover the setup wizard's missing behavior** — Test current ScanPage cached/empty
-      discovery, stale hints, selection and verified success/failure, including relevant
-      usage/autostart outcomes.
 - [ ] **Gate Spanish Activity Log message rendering** — Exercise the compiled Spanish catalog
       and matching formatter across substitutions, plurals, cycle and fallback branches.
 - [ ] **Clarify translated-return marker semantics** — Define the marker contract and retain
