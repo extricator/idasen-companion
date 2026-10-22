@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Overview page's spin box and Move button are one control pair, so
 they must lay out at one height.
 

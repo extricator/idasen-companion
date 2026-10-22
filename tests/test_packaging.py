@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Packaging facts that are cheap to check and expensive to get wrong.
 
 None of this needs rpmbuild; it reads the spec files as text. The point is the

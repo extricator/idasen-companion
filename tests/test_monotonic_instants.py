@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Operational monotonic readings retain numbers and their clock domain."""
 
 from dataclasses import FrozenInstanceError

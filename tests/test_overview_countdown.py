@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Overview countdown when the clock has actually run out.
 
 A cycle can sit at zero remaining for a while: the transition fires on the

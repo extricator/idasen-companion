@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The verbose delay a desktop notification says, in both languages.
 
 The caller changed in Phase 14 and the values did not. This used to reach

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Movement gates, interruptions, failures and moving callbacks."""
 
 import pytest
