@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Third-party GitHub Actions must be pinned to a commit, not a moving tag.
 
 A release tag can be moved by whoever owns the action after the fact, but the

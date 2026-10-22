@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Executable contracts for the GitHub Actions planner and aggregate checks."""
 
 import os
