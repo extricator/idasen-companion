@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The "plus up to" dropdowns on the Automation page.
 
 Each sit / stand row offers a short list of variations instead of the free

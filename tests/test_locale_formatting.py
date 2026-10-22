@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Locale-aware number formatting in ``gui.util`` and the shared ``Formatter``.
 
 Covers the scope decision recorded in the quick task: ``QLocale`` governs

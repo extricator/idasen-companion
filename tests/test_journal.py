@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Structured journal encoding and the journalctl reader (see docs/LOGGING.md)."""
 
 import json

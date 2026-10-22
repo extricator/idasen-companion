@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The shared height contract and its supported arithmetic."""
 
 import pytest
