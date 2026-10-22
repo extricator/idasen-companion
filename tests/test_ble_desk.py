@@ -69,6 +69,7 @@ async def test_guard_runs_after_ble_preparation(preparation):
     desk, fake = make_desk(connection_mode="persistent")
     entered, release = asyncio.Event(), asyncio.Event()
     order = []
+    lock_owned = False
 
     async def admit():
         order.append("guard")
@@ -76,6 +77,7 @@ async def test_guard_runs_after_ble_preparation(preparation):
 
     if preparation == "lock":
         await desk._lock.acquire()
+        lock_owned = True
     else:
         if preparation == "wakeup":
             await desk.get_height()
@@ -103,14 +105,22 @@ async def test_guard_runs_after_ble_preparation(preparation):
         assert order == []
         if preparation == "lock":
             desk._lock.release()
+            lock_owned = False
         release.set()
         assert await asyncio.wait_for(task, 2) is None
         assert order == ["guard"]
         assert fake.moves == []
         assert desk.last_error is None
     finally:
+        if lock_owned:
+            desk._lock.release()
         release.set()
-        await desk.disconnect()
+        if not task.done():
+            task.cancel()
+        try:
+            await asyncio.wait_for(asyncio.gather(task, return_exceptions=True), 2)
+        finally:
+            await asyncio.wait_for(desk.disconnect(), 2)
 
 
 async def test_stop_during_guard_yield_prevents_the_driver_command():
