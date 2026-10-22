@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Validate and retire GitHub Actions release artifacts by exact run and ID."""
 
 import argparse

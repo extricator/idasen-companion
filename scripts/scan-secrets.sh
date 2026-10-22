@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Scan for committed secrets, having first proved the scanner can find one.
 #
 # Three modes, each answering a different question about where a secret

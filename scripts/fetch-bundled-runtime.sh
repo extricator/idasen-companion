@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Fetch the Python runtime the self-contained RPM carries -- the interpreter it
 # runs on and the wheel set it imports -- and write both into that spec's
 # source directory.
