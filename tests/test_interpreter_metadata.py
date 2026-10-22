@@ -65,9 +65,11 @@ def test_component_notice_requires_exact_source_bytes(tool, package_tree, state)
 
 
 @pytest.mark.parametrize("old,new,error", [
+    ("License:", "Missing-License:", "exactly one License"),
     (" AND bzip2-1.0.6", "", "headless.*terms"),
     (" AND bzip2-1.0.6", " AND bzip2-1.0.6 AND TCL", "headless.*terms"),
     ("(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)", "LGPL-3.0-only", "full.*Qt"),
+    (" LICENSE.LGPL-3.0.txt", "", "Qt notice delta"),
     ('%if "%{release_flavor}" == "headless"', '%if "%{release_flavor}" == "minimal"', "selector"),
     ("packaging/licenses/interpreter/*.txt", "packaging/licenses/absent/*.txt", "full.*staging"),
     (" LICENSE.sqlite.txt", "", "full.*_sqlite3.*sqlite"),
