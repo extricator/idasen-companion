@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Cycle variation, restart events, remaining time and status contracts."""
 
 from idasen_companion.core.durations import Duration

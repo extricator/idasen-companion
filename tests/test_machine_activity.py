@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Active-time accounting, clock changes and session presence."""
 
 from idasen_companion.core.machine import (

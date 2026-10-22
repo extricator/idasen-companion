@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Startup adoption, target classification and unconfigured lifecycle."""
 
 from idasen_companion.core.lengths import Length

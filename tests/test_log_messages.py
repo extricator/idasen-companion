@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rule 1 from docs/LOGGING.md: a line that changes when the desk will next
 move must say when.
 

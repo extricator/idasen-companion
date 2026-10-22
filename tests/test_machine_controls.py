@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Automation controls, pause, schedule, skip and cycle targets."""
 
 from datetime import datetime

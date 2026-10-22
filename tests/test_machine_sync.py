@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Desk synchronization, external movement and held recovery."""
 
 from idasen_companion.core.lengths import Length
