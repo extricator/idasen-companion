@@ -3,7 +3,10 @@
 
 import io
 import json
+import os
 import runpy
+from subprocess import run as run_process
+import sys
 import tarfile
 from pathlib import Path
 
@@ -235,3 +238,34 @@ def test_notice_subset_checks_exact_bytes_and_unknown_components(tool, tree):
         tool["verify_notice_sources"](tree, ["cpython"])
     with pytest.raises(tool["MetadataError"], match="unknown retained component"):
         tool["verify_notice_sources"](tree, ["setuptools"])
+
+
+def test_fetcher_checks_metadata_before_curl_or_output_creation(tree, tmp_path):
+    """Run only the isolated shell preflight, ending at a refusing curl sentinel."""
+    for relative in ("scripts/verify-interpreter-metadata.py", "src/idasen_companion/__init__.py"):
+        target = tree / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / relative).read_bytes())
+    commands = tmp_path / "commands"
+    commands.mkdir()
+    curl = commands / "curl"
+    curl.write_text('#!/bin/sh\nprintf reached > "$CURL_CALLED"\nexit 73\n')
+    curl.chmod(0o755)
+    called = tmp_path / "curl-called"
+    env = dict(os.environ, PYTHON=sys.executable, CURL_CALLED=str(called),
+               PATH=str(commands) + os.pathsep + os.environ["PATH"], PYTHONDONTWRITEBYTECODE="1")
+    fetcher = tree / "scripts/fetch-bundled-runtime.sh"
+    valid = run_process(["bash", str(fetcher), str(tmp_path / "valid-output")],
+                        capture_output=True, text=True, check=False, env=env, timeout=15)
+    assert valid.returncode == 73, valid.stderr
+    assert called.read_text() == "reached"
+    called.unlink()
+    text = fetcher.read_text()
+    fetcher.write_text(text.replace('INTERPRETER_SHA256="cefba', 'INTERPRETER_SHA256="0efba'))
+    stale_output = tmp_path / "stale-output"
+    stale = run_process(["bash", str(fetcher), str(stale_output)],
+                        capture_output=True, text=True, check=False, env=env, timeout=15)
+    assert stale.returncode == 1, stale.stderr
+    assert "fetcher identity disagrees" in stale.stderr
+    assert not called.exists()
+    assert not stale_output.exists()

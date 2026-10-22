@@ -153,6 +153,54 @@ the bundled directories; that is the one thing in `%check` the package cannot
 supply, since nothing in the payload is a test dependency and the build runs
 offline.
 
+### Refreshing bundled interpreter metadata
+
+The fetcher checks the reviewed metadata before downloading or creating outputs.
+Run that same check offline with the existing Python environment:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py verify-metadata
+```
+
+For a runtime bump, review the upstream release and source commit, update the
+three interpreter pins, and obtain complete local copies of the install-only
+asset, its matching optimized `pgo+lto` full archive, and the checksum-pinned
+Zstandard source archive. Install-only archives omit `PYTHON.json`. Review the
+complete archive hashes and sizes, metadata member hash and size, and source
+LICENSE hash independently before passing them to refresh:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py refresh \
+    --install-archive "$INSTALL_ARCHIVE" \
+    --install-sha256 "$INSTALL_SHA256" --install-size "$INSTALL_SIZE" \
+    --full-archive "$FULL_ARCHIVE" \
+    --full-sha256 "$FULL_SHA256" --full-size "$FULL_SIZE" \
+    --zstd-archive "$ZSTD_ARCHIVE" \
+    --zstd-sha256 "$ZSTD_SHA256" --zstd-size "$ZSTD_SIZE" \
+    --metadata-sha256 "$METADATA_SHA256" --metadata-size "$METADATA_SIZE" \
+    --zstd-license-sha256 "$ZSTD_LICENSE_SHA256" \
+    --release "$RELEASE" --source-commit "$SOURCE_COMMIT" \
+    --output packaging/interpreter
+.venv/bin/python scripts/verify-interpreter-metadata.py verify-metadata
+```
+
+Refresh reads named regular members without extracting or executing archive
+contents. It uses standard-library Zstandard support when available, otherwise
+`zstd -dc`; ordinary verification needs neither. For the current build, the
+full archive lacks the referenced Zstandard notice, so its exact source
+`LICENSE` is the recorded fallback. The missing zlib-ng alternate path does
+not describe a shipping component: the Unix build uses ordinary zlib.
+
+Review the regenerated raw `PYTHON.json`, deterministic `PROVENANCE.json`, and
+the corresponding exact source notice bytes together. Retained extensions,
+explicit public-domain status, actual trim exclusions, and build-only
+setuptools are separate from wheel terms. Source associations establish
+provenance; they do not establish legal substitutability or complete compliance.
+Expanded-spec declarations and staged notices for full/headless packages require
+their separate integration checks.
+
+### Other package builds
+
 `packaging/` also holds a three-package split (`idasen-companion.spec` plus
 `python-bleak.spec` and `python-idasen.spec`) for a repository that carries the
 two libraries separately. This is not what ships, and nothing in CI builds

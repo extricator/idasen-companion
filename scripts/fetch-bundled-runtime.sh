@@ -83,6 +83,8 @@ if ! command -v curl >/dev/null 2>&1; then
     echo "$(basename "$0"): curl is required and was not found" >&2
     exit 2
 fi
+"$PYTHON" scripts/verify-interpreter-metadata.py verify-metadata
+
 OUTDIR=$1
 mkdir -p "$OUTDIR"
 OUTDIR=$(cd "$OUTDIR" && pwd)
