@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Movement gates, interruptions, failures and moving callbacks."""
 
+import asyncio
+
 import pytest
 
 from idasen_companion.core.lengths import Length
 from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     DeskState,
+    FreshPresence,
     MoveFailed,
     StateMachine,
     Status,
@@ -22,6 +25,66 @@ from machine_helpers import (
     ZeroRng,
     Driver,
 )
+
+
+async def test_height_sync_expiry_defers_without_effects_and_retries():
+    d = Driver()
+    await d.start()
+    d.m.active_time = d.m.target_duration
+    d.m.move_failed = True  # refusal must not clear the previous outcome
+    target = d.m.target_duration
+    d.cfg.automation.sync_interval = 1
+    entered, release = asyncio.Event(), asyncio.Event()
+    read = d.desk.get_height
+
+    async def delayed_height():
+        entered.set()
+        await release.wait()
+        return await read()
+
+    d.desk.get_height = delayed_height
+    idle = 0
+
+    async def refresh():
+        return FreshPresence(d.now, idle, False)
+
+    before = d.desk.get_height_calls
+    tick = asyncio.create_task(d.m.tick(d.now, 0, False, refresh_presence=refresh))
+    await asyncio.wait_for(entered.wait(), 2)
+    idle = d.cfg.automation.recent_input_threshold * 1000
+    release.set()
+    events = await asyncio.wait_for(tick, 2)
+    assert events == []
+    assert d.desk.move_calls == []
+    assert d.desk.get_height_calls == before + 1  # sync only, no read-back or periodic read
+    assert (d.m.state, d.m.active_time, d.m.target_duration, d.m.move_failed) == (
+        DeskState.SITTING, target, target, True)
+
+    idle -= 1
+    events = await asyncio.wait_for(
+        d.m.tick(d.now, 0, False, refresh_presence=refresh), 2)
+    assert len(events) == 1 and isinstance(events[0], TransitionCompleted)
+    assert d.desk.move_calls == [STAND_H]
+    assert d.m.active_time == Duration.from_seconds(0)
+    assert not d.m.move_failed
+
+
+async def test_guarded_issued_command_keeps_the_existing_recovery_policy():
+    d = Driver()
+    await d.start()
+    d.m.active_time = d.m.target_duration
+    d.desk.interrupt_next_move_at = OFF_CYCLE_H
+    refreshes = []
+
+    async def refresh():
+        refreshes.append(True)
+        return FreshPresence(d.now, 0, False)
+
+    events = await d.m.tick(d.now, 0, False, refresh_presence=refresh)
+    assert refreshes == [True]  # recovery after an issued command stays unguarded
+    assert d.desk.move_calls == [STAND_H, SIT_H]
+    assert len(events) == 1 and isinstance(events[0], TransitionCompleted)
+    assert events[0].recovery == "undo"
 
 
 # ----- the two-threshold movement gate -----

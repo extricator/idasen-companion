@@ -226,7 +226,7 @@ async def test_tick_accounts_captured_position_after_unlock_before_events(harnes
     order = []
     d.accounting = MagicMock()
 
-    async def machine_tick(*args):
+    async def machine_tick(*args, refresh_presence=None):
         assert d._desk_lock.locked()
         order.append("machine")
         d.machine.state = MagicMock(value="standing")

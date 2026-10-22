@@ -9,6 +9,8 @@ import asyncio
 import struct
 from types import SimpleNamespace
 
+import pytest
+
 from idasen_companion.desk.ble import BleDesk, _decode_height
 from idasen_companion.core.clocks import MonotonicInstant
 from idasen_companion.core.lengths import Length
@@ -60,6 +62,76 @@ def make_desk(fake=None, **kw):
     kw.setdefault("retry_delays", (0, 0, 0))
     desk = BleDesk("AA:BB:CC:DD:EE:FF", desk_factory=lambda mac, cb: fake, **kw)
     return desk, fake
+
+
+@pytest.mark.parametrize("preparation", ["lock", "connect", "wakeup"])
+async def test_guard_runs_after_ble_preparation(preparation):
+    desk, fake = make_desk(connection_mode="persistent")
+    entered, release = asyncio.Event(), asyncio.Event()
+    order = []
+
+    async def admit():
+        order.append("guard")
+        return False
+
+    if preparation == "lock":
+        await desk._lock.acquire()
+    else:
+        if preparation == "wakeup":
+            await desk.get_height()
+            desk._awake_since = None
+        operation = fake.connect if preparation == "connect" else fake.wakeup
+
+        async def delayed():
+            entered.set()
+            await release.wait()
+            await operation()
+
+        if preparation == "connect":
+            fake.connect = delayed
+        else:
+            fake.wakeup = delayed
+
+    async def move():
+        if preparation == "lock":
+            entered.set()
+        return await desk.move_to(Length(1.10), guard=admit)
+
+    task = asyncio.create_task(move())
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        assert order == []
+        if preparation == "lock":
+            desk._lock.release()
+        release.set()
+        assert await asyncio.wait_for(task, 2) is None
+        assert order == ["guard"]
+        assert fake.moves == []
+        assert desk.last_error is None
+    finally:
+        release.set()
+        await desk.disconnect()
+
+
+async def test_stop_during_guard_yield_prevents_the_driver_command():
+    desk, fake = make_desk(connection_mode="persistent")
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def admit():
+        entered.set()
+        await release.wait()
+        return True
+
+    task = asyncio.create_task(desk.move_to(Length(1.10), guard=admit))
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        await asyncio.wait_for(desk.stop(), 2)
+        release.set()
+        assert await asyncio.wait_for(task, 2) is None
+        assert fake.moves == []
+    finally:
+        release.set()
+        await desk.disconnect()
 
 
 async def test_on_demand_connects_then_lingers_then_disconnects():

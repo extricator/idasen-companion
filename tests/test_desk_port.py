@@ -76,3 +76,21 @@ async def test_the_mock_disconnect_is_a_no_op_that_can_be_awaited():
     desk = MockDesk(height=Length(0.9))
     await desk.disconnect()      # must not raise
     assert desk.height == Length(0.9)    # and must not disturb anything
+
+
+async def test_mock_refusal_preserves_pending_hooks_and_manual_bool_results():
+    desk = MockDesk()
+    desk.fail_next_move = True
+    desk.interrupt_next_move_at = Length(0.9)
+    desk.last_error = "earlier failure"
+
+    async def refuse():
+        return False
+
+    assert await desk.move_to(Length(1.10), guard=refuse) is None
+    assert desk.move_calls == [] and desk.height == Length(0.62)
+    assert desk.fail_next_move and desk.interrupt_next_move_at == Length(0.9)
+    assert desk.last_error == "earlier failure"
+    assert await desk.move_to(Length(1.10)) is False
+    assert await desk.move_to(Length(1.10)) is True
+    assert desk.height == Length(0.9)

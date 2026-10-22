@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+from typing import overload
+
 from ..core.lengths import Length
+from .port import MoveGuard
 
 
 class MockDesk:
@@ -37,7 +40,15 @@ class MockDesk:
             return None
         return self.height
 
-    async def move_to(self, height: Length) -> bool:
+    @overload
+    async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
+
+    @overload
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
+        if guard is not None and not await guard():
+            return None
         self.move_calls.append(height)
         if self.fail_next_move:
             self.fail_next_move = False

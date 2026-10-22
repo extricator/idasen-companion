@@ -418,3 +418,89 @@ async def test_automated_move_refreshes_presence_at_the_ble_command_boundary(mon
         assert d.machine.active_time == Duration.from_seconds(0)
     finally:
         await desk.disconnect()
+
+
+@pytest.mark.parametrize("invalidation", [
+    "snooze", "config", "preset", "desk", "control", "target", "schedule-boundary",
+])
+async def test_automated_guard_rechecks_controls_after_presence_yield(monkeypatch, invalidation):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.durations import Duration
+
+    driver = Driver()
+    await driver.start()
+    d = make_daemon(AsyncMock())
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.machine.active_time = d.machine.target_duration
+    clock = driver.now.epoch_seconds
+    if invalidation == "schedule-boundary":
+        # Start inside an allowed window and finish on a disallowed day.
+        from datetime import datetime
+        d.config.schedule.enabled = True
+        d.config.schedule.days = [datetime.fromtimestamp(clock).strftime("%a").lower()]
+        d.config.schedule.start, d.config.schedule.end = "00:00", "23:59"
+    entered, release = asyncio.Event(), asyncio.Event()
+    calls = 0
+
+    async def idle():
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            entered.set()
+            await release.wait()
+        return 0
+
+    d._idle = SimpleNamespace(get_idle_ms=idle)
+    d._lock = SimpleNamespace(is_locked=AsyncMock(return_value=False))
+    d._session = SimpleNamespace(state=AsyncMock(return_value="foreground"))
+    d._check_config_file = MagicMock()
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+    task = asyncio.create_task(Daemon._tick(d))
+    await asyncio.wait_for(entered.wait(), 2)
+    if invalidation == "snooze":
+        d.machine.snooze(5, driver.now)
+    elif invalidation == "config":
+        d.config = AppConfig()
+    elif invalidation == "preset":
+        d.config.presets["stand"] = 1.15
+    elif invalidation == "desk":
+        d.desk = MagicMock()
+    elif invalidation == "control":
+        d._current_move_id += 1
+    elif invalidation == "target":
+        d.machine.target_duration += Duration.from_seconds(1)
+    else:
+        clock += 86400
+    release.set()
+    await asyncio.wait_for(task, 2)
+    assert driver.desk.move_calls == []
+    d._handle_event.assert_not_called()
+
+
+@pytest.mark.parametrize("seat, locked, expected_moves", [
+    ("background", False, []), ("no-session", False, []),
+    ("unknown", False, [1.10]), ("foreground", True, []),
+], ids=["background", "seatless", "unknown", "locked"])
+async def test_refreshed_absence_verdict_reaches_automated_admission(
+        monkeypatch, seat, locked, expected_moves):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.lengths import Length
+
+    driver = Driver()
+    await driver.start()
+    d = make_daemon(AsyncMock())
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.machine.active_time = d.machine.target_duration
+    d._idle = SimpleNamespace(get_idle_ms=AsyncMock(return_value=0))
+    d._lock = SimpleNamespace(is_locked=AsyncMock(side_effect=[False, locked]))
+    d._session = SimpleNamespace(state=AsyncMock(side_effect=["foreground", seat]))
+    d._check_config_file = MagicMock()
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: driver.now.epoch_seconds)
+    await asyncio.wait_for(Daemon._tick(d), 2)
+    assert driver.desk.move_calls == [Length(height) for height in expected_moves]
