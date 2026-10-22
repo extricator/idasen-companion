@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Simulated desk for unit tests and the daemon's --mock-desk mode."""
 
 from __future__ import annotations

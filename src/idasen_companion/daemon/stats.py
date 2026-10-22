@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Local statistics: per-day sit/stand seconds and transition history.
 
 Active time is credited to the desk state it was spent in — but not per

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BleDesk — the real desk over BLE, built on the idasen library (newAM).
 
 Connection policy is on-demand by default: connect when there is work,

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """D-Bus service interfaces exported by the daemon.
 
 Well-known name: io.github.extricator.IdasenCompanion

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """In-memory ring buffer of recent daemon events, exposed over D-Bus for the
 GUI's Activity Log. The journal remains the full, persistent record.
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The desk port: the interface the automation core talks to.
 
 Implementations: BleDesk (real desk over BLE) and MockDesk
