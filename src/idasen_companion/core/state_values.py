@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Distinct open domains for interpreting raw desk and automation values."""
 
 from dataclasses import dataclass

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Active-hours scheduling.
 
 Automation is active when the current local time falls inside the

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Presence-based active-time attribution, separate from statistics storage."""
 
 from __future__ import annotations

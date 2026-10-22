@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The ``Formatter`` facade and the context it holds.
 
 This module records the design's § 14 call-site decision — the choice

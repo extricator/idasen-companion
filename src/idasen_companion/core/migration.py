@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Import settings from the idasen CLI's config (~/.config/idasen/idasen.yaml).
 
 Imports the desk MAC address and *all* saved positions (not just

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Bluetooth discovery and observations, borrowing the daemon's optional bus.
 
 This support object owns scan results, never a desk client or its lifecycle.
