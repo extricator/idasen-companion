@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """What the tray tooltip says, and the one-line constraint on the menu entry.
 
 The tooltip answers the two questions a glance at a sit/stand desk is asking —

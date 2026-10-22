@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The restyle registry: registration semantics, the palette-change trigger,
 and the shared stylesheet-freshness helper later plans in this phase reuse.
 

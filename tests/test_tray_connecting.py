@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The tray's "Connecting…" feedback while a click waits on the BLE link.
 
 With on-demand Bluetooth the link is dropped a few seconds after every

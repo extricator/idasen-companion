@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The tooltip's title/detail split, and the fallback that must survive it.
 
 Plasma renders the SNI ``ToolTip`` struct's ``title`` as a bold heading and its

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Deferred gettext wrappers remain extractable and whole-message safe."""
 
 import ast

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """One English concept gets one Spanish word, or the build fails.
 
 On 2026-08-01, ``preset`` shipped as both "posición (guardada)" (five
