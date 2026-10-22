@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Settings page: language, units, autostart, window & tray, desk connection.
 
 How the *app* is set up — as opposed to how the automation behaves, which is

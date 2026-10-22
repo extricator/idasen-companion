@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Base class for the main window's stacked pages."""
 
 from __future__ import annotations

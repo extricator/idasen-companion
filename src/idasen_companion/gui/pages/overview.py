@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Overview page: live desk state, manual control, and automation status."""
 
 from __future__ import annotations

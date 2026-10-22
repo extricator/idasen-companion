@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Statistics page: daily sit/stand totals and recent transitions."""
 
 from __future__ import annotations

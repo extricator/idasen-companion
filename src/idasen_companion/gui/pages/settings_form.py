@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Shared scaffolding for the settings-class pages.
 
 Two pages are forms over ``config.toml`` — Settings (how the app is set up)

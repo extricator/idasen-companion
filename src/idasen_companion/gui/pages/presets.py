@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Presets page: list, capture, rename, delete named desk heights."""
 
 from __future__ import annotations
