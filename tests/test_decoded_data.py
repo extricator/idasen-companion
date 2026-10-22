@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Decoded boundary behavior, including historical and extended records."""
 
 from idasen_companion.core.decoded_data import (

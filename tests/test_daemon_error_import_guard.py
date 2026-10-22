@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Nothing under ``daemon/`` may render a daemon error sentence.
 
 The daemon raises ``DBusError`` with an English body that crosses the wire.

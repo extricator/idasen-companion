@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Control ops must announce automation state immediately.
 
 Regression for: pause/resume/skip/snooze changed the state machine but never

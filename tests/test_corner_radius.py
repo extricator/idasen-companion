@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Two corner radii and no third: a surface radius for cards, panels and
 pills, a control radius for buttons, the segmented control, the Activity
 Log's journal-copy chip and the standard control frames the proxy style

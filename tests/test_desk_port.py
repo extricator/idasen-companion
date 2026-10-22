@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Both desk implementations must satisfy DeskPort — structurally, not just
 in the two methods anyone happened to call.
 

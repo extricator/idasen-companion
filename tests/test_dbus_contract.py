@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The daemon's public wire contract and its GUI/CLI consumers.
 
 Full frozen introspection protects exported names, argument names/directions,

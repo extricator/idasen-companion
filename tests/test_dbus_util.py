@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """dbus_util.call() deadline behavior.
 
 Regression cover for the failure that parked the daemon's control loop for 41
