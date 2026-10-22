@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rendering tests for ``ControlStyle`` (`gui/style.py`): resting, hover,
 focus, disabled, the checked glyph, the corner, the button's own metrics,
 and whether any of it survives a control nested inside a `Card` -- a `Card`

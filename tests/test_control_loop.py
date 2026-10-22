@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The control loop must outlive a failing tick.
 
 `_tick` touches the desk, the session bus, logind and SQLite — all of which

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A daemon command that fails must reach the user.
 
 Every `_async_call` discarded its reply. dbus-fast *does* send an error reply

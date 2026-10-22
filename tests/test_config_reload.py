@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rule 2 from docs/LOGGING.md: the activity channel records changes, not
 requests.
 

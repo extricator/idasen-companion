@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Fusion control borders: the checkbox indicator, combo frame and spin
 frame, drawn by ``ControlStyle`` (`gui/style.py`) rather than by
 ``theme()``'s own colours -- on a card whose background is the same white
