@@ -159,7 +159,7 @@ The fetcher checks the reviewed metadata before downloading or creating outputs.
 Run that same check offline with the existing Python environment:
 
 ```bash
-.venv/bin/python scripts/verify-interpreter-metadata.py verify-metadata
+.venv/bin/python scripts/verify-interpreter-metadata.py verify
 ```
 
 For a runtime bump, review the upstream release and source commit, update the
@@ -181,7 +181,6 @@ LICENSE hash independently before passing them to refresh:
     --zstd-license-sha256 "$ZSTD_LICENSE_SHA256" \
     --release "$RELEASE" --source-commit "$SOURCE_COMMIT" \
     --output packaging/interpreter
-.venv/bin/python scripts/verify-interpreter-metadata.py verify-metadata
 ```
 
 Refresh reads named regular members without extracting or executing archive
@@ -196,8 +195,15 @@ the corresponding exact source notice bytes together. Retained extensions,
 explicit public-domain status, actual trim exclusions, and build-only
 setuptools are separate from wheel terms. Source associations establish
 provenance; they do not establish legal substitutability or complete compliance.
-Expanded-spec declarations and staged notices for full/headless packages require
-their separate integration checks.
+After copying the reviewed exact notice bytes into `packaging/licenses/interpreter`
+and reconciling the full/headless declarations and staging, run the complete check:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py verify
+```
+
+Confirm expanded full/headless declarations separately with actual `rpmspec`
+outputs and the verifier's explicit `verify-expanded` command.
 
 ### Other package builds
 
