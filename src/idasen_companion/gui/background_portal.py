@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Login autostart via the Flatpak Background portal.
 
 A sibling module controls the daemon's systemd **user** unit, but a Flatpak

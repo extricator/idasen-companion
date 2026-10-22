@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reads the host's stated appearance preferences via the desktop portal.
 
 A sibling of ``background_portal.py`` -- the same

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-free duration roles for the statistics chart."""
 
 from typing import NamedTuple

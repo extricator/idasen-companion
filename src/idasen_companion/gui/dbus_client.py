@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-side client for the daemon's D-Bus service.
 
 Wraps QtDBus in a QObject that re-emits daemon state as Qt signals, so

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Bind app gettext and install Qt's standard-widget translations.
 
 App-owned GUI strings use the same contextual gettext catalog as daemon and
