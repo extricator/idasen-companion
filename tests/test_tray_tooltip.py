@@ -57,7 +57,6 @@ from idasen_companion.core.machine import Status  # noqa: E402
 from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
 from idasen_companion.gui import tray as tray_mod  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
-from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
 
 class FakeClient(QObject):
@@ -289,8 +288,8 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(
-            icon.window.ctx.fmt, datetime(2026, 8, 3, 14, 32)))
+        "Snoozed until %s" % icon.window.ctx.fmt.clock(
+            datetime(2026, 8, 3, 14, 32)))
 
 
 def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(tray):
@@ -337,8 +336,8 @@ def test_deadline_arriving_redraws_the_tooltip(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 9, 5).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(
-            icon.window.ctx.fmt, datetime(2026, 8, 3, 9, 5)))
+        "Snoozed until %s" % icon.window.ctx.fmt.clock(
+            datetime(2026, 8, 3, 9, 5)))
 
 
 def test_menu_entry_keeps_the_bare_word_while_snoozed(tray):

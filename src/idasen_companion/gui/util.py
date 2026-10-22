@@ -204,19 +204,6 @@ def fmt_day_heading(fmt: Formatter, when: datetime) -> str:
     return presentation.day_heading(fmt.context.locale, when)
 
 
-def fmt_clock(fmt: Formatter, when: datetime) -> str:
-    """A wall-clock time, e.g. "14:32" or "2:32 PM".
-
-    Which clock comes from ``fmt`` — the formatter the caller supplies —
-    and not from this process's locale, because it is a setting the user
-    owns. A caller reads that formatter fresh from the shared context at
-    use time rather than caching it, which is what carries a change
-    through to the next redraw; ``gui/tray.py``'s ``_fmt`` writes that
-    reasoning down in full. See ``core/presentation.py``'s ``clock``.
-    """
-    return fmt.clock(when)
-
-
 @returns_translated
 def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     """A day plus a wall-clock time, e.g. "Mon 03 14:32".
@@ -224,11 +211,11 @@ def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     Renders through one whole translated message so the separating space
     stops being a Python literal — a language that separates a date from a
     time differently has no other way to say so. Neither fmt_day_label nor
-    fmt_clock is itself a translated value (both format through the locale
-    backend and carry no catalog entry, the same as Formatter.height_value),
-    so no mechanical check can ever flag this site; it converts on that
-    reasoning alone. The clock half follows ``fmt``, for the reason
-    :func:`fmt_clock` gives. See ``core/presentation.py``'s
+    Formatter.clock is itself a translated value (both format through the
+    locale backend and carry no catalog entry, the same as
+    Formatter.height_value), so no mechanical check can ever flag this
+    site; it converts on that reasoning alone. Formatter.clock follows
+    ``fmt``'s locale and time-style settings. See ``core/presentation.py``'s
     ``day_and_clock`` for the shared implementation.
     """
     return fmt.day_and_clock(when)

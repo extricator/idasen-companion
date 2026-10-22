@@ -1158,7 +1158,7 @@ def test_a_join_whose_argument_is_a_method_call_is_not_flagged():
 def test_an_fstring_interpolating_an_unmarked_locale_formatter_is_not_flagged():
     offenders = _glued(
         "def f(when):\n"
-        "    return f'{fmt_day_label(when)} {fmt_clock(when)}'\n",
+        "    return f'{fmt_day_label(when)} {fmt.clock(when)}'\n",
         marked=set())
     assert offenders == []
 

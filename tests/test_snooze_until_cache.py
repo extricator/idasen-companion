@@ -37,7 +37,6 @@ from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.dbus_client import DaemonClient  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
-from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
 
 # ----- the client's cache -----
@@ -218,5 +217,5 @@ def test_the_deadline_redraws_the_page_when_it_arrives(page):
     when = datetime(2026, 8, 1, 14, 30)
     page.client.deliver_snooze_until(when.timestamp())
     assert page.status_head_lbl.text() == (
-        "Snoozed until %s" % fmt_clock(
-            page.ctx.fmt, datetime(2026, 8, 3, 14, 30)))
+        "Snoozed until %s" % page.ctx.fmt.clock(
+            datetime(2026, 8, 3, 14, 30)))

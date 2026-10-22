@@ -196,7 +196,7 @@ def _clock_formatter(style: TimeStyle) -> Formatter:
 
 
 def _clock_cases() -> dict[str, str]:
-    return {f"{name}_{clock}": util.fmt_clock(_clock_formatter(style), when)
+    return {f"{name}_{clock}": _clock_formatter(style).clock(when)
             for clock, style in _CLOCKS.items()
             for name, when in _CLOCK_CASES}
 
