@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build the five release assets through one checked-in interface. Format
 # workflows call the corresponding selector; a maintainer runs --all.
 set -euo pipefail

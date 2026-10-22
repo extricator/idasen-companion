@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Refuse a commit whose staged change carries a credential-shaped string.
 #
 # This is the layer that acts before anything leaves the machine, and it is

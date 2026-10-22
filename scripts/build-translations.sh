@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Extract, update, and compile all translation catalogs.
 #
 # One app-owned GNU gettext catalog covers GUI, daemon and core. Qt's prebuilt
