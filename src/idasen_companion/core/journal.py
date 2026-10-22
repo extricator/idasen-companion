@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Structured reads and writes against the systemd journal.
 
 The journal is this app's log of record (``docs/LOGGING.md``): everything goes

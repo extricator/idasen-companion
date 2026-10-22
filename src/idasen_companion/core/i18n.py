@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The process-wide application message catalog.
 
 GUI, daemon and CLI code all look up app-owned messages here: the stdlib

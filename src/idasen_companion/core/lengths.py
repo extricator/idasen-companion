@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Number-preserving lengths for physical desk-height domains."""
 
 from __future__ import annotations

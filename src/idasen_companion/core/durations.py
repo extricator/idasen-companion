@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Duration parsing and compact config-file formatting.
 
 Parsing follows the reference script's grammar: a duration string is a

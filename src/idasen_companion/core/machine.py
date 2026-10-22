@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The automation state machine — a 1:1 port of the project's original
 single-file script's control loop, extended with pause/snooze/skip-next/
 schedule states.
