@@ -31,10 +31,19 @@ SOURCE_URL = "https://github.com/astral-sh/python-build-standalone"
 ZSTD_MEMBER = "cpython-source-deps-zstd-1.5.7/LICENSE"
 ZSTD_ASSET = "zstd-1.5.7.tar.gz"
 ZSTD_URL = "https://github.com/python/cpython-source-deps/archive/refs/tags/zstd-1.5.7.tar.gz"
+OPENSSL_NOTICE_SELECTION = {
+    "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
+    "metadata_sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
+    "version": "3.5.7",
+    "selected": "licenses/LICENSE.openssl-3.txt",
+    "metadata_alternate": "licenses/LICENSE.openssl-1.1.txt",
+    "evidence": "pythonbuild/downloads.py:267-274 and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
+}
 LIMITATIONS = [
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
     "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
     "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.7 and selects LICENSE.openssl-3.txt only.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding.",
 ]
 
@@ -187,6 +196,14 @@ def load_snapshot(root=ROOT):
     return read_json(raw), provenance
 
 
+def selected_notice_paths(paths, metadata_sha256, source_commit):
+    """Apply the one reviewed OpenSSL alternate-path choice for this exact build."""
+    require(metadata_sha256 == OPENSSL_NOTICE_SELECTION["metadata_sha256"]
+            and source_commit == OPENSSL_NOTICE_SELECTION["source_commit"],
+            "OpenSSL notice selection needs review for this exact build")
+    return set(paths) - {OPENSSL_NOTICE_SELECTION["metadata_alternate"]}
+
+
 def verify_metadata(root=ROOT):
     root = Path(root)
     metadata, provenance = load_snapshot(root)
@@ -213,10 +230,13 @@ def verify_metadata(root=ROOT):
     require(len(backend) == 1 and "--target" not in backend[0]
             and "build-backend/*.whl" in backend[0], "build-only backend staging changed")
     require(provenance.get("limitations") == LIMITATIONS, "source limitations changed")
+    require(provenance.get("openssl_notice_selection") == OPENSSL_NOTICE_SELECTION,
+            "OpenSSL notice selection disagrees with reviewed build evidence")
     expected_paths = {metadata["license_path"]}
     for record in inventory["components"].values():
         expected_paths.update(record["license_paths"])
     expected_paths.discard("licenses/LICENSE.zlib-ng.txt")
+    expected_paths = selected_notice_paths(expected_paths, provenance["metadata"]["sha256"], provenance["source_commit"])
     notices = provenance.get("notices", {})
     require(isinstance(notices, dict) and set(notices) == expected_paths, "missing/unexpected source notice associations")
     for path, notice in notices.items():
@@ -238,6 +258,7 @@ def verify_notice_sources(root=ROOT, components=()):
         paths.update([inventory["cpython"]["license_path"]] if name == "cpython"
                      else inventory["components"][name]["license_paths"])
     paths.discard("licenses/LICENSE.zlib-ng.txt")
+    paths = selected_notice_paths(paths, provenance["metadata"]["sha256"], provenance["source_commit"])
     for path in sorted(paths):
         notice = provenance["notices"][path]
         raw = (Path(root) / notice["file"]).read_bytes()
@@ -343,6 +364,7 @@ def refresh(args):
         paths.update(component["license_paths"])
     # Exact upstream alternate-path gap; Unix build uses ordinary zlib.
     paths.discard("licenses/LICENSE.zlib-ng.txt")
+    paths = selected_notice_paths(paths, digest(raw), args.source_commit)
     paths.discard("licenses/LICENSE.zstd.txt")
     full_notices, _ = read_archive(args.full_archive, {f"python/{path}": MAX_TEXT for path in paths})
     source, _ = read_archive(args.zstd_archive, {ZSTD_MEMBER: MAX_TEXT})
@@ -359,7 +381,8 @@ def refresh(args):
                   "source_url": f"{SOURCE_URL}/tree/{args.source_commit}", "zstd_source_url": ZSTD_URL,
                   "archives": archives, "metadata": {"member": "python/PYTHON.json", "sha256": digest(raw), "size": len(raw)},
                   "install_members": installed, "trim_patterns": patterns, "inventory": inventory,
-                  "notices": notices, "limitations": LIMITATIONS}
+                  "notices": notices, "limitations": LIMITATIONS,
+                  "openssl_notice_selection": OPENSSL_NOTICE_SELECTION}
     # All validation and archive reads finish before creating/replacing outputs.
     args.output.mkdir(parents=True, exist_ok=True)
     for name, data in (("PYTHON.json", raw), ("PROVENANCE.json", json_bytes(provenance))):

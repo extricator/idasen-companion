@@ -77,6 +77,9 @@ def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
     assert "TCL" not in inventory["terms"]
     assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "zstd"
     assert "licenses/LICENSE.zlib-ng.txt" not in provenance["notices"]
+    assert "licenses/LICENSE.openssl-1.1.txt" in inventory["components"]["_ssl"]["license_paths"]
+    assert "licenses/LICENSE.openssl-1.1.txt" not in provenance["notices"]
+    assert "licenses/LICENSE.openssl-3.txt" in provenance["notices"]
 
 
 @pytest.mark.parametrize("pin", ["URL", "ASSET", "SHA256"])
@@ -238,6 +241,24 @@ def test_notice_subset_checks_exact_bytes_and_unknown_components(tool, tree):
         tool["verify_notice_sources"](tree, ["cpython"])
     with pytest.raises(tool["MetadataError"], match="unknown retained component"):
         tool["verify_notice_sources"](tree, ["setuptools"])
+
+
+def test_openssl_notice_subset_uses_only_reviewed_build_selection(tool, tree):
+    provenance_path = tree / "packaging/interpreter/PROVENANCE.json"
+    provenance = json.loads(provenance_path.read_bytes())
+    notice = provenance["notices"]["licenses/LICENSE.openssl-3.txt"]
+    contents = b"reviewed selected notice fixture"
+    path = tree / notice["file"]
+    path.parent.mkdir(parents=True)
+    path.write_bytes(contents)
+    notice.update(sha256=tool["digest"](contents), size=len(contents))
+    provenance_path.write_text(json.dumps(provenance))
+    assert tool["verify_notice_sources"](tree, ["_ssl", "_hashlib"]) == 1
+    provenance["source_commit"] = "0" * 40
+    provenance["source_url"] = tool["SOURCE_URL"] + "/tree/" + "0" * 40
+    provenance_path.write_text(json.dumps(provenance))
+    with pytest.raises(tool["MetadataError"], match="OpenSSL notice selection"):
+        tool["verify_metadata"](tree)
 
 
 def test_fetcher_checks_metadata_before_curl_or_output_creation(tree, tmp_path):

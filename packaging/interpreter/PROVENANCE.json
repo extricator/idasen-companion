@@ -304,6 +304,7 @@
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
     "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
     "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.7 and selects LICENSE.openssl-3.txt only.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding."
   ],
   "metadata": {
@@ -382,13 +383,6 @@
       "sha256": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
       "size": 1447
     },
-    "licenses/LICENSE.openssl-1.1.txt": {
-      "archive": "full",
-      "file": "packaging/licenses/interpreter/LICENSE.openssl-1.1.txt",
-      "member": "python/licenses/LICENSE.openssl-1.1.txt",
-      "sha256": "9c04cce50c4989d5601dd8b07f6ab922c40388b66ac736c9007cb1ed9d9dd560",
-      "size": 6120
-    },
     "licenses/LICENSE.openssl-3.txt": {
       "archive": "full",
       "file": "packaging/licenses/interpreter/LICENSE.openssl-3.txt",
@@ -417,6 +411,14 @@
       "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
       "size": 1549
     }
+  },
+  "openssl_notice_selection": {
+    "evidence": "pythonbuild/downloads.py:267-274 and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
+    "metadata_alternate": "licenses/LICENSE.openssl-1.1.txt",
+    "metadata_sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
+    "selected": "licenses/LICENSE.openssl-3.txt",
+    "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
+    "version": "3.5.7"
   },
   "schema": 1,
   "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
