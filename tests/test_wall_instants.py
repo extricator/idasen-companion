@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The operational wall-clock value and its deliberately narrow operators."""
 
 from dataclasses import FrozenInstanceError

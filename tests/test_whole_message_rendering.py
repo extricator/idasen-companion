@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Each surface Phase 11 converts renders the whole message a translator
 owns, rather than fragments the code glued together.
 

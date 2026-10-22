@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reopening the window counts as showing the page you left on.
 
 The lazily-reloading pages (Statistics, Activity Log, the settings-class pages,
