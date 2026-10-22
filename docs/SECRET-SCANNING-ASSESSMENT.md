@@ -100,6 +100,43 @@ commits. A five-revision fixture yielded one scanned fragment-producing commit.
 Scanner commit counts are not exact Git revision counts. Keep the current
 safeguard until a separately justified replacement exists.
 
+### Measured history-count follow-up
+
+**LOCALLY PROVED, 2026-10-21:** four fresh synthetic histories scanned directly
+with pinned Gitleaks 8.30.1 produced the following counts. Ratio decisions
+evaluate the current factor-of-two arithmetic; these were not new full-wrapper
+runs. Each scanner run exited zero with positive bytes, no error diagnostics
+and an empty findings array.
+
+| Synthetic history | Git revisions | Scanner commits | Positive raw numstat file records | Current ratio |
+| --- | ---: | ---: | ---: | --- |
+| One addition, file deletion, three empty commits | 5 | 1 | 1 | Rejects |
+| Initial text, two line deletions in a surviving file | 3 | 3 | 1 | Accepts |
+| Three raw revisions collapsed by textconv | 3 | 1 | 4 across three commits | Rejects |
+| Three ordinary additions | 3 | 3 | 3 | Accepts |
+
+**DOCUMENTED:** Git's [textconv/patch behavior](https://git-scm.com/docs/gitattributes#_performing_text_diffs_of_binary_files)
+can lose raw-file information, and [merge-log behavior](https://git-scm.com/docs/git-log#_diff_formatting)
+normally omits merge patches unless a merge-diff mode is selected, with a
+first-parent exception. **LOCALLY PROVED:** pinned [sources/git.go](https://github.com/gitleaks/gitleaks/blob/v8.30.1/sources/git.go)
+yields eligible patch/archive fragments; [detect/detect.go](https://github.com/gitleaks/gitleaks/blob/v8.30.1/detect/detect.go)
+records commit identities when fragments reach the detector. Total revisions,
+non-merge revisions and positive raw-addition records therefore do not identify
+that fragment-producing commit set. Deletion hunks can count without additions;
+textconv can remove hunks despite raw additions. File records are not commits.
+
+**DESIGN JUDGMENT:** retain the current history guard and all diagnostic,
+byte-receipt, report, findings, exit-status, ref and remote-scope checks. The
+bounded evidence establishes no reliable small counter replacement. An exact
+replacement would require scanner-aligned patch/fragment semantics, controlled
+input semantics, or an upstream verifiable completion receipt, with additional
+implementation and validation cost. No current operational need beyond the
+demonstrated synthetic conservative failure justifies that redesign. Revisit
+after an actual operational false failure, an upstream verifiable completion
+receipt, or an approved scanning-contract redesign. **UNRESOLVED:** stronger
+designs remain possible; aggregate counts alone do not prove complete input
+consumption.
+
 **UNRESOLVED:** positive byte/count receipts demonstrate some processing, not
 per-file completeness. Pinned exclusions still apply, including eligible
 binary/archive/symlink and allowlisted-path behavior. No local/hosted ruleset
