@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Palette-derived design tokens.
 
 Colors are mapped onto platform theme roles (window/base/text/highlight)

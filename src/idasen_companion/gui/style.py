@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The app's own opinion about how its standard controls are drawn.
 
 A `QProxyStyle` over Fusion. Fusion stays the renderer for everything the

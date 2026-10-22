@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """System tray icon (StatusNotifier via QSystemTrayIcon).
 
 Optional by design: on GNOME without the AppIndicator extension the icon

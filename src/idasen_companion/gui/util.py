@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Small GUI formatting helpers.
 
 The height, duration, day and clock renderers that once lived here now live

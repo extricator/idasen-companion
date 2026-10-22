@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """First-run setup wizard.
 
 Design goals for a user with zero prior setup:
