@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Idle-time and lock detection, DE-agnostic.
 
 Replaces the reference script's xssstate/gdbus shell-outs with native

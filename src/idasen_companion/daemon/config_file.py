@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Configuration file lifecycle, separate from the applied runtime state."""
 
 from __future__ import annotations

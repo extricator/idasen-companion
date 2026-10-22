@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Small helpers over dbus-fast for one-shot method calls."""
 
 from __future__ import annotations

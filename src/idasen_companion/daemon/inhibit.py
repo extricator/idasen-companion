@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The logind sleep-delay lock that buys time to hand the desk back.
 
 Releasing the BLE link takes about two seconds — 2.14s measured on real

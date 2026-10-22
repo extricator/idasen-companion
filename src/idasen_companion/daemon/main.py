@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """idasen-companiond — the automation daemon.
 
 Owns the BLE connection, runs the state machine, and exposes the D-Bus
