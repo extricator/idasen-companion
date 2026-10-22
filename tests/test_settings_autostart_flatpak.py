@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Coverage for the Settings autostart toggle's Flatpak/systemd branching.
 
 ``tests/test_background_portal.py`` already covers every branch of the portal

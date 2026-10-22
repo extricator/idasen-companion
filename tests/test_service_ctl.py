@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the systemd user-unit control helper.
 
 The interesting logic is the mapping from ``systemctl is-enabled`` output to

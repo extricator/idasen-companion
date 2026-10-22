@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Structural right-to-left coverage for the GUI's asymmetric boundaries.
 
 No RTL translation ships yet.  These tests force Qt's direction directly and

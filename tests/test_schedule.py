@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 from datetime import datetime
 
 from idasen_companion.core.config import ScheduleConfig, VALID_DAYS

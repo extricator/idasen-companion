@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The sidebar's own width math, and the gate that keeps it honest.
 
 ``gui/widgets.py::sidebar_width_for_labels`` is a pure function: given the

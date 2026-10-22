@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The settings-class pages' staged-edit footer.
 
 Covers what ``SettingsFormPage`` promises: edits stay in the widgets until
