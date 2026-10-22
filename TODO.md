@@ -61,8 +61,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 - [ ] **Preserve cycle progress across short service restarts** — Restore validated recent
       progress and its original target only for applicable boot/session, desk, configuration and
       position.
-- [ ] **Refresh presence eligibility before automated movement** — Recheck eligibility after
-      intervening waits through an interface that keeps platform monitors out of core.
 - [ ] **Extend idle detection to other Wayland compositors** — Evaluate other-Wayland support,
       revalidating protocol/bindings and bundled-runtime packaging.
 - [ ] **Report remaining active time after a brief interruption** — Carry actual remaining
