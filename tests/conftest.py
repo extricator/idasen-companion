@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Shared test setup.
 
 The daemon now writes structured entries straight to the systemd journal

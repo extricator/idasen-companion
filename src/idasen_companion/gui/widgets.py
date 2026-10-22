@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reusable building blocks for the redesigned screens: cards, section
 headers, status dots, and a segmented control (Qt Widgets has no native
 one). Everything colors itself from :mod:`.theme` so it follows the

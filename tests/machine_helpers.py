@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Fresh deterministic setup shared by the state-machine behavior tests."""
 
 import random

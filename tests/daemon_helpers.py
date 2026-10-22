@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Common allocation plumbing; callers supply the daemon's behavior."""
 
 import asyncio

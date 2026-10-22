@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The one language-switching context manager the Qt-bearing tests share.
 
 Installing a language is process-wide, two-catalog state: ``QLocale``'s

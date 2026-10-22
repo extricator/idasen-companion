@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Activity Log's two sources overlap, and merging them naively doubled
 every line.
 

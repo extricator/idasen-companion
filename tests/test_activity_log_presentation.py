@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Activity Log page's cosmetic polish: day separators, the three-day
 history window, and the copy chip's muted, spaced icon.
 
