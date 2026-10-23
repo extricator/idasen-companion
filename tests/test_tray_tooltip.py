@@ -549,3 +549,44 @@ def test_connecting_is_a_single_status_line(tray):
 
     assert icon._status_action.text() == "Connecting…"
     assert icon.toolTip() == "Idasen Companion\nConnecting…"
+
+
+@pytest.mark.parametrize("language,expected", [
+    ("en", "Standing for about 123h 45m"),
+    ("es", "De pie desde hace unos 123 h 45 min"),
+])
+def test_long_observed_tooltip_keeps_one_plain_position_line_and_accessibility(
+        tray, language, expected):
+    from idasen_companion.core import i18n
+    from idasen_companion.core.i18n import GettextTranslator
+
+    icon, client = tray
+    try:
+        i18n.set_language(language)
+        context = icon.window.ctx.fmt.context
+        icon.window.ctx.fmt = Formatter(dataclasses.replace(
+            context, translator=GettextTranslator(),
+            locale=LocaleProfile("es_ES" if language == "es" else "en_US")))
+        standing_and_active(icon)
+        client.observation = Duration((123 * 60 + 45) * 60)
+        client.positionObservationChanged.emit()
+        lines = icon.toolTip().splitlines()
+        assert len(lines) == 3
+        assert lines[1] == expected
+        assert lines.count(expected) == 1
+        assert "<" not in icon.toolTip()
+        menu = icon.contextMenu()
+        explanation = icon.window.ctx.fmt.position_observation_description()
+        assert menu.accessibleName() == expected
+        assert menu.accessibleDescription() == explanation
+        before = client.stats_calls
+        icon._tick()
+        assert menu.accessibleName() == expected
+        assert menu.accessibleDescription() == explanation
+        assert client.stats_calls == before
+        client.observation = None
+        client.positionObservationChanged.emit()
+        assert icon.toolTip().splitlines()[1] == icon.window.ctx.fmt.position_or_custom(icon._position)
+        assert menu.accessibleDescription() == ""
+    finally:
+        i18n.set_language(i18n.SYSTEM)

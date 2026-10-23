@@ -50,6 +50,9 @@ class FakeClient(QObject):
     availableChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
     positionObservationChanged = Signal()
+    transitionCompleted = Signal(str, str, bool)
+    logEntry = Signal(float, str, str, str, dict, str)
+    commandFailed = Signal(str, str)
 
     available = False
 
@@ -65,6 +68,9 @@ class FakeClient(QObject):
     def set_automation_enabled(self, enabled): ...
     def idle_provider(self): return "none"
     def position_observation_elapsed(self, position): return None
+
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
 
 
 @pytest.fixture
@@ -254,3 +260,166 @@ def test_observed_time_is_shared_while_active_countdown_freezes(page, monkeypatc
     finally:
         tray.setContextMenu(None)
         shiboken6.delete(tray)
+
+
+@pytest.fixture
+def observed_window(qapp, tmp_path, monkeypatch):
+    from PySide6.QtGui import QFont, QPalette
+    from idasen_companion.core import i18n
+    from idasen_companion.core.config import save_config
+    from idasen_companion.gui import context, restyle, service_ctl
+    from idasen_companion.gui.main_window import MainWindow
+
+    palette, font = QPalette(qapp.palette()), QFont(qapp.font())
+    path = tmp_path / "config.toml"
+    config = AppConfig()
+    config.ui.language = "en"
+    save_config(config, path)
+    monkeypatch.setattr(context, "DEFAULT_CONFIG_PATH", path)
+    monkeypatch.setattr(service_ctl, "autostart_state",
+                        lambda: service_ctl.AutostartState("enabled", True, ""))
+    windows = []
+
+    def build(language):
+        config.ui.language = language
+        save_config(config, path)
+        i18n.set_language(language)
+        window = MainWindow(FakeClient(), tray_available=True)
+        windows.append(window)
+        window.client.positionChanged.emit("standing")
+        window.client.heightChanged.emit(1.1)
+        window.client.statusChanged.emit("active")
+        window.client.progressChanged.emit(600, 1800)
+        window.resize(window.minimumSize())
+        window.show()
+        qapp.processEvents()
+        qapp.processEvents()
+        return window
+
+    yield build
+    for window in windows:
+        window.hide()
+        window.deleteLater()
+    qapp.setPalette(palette)
+    qapp.setFont(font)
+    i18n.set_language(i18n.SYSTEM)
+    restyle.sweep()
+    qapp.processEvents()
+
+
+def _position_document(page):
+    from PySide6.QtGui import QTextDocument
+    doc = QTextDocument()
+    doc.setDocumentMargin(0)
+    doc.setDefaultFont(page.position_label.font())
+    doc.setHtml(page.position_label.text())
+    return doc
+
+
+def _assert_overview_bounds(window):
+    from PySide6.QtCore import QRect
+    from PySide6.QtWidgets import QPushButton
+    page = window.overview
+    bounds = window.rect()
+    header = [page.position_label, page.height_label, page.connection_chip]
+    rects = [QRect(widget.mapTo(window, widget.rect().topLeft()), widget.size())
+             for widget in header]
+    for rect in rects:
+        assert bounds.contains(rect)
+    assert all(not left.intersects(right) for i, left in enumerate(rects)
+               for right in rects[i + 1:])
+    for control in [page.height_spin, *page.findChildren(QPushButton)]:
+        if control.isVisible():
+            assert bounds.contains(QRect(control.mapTo(window, control.rect().topLeft()), control.size()))
+            assert control.width() >= control.minimumSizeHint().width()
+    doc = _position_document(page)
+    assert doc.idealWidth() <= page.position_label.contentsRect().width() + 1
+    assert doc.firstBlock().layout().lineCount() == 1
+    assert page.position_label.focusPolicy() == Qt.FocusPolicy.NoFocus
+    return doc
+
+
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_observed_phrase_fits_real_shell_and_elides_secondary_first(
+        qapp, observed_window, monkeypatch, language):
+    window = observed_window(language)
+    page = window.overview
+    original_minimum = window.minimumSize()
+    elapsed = Duration(1800)
+    monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: elapsed)
+    position = page.ctx.fmt.position_or_custom(page._position)
+    for seconds in (1800, 3900):
+        elapsed = Duration(seconds)
+        page.client.positionObservationChanged.emit()
+        qapp.processEvents()
+        doc = _assert_overview_bounds(window)
+        assert doc.toPlainText() == page.ctx.fmt.position_observation(position, elapsed)
+        assert window.size() == original_minimum
+    # Unusually long values must yield inside the same finite geometry, while
+    # the complete phrase and explanation stay available to accessibility.
+    elapsed = Duration(1e30)
+    page.client.positionObservationChanged.emit()
+    qapp.processEvents()
+    doc = _assert_overview_bounds(window)
+    assert position in doc.toPlainText()
+    assert doc.toPlainText() != page.position_label.accessibleName()
+    assert page.position_label.accessibleName() == page.ctx.fmt.position_observation(position, elapsed)
+    assert page.position_label.accessibleDescription() == page.ctx.fmt.position_observation_description()
+    assert window.size() == original_minimum
+
+
+def test_observed_phrase_tracks_larger_font_and_palette(qapp, observed_window, monkeypatch):
+    from PySide6.QtGui import QColor, QFont, QPalette
+    from idasen_companion.gui import restyle
+    from idasen_companion.gui.theme import css
+
+    window = observed_window("es")
+    page = window.overview
+    monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: Duration(3900))
+    body = QFont(qapp.font())
+    body.setPointSizeF(body.pointSizeF() * 1.4)
+    heading = QFont(body)
+    heading.setPointSizeF(body.pointSizeF() * 2)
+    heading.setWeight(QFont.Weight.DemiBold)
+    page.position_label.setFont(heading)
+    palette = QPalette(qapp.palette())
+    palette.setColor(QPalette.ColorRole.Window, QColor("#202326"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#fcfcfc"))
+    qapp.setPalette(palette)
+    restyle.sweep()
+    page.client.positionObservationChanged.emit()
+    qapp.processEvents()
+    doc = _assert_overview_bounds(window)
+    assert doc.toPlainText() == page.position_label.accessibleName()
+    assert css(theme().secondary) in page.position_label.text()
+    fragment = doc.begin().begin()
+    point_sizes = []
+    while not fragment.atEnd():
+        point_sizes.append(fragment.fragment().charFormat().font().resolve(doc.defaultFont()).pointSizeF())
+        fragment += 1
+    assert min(point_sizes) == pytest.approx(body.pointSizeF())
+    assert max(point_sizes) == pytest.approx(heading.pointSizeF())
+
+
+def test_observed_phrase_preserves_translated_order_and_escapes_markup(
+        qapp, observed_window, monkeypatch):
+    from dataclasses import replace
+    from idasen_companion.core.presentation import EnglishTranslator, Formatter
+
+    class Reordered(EnglishTranslator):
+        def message(self, source, **values):
+            if source == "%(position)s for about %(duration)s":
+                return "<b>About %(duration)s</b>: %(position)s &" % values
+            return super().message(source, **values)
+
+    window = observed_window("en")
+    window.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    page = window.overview
+    page.ctx.fmt = Formatter(replace(page.ctx.fmt.context, translator=Reordered()))
+    monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: Duration(60))
+    page.client.positionObservationChanged.emit()
+    qapp.processEvents()
+    doc = _assert_overview_bounds(window)
+    assert doc.toPlainText() == page.position_label.accessibleName() == "<b>About 1m</b>: Standing &"
+    assert page.position_label.layoutDirection() == Qt.LayoutDirection.RightToLeft
+    assert "&lt;b&gt;" in page.position_label.text()
