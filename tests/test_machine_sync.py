@@ -25,6 +25,38 @@ from machine_helpers import (
 
 # ----- periodic sync -----
 
+async def test_actual_read_results_report_start_unchanged_and_failure():
+    d = Driver()
+    samples = []
+    d.m._on_height_observed = samples.append
+    await d.start()
+    await d.tick(dt=300)
+    d.desk.height_unavailable = True
+    await d.m.force_sync(d.now)
+    assert samples == [SIT_H, SIT_H, None]
+
+
+async def test_gap_invalidates_before_same_tick_fresh_read():
+    d = Driver()
+    samples = []
+    d.m._on_height_observed = samples.append
+    await d.start()
+    samples.clear()
+    await d.tick(dt=301)
+    assert samples == [None, SIT_H]
+
+
+async def test_seat_loss_invalidates_without_read_and_return_confirms():
+    d = Driver()
+    samples = []
+    d.m._on_height_observed = samples.append
+    await d.start()
+    samples.clear()
+    await d.tick(seatless=True)
+    assert samples == [None]
+    await d.tick()
+    assert samples == [None, SIT_H]
+
 async def test_sync_adopts_external_change_and_resets_timers():
     d = Driver()
     await d.start()
