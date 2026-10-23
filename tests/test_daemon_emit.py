@@ -140,6 +140,74 @@ async def test_read_spanning_invalidation_cannot_reseed_via_callback(monkeypatch
     assert d.position_observation_snapshot()[1] is False
 
 
+async def test_overlapping_reads_keep_their_own_invalidation_generation(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    first_entered, second_entered = asyncio.Event(), asyncio.Event()
+    first_complete, second_complete = asyncio.Event(), asyncio.Event()
+    read_lock = asyncio.Lock()
+    reads = 0
+
+    async def serialized_read():
+        nonlocal reads
+        async with read_lock:
+            reads += 1
+            entered, complete = ((first_entered, first_complete) if reads == 1
+                                 else (second_entered, second_complete))
+            entered.set()
+            await complete.wait()
+            height = Length(d.config.presets["sit"])
+            d._on_live_height(height)  # the synchronous BleDesk read callback
+            return height
+
+    d.desk.get_height = serialized_read
+    first = asyncio.create_task(d.machine.refresh_height(WallInstant(clock.wall)))
+    await first_entered.wait()
+    d._invalidate_position_observation()
+    second = asyncio.create_task(d.machine.refresh_height(WallInstant(clock.wall)))
+    await asyncio.sleep(0)  # B acquires its token while waiting for A's desk lock.
+    first_complete.set()
+    await first
+    await second_entered.wait()
+    assert d.position_observation_snapshot()[1] is False
+    second_complete.set()
+    await second
+    assert d.position_observation_snapshot()[0:2] == ("sitting", True)
+
+
+async def test_ble_notification_keeps_working_with_inherited_read_context(monkeypatch):
+    import struct
+
+    from idasen_companion.desk.ble import BleDesk
+
+    d, clock = observed_daemon(monkeypatch)
+    subscribed, notify = asyncio.Event(), asyncio.Event()
+    notified = asyncio.Event()
+
+    async def start_notify(_uuid, callback):
+        subscribed.set()
+        await notify.wait()
+        callback(None, bytearray(struct.pack("<HH", 4800, 0)))  # standing
+        notified.set()
+
+    ble = BleDesk("", on_height=d._on_live_height)
+    ble._desk = SimpleNamespace(_client=SimpleNamespace(start_notify=start_notify))
+    subscription = None
+
+    async def read_with_subscription():
+        nonlocal subscription
+        subscription = asyncio.create_task(ble._try_start_notify())
+        await subscribed.wait()
+        return Length(d.config.presets["sit"])
+
+    d.desk.get_height = read_with_subscription
+    await d.machine.refresh_height(WallInstant(clock.wall))
+    d._invalidate_position_observation()
+    notify.set()
+    await notified.wait()
+    await subscription
+    assert d.position_observation_snapshot()[0:2] == ("standing", True)
+
+
 @pytest.mark.parametrize("sleeping", [True, False])
 def test_both_sleep_edges_invalidate_before_any_later_sample(monkeypatch, sleeping):
     d, _clock = observed_daemon(monkeypatch)

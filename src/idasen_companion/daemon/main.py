@@ -363,9 +363,7 @@ class Daemon:
     def _on_live_height(self, height: Length) -> None:
         # BLE reads also invoke this notification seam. A read spanning a hard
         # boundary must not get a second chance to publish through its callback.
-        read_generation = getattr(self.machine, "_height_read_generation", None)
-        if (read_generation is None
-                or read_generation == self.machine._height_observation_generation):
+        if self.machine.accepts_height_callback():
             self._observe_height(height)
         self.machine.last_height = height
         now = MonotonicInstant(time.monotonic())

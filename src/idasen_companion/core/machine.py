@@ -53,9 +53,11 @@ The machine is pure with respect to time and randomness: callers supply
 
 from __future__ import annotations
 
+import asyncio
 import math
 import random
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from dataclasses import astuple, dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
@@ -379,7 +381,8 @@ class StateMachine:
         self._on_height_observed = on_height_observed
         self._on_observation_tick = on_observation_tick
         self._height_observation_generation = 0
-        self._height_read_generation: int | None = None
+        self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object] | None] = (
+            ContextVar("height_read", default=None))
 
         self.state: DeskState = DeskState.SITTING
         self.active_time = Duration.from_seconds(0)
@@ -992,20 +995,31 @@ class StateMachine:
     async def _read_height(self, now: WallInstant) -> Length | None:
         generation = self._height_observation_generation
         desk = self._desk
-        self._height_read_generation = generation
+        token = self._height_read_context.set((asyncio.current_task(), generation, desk))
         try:
             height = await desk.get_height()
         except Exception:
-            if generation == self._height_observation_generation:
+            if generation == self._height_observation_generation and desk is self._desk:
                 self._report_height_observation(None)
             raise
         finally:
-            self._height_read_generation = None
+            self._height_read_context.reset(token)
         if height is not None:
             self.last_height = height
         if generation == self._height_observation_generation and desk is self._desk:
             self._report_height_observation(height)
         return height
+
+    def accepts_height_callback(self) -> bool:
+        """Guard a read's synchronous BLE callback using that acquisition's token.
+
+        Notification subscriptions can inherit the read's context when they
+        start. Their callbacks run outside its task and remain live samples.
+        """
+        read = self._height_read_context.get()
+        if read is None or read[0] is not asyncio.current_task():
+            return True
+        return read[1] == self._height_observation_generation and read[2] is self._desk
 
     def invalidate_height_observation(self) -> None:
         """Prevent a read already in flight from publishing after a hard boundary."""
