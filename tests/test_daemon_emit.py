@@ -208,6 +208,21 @@ async def test_ble_notification_keeps_working_with_inherited_read_context(monkey
     assert d.position_observation_snapshot()[0:2] == ("standing", True)
 
 
+async def test_capture_reports_actual_success_and_invalidates_failed_read(monkeypatch):
+    from dbus_fast.errors import DBusError
+
+    d, _clock = observed_daemon(monkeypatch)
+    d.save_preset = MagicMock()
+    assert await d.capture_current_preset("custom") == Length(d.config.presets["sit"])
+    assert d.position_observation_snapshot()[0:2] == ("sitting", True)
+    d.desk.height_unavailable = True
+    with pytest.raises(DBusError) as error:
+        await d.capture_current_preset("custom")
+    assert error.value.type.endswith(".Error.NoHeight")
+    assert d.position_observation_snapshot()[1] is False
+    d.save_preset.assert_called_once_with("custom", Length(d.config.presets["sit"]))
+
+
 @pytest.mark.parametrize("sleeping", [True, False])
 def test_both_sleep_edges_invalidate_before_any_later_sample(monkeypatch, sleeping):
     d, _clock = observed_daemon(monkeypatch)
@@ -903,6 +918,7 @@ async def test_capture_rounds_before_slack_validation_and_stores_raw_metres(tmp_
     d, load = _enable_daemon(tmp_path)
     d._ifaces["presets"] = MagicMock()
     d.desk = MagicMock(get_height=AsyncMock(return_value=Length(0.60996)))
+    d.machine._desk = d.desk
     assert await d.capture_current_preset("low") == Length(0.61)
     d.save_preset("high", Length(1.28))
     d.save_preset("lean", Length(0.955555))

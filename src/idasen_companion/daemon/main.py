@@ -1655,7 +1655,7 @@ class Daemon:
         self._spawn(old_desk.disconnect(), "releasing the previous desk")
 
     async def capture_current_preset(self, name: str) -> Length:
-        height = await self.desk.get_height()
+        height = await self.machine._read_height(WallInstant(time.time()))
         if height is None:
             raise DBusError(f"{DBUS_NAME}.Error.NoHeight",
                             "could not read desk height")
