@@ -303,7 +303,8 @@ calls `Activate()` over D-Bus) and is tray-optional.
 
 `core/machine.py`'s `PositionObservationTracker` owns a Qt-free interval and freshness lease,
 separate from active automation credit. Actual startup and sync reads,
-verified final move read-back and live height callbacks feed observations.
+verified final move read-back, preset-capture reads and live height callbacks
+feed observations.
 An unchanged confirmed preset renews freshness without restarting its interval;
 a changed preset starts a new interval. No getter, repeated position/status
 signal, requested target, seeded state or historical transition can renew it.
@@ -313,6 +314,11 @@ The lease covers `min(sync_interval or 300, 300)` seconds plus
 with default intervals). Failed reads, custom/moving state, seat loss, sleep edges, clock
 discontinuities and desk/observation-policy changes invalidate continuity;
 late reads/callbacks from an invalidated acquisition cannot restore it. A
+task-local acquisition context keeps overlapping reads' generation and desk
+identity separate while allowing genuine notification callbacks. Existing
+machine ticks check clock continuity without renewing freshness; the daemon
+samples the observation clock when the callback executes, after any awaited
+presence acquisition, independently of the tick's accounting timestamp. A
 healthy intentional on-demand BLE release preserves the finite lease. Paused,
 snoozed, disabled or idle automation alone does not stop observed time: real
 samples may keep renewing it while active credit and its countdown freeze.
@@ -339,8 +345,9 @@ placeholder order is preserved. The tray keeps one plain position line in its
 existing multiline tooltip and exposes the complete phrase and explanation
 through its existing menu's accessibility metadata. No live accessibility
 announcement, extra widget/control, row, card, focus stop or preference is
-introduced. Moving/connecting precedence and position-only unknown/expired
-fallback remain. This describes sampled desk position, never a person's
+introduced. Unavailable-daemon, connecting and moving feedback take precedence;
+position-only fallback remains for unknown or expired observations. This
+describes sampled desk position, never a person's
 posture or presence, and never guarantees uninterrupted physical position.
 
 ### Typed state values behind raw transport
