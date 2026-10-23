@@ -1163,6 +1163,21 @@ msgstr ""
 "Inicio automático desactivado: el servicio no se iniciará al entrar en la "
 "sesión."
 
+#: src/idasen_companion/core/presentation.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(position)s for about %(duration)s"
+msgstr "%(position)s desde hace unos %(duration)s"
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "shared.presentation"
+msgid ""
+"Estimated from periodic desk observations; moves between samples may be "
+"missed."
+msgstr ""
+"Estimación basada en observaciones periódicas del escritorio; pueden pasar "
+"inadvertidos los movimientos entre muestras."
+
 # What the portal autostarts. Always this project's own daemon executable name, a
 # constant — never assembled from config or user input, since a granted request
 # is a host autostart entry that runs at every login. Bounded so a portal that
@@ -1350,10 +1365,10 @@ msgid ""
 "according to Settings → Window & tray. A different movement command "
 "redirects to its target. Presets move directly."
 msgstr ""
-"Repite toggle, sit o stand durante un movimiento para detenerlo, volver a "
-"la altura inicial o repetirlo, según Configuración → Ventana y bandeja. "
-"Un comando de movimiento diferente redirige al escritorio a su destino. "
-"Los preajustes mueven el escritorio directamente."
+"Repite toggle, sit o stand durante un movimiento para detenerlo, volver a la "
+"altura inicial o repetirlo, según Configuración → Ventana y bandeja. Un "
+"comando de movimiento diferente redirige al escritorio a su destino. Los "
+"preajustes mueven el escritorio directamente."
 
 #: src/idasen_companion/gui/pages/about.py
 msgctxt "about"
@@ -1764,7 +1779,7 @@ msgctxt "overview"
 msgid "Idle detection: %s"
 msgstr "Detección de inactividad: %s"
 
-#: src/idasen_companion/gui/pages/overview.py
+#: src/idasen_companion/gui/pages/overview.py src/idasen_companion/gui/tray.py
 msgctxt "overview"
 msgid "Moving…"
 msgstr "Moviéndose…"
@@ -2577,12 +2592,6 @@ msgstr "Conectando…"
 msgctxt "tray"
 msgid "%(position)s · %(status)s"
 msgstr "%(position)s · %(status)s"
-
-#: src/idasen_companion/gui/tray.py
-#, python-format
-msgctxt "tray"
-msgid "%(position)s for %(duration)s"
-msgstr "%(position)s durante %(duration)s"
 
 #: src/idasen_companion/gui/tray.py
 #, python-format
