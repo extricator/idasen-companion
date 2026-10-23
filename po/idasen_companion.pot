@@ -2382,11 +2382,6 @@ msgstr ""
 
 #: src/idasen_companion/gui/tray.py
 msgctxt "tray"
-msgid "Daemon not running"
-msgstr ""
-
-#: src/idasen_companion/gui/tray.py
-msgctxt "tray"
 msgid "Resume automation"
 msgstr ""
 
@@ -2423,6 +2418,11 @@ msgstr ""
 #, python-format
 msgctxt "tray"
 msgid "%(status)s · %(countdown)s"
+msgstr ""
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Daemon not running"
 msgstr ""
 
 #: src/idasen_companion/gui/tray.py

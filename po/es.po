@@ -2568,11 +2568,6 @@ msgstr "Salir"
 
 #: src/idasen_companion/gui/tray.py
 msgctxt "tray"
-msgid "Daemon not running"
-msgstr "Demonio no en ejecución"
-
-#: src/idasen_companion/gui/tray.py
-msgctxt "tray"
 msgid "Resume automation"
 msgstr "Reanudar automatización"
 
@@ -2610,6 +2605,11 @@ msgstr "Sentándose en %s"
 msgctxt "tray"
 msgid "%(status)s · %(countdown)s"
 msgstr "%(status)s · %(countdown)s"
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Daemon not running"
+msgstr "Demonio no en ejecución"
 
 #: src/idasen_companion/gui/tray.py
 #, python-format
