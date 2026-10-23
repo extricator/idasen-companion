@@ -91,8 +91,10 @@ async def test_automatic_final_observation_requires_verified_height(monkeypatch,
         assert snapshot[0] == "standing" and snapshot[3] == 0.0
 
 
-async def test_read_spanning_invalidation_cannot_reseed_via_callback(monkeypatch):
+@pytest.mark.parametrize("boundary", ["explicit", "custom", "wall-jump"])
+async def test_read_spanning_invalidation_cannot_reseed_via_callback(monkeypatch, boundary):
     d, clock = observed_daemon(monkeypatch)
+    d._on_live_height(Length(d.config.presets["sit"]))
     entered, complete = asyncio.Event(), asyncio.Event()
 
     async def delayed_read():
@@ -105,7 +107,13 @@ async def test_read_spanning_invalidation_cannot_reseed_via_callback(monkeypatch
     d.desk.get_height = delayed_read
     task = asyncio.create_task(d.machine.refresh_height(WallInstant(clock.wall)))
     await entered.wait()
-    d._invalidate_position_observation()
+    if boundary == "custom":
+        d._on_live_height(Length(0.9))
+    elif boundary == "wall-jump":
+        clock.wall += 301
+        assert d.position_observation_snapshot()[1] is False
+    else:
+        d._invalidate_position_observation()
     complete.set()
     await task
     assert d.position_observation_snapshot()[1] is False

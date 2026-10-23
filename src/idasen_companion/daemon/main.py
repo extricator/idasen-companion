@@ -399,7 +399,10 @@ class Daemon:
                 or self.machine.is_away or self.machine.is_seatless):
             return
         tracker = self._observation_tracker()
-        position = self.machine._cycle_state_for_height(height) if height is not None else None
+        position = self.machine._cycle_state_for_height(height)
+        if position is None:
+            self._invalidate_position_observation()
+            return
         tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
         self._emit_position_observation()
 
@@ -413,8 +416,15 @@ class Daemon:
             self._emit_position_observation()
 
     def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
+        wall = WallInstant(time.time())
+        previous_wall = getattr(self, "_position_observation_wall", None)
+        self._position_observation_wall = wall
+        if previous_wall is not None:
+            step = wall - previous_wall
+            if step < Duration(0) or step > Duration(TIME_JUMP_THRESHOLD_SECONDS):
+                self._invalidate_position_observation()
         snapshot = self._observation_tracker().snapshot(
-            WallInstant(time.time()), MonotonicInstant(time.monotonic()))
+            wall, MonotonicInstant(time.monotonic()))
         return (snapshot.position.value if snapshot.position is not None else "",
                 snapshot.started is not None,
                 float(snapshot.started.epoch_seconds) if snapshot.started is not None else 0.0,

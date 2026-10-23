@@ -42,6 +42,13 @@ EXPECTED_INTERFACE_XML = {
         '<method name="GestureMove">'
         '<arg name="action" direction="in" type="s" />'
         '</method>'
+        '<method name="GetPositionObservation">'
+        '<arg direction="out" type="s" />'
+        '<arg direction="out" type="b" />'
+        '<arg direction="out" type="d" />'
+        '<arg direction="out" type="d" />'
+        '<arg direction="out" type="d" />'
+        '</method>'
         '<method name="MoveToHeight">'
         '<arg name="height" direction="in" type="d" />'
         '</method>'
@@ -67,6 +74,13 @@ EXPECTED_INTERFACE_XML = {
         '</signal>'
         '<signal name="PositionChanged">'
         '<arg direction="out" type="s" />'
+        '</signal>'
+        '<signal name="PositionObservationChanged">'
+        '<arg direction="out" type="s" />'
+        '<arg direction="out" type="b" />'
+        '<arg direction="out" type="d" />'
+        '<arg direction="out" type="d" />'
+        '<arg direction="out" type="d" />'
         '</signal>'
         '<property name="Connected" type="b" access="read" />'
         '<property name="Height" type="d" access="read" />'
@@ -168,6 +182,8 @@ EXPECTED_INTERFACE_XML = {
 }
 
 COMPOUND_SIGNAL_CASES = [
+    (service_mod.Desk1, "PositionObservationChanged",
+     ("standing", True, 0.0, 1.25, 388.75), "sbddd"),
     (service_mod.Automation1, "ProgressChanged", (1.25, 7.5), "dd"),
     (service_mod.Automation1, "PreMoveWarning", ("standing", 45), "su"),
     (service_mod.Automation1, "TransitionCompleted",
@@ -209,6 +225,12 @@ def client_references():
         func = node.func
         name = (func.id if isinstance(func, ast.Name)
                 else func.attr if isinstance(func, ast.Attribute) else None)
+        if name == "createMethodCall" and len(node.args) == 4:
+            iface, member = node.args[2:]
+            if (isinstance(iface, ast.Name) and iface.id in INTERFACES
+                    and isinstance(member, ast.Constant) and isinstance(member.value, str)):
+                found.append((iface.id, member.value, "method", node.lineno))
+            continue
         if name not in HELPERS:
             continue
         iface, member = node.args[0], node.args[1]
