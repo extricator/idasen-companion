@@ -413,15 +413,16 @@ class Daemon:
             tracker.invalidate()
             self._emit_position_observation()
 
-    def _check_observation_continuity(self, wall: WallInstant) -> None:
-        if not self._observation_tracker().check_continuity(wall):
+    def _check_observation_continuity(self) -> None:
+        # Presence/lock acquisition can await after the accounting timestamp
+        # was captured. Notifications in those awaits already use current time.
+        if not self._observation_tracker().check_continuity(WallInstant(time.time())):
             self._invalidate_position_observation()
 
     def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
-        wall = WallInstant(time.time())
-        self._check_observation_continuity(wall)
+        self._check_observation_continuity()
         snapshot = self._observation_tracker().snapshot(
-            wall, MonotonicInstant(time.monotonic()))
+            WallInstant(time.time()), MonotonicInstant(time.monotonic()))
         return (snapshot.position.value if snapshot.position is not None else "",
                 snapshot.started is not None,
                 float(snapshot.started.epoch_seconds) if snapshot.started is not None else 0.0,

@@ -365,7 +365,7 @@ class StateMachine:
         rng: random.Random | None = None,
         on_moving: Callable[[bool], None] | None = None,
         on_height_observed: Callable[[Length | None], None] | None = None,
-        on_observation_tick: Callable[[WallInstant], None] | None = None,
+        on_observation_tick: Callable[[], None] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -521,7 +521,7 @@ class StateMachine:
         self._last_seatless = seatless
 
         if self._on_observation_tick is not None:
-            self._on_observation_tick(now)
+            self._on_observation_tick()
 
         if self.unconfigured:
             # No desk to drive: no accounting, no syncing, no notifications

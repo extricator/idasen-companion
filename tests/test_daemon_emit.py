@@ -72,6 +72,31 @@ async def test_healthy_default_sync_with_read_latency_preserves_observation(monk
     assert d.machine.active_time == Duration(0)
 
 
+async def test_daemon_tick_preserves_notification_during_presence_acquisition(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    await d.machine.start(WallInstant(clock.wall))
+    d.machine.pause()
+    d._check_config_file = lambda: None
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    d.accounting = MagicMock()
+    d._current_move_id = 0
+
+    async def idle():
+        clock.wall += 1
+        clock.mono += 1
+        d._on_live_height(Length(d.config.presets["sit"]))
+        return 0
+
+    d._idle = SimpleNamespace(get_idle_ms=idle)
+    d._lock = SimpleNamespace(is_locked=AsyncMock(return_value=False))
+    d._session = SimpleNamespace(state=AsyncMock(return_value="foreground"))
+    clock.wall, clock.mono = 1060, 60
+    await d._tick()
+    assert d.position_observation_snapshot() == ("sitting", True, 1000.0, 61.0, 390.0)
+    assert d.machine.active_time == Duration(0)
+
+
 def test_healthy_release_and_getters_do_not_renew_lease(monkeypatch):
     d, clock = observed_daemon(monkeypatch)
     d._on_live_height(Length(d.config.presets["sit"]))
