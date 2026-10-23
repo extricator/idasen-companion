@@ -19,6 +19,208 @@ from daemon_helpers import make_daemon_shell
 from idasen_companion.core.durations import Duration
 
 
+def observed_daemon(monkeypatch):
+    from idasen_companion.daemon import main as daemon_mod
+    from idasen_companion.core.config import AppConfig
+    from idasen_companion.core.machine import StateMachine
+    from idasen_companion.desk.mock import MockDesk
+
+    clock = SimpleNamespace(wall=1000.0, mono=0.0)
+    monkeypatch.setattr(daemon_mod, "time", SimpleNamespace(
+        time=lambda: clock.wall, monotonic=lambda: clock.mono))
+    d = make_daemon_shell()
+    d.config = AppConfig()
+    d.desk = MockDesk(Length(d.config.presets["sit"]))
+    d.moving = False
+    d._ifaces = {"desk": MagicMock()}
+    d._last_height_emit = MonotonicInstant(0)
+    d.machine = StateMachine(d.config, d.desk, now=WallInstant(clock.wall),
+                             on_moving=d._set_moving, on_height_observed=d._observe_height)
+    return d, clock
+
+
+async def test_observed_thirty_minutes_preserves_ten_minutes_active(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    await d.machine.start(WallInstant(clock.wall))
+    for minute in range(1, 31):
+        clock.wall, clock.mono = 1000 + minute * 60, minute * 60
+        if minute == 11:
+            d.machine.pause()
+        await d.machine.tick(WallInstant(clock.wall), 0, False)
+    assert d.position_observation_snapshot()[3] == 1800.0
+    assert d.machine.active_time == Duration(600)
+
+
+def test_healthy_release_and_getters_do_not_renew_lease(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    d._on_live_height(Length(d.config.presets["sit"]))
+    assert d.position_observation_snapshot()[4] == 390.0
+    d._on_connection_change(False)
+    clock.wall += 200
+    clock.mono += 200
+    assert d.position_observation_snapshot()[3:] == (200.0, 190.0)
+    # Repeated cached publication is not a new sample.
+    d._emit_position_observation()
+    clock.wall += 190
+    clock.mono += 190
+    assert d.position_observation_snapshot()[1] is False
+
+
+def test_custom_and_movement_drop_duration_until_real_confirmation(monkeypatch):
+    d, _clock = observed_daemon(monkeypatch)
+    d._on_live_height(Length(d.config.presets["sit"]))
+    d._on_live_height(Length(0.9))
+    assert d.position_observation_snapshot()[1] is False
+    d._on_live_height(Length(d.config.presets["sit"]))
+    d._set_moving(True)
+    d._on_live_height(Length(d.config.presets["stand"]))
+    assert d.position_observation_snapshot()[1] is False
+    d._set_moving(False)
+    assert d.position_observation_snapshot()[1] is False
+
+
+@pytest.mark.parametrize("readable", [True, False])
+async def test_automatic_final_observation_requires_verified_height(monkeypatch, readable):
+    d, clock = observed_daemon(monkeypatch)
+    await d.machine.start(WallInstant(clock.wall))
+    d.desk.height_unavailable = not readable
+    await d.machine._execute_transition(WallInstant(clock.wall))
+    snapshot = d.position_observation_snapshot()
+    assert snapshot[1] is readable
+    if readable:
+        assert snapshot[0] == "standing" and snapshot[3] == 0.0
+
+
+async def test_read_spanning_invalidation_cannot_reseed_via_callback(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    entered, complete = asyncio.Event(), asyncio.Event()
+
+    async def delayed_read():
+        entered.set()
+        await complete.wait()
+        height = Length(d.config.presets["sit"])
+        d._on_live_height(height)  # BLE's duplicate successful-read callback
+        return height
+
+    d.desk.get_height = delayed_read
+    task = asyncio.create_task(d.machine.refresh_height(WallInstant(clock.wall)))
+    await entered.wait()
+    d._invalidate_position_observation()
+    complete.set()
+    await task
+    assert d.position_observation_snapshot()[1] is False
+
+
+@pytest.mark.parametrize("sleeping", [True, False])
+def test_both_sleep_edges_invalidate_before_any_later_sample(monkeypatch, sleeping):
+    d, _clock = observed_daemon(monkeypatch)
+    d.activity_log = MagicMock()
+    d._scheduled_target = lambda: "stand"
+    d._idle = SimpleNamespace(probe=AsyncMock())
+    d._spawn = lambda coroutine, *_: coroutine.close()
+    d._on_live_height(Length(d.config.presets["sit"]))
+    d._on_system_message(SimpleNamespace(interface="org.freedesktop.login1.Manager",
+                                        member="PrepareForSleep", body=[sleeping]))
+    assert d.position_observation_snapshot()[1] is False
+    if sleeping:
+        d._on_live_height(Length(d.config.presets["sit"]))
+        assert d.position_observation_snapshot()[1] is False
+
+
+@pytest.mark.parametrize("field", ["sit", "stand", "tolerance", "sync", "check"])
+def test_observation_config_changes_invalidate_and_rebound_lease(monkeypatch, field):
+    import copy
+
+    d, _clock = observed_daemon(monkeypatch)
+    d.mock_mode = True
+    d.activity_log = MagicMock()
+    d._report_config_warnings = MagicMock()
+    d._build_formatter = MagicMock()
+    d._emit_automation_state = MagicMock()
+    updated = copy.deepcopy(d.config)
+    if field in ("sit", "stand"):
+        updated.presets[field] += 0.01
+    elif field == "tolerance":
+        updated.advanced.movement_tolerance += 0.001
+    elif field == "sync":
+        updated.automation.sync_interval = 100
+    else:
+        updated.automation.check_interval = 20
+    d.config_file = MagicMock()
+    d.config_file.load.return_value = updated
+    d._on_live_height(Length(d.config.presets["sit"]))
+    d.reload_config()
+    assert d.position_observation_snapshot()[1] is False
+    d._on_live_height(Length(d.config.presets["sit"]))
+    expected = {"sync": 190.0, "check": 350.0}.get(field, 390.0)
+    assert d.position_observation_snapshot()[4] == expected
+
+
+def test_presentation_and_automation_toggle_preserve_observation(monkeypatch):
+    import copy
+
+    d, clock = observed_daemon(monkeypatch)
+    d.mock_mode = True
+    d.activity_log = MagicMock()
+    d._report_config_warnings = MagicMock()
+    d._build_formatter = MagicMock()
+    d._emit_automation_state = MagicMock()
+    updated = copy.deepcopy(d.config)
+    updated.ui.units = "in"
+    updated.automation.enabled = False
+    d.config_file = MagicMock()
+    d.config_file.load.return_value = updated
+    d._on_live_height(Length(d.config.presets["sit"]))
+    clock.wall += 10
+    clock.mono += 10
+    d.reload_config()
+    assert d.position_observation_snapshot()[3:] == (10.0, 380.0)
+
+
+def test_saved_cycle_preset_invalidates_and_swap_rejects_old_desk(monkeypatch):
+    from idasen_companion.desk.mock import MockDesk
+
+    d, _clock = observed_daemon(monkeypatch)
+    d.activity_log = MagicMock()
+    d._check_config_file = MagicMock()
+    d.config_file = MagicMock()
+    d._ifaces["presets"] = MagicMock()
+    d._on_live_height(Length(d.config.presets["sit"]))
+    d.save_preset("sit", Length(0.63))
+    assert d.position_observation_snapshot()[1] is False
+    d._on_live_height(Length(0.63))
+    previous_desk = d.desk
+    d._make_desk = lambda: MockDesk(Length(0.63))
+    d._spawn = lambda coroutine, *_: coroutine.close()
+    d._swap_desk()
+    d._on_desk_height(previous_desk, Length(0.63))
+    assert d.position_observation_snapshot()[1] is False
+
+
+async def test_seatless_live_callbacks_are_suppressed_and_failure_clears(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    await d.machine.start(WallInstant(clock.wall))
+    await d.machine.tick(WallInstant(clock.wall + 1), 0, False, seatless=True)
+    d._on_live_height(Length(d.config.presets["sit"]))
+    assert d.position_observation_snapshot()[1] is False
+    await d.machine.tick(WallInstant(clock.wall + 2), 0, False)
+    assert d.position_observation_snapshot()[1] is True
+    d.desk.height_unavailable = True
+    await d.machine.force_sync(WallInstant(clock.wall + 3))
+    assert d.position_observation_snapshot()[1] is False
+
+
+def test_disabled_periodic_sync_still_has_finite_lease(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    d.config.automation.sync_interval = 0
+    d._on_live_height(Length(d.config.presets["sit"]))
+    for step in (200, 190):
+        clock.wall += step
+        clock.mono += step
+        snapshot = d.position_observation_snapshot()
+    assert snapshot[1] is False
+
+
 def _daemon():
     """A Daemon with just the collaborators the control ops touch, bypassing
     the real __init__ (which builds a RingLog, D-Bus service, desk, ...)."""

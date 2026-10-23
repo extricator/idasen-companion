@@ -135,11 +135,13 @@ class PositionObservationTracker:
         self._position: DeskState | None = None
         self._started: WallInstant | None = None
         self._confirmed: MonotonicInstant | None = None
+        self._wall: WallInstant | None = None
 
     def invalidate(self) -> None:
         self._position = None
         self._started = None
         self._confirmed = None
+        self._wall = None
 
     def observe(self, position: DeskState | None, wall: WallInstant,
                 monotonic: MonotonicInstant) -> None:
@@ -153,6 +155,11 @@ class PositionObservationTracker:
         self._confirmed = monotonic
 
     def snapshot(self, wall: WallInstant, monotonic: MonotonicInstant) -> PositionObservation:
+        if self._wall is not None:
+            step = wall - self._wall
+            if step < Duration(0) or step > Duration(TIME_JUMP_THRESHOLD_SECONDS):
+                self.invalidate()
+        self._wall = wall
         if self._started is None or self._confirmed is None:
             return PositionObservation(None)
         age = monotonic - self._confirmed
@@ -348,6 +355,7 @@ class StateMachine:
         now: WallInstant,
         rng: random.Random | None = None,
         on_moving: Callable[[bool], None] | None = None,
+        on_height_observed: Callable[[Length | None], None] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -360,6 +368,9 @@ class StateMachine:
         #: repeat-to-cancel gesture could not cancel an automation move — it
         #: started a competing one instead.
         self._on_moving = on_moving
+        self._on_height_observed = on_height_observed
+        self._height_observation_generation = 0
+        self._height_read_generation: int | None = None
 
         self.state: DeskState = DeskState.SITTING
         self.active_time = Duration.from_seconds(0)
@@ -427,7 +438,7 @@ class StateMachine:
             # reading a desk that isn't there and seeding a cycle against it.
             self._seed_cycle(now)
             return []
-        height = await self._desk.get_height()
+        height = await self._read_height(now)
         if height is not None:
             self.last_height = height
             cycle_state = self._cycle_state_for_height(height)
@@ -515,10 +526,13 @@ class StateMachine:
         is_time_jump = not (Duration.from_seconds(0) <= time_elapsed
                             <= Duration.from_seconds(TIME_JUMP_THRESHOLD_SECONDS))
         if is_time_jump:
+            self._report_height_observation(None)
             events.append(TimeJumpDetected(time_elapsed))
             self._reset_accumulator()
 
         presence = self._update_presence(now, idle_ms, locked, away, seatless)
+        if presence.unentitled:
+            self._report_height_observation(None)
         events.extend(presence.events)
 
         frozen = self._frozen(now)
@@ -964,10 +978,30 @@ class StateMachine:
         return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
     async def _read_height(self, now: WallInstant) -> Length | None:
-        height = await self._desk.get_height()
+        generation = self._height_observation_generation
+        desk = self._desk
+        self._height_read_generation = generation
+        try:
+            height = await desk.get_height()
+        except Exception:
+            if generation == self._height_observation_generation:
+                self._report_height_observation(None)
+            raise
+        finally:
+            self._height_read_generation = None
         if height is not None:
             self.last_height = height
+        if generation == self._height_observation_generation and desk is self._desk:
+            self._report_height_observation(height)
         return height
+
+    def invalidate_height_observation(self) -> None:
+        """Prevent a read already in flight from publishing after a hard boundary."""
+        self._height_observation_generation += 1
+
+    def _report_height_observation(self, height: Length | None) -> None:
+        if self._on_height_observed is not None:
+            self._on_height_observed(height)
 
     async def _execute_transition(self, now: WallInstant, *,
                                   guard: Callable[[], Awaitable[bool]] | None = None) -> list[
@@ -978,10 +1012,16 @@ class StateMachine:
         (the reference's behaviour), "leave" the desk where it stopped, or
         "retry" once more toward the target."""
         self._note_moving(True)
+        generation = self._height_observation_generation
         try:
-            return await self._drive_transition(now, guard=guard)
+            events = await self._drive_transition(now, guard=guard)
         finally:
             self._note_moving(False)
+        if generation == self._height_observation_generation and events:
+            final = events[-1]
+            self._report_height_observation(
+                final.final_height if isinstance(final, TransitionCompleted) else None)
+        return events
 
     def _note_moving(self, moving: bool) -> None:
         if self._on_moving is not None:

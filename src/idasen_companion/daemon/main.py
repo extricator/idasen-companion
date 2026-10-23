@@ -292,6 +292,8 @@ class Daemon:
         if self.moving == moving:
             return
         self.moving = moving
+        if moving:
+            self._invalidate_position_observation()
         desk1 = self._ifaces.get("desk")
         if desk1 is not None:
             desk1.emit_properties_changed({"Moving": moving})
@@ -329,11 +331,11 @@ class Daemon:
             return MockDesk()
         from ..desk.ble import BleDesk
 
-        return BleDesk(
+        desk = BleDesk(
             self.config.desk.mac,
             connection_mode=self.config.desk.connection,
             linger=self.config.desk.linger,
-            on_height=self._on_live_height,
+            on_height=lambda height: self._on_desk_height(desk, height),
             on_connection_change=self._on_connection_change,
             # A per-attempt BLE failure is genuinely a warning, and genuinely
             # not for the person wondering why their desk moved — most are
@@ -345,6 +347,11 @@ class Daemon:
             on_connect_exhausted=lambda: self.bluetooth.report_connect_exhausted(
                 self.config.desk.mac),
         )
+        return desk
+
+    def _on_desk_height(self, desk: DeskPort, height: Length) -> None:
+        if desk is self.desk:
+            self._on_live_height(height)
 
     def _on_connection_change(self, connected: bool) -> None:
         self.desk_connected = connected
@@ -354,7 +361,12 @@ class Daemon:
             desk1.ConnectedChanged(connected)
 
     def _on_live_height(self, height: Length) -> None:
-        self._observe_height(height)
+        # BLE reads also invoke this notification seam. A read spanning a hard
+        # boundary must not get a second chance to publish through its callback.
+        read_generation = getattr(self.machine, "_height_read_generation", None)
+        if (read_generation is None
+                or read_generation == self.machine._height_observation_generation):
+            self._observe_height(height)
         self.machine.last_height = height
         now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
@@ -368,7 +380,7 @@ class Daemon:
         # Lazy initialization also keeps allocation-only daemon fixtures useful.
         if not hasattr(self, "_position_observation"):
             self._position_observation = PositionObservationTracker(self._observation_lease())
-            self._observation_generation = 0
+            self._observation_generation = getattr(self, "_observation_generation", 0)
         return self._position_observation
 
     def _observation_lease(self) -> Duration:
@@ -380,22 +392,30 @@ class Daemon:
                         + READ_TIMEOUT)
 
     def _observe_height(self, height: Length | None) -> None:
-        tracker = self._observation_tracker()
-        if self.moving:
+        if height is None:
+            self._invalidate_position_observation()
             return
+        if (self.moving or getattr(self, "_observation_suspended", False)
+                or self.machine.is_away or self.machine.is_seatless):
+            return
+        tracker = self._observation_tracker()
         position = self.machine._cycle_state_for_height(height) if height is not None else None
         tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
         self._emit_position_observation()
 
     def _invalidate_position_observation(self) -> None:
-        self._observation_tracker().invalidate()
-        self._observation_generation += 1
-        self._emit_position_observation()
+        tracker = getattr(self, "_position_observation", None)
+        self._observation_generation = getattr(self, "_observation_generation", 0) + 1
+        if isinstance(self.machine, StateMachine):
+            self.machine.invalidate_height_observation()
+        if tracker is not None:
+            tracker.invalidate()
+            self._emit_position_observation()
 
     def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
         snapshot = self._observation_tracker().snapshot(
             WallInstant(time.time()), MonotonicInstant(time.monotonic()))
-        return (snapshot.position.value if snapshot.position is not None else "", 
+        return (snapshot.position.value if snapshot.position is not None else "",
                 snapshot.started is not None,
                 float(snapshot.started.epoch_seconds) if snapshot.started is not None else 0.0,
                 float(snapshot.elapsed.seconds), float(snapshot.remaining.seconds))
@@ -543,6 +563,8 @@ class Daemon:
     def _on_system_message(self, message: Message):
         if (message.interface == "org.freedesktop.login1.Manager"
                 and message.member == "PrepareForSleep" and message.body):
+            self._observation_suspended = bool(message.body[0])
+            self._invalidate_position_observation()
             if message.body[0]:
                 self.activity_log.emit(logmsg.SUSPEND_SUSPENDING)
                 self._spawn(self._release_desk_before_sleep(),
@@ -686,7 +708,8 @@ class Daemon:
         self.desk = self._make_desk()
         now = WallInstant(time.time())
         self.machine = StateMachine(self.config, self.desk, now=now,
-                                    on_moving=self._set_moving)
+                                    on_moving=self._set_moving,
+                                    on_height_observed=self._observe_height)
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return
@@ -872,6 +895,8 @@ class Daemon:
         seat = await self._session.state()
         away = seat == SEAT_BACKGROUND
         seatless = seat == SEAT_NONE
+        if away or seatless:
+            self._invalidate_position_observation()
 
         state_before = self.machine.state
         held_before = self.machine.held
@@ -1279,6 +1304,18 @@ class Daemon:
                 new_config.automation.sit_variation,
                 new_config.automation.stand_variation))
         self.config = new_config
+        observation_fields_changed = (
+            (previous_config.presets.get("sit"), previous_config.presets.get("stand"),
+             previous_config.advanced.movement_tolerance,
+             previous_config.automation.sync_interval, previous_config.automation.check_interval)
+            != (new_config.presets.get("sit"), new_config.presets.get("stand"),
+                new_config.advanced.movement_tolerance,
+                new_config.automation.sync_interval, new_config.automation.check_interval))
+        if observation_fields_changed:
+            self._invalidate_position_observation()
+            tracker = getattr(self, "_position_observation", None)
+            if tracker is not None:
+                tracker.lease = self._observation_lease()
         self._report_config_warnings(new_config, previous_config)
         set_language(new_config.ui.language)  # notifications follow the setting
         self.fmt = self._build_formatter(new_config)
@@ -1600,6 +1637,7 @@ class Daemon:
 
     def _swap_desk(self) -> None:
         """Replace the desk connection after the MAC changed."""
+        self._invalidate_position_observation()
         old_desk = self.desk
         self.desk = self._make_desk()
         self.machine._desk = self.desk
@@ -1624,6 +1662,8 @@ class Daemon:
         previous = dict(self.config.presets)
         self.config.presets[name] = round(height.metres, 4)
         self._persist_presets(previous)
+        if name in ("sit", "stand") and previous.get(name) != self.config.presets[name]:
+            self._invalidate_position_observation()
         self.activity_log.emit(logmsg.PRESET_SAVED, name=name, height=height.metres)
 
     def rename_preset(self, old_name: str, new_name: str) -> None:
