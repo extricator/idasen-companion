@@ -415,14 +415,13 @@ class Daemon:
             tracker.invalidate()
             self._emit_position_observation()
 
+    def _check_observation_continuity(self, wall: WallInstant) -> None:
+        if not self._observation_tracker().check_continuity(wall):
+            self._invalidate_position_observation()
+
     def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
         wall = WallInstant(time.time())
-        previous_wall = getattr(self, "_position_observation_wall", None)
-        self._position_observation_wall = wall
-        if previous_wall is not None:
-            step = wall - previous_wall
-            if step < Duration(0) or step > Duration(TIME_JUMP_THRESHOLD_SECONDS):
-                self._invalidate_position_observation()
+        self._check_observation_continuity(wall)
         snapshot = self._observation_tracker().snapshot(
             wall, MonotonicInstant(time.monotonic()))
         return (snapshot.position.value if snapshot.position is not None else "",
@@ -719,7 +718,8 @@ class Daemon:
         now = WallInstant(time.time())
         self.machine = StateMachine(self.config, self.desk, now=now,
                                     on_moving=self._set_moving,
-                                    on_height_observed=self._observe_height)
+                                    on_height_observed=self._observe_height,
+                                    on_observation_tick=self._check_observation_continuity)
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return

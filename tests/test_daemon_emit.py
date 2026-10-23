@@ -35,7 +35,8 @@ def observed_daemon(monkeypatch):
     d._ifaces = {"desk": MagicMock()}
     d._last_height_emit = MonotonicInstant(0)
     d.machine = StateMachine(d.config, d.desk, now=WallInstant(clock.wall),
-                             on_moving=d._set_moving, on_height_observed=d._observe_height)
+                             on_moving=d._set_moving, on_height_observed=d._observe_height,
+                             on_observation_tick=d._check_observation_continuity)
     return d, clock
 
 
@@ -49,6 +50,26 @@ async def test_observed_thirty_minutes_preserves_ten_minutes_active(monkeypatch)
         await d.machine.tick(WallInstant(clock.wall), 0, False)
     assert d.position_observation_snapshot()[3] == 1800.0
     assert d.machine.active_time == Duration(600)
+
+
+async def test_healthy_default_sync_with_read_latency_preserves_observation(monkeypatch):
+    d, clock = observed_daemon(monkeypatch)
+    await d.machine.start(WallInstant(clock.wall))
+    d.machine.pause()
+    original_read = d.desk.get_height
+
+    async def delayed_read():
+        height = await original_read()
+        clock.wall += 1
+        clock.mono += 1
+        return height
+
+    d.desk.get_height = delayed_read
+    for second in (60, 120, 180, 240, 300):
+        clock.wall, clock.mono = 1000 + second, second
+        await d.machine.tick(WallInstant(clock.wall), 0, False)
+    assert d.position_observation_snapshot() == ("sitting", True, 1000.0, 301.0, 390.0)
+    assert d.machine.active_time == Duration(0)
 
 
 def test_healthy_release_and_getters_do_not_renew_lease(monkeypatch):

@@ -154,12 +154,19 @@ class PositionObservationTracker:
         self._position = position
         self._confirmed = monotonic
 
-    def snapshot(self, wall: WallInstant, monotonic: MonotonicInstant) -> PositionObservation:
+    def check_continuity(self, wall: WallInstant) -> bool:
+        """Check a loop/sample boundary without renewing the observation lease."""
+        continuous = True
         if self._wall is not None:
             step = wall - self._wall
             if step < Duration(0) or step > Duration(TIME_JUMP_THRESHOLD_SECONDS):
                 self.invalidate()
+                continuous = False
         self._wall = wall
+        return continuous
+
+    def snapshot(self, wall: WallInstant, monotonic: MonotonicInstant) -> PositionObservation:
+        self.check_continuity(wall)
         if self._started is None or self._confirmed is None:
             return PositionObservation(None)
         age = monotonic - self._confirmed
@@ -356,6 +363,7 @@ class StateMachine:
         rng: random.Random | None = None,
         on_moving: Callable[[bool], None] | None = None,
         on_height_observed: Callable[[Length | None], None] | None = None,
+        on_observation_tick: Callable[[WallInstant], None] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -369,6 +377,7 @@ class StateMachine:
         #: started a competing one instead.
         self._on_moving = on_moving
         self._on_height_observed = on_height_observed
+        self._on_observation_tick = on_observation_tick
         self._height_observation_generation = 0
         self._height_read_generation: int | None = None
 
@@ -507,6 +516,9 @@ class StateMachine:
         self._last_idle_ms, self._last_locked, self._last_away = (
             idle_ms, locked, away)
         self._last_seatless = seatless
+
+        if self._on_observation_tick is not None:
+            self._on_observation_tick(now)
 
         if self.unconfigured:
             # No desk to drive: no accounting, no syncing, no notifications
