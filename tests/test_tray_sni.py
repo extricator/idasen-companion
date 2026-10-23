@@ -42,6 +42,7 @@ from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -65,11 +66,16 @@ class FakeClient(QObject):
     connectedChanged = Signal(bool)
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
+    positionObservationChanged = Signal()
 
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
         self.available = available
         self.daily_rows = [DailyStatRow(*row) for row in daily_rows]
+        self.observation = None
+
+    def position_observation_elapsed(self, position):
+        return self.observation if position in ("sitting", "standing") else None
 
     def get_daily_stats(self, start, end):
         return self.daily_rows
@@ -140,6 +146,7 @@ def tray_with_stats(qapp):
 
 def standing_and_active(icon):
     """Standing 43m into a 54m cycle, so 11m remain."""
+    icon.client.observation = Duration(2580)
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
@@ -155,7 +162,7 @@ def test_app_name_is_the_title_and_everything_else_the_detail(tray):
 
     title, description = icon._rich.last
     assert title == "Idasen Companion"
-    assert description == "Standing for 43m\nSitting down in 11m"
+    assert description == "Standing for about 43m\nSitting down in 11m"
 
 
 def test_today_summary_joins_the_detail_not_the_title(tray_with_stats):
@@ -168,7 +175,7 @@ def test_today_summary_joins_the_detail_not_the_title(tray_with_stats):
 
     title, description = icon._rich.last
     assert title == "Idasen Companion"
-    assert description == ("Standing for 43m\n"
+    assert description == ("Standing for about 43m\n"
                            "Sitting down in 11m\n"
                            "Today: 1h 58m sitting / 50m standing")
 
@@ -209,7 +216,7 @@ def test_plain_tooltip_is_still_set_alongside(tray_with_stats):
 
     assert icon.toolTip().split("\n") == [
         "Idasen Companion",
-        "Standing for 43m",
+        "Standing for about 43m",
         "Sitting down in 11m",
         "Today: 1h 58m sitting / 50m standing"]
 
@@ -235,7 +242,7 @@ def test_tray_works_with_no_takeover(tray):
     standing_and_active(icon)
 
     assert icon._rich is None
-    assert icon.toolTip().startswith("Idasen Companion\nStanding for 43m")
+    assert icon.toolTip().startswith("Idasen Companion\nStanding for about 43m")
     # The menu keeps its own shorter phrasing — see test_tray_tooltip.py.
     assert icon._status_action.text() == "Standing · 11m left"
 
