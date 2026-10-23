@@ -66,18 +66,18 @@ async def test_real_sample_reaches_tray_without_active_credit(qapp, monkeypatch)
         tray._on_status("paused")
         tray._on_progress(600.0, 1800.0)
         daemon._on_live_height(Length(daemon.config.presets["sit"]))
-        await settle(qapp, lambda: "for 0s" in tray._tooltip_lines()[0])
+        await settle(qapp, lambda: "for about 0s" in tray._tooltip_lines()[0])
         clock.wall += 20
         clock.mono += 20
         tray._tick()
-        assert "for 20s" in tray._tooltip_lines()[0]
+        assert "for about 20s" in tray._tooltip_lines()[0]
         daemon._on_live_height(Length(daemon.config.presets["sit"]))
         await settle(qapp, lambda: client.position_observation_elapsed("sitting").seconds == 20)
         client.refresh_all()
         await settle(qapp, lambda: client.position_observation_elapsed("sitting").seconds == 20)
         daemon._on_live_height(Length(daemon.config.presets["stand"]))
         tray._on_position("standing")
-        await settle(qapp, lambda: "for 0s" in tray._tooltip_lines()[0])
+        await settle(qapp, lambda: "for about 0s" in tray._tooltip_lines()[0])
     finally:
         next(tray_fixture, None)
         client.deleteLater()

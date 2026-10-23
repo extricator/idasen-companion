@@ -182,14 +182,14 @@ EXPECTED_INTERFACE_XML = {
 }
 
 COMPOUND_SIGNAL_CASES = [
-    (service_mod.Desk1, "PositionObservationChanged",
-     ("standing", True, 0.0, 1.25, 388.75), "sbddd"),
     (service_mod.Automation1, "ProgressChanged", (1.25, 7.5), "dd"),
     (service_mod.Automation1, "PreMoveWarning", ("standing", 45), "su"),
     (service_mod.Automation1, "TransitionCompleted",
      ("sitting", "standing", True), "ssb"),
     (service_mod.Log1, "Entry",
      (123.5, "info", "activity", "event.id", "{}", "message"), "dsssss"),
+    (service_mod.Desk1, "PositionObservationChanged",
+     ("standing", True, 0.0, 1.25, 388.75), "sbddd"),
 ]
 
 
