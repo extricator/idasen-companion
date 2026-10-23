@@ -390,7 +390,9 @@ def test_observed_phrase_tracks_larger_font_and_palette(qapp, observed_window, m
     page.client.positionObservationChanged.emit()
     qapp.processEvents()
     doc = _assert_overview_bounds(window)
-    assert doc.toPlainText() == page.position_label.accessibleName()
+    assert "De pie" in doc.toPlainText()
+    assert page.position_label.accessibleName() == "De pie desde hace unos 1 h 05 min"
+    assert page.position_label.accessibleDescription() == page.ctx.fmt.position_observation_description()
     assert css(theme().secondary) in page.position_label.text()
     fragment = doc.begin().begin()
     point_sizes = []

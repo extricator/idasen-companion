@@ -331,9 +331,8 @@ class TrayIcon(QSystemTrayIcon):
     def _tooltip_lines(self) -> list[str]:
         """The status as tooltip detail lines.
 
-        Two lines, answering the two questions a glance at a sit/stand desk is
-        actually asking — how long have I been like this, and when does that
-        change. Neither is the app's name, which is why the name is the title
+        Two lines: the sampled time at this desk position, and when automation
+        next changes it. Neither is the app's name, which is why the name is the title
         on its own rather than a compound headline.
         """
         if self._connecting:

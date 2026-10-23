@@ -11,7 +11,7 @@ from math import ceil
 from datetime import datetime
 
 from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QFontMetricsF
+from PySide6.QtGui import QFont, QFontMetricsF
 from PySide6.QtWidgets import (
     QDoubleSpinBox, QHBoxLayout, QLabel, QProgressBar, QPushButton,
     QSizePolicy, QStyle, QVBoxLayout, QWidget,
@@ -116,7 +116,6 @@ class OverviewPage(Page):
         font.setPointSizeF(font.pointSizeF() * 2.0)
         self.position_label.setFont(emphasize(font))
         self.position_label.setStyleSheet("border: none;")
-        self._position_body_font = self.font()
         self.position_label.setSizePolicy(
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.position_label.installEventFilter(self)
@@ -442,8 +441,9 @@ class OverviewPage(Page):
     def _update_position_word(self) -> None:
         self._render_position()
 
-    def eventFilter(self, watched, event):
-        if watched is self.position_label and event.type() == QEvent.Type.Resize:
+    def eventFilter(self, watched, event):  # pylint: disable=invalid-name
+        if watched is self.position_label and event.type() in (
+                QEvent.Type.Resize, QEvent.Type.FontChange):
             self._render_position()
         return super().eventFilter(watched, event)
 
@@ -475,7 +475,10 @@ class OverviewPage(Page):
         # Substitute a marker through the *whole* message so translations can
         # place the position on either side without guessing grammar/order.
         before, _, after = self.ctx.fmt.position_observation("\ufffc", elapsed).partition("\ufffc")
-        metrics = QFontMetricsF(self._position_body_font)
+        body_font = QFont(label.font())
+        body_font.setPointSizeF(label.font().pointSizeF() / 2)
+        body_font.setWeight(QFont.Weight.Normal)
+        metrics = QFontMetricsF(body_font)
         budget = max(0, label.contentsRect().width() - heading_width)
         if metrics.horizontalAdvance(before + after) > budget:
             # Keep both translated sides when they fit, otherwise elide each
@@ -486,7 +489,7 @@ class OverviewPage(Page):
             after = metrics.elidedText(after, Qt.TextElideMode.ElideRight,
                                        int(budget * metrics.horizontalAdvance(after) / total))
         secondary = css(theme().secondary)
-        body_size = self._position_body_font.pointSizeF()
+        body_size = body_font.pointSizeF()
         def clause(text: str) -> str:
             return f'<span style="font-size:{body_size}pt; font-weight:400; color:{secondary}">{escape(text)}</span>'
         label.setTextFormat(Qt.TextFormat.RichText)

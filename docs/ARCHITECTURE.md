@@ -202,13 +202,13 @@ timestamp whose epoch was undocumented on the wire, and was the only reason
 `StateMachine.last_height_at` existed.
 
 `tests/test_dbus_contract.py` freezes the complete introspection XML of all
-five interfaces (45 members), checks the GUI/CLI member references, and invokes
-the four compound signals through a mock bus to protect flat field order.
+five interfaces (47 members), checks the GUI/CLI member references, and invokes
+the five compound signals through a mock bus to protect flat field order.
 
 The service declarations use dbus-fast's Python scalar aliases and
 `Annotated[..., DBusSignature(...)]` metadata, available since 4.0.0. Compound
 results are typed tuples with unparenthesized signatures (`dd`, `su`, `ssb`,
-`dsssss`); dbus-fast flattens them into the same ordered wire arguments.
+`dsssss`, `sbddd`); dbus-fast flattens them into the same ordered wire arguments.
 Empty exported results use an explicit empty-signature `EmptyResult` alias:
 bare deferred `None` annotations fail declaration construction in the compiled
 5.0.22 runtime. All five constructors refer to the real `Daemon` under
@@ -298,6 +298,50 @@ Each page under `gui/pages/` is an independent `Page` (see `pages/base.py`) that
 owns its widgets, subscribes to the client signals it needs, and reloads lazily
 via an `on_shown()` hook. `main.py` enforces single-instance (a second launch
 calls `Activate()` over D-Bus) and is tray-optional.
+
+### Observed desk-position duration is a finite sampled estimate
+
+`core/machine.py`'s `PositionObservationTracker` owns a Qt-free interval and freshness lease,
+separate from active automation credit. Actual startup and sync reads,
+verified final move read-back and live height callbacks feed observations.
+An unchanged confirmed preset renews freshness without restarting its interval;
+a changed preset starts a new interval. No getter, repeated position/status
+signal, requested target, seeded state or historical transition can renew it.
+
+The lease covers `min(sync_interval or 300, 300)` seconds plus
+`min(check_interval, 300)` and the existing 30-second read timeout (390 seconds
+with default intervals). Failed reads, custom/moving state, seat loss, sleep edges, clock
+discontinuities and desk/observation-policy changes invalidate continuity;
+late reads/callbacks from an invalidated acquisition cannot restore it. A
+healthy intentional on-demand BLE release preserves the finite lease. Paused,
+snoozed, disabled or idle automation alone does not stop observed time: real
+samples may keep renewing it while active credit and its countdown freeze.
+After uncertainty or expiry, only a fresh actual confirmation starts a new
+interval. Nothing is persisted and no config or BLE connection/polling policy
+is added or changed for this display.
+
+`Desk1.GetPositionObservation` and `Desk1.PositionObservationChanged` are
+additive, read-only members carrying five flat scalars (`sbddd`): position,
+knownness, interval-start wall epoch, observed elapsed seconds and remaining freshness.
+`DaemonClient` validates the whole result and ages one shared receipt cache
+locally on a monotonic clock, omitting duration at expiry or on owner loss.
+An async reply cannot override a newer observation signal or a new owner.
+An older daemon without these members still supports ordinary position and
+commands; the duration stays absent.
+
+Overview and tray query that cache on existing tickers without D-Bus or
+statistics reads. One contextual whole message says “for about”; the same
+compact duration floors seconds, and the complete accessible description
+explains periodic samples can miss intervening moves. Overview keeps the
+position heading prominent on its existing line, with a body-size secondary
+clause that elides first at finite width; translated content is escaped and
+placeholder order is preserved. The tray keeps one plain position line in its
+existing multiline tooltip and exposes the complete phrase and explanation
+through its existing menu's accessibility metadata. No live accessibility
+announcement, extra widget/control, row, card, focus stop or preference is
+introduced. Moving/connecting precedence and position-only unknown/expired
+fallback remain. This describes sampled desk position, never a person's
+posture or presence, and never guarantees uninterrupted physical position.
 
 ### Typed state values behind raw transport
 
