@@ -413,3 +413,43 @@ def test_a_malformed_schedule_boundary_renders_rather_than_raising(
     """
     assert overview_page._schedule_clock("not-a-time") == "not-a-time"
     assert overview_page._schedule_clock("") == ""
+
+
+@pytest.mark.parametrize("language,position,expected,description", [
+    ("en", "Standing", "Standing for about 1h 05m",
+     "Estimated from periodic desk observations; moves between samples may be missed."),
+    ("es", "De pie", "De pie desde hace unos 1 h 05 min",
+     "Estimación basada en observaciones periódicas del escritorio; pueden pasar inadvertidos los movimientos entre muestras."),
+], ids=["english", "spanish"])
+def test_position_observation_uses_complete_localized_messages(
+        language, position, expected, description):
+    from idasen_companion.core import i18n
+    from idasen_companion.core.durations import Duration
+
+    try:
+        i18n.set_language(language)
+        fmt = Formatter(PresentationContext(
+            locale=LocaleProfile("es_ES" if language == "es" else "en_US"),
+            translator=GettextTranslator(), unit=HeightUnit.CENTIMETRES,
+            time_style=TimeStyle.HOUR_AND_MINUTE_24))
+        assert fmt.position_observation(position, Duration(3900.9)) == expected
+        assert fmt.position_observation_description() == description
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+
+
+def test_position_observation_allows_translator_placeholder_reordering():
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.core.presentation import EnglishTranslator
+
+    class Reordered(EnglishTranslator):
+        def message(self, source, **values):
+            if source == "%(position)s for about %(duration)s":
+                assert source.context == "shared.presentation"
+                return "About %(duration)s: %(position)s" % values
+            return super().message(source, **values)
+
+    fmt = Formatter(PresentationContext(
+        locale=LocaleProfile("en_US"), translator=Reordered(),
+        unit=HeightUnit.CENTIMETRES, time_style=TimeStyle.HOUR_AND_MINUTE_24))
+    assert fmt.position_observation("Standing", Duration(59.9)) == "About 59s: Standing"
