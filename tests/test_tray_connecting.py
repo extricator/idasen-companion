@@ -55,7 +55,10 @@ class FakeClient(QObject):
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
 
-    available = False
+    available = True
+
+    def get_daily_stats(self, _start, _end):
+        return []
 
     def __init__(self):
         super().__init__()
@@ -195,12 +198,13 @@ def test_move_failed_clears_connecting(tray):
 
 
 def test_daemon_going_away_clears_connecting(tray):
-    icon, _ = tray
+    icon, client = tray
     icon._on_connected(False)
     icon._on_moving(False)
     icon._run_action("toggle")
 
-    icon._on_available(False)
+    client.available = False
+    client.availableChanged.emit(False)
 
     assert not icon._connecting
     assert label(icon) == "Daemon not running"

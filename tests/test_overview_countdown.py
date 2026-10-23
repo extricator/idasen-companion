@@ -232,6 +232,8 @@ def test_observed_time_is_shared_while_active_countdown_freezes(page, monkeypatc
                         lambda position: Duration(clock - 10) if position == "sitting" else None)
     for name in ("toggle", "refresh_all", "quit_daemon"):
         monkeypatch.setattr(page.client, name, lambda: None, raising=False)
+    monkeypatch.setattr(page.client, "available", True)
+    monkeypatch.setattr(page.client, "get_daily_stats", lambda *_: [], raising=False)
     tray = TrayIcon(page.client, SimpleNamespace(ctx=page.ctx), QIcon())
     try:
         page.client.positionChanged.emit("sitting")

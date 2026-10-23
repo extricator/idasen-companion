@@ -202,9 +202,7 @@ class TrayIcon(QSystemTrayIcon):
     def _on_available(self, available: bool) -> None:
         if not available:
             self._end_connecting()
-            text = pgettext('tray', "Daemon not running")
-            self._status_action.setText(text)
-            self._set_tooltip(text)
+        self._refresh_texts(stats=False)
 
     def _on_connected(self, connected: bool) -> None:
         self._connected = connected
@@ -392,6 +390,15 @@ class TrayIcon(QSystemTrayIcon):
         return snooze_line(self._fmt(), self.client.snooze_until())
 
     def _refresh_texts(self, stats: bool = True) -> None:
+        if not self.client.available:
+            text = pgettext('tray', "Daemon not running")
+            self._status_action.setText(text)
+            menu = self.contextMenu()
+            if menu is not None:
+                menu.setAccessibleName(text)
+                menu.setAccessibleDescription("")
+            self._set_tooltip(text)
+            return
         # `stats=False` on the ticker path, and not an optimization to taste:
         # `_today_summary` makes a blocking D-Bus call for the day's totals,
         # which is fine once per daemon push but not once per second. The

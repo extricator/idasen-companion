@@ -151,7 +151,7 @@ def _make_tray(client):
 
 @pytest.fixture
 def tray(qapp):
-    yield from _make_tray(FakeClient())
+    yield from _make_tray(FakeClient(available=True))
 
 
 @pytest.fixture
@@ -168,6 +168,27 @@ def standing_and_active(icon):
     icon.client.observation = Duration(2580)
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
+
+
+def test_unavailable_paused_tray_survives_ticks_and_observation_clear(tray):
+    icon, client = tray
+    standing_and_active(icon)
+    icon._on_status("paused")
+    client.available = False
+    client.availableChanged.emit(False)
+    client.observation = None
+    client.positionObservationChanged.emit()
+    icon._tick()
+    assert icon.toolTip() == "Idasen Companion\nDaemon not running"
+    assert icon._status_action.text() == "Daemon not running"
+    assert icon.contextMenu().accessibleName() == "Daemon not running"
+    assert icon.contextMenu().accessibleDescription() == ""
+    client.available = True
+    client.availableChanged.emit(True)
+    client.observation = Duration(30)
+    client.positionObservationChanged.emit()
+    icon._tick()
+    assert icon.toolTip() == "Idasen Companion\nStanding for about 30s\nPaused"
 
 
 def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):

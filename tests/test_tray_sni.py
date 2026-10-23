@@ -133,7 +133,7 @@ def _make_tray(client):
 
 @pytest.fixture
 def tray(qapp):
-    yield from _make_tray(FakeClient())
+    yield from _make_tray(FakeClient(available=True))
 
 
 @pytest.fixture
