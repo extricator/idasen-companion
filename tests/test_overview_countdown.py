@@ -49,6 +49,7 @@ class FakeClient(QObject):
     presetsChanged = Signal(dict)
     availableChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
+    positionObservationChanged = Signal()
 
     available = False
 
@@ -63,6 +64,7 @@ class FakeClient(QObject):
     def move_to_height(self, height): ...
     def set_automation_enabled(self, enabled): ...
     def idle_provider(self): return "none"
+    def position_observation_elapsed(self, position): return None
 
 
 @pytest.fixture
@@ -211,3 +213,44 @@ def test_known_status_actions_and_moving_override(page, monkeypatch):
     page.client.movingChanged.emit(False)
     assert page.position_label.text() == "Sitting"
     assert not page.stop_btn.isEnabled()
+
+
+def test_observed_time_is_shared_while_active_countdown_freezes(page, monkeypatch):
+    from PySide6.QtGui import QIcon
+    import shiboken6
+    from idasen_companion.gui.tray import TrayIcon
+
+    clock = 10.0
+    monkeypatch.setattr(overview_mod, "time", SimpleNamespace(monotonic=lambda: clock))
+    monkeypatch.setattr(page.client, "position_observation_elapsed",
+                        lambda position: Duration(clock - 10) if position == "sitting" else None)
+    for name in ("toggle", "refresh_all", "quit_daemon"):
+        monkeypatch.setattr(page.client, name, lambda: None, raising=False)
+    tray = TrayIcon(page.client, SimpleNamespace(ctx=page.ctx), QIcon())
+    try:
+        page.client.positionChanged.emit("sitting")
+        page.client.positionObservationChanged.emit()
+        assert page.position_label.accessibleName() == "Sitting for about 0s"
+        assert tray.toolTip().splitlines()[1] == "Sitting for about 0s"
+        clock += 600
+        page.client.progressChanged.emit(600.0, 1800.0)
+        page.client.statusChanged.emit("paused")
+        clock += 1200
+        page._tick_countdown()
+        tray._tick()
+        assert page.position_label.accessibleName() == tray.toolTip().splitlines()[1] == "Sitting for about 30m"
+        assert page._remaining == Duration(1200)
+        assert page.countdown_time_word.text() == "20:00"
+        assert page.position_label.accessibleDescription() == (
+            "Estimated from periodic desk observations; moves between samples may be missed.")
+        page.client.movingChanged.emit(True)
+        assert page.position_label.accessibleName() == "Moving…"
+        assert "for about" not in tray.toolTip()
+        page.client.movingChanged.emit(False)
+        monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: None)
+        page.client.positionObservationChanged.emit()
+        assert page.position_label.accessibleName() == "Sitting"
+        assert tray.toolTip().splitlines()[1] == "Sitting"
+    finally:
+        tray.setContextMenu(None)
+        shiboken6.delete(tray)
