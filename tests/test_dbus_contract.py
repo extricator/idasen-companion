@@ -229,6 +229,12 @@ def test_the_scan_actually_finds_the_calls():
     assert {r[2] for r in refs} == {"signal", "property", "method"}
 
 
+def test_observation_method_and_signal_are_in_the_client_scan():
+    references = {(iface, member, kind) for iface, member, kind, _ in client_references()}
+    assert ("IFACE_DESK", "GetPositionObservation", "method") in references
+    assert ("IFACE_DESK", "PositionObservationChanged", "signal") in references
+
+
 @pytest.mark.parametrize("const,cls", INTERFACES.items())
 def test_interface_names_match_between_the_two_sides(const, cls):
     expected = cls(MagicMock()).name
