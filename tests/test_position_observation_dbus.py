@@ -43,8 +43,6 @@ async def test_real_sample_reaches_tray_without_active_credit(qapp, monkeypatch)
     daemon.machine = StateMachine(daemon.config, MagicMock(), now=WallInstant(clock.wall))
     daemon.moving = False
     daemon.desk_connected = True
-    daemon._last_height_emit = client_mod.MonotonicInstant(0) if hasattr(client_mod, "MonotonicInstant") else 0
-    # Use the real constructor's observation initialization once available.
     daemon._ifaces = {}
     from idasen_companion.core.clocks import MonotonicInstant
     daemon._last_height_emit = MonotonicInstant(0)

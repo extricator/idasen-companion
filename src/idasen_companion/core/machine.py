@@ -63,7 +63,7 @@ from typing import NamedTuple
 
 from ..desk.port import MoveFailure
 from .config import AppConfig
-from .clocks import WallInstant
+from .clocks import MonotonicInstant, WallInstant
 from .durations import Duration
 from .lengths import Length
 from .schedule import is_schedule_active
@@ -115,6 +115,52 @@ class DeskState(StrEnum):
 
 
 _PRESET_FOR_STATE = {DeskState.SITTING: "sit", DeskState.STANDING: "stand"}
+
+
+@dataclass(frozen=True)
+class PositionObservation:
+    """One atomic view of a finite chain of sampled position confirmations."""
+
+    position: DeskState | None
+    started: WallInstant | None = None
+    elapsed: Duration = Duration(0)
+    remaining: Duration = Duration(0)
+
+
+class PositionObservationTracker:
+    """Pure observation arithmetic; only real samples renew the lease."""
+
+    def __init__(self, lease: Duration):
+        self.lease = lease
+        self._position: DeskState | None = None
+        self._started: WallInstant | None = None
+        self._confirmed: MonotonicInstant | None = None
+
+    def invalidate(self) -> None:
+        self._position = None
+        self._started = None
+        self._confirmed = None
+
+    def observe(self, position: DeskState | None, wall: WallInstant,
+                monotonic: MonotonicInstant) -> None:
+        previous = self.snapshot(wall, monotonic)
+        if position is None:
+            self.invalidate()
+            return
+        if previous.position != position:
+            self._started = wall
+        self._position = position
+        self._confirmed = monotonic
+
+    def snapshot(self, wall: WallInstant, monotonic: MonotonicInstant) -> PositionObservation:
+        if self._started is None or self._confirmed is None:
+            return PositionObservation(None)
+        age = monotonic - self._confirmed
+        elapsed = wall - self._started
+        if age < Duration(0) or age >= self.lease or elapsed < Duration(0):
+            self.invalidate()
+            return PositionObservation(None)
+        return PositionObservation(self._position, self._started, elapsed, self.lease - age)
 
 
 class Status(StrEnum):

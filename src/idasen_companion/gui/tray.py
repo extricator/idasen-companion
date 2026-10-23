@@ -136,6 +136,9 @@ class TrayIcon(QSystemTrayIcon):
         self.activated.connect(self._on_activated)
         client.statusChanged.connect(self._on_status)
         client.positionChanged.connect(self._on_position)
+        observation_changed = getattr(client, "positionObservationChanged", None)
+        if observation_changed is not None and hasattr(observation_changed, "connect"):
+            observation_changed.connect(lambda: self._refresh_texts(stats=False))
         client.progressChanged.connect(self._on_progress)
         client.presetsChanged.connect(self._rebuild_presets)
         client.availableChanged.connect(self._on_available)
@@ -236,7 +239,6 @@ class TrayIcon(QSystemTrayIcon):
         self._remaining = max(Duration(0.0), Duration(target - active_time))
         # The other half of the same number: how long this position has been
         # held. Both sides of the cycle are worth a line in the tooltip.
-        self._elapsed = max(Duration(0.0), Duration(active_time))
         self._progress_stamp = MonotonicInstant(time.monotonic())
         self._refresh_texts()
 
@@ -248,11 +250,6 @@ class TrayIcon(QSystemTrayIcon):
         bare comparison, and even inside a cycle it usually re-renders the same
         string — which ``RichTooltip.update`` drops without a D-Bus signal.
         """
-        if self._status not in COUNTDOWN_STATUSES:
-            return
-        remaining = self._shown_remaining()
-        if remaining is None or remaining <= 0:
-            return
         self._refresh_texts(stats=False)
 
     def _shown_remaining(self) -> float | None:
@@ -285,9 +282,8 @@ class TrayIcon(QSystemTrayIcon):
 
     def _shown_elapsed(self) -> float | None:
         """How long this position has been held, aged the same way."""
-        if self._elapsed is None:
-            return None
-        return float(round((self._elapsed + self._since_progress()).seconds))
+        elapsed = self.client.position_observation_elapsed(str(self._position))
+        return float(elapsed.seconds) if elapsed is not None and not self._moving else None
 
     def _since_progress(self) -> Duration:
         return MonotonicInstant(time.monotonic()) - self._progress_stamp
@@ -373,7 +369,7 @@ class TrayIcon(QSystemTrayIcon):
         # cycle freezes, so it would sit there unchanged for the whole pause
         # while reading like a running clock. Showing nothing is the honest
         # version — the position word alone is still true.
-        elapsed = None if self._cycle_stopped() else self._shown_elapsed()
+        elapsed = self._shown_elapsed()
         held = (pgettext('tray', "%(position)s for %(duration)s") % {
                     "position": position,
                     "duration": self._fmt().duration(int(elapsed))}

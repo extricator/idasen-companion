@@ -33,7 +33,8 @@ from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
-    FreshPresence, MoveFailed,
+    FreshPresence, MoveFailed, PositionObservationTracker,
+    HELD_POLL_INTERVAL, TIME_JUMP_THRESHOLD_SECONDS,
     ResumedOnCycle, SeatChanged, StateMachine, StateSynced, SyncFailed,
     TimeJumpDetected, TransitionCompleted,
     TransitionHeldForInput, TransitionSkipped,
@@ -353,6 +354,7 @@ class Daemon:
             desk1.ConnectedChanged(connected)
 
     def _on_live_height(self, height: Length) -> None:
+        self._observe_height(height)
         self.machine.last_height = height
         now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
@@ -361,6 +363,47 @@ class Daemon:
             if desk1:
                 desk1.emit_properties_changed({"Height": height.metres})
                 desk1.HeightChanged(height.metres)
+
+    def _observation_tracker(self) -> PositionObservationTracker:
+        # Lazy initialization also keeps allocation-only daemon fixtures useful.
+        if not hasattr(self, "_position_observation"):
+            self._position_observation = PositionObservationTracker(self._observation_lease())
+            self._observation_generation = 0
+        return self._position_observation
+
+    def _observation_lease(self) -> Duration:
+        from ..desk.ble import READ_TIMEOUT
+
+        interval = self.config.automation.sync_interval or HELD_POLL_INTERVAL
+        return Duration(min(interval, HELD_POLL_INTERVAL)
+                        + min(self.config.automation.check_interval, TIME_JUMP_THRESHOLD_SECONDS)
+                        + READ_TIMEOUT)
+
+    def _observe_height(self, height: Length | None) -> None:
+        tracker = self._observation_tracker()
+        if self.moving:
+            return
+        position = self.machine._cycle_state_for_height(height) if height is not None else None
+        tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
+        self._emit_position_observation()
+
+    def _invalidate_position_observation(self) -> None:
+        self._observation_tracker().invalidate()
+        self._observation_generation += 1
+        self._emit_position_observation()
+
+    def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
+        snapshot = self._observation_tracker().snapshot(
+            WallInstant(time.time()), MonotonicInstant(time.monotonic()))
+        return (snapshot.position.value if snapshot.position is not None else "", 
+                snapshot.started is not None,
+                float(snapshot.started.epoch_seconds) if snapshot.started is not None else 0.0,
+                float(snapshot.elapsed.seconds), float(snapshot.remaining.seconds))
+
+    def _emit_position_observation(self) -> None:
+        desk1 = self._ifaces.get("desk")
+        if desk1 is not None:
+            desk1.PositionObservationChanged(*self.position_observation_snapshot())
 
     async def _release_desk(self) -> None:
         """Hand the desk back, because this session is no longer in front.

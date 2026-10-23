@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 EmptyResult = Annotated[None, DBusSignature("")]
 ProgressPayload = Annotated[tuple[float, float], DBusSignature("dd")]
+PositionObservationPayload = Annotated[tuple[str, bool, float, float, float], DBusSignature("sbddd")]
 WarningPayload = Annotated[tuple[str, int], DBusSignature("su")]
 TransitionPayload = Annotated[tuple[str, str, bool], DBusSignature("ssb")]
 LogPayload = Annotated[tuple[float, str, str, str, str, str], DBusSignature("dsssss")]
@@ -56,6 +57,16 @@ class Desk1(ServiceInterface):
     def __init__(self, daemon: Daemon) -> None:
         super().__init__(f"{DBUS_NAME}.Desk1")
         self.d = daemon
+
+    @dbus_method()
+    def GetPositionObservation(self) -> PositionObservationPayload:  # pylint: disable=invalid-name
+        return self.d.position_observation_snapshot()
+
+    @dbus_signal()
+    def PositionObservationChanged(  # pylint: disable=invalid-name
+            self, position: DBusStr, known: DBusBool, started: DBusDouble,
+            elapsed: DBusDouble, remaining: DBusDouble) -> PositionObservationPayload:
+        return position, known, started, elapsed, remaining
 
     @dbus_property(access=PropertyAccess.READ)
     def Connected(self) -> DBusBool:  # pylint: disable=invalid-name
