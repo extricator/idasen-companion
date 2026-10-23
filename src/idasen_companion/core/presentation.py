@@ -49,12 +49,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import display_prefs as units
-from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
+from .durations import Duration, SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from .machine import DeskState
 from .state_values import PositionValue, StatusValue, UnknownPosition, UnknownStatus
 from .display_prefs import HeightUnit
 from .lengths import Length
-from .i18n import Translator
+from .i18n import P_, Translator
 from .i18n import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
     HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT,
@@ -315,6 +315,18 @@ class Formatter:
     def position_or_custom(self, position: PositionValue) -> str:
         """The desk's position as a word, or "Custom" at neither preset."""
         return position_or_custom(self._context.translator, position)
+
+    def position_observation(self, position: str, elapsed: Duration) -> str:
+        """A sampled desk-position estimate, independent of active credit."""
+        return self._context.translator.message(
+            P_('shared.presentation', "%(position)s for about %(duration)s"),
+            position=position, duration=self.duration(elapsed.seconds))
+
+    def position_observation_description(self) -> str:
+        """The complete sampling limitation, for accessible descriptions."""
+        return self._context.translator.message(P_(
+            'shared.presentation',
+            "Estimated from periodic desk observations; moves between samples may be missed."))
 
     def countdown(self, seconds: float) -> str:
         """A running countdown, e.g. 125 -> "2:05"."""

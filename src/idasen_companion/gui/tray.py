@@ -22,7 +22,7 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from ..core.machine import (
-    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES, DeskState, Status,
+    RESUMABLE_STATUSES, DeskState, Status,
 )
 from ..core.presentation import Formatter
 from ..core.state_values import PositionValue, StatusValue, parse_position, parse_status
@@ -65,8 +65,7 @@ class TrayIcon(QSystemTrayIcon):
         # falsy 0.0 conflated the two, so the countdown clause vanished
         # outright once the clock ran out — for as long as the move waited.
         self._remaining: Duration | None = None
-        self._elapsed: Duration | None = None
-        # When those two were last true, so the ticker below can age them.
+        # Receipt time for the independently interpolated active countdown.
         self._progress_stamp = MonotonicInstant(time.monotonic())
         # The day's totals, cached: see _refresh_texts for why the ticker
         # must not re-fetch them.
@@ -218,6 +217,7 @@ class TrayIcon(QSystemTrayIcon):
         self._moving = moving
         if moving:
             self._end_connecting()
+        self._refresh_texts(stats=False)
 
     def _on_status(self, status: str) -> None:
         self._status = parse_status(status)
@@ -237,19 +237,11 @@ class TrayIcon(QSystemTrayIcon):
 
     def _on_progress(self, active_time: float, target: float) -> None:
         self._remaining = max(Duration(0.0), Duration(target - active_time))
-        # The other half of the same number: how long this position has been
-        # held. Both sides of the cycle are worth a line in the tooltip.
         self._progress_stamp = MonotonicInstant(time.monotonic())
         self._refresh_texts()
 
     def _tick(self) -> None:
-        """Age the countdown by a second.
-
-        Only the two states that show one, mirroring Overview's own ticker
-        (``pages/overview.py`` ``_tick_countdown``). Everywhere else this is a
-        bare comparison, and even inside a cycle it usually re-renders the same
-        string — which ``RichTooltip.update`` drops without a D-Bus signal.
-        """
+        """Age cached observations independently of the active countdown."""
         self._refresh_texts(stats=False)
 
     def _shown_remaining(self) -> float | None:
@@ -270,20 +262,10 @@ class TrayIcon(QSystemTrayIcon):
             return None
         return max(0.0, round((self._remaining - self._since_progress()).seconds))
 
-    def _cycle_stopped(self) -> bool:
-        """Whether the active-time clock is frozen with no scheduled thaw.
-
-        The machine's own list, not a copy of it — see ``NO_CYCLE_STATUSES``.
-        Deliberately excludes idle, lock and away: those stop the accumulator
-        too, but the cycle is still this one and the freeze ends the moment the
-        user comes back, so the duration is stale rather than meaningless.
-        """
-        return self._status in NO_CYCLE_STATUSES
-
-    def _shown_elapsed(self) -> float | None:
-        """How long this position has been held, aged the same way."""
+    def _shown_elapsed(self) -> Duration | None:
+        """Locally aged sampled estimate, including while automation freezes."""
         elapsed = self.client.position_observation_elapsed(str(self._position))
-        return float(elapsed.seconds) if elapsed is not None and not self._moving else None
+        return elapsed if not self._moving else None
 
     def _since_progress(self) -> Duration:
         return MonotonicInstant(time.monotonic()) - self._progress_stamp
@@ -357,22 +339,10 @@ class TrayIcon(QSystemTrayIcon):
         if self._connecting:
             return [pgettext('tray', "Connecting…")]
 
-        position = self._position_word()
-        # Before the first progress push there is no duration to report, and
-        # "Sitting for 0m" would be a claim we can't back. A duration we *do*
-        # know is reported in seconds while it is under a minute, so the first
-        # minute after a transition no longer reads "Sitting for 0m" either.
-        #
-        # Nor is one reported once the cycle stops running down (paused,
-        # snoozed, off, out of hours, held). The number is active time, not
-        # time in the position: the machine stops crediting it the moment the
-        # cycle freezes, so it would sit there unchanged for the whole pause
-        # while reading like a running clock. Showing nothing is the honest
-        # version — the position word alone is still true.
+        position = (pgettext('overview', 'Moving…') if self._moving
+                    else self._position_word())
         elapsed = self._shown_elapsed()
-        held = (pgettext('tray', "%(position)s for %(duration)s") % {
-                    "position": position,
-                    "duration": self._fmt().duration(int(elapsed))}
+        held = (self._fmt().position_observation(position, elapsed)
                 if elapsed is not None else position)
 
         # "Automation active" is dropped when a countdown is showing: a visible
@@ -434,6 +404,15 @@ class TrayIcon(QSystemTrayIcon):
         # `_today` is an optional final member of the list, present only
         # when the daemon has totals to report.
         lines = self._tooltip_lines()
+        menu = self.contextMenu()
+        if menu is not None:
+            full = lines[0]
+            description = (self._fmt().position_observation_description()
+                           if not self._connecting and self._shown_elapsed() is not None else "")
+            if menu.accessibleName() != full:
+                menu.setAccessibleName(full)
+            if menu.accessibleDescription() != description:
+                menu.setAccessibleDescription(description)
         if self._today:
             lines = lines + [self._today]
         # Stacking whole lines this way is layout, not sentence-building:

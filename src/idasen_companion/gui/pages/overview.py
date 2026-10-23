@@ -6,12 +6,15 @@ from __future__ import annotations
 from ...core.i18n import pgettext
 
 import time
+from html import escape
+from math import ceil
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtGui import QFontMetricsF
 from PySide6.QtWidgets import (
     QDoubleSpinBox, QHBoxLayout, QLabel, QProgressBar, QPushButton,
-    QStyle, QVBoxLayout, QWidget,
+    QSizePolicy, QStyle, QVBoxLayout, QWidget,
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
@@ -77,6 +80,9 @@ class OverviewPage(Page):
         client = self.client
         client.heightChanged.connect(self._on_height)
         client.positionChanged.connect(self._on_position)
+        observation_changed = getattr(client, "positionObservationChanged", None)
+        if observation_changed is not None and hasattr(observation_changed, "connect"):
+            observation_changed.connect(self._render_position)
         client.connectedChanged.connect(self._on_connected)
         client.movingChanged.connect(self._on_moving)
         client.statusChanged.connect(self._on_status)
@@ -110,6 +116,11 @@ class OverviewPage(Page):
         font.setPointSizeF(font.pointSizeF() * 2.0)
         self.position_label.setFont(emphasize(font))
         self.position_label.setStyleSheet("border: none;")
+        self._position_body_font = self.font()
+        self.position_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.position_label.installEventFilter(self)
+        restyle.register(self.position_label, self._render_position)
         self.height_label = QLabel("")
         font = self.height_label.font()
         font.setPointSizeF(font.pointSizeF() * 1.45)
@@ -119,9 +130,8 @@ class OverviewPage(Page):
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
 
         restyle.register(self.height_label, _restyle_height_label)
-        header.addWidget(self.position_label, 0, Qt.AlignmentFlag.AlignBaseline)
+        header.addWidget(self.position_label, 1, Qt.AlignmentFlag.AlignBaseline)
         header.addWidget(self.height_label, 0, Qt.AlignmentFlag.AlignBaseline)
-        header.addStretch()
         self.connection_chip = ConnectionChip()
         header.addWidget(self.connection_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         desk.body.addLayout(header)
@@ -430,11 +440,57 @@ class OverviewPage(Page):
         self._update_position_word()
 
     def _update_position_word(self) -> None:
-        self.position_label.setText(
-            pgettext('overview', "Moving…") if self._moving
-            # Empty position = held off sit/stand; the real height still shows
-            # beside this, so name it "Custom" rather than a bare dash.
-            else position_or_custom(self._position))
+        self._render_position()
+
+    def eventFilter(self, watched, event):
+        if watched is self.position_label and event.type() == QEvent.Type.Resize:
+            self._render_position()
+        return super().eventFilter(watched, event)
+
+    def _render_position(self) -> None:
+        """Style only the position within one escaped, translator-ordered phrase.
+
+        The label's minimum reserves the incumbent heading, never the suffix.
+        At a constrained width the secondary text yields first; accessible
+        text always retains the full estimate. No live announcement is sent.
+        """
+        position = (pgettext('overview', "Moving…") if self._moving
+                    else position_or_custom(self._position))
+        observation = getattr(self.client, "position_observation_elapsed", None)
+        elapsed = (observation(str(self._position))
+                   if callable(observation) and not self._moving else None)
+        full = self.ctx.fmt.position_observation(position, elapsed) if elapsed is not None else position
+        label = self.position_label
+        if label.accessibleName() != full:
+            label.setAccessibleName(full)
+        description = self.ctx.fmt.position_observation_description() if elapsed is not None else ""
+        if label.accessibleDescription() != description:
+            label.setAccessibleDescription(description)
+        heading_width = ceil(QFontMetricsF(label.font()).horizontalAdvance(position))
+        label.setMinimumWidth(heading_width)
+        if elapsed is None:
+            label.setTextFormat(Qt.TextFormat.PlainText)
+            label.setText(position)
+            return
+        # Substitute a marker through the *whole* message so translations can
+        # place the position on either side without guessing grammar/order.
+        before, _, after = self.ctx.fmt.position_observation("\ufffc", elapsed).partition("\ufffc")
+        metrics = QFontMetricsF(self._position_body_font)
+        budget = max(0, label.contentsRect().width() - heading_width)
+        if metrics.horizontalAdvance(before + after) > budget:
+            # Keep both translated sides when they fit, otherwise elide each
+            # within its share. Position itself never competes for this budget.
+            total = max(1.0, metrics.horizontalAdvance(before + after))
+            before = metrics.elidedText(before, Qt.TextElideMode.ElideRight,
+                                        int(budget * metrics.horizontalAdvance(before) / total))
+            after = metrics.elidedText(after, Qt.TextElideMode.ElideRight,
+                                       int(budget * metrics.horizontalAdvance(after) / total))
+        secondary = css(theme().secondary)
+        body_size = self._position_body_font.pointSizeF()
+        def clause(text: str) -> str:
+            return f'<span style="font-size:{body_size}pt; font-weight:400; color:{secondary}">{escape(text)}</span>'
+        label.setTextFormat(Qt.TextFormat.RichText)
+        label.setText(clause(before) + escape(position) + clause(after))
 
     def _on_presets(self, presets: dict) -> None:
         self.height_rail.set_marks(
@@ -543,6 +599,7 @@ class OverviewPage(Page):
         self._update_countdown_text()
 
     def _tick_countdown(self) -> None:
+        self._render_position()
         if self._status in COUNTDOWN_STATUSES and self._remaining > Duration(0.0):
             elapsed = MonotonicInstant(time.monotonic()) - self._progress_stamp
             shown = max(Duration(0.0), self._remaining - elapsed)

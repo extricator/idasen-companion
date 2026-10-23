@@ -70,11 +70,13 @@ class FakeClient(QObject):
     connectedChanged = Signal(bool)
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
+    positionObservationChanged = Signal()
 
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
         self._snooze_until = WallInstant(0.0)
         self.stats_calls = 0
+        self.observation = None
         # An instance attribute, not the class-level ``available = False`` the
         # other tray tests get away with: _today_summary returns "" outright
         # when the daemon is unavailable, so the summary line is unreachable
@@ -89,6 +91,9 @@ class FakeClient(QObject):
         # now re-renders once a second.
         self.stats_calls += 1
         return self.daily_rows
+
+    def position_observation_elapsed(self, position):
+        return self.observation if position in ("sitting", "standing") else None
 
     def snooze_until(self):
         # Also real: the fallback returns None, and the tray formats this.
@@ -160,6 +165,7 @@ def tray_with_stats(qapp):
 def standing_and_active(icon):
     """Standing 43m into a 54m cycle, so 11m remain."""
     icon._on_position("standing")
+    icon.client.observation = Duration(2580)
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
 
@@ -172,23 +178,23 @@ def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch
     icon._on_progress(2580.0, 3240.0)
 
     assert isinstance(icon._remaining, Duration)
-    assert isinstance(icon._elapsed, Duration)
     assert icon._progress_stamp == MonotonicInstant(10.0)
 
     clock += 0.25
     assert icon._since_progress() == Duration(0.25)
     assert icon._shown_remaining() == 660.0
-    assert icon._shown_elapsed() == 2580.0
+    assert icon._shown_elapsed() is None
 
-    # The two renderers each obtain a fresh reading and keep their rounding.
-    readings = iter((10.75, 11.75))
+    # Active credit only ages the countdown; absent observations stay absent.
+    readings = iter((10.75,))
     monkeypatch.setattr(tray_mod, "time", SimpleNamespace(monotonic=lambda: next(readings)))
     assert icon._shown_remaining() == 659.0
-    assert icon._shown_elapsed() == 2582.0
+    assert icon._shown_elapsed() is None
 
 
 def test_position_signal_preserves_tray_labels_and_direction(tray):
     icon, client = tray
+    client.observation = Duration(2580)
     for raw, label, direction in (
             ("sitting", "Sitting", "Standing up in 11m"),
             ("standing", "Standing", "Sitting down in 11m"),
@@ -199,7 +205,8 @@ def test_position_signal_preserves_tray_labels_and_direction(tray):
         client.positionChanged.emit(raw)
         client.statusChanged.emit("active")
         client.progressChanged.emit(2580.0, 3240.0)
-        assert icon.toolTip().split("\n")[1:] == [label + " for 43m", direction]
+        held = label + " for about 43m" if raw in ("sitting", "standing") else label
+        assert icon.toolTip().split("\n")[1:] == [held, direction]
         assert icon._status_action.text() == label + " · 11m left"
 
 
@@ -210,7 +217,7 @@ def test_status_signal_preserves_tray_actions_and_fallbacks(tray, monkeypatch):
     monkeypatch.setattr(client, "resume", lambda: dispatched.append("resume"))
     standing_and_active(icon)
 
-    for raw, label, stopped, resume, visible in (
+    for raw, label, _stopped, resume, visible in (
             ("move-failed", "Last move failed", False, False, True),
             ("paused", "Paused", True, True, True),
             ("snoozed", "Snoozed", True, True, True),
@@ -227,7 +234,7 @@ def test_status_signal_preserves_tray_actions_and_fallbacks(tray, monkeypatch):
         icon._pause_action.trigger()
         assert dispatched[-1] == ("resume" if resume else "pause")
         lines = icon.toolTip().split("\n")
-        assert lines[1] == ("Standing" if stopped else "Standing for 43m")
+        assert lines[1] == "Standing for about 43m"
         if raw == "move-failed":
             assert lines[2] == "Last move failed · 11m left"
         elif raw == "snoozed":
@@ -258,25 +265,23 @@ def test_countdown_replaces_the_status_word(tray):
 @pytest.mark.parametrize("status", ["paused", "snoozed", "disabled",
                                     "out-of-schedule", "unconfigured"])
 def test_every_stopped_cycle_state_drops_it_not_just_pause(tray, status):
-    # One rule, taken from the machine's own NO_CYCLE_STATUSES. Hiding it for
-    # a pause but not a snooze would leave the same stopped clock on screen.
+    # Existing state coverage now protects an independently fresh observation.
     icon, _ = tray
     standing_and_active(icon)
     icon._on_status(status)
 
-    assert icon.toolTip().split("\n")[1] == "Standing"
+    assert icon.toolTip().split("\n")[1] == "Standing for about 43m"
 
 
 @pytest.mark.parametrize("status", ["user-idle", "locked", "away"])
 def test_a_merely_paused_accumulator_keeps_the_duration(tray, status):
-    # Idle, lock and away stop the accumulator too, but the cycle is still
-    # this one and the freeze ends when the user comes back — stale, not
-    # meaningless. Dropping it here would flicker the line on every absence.
+    # Automation status never supplies or invalidates an observation itself;
+    # the shared cache owns continuity and hard-boundary invalidation.
     icon, _ = tray
     standing_and_active(icon)
     icon._on_status(status)
 
-    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
+    assert icon.toolTip().split("\n")[1] == "Standing for about 43m"
 
 
 def test_snoozed_tooltip_says_when_automation_resumes(tray):
@@ -410,7 +415,7 @@ def test_today_summary_is_still_the_last_line(tray_with_stats):
     standing_and_active(icon)
 
     assert icon.toolTip().split("\n") == ["Idasen Companion",
-                                          "Standing for 43m",
+                                          "Standing for about 43m",
                                           "Sitting down in 11m",
                                           "Today: 1h 58m sitting / 50m standing"]
 
@@ -475,11 +480,12 @@ def test_first_minute_in_a_position_is_counted_in_seconds(tray):
     # The same flooring on the other side of the cycle: "Standing for 0m" for
     # the first minute after every transition.
     icon, _ = tray
+    icon.client.observation = Duration(12)
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(12.0, 3240.0)
 
-    assert icon.toolTip().split("\n")[1] == "Standing for 12s"
+    assert icon.toolTip().split("\n")[1] == "Standing for about 12s"
 
 
 def test_countdown_ticks_between_daemon_pushes(tray):
@@ -493,7 +499,7 @@ def test_countdown_ticks_between_daemon_pushes(tray):
     icon._tick()
 
     lines = icon.toolTip().split("\n")
-    assert lines[1] == "Standing for 53m"
+    assert lines[1] == "Standing for about 43m"
     assert lines[2] == "Sitting down in 30s"
 
 
@@ -515,23 +521,22 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
 
 @pytest.mark.parametrize("status", ["paused", " Future Status ", ""])
 def test_ticker_does_no_work_when_there_is_no_countdown(tray, status):
-    # It runs for the life of the tray, so the two states that have nothing to
-    # age — no countdown showing, and a cycle already spent — must cost a
-    # comparison rather than a re-render.
+    # No countdown does not mean no observation. Repaint without statistics
+    # I/O so valid observations age and expired observations disappear.
     icon, _ = tray
     standing_and_active(icon)
     icon._on_status(status)
     renders = []
-    icon._refresh_texts = lambda *a, **kw: renders.append(1)
+    icon._refresh_texts = lambda *a, **kw: renders.append(kw)
 
     icon._tick()
-    assert renders == []
+    assert renders == [{"stats": False}]
 
     # Set directly: _on_status would re-render through the spy itself.
     icon._status = Status.ACTIVE
     icon._progress_stamp -= Duration(660.0)
     icon._tick()
-    assert renders == []
+    assert renders == [{"stats": False}, {"stats": False}]
 
 
 def test_connecting_is_a_single_status_line(tray):
