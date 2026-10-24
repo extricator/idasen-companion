@@ -37,11 +37,11 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from types import SimpleNamespace  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QLocale, QObject, QTranslator, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 
-import dataclasses  # noqa: E402
-
+from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from idasen_companion.core.config import AppConfig  # noqa: E402
 from idasen_companion.core.clocks import MonotonicInstant, WallInstant  # noqa: E402
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.durations import Duration  # noqa: E402
@@ -137,8 +137,8 @@ class FakeWindow:
                 time_style=TimeStyle.HOUR_AND_MINUTE_24)))
 
 
-def _make_tray(client):
-    icon = TrayIcon(client, FakeWindow(), QIcon())
+def _make_tray(client, window=None):
+    icon = TrayIcon(client, window or FakeWindow(), QIcon())
     yield icon, client
     # Destroy it here rather than letting Python drop the last reference
     # whenever it feels like it: a QSystemTrayIcon collected after the offscreen
@@ -318,26 +318,56 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
             datetime(2026, 8, 3, 14, 32)))
 
 
-def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(tray):
-    """The clock format applies on Apply, and this is the whole mechanism:
-    `AppContext.write_config` rebuilds `ctx.fmt`, and the tray reads that
-    formatter fresh at every redraw instead of caching it. No new signal and
-    no restart — so what is pinned here is that the surface re-reads, not
-    that the helper formats correctly, which its own tests already own.
-    """
-    icon, client = tray
-    standing_and_active(icon)
-    icon._on_status("snoozed")
-    deadline = datetime(2026, 8, 3, 14, 32)
-    client.set_snooze_until(deadline.timestamp())
-    assert "PM" not in icon.toolTip()
+def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
+        qapp, make_app_context, monkeypatch):
+    """Apply redraws the current text without another daemon or timer input."""
+    previous_locale = QLocale()
+    previous_direction = qapp.layoutDirection()
+    previous_translators = set(qapp.findChildren(QTranslator))
+    monkeypatch.setattr(core_i18n, "_current", core_i18n._current)
+    trays = None
+    try:
+        config = AppConfig()
+        config.ui.language = "en_GB"
+        config.ui.units = "cm"
+        config.ui.clock_format = "24"
+        today = date.today().isoformat()
+        client = FakeClient(available=True, daily_rows=[(today, "sitting", 7080.0)])
+        context = make_app_context(
+            client, config, load_config=True, tray_available=True)
+        trays = _make_tray(client, SimpleNamespace(ctx=context))
+        icon, _ = next(trays)
+        standing_and_active(icon)
+        icon._on_status("snoozed")
+        client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
+        client.presetsChanged.emit({"stand": 1.1})
+        assert icon.toolTip().split("\n")[2:] == [
+            "Snoozed until 14:32", "Today: 1h 58m sitting / 0m standing"]
+        assert icon._presets_menu.actions()[0].text() == "Stand (110.0 cm)"
+        calls = client.stats_calls
+        client.daily_rows = [DailyStatRow(today, "sitting", 7200.0)]
 
-    context = icon.window.ctx.fmt.context
-    icon.window.ctx.fmt = Formatter(dataclasses.replace(
-        context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
-    client.set_snooze_until(deadline.timestamp())
+        def change_display(config):
+            config.ui.clock_format = "12"
+            config.ui.units = "in"
 
-    assert icon.toolTip().split("\n")[2] == "Snoozed until 2:32 PM"
+        assert context.write_config(change_display) is None
+
+        assert icon.toolTip().split("\n")[2:] == [
+            "Snoozed until 2:32 PM", "Today: 2h sitting / 0m standing"]
+        assert icon._presets_menu.actions()[0].text() == "Stand (43.3 in)"
+        assert client.stats_calls == calls + 1
+        icon._tick()
+        assert client.stats_calls == calls + 1
+        assert icon.toolTip().split("\n")[-1] == "Today: 2h sitting / 0m standing"
+    finally:
+        if trays is not None:
+            trays.close()
+        for translator in set(qapp.findChildren(QTranslator)) - previous_translators:
+            qapp.removeTranslator(translator)
+            shiboken6.delete(translator)
+        qapp.setLayoutDirection(previous_direction)
+        QLocale.setDefault(previous_locale)
 
 
 def test_snoozed_tooltip_says_later_until_the_deadline_arrives(tray):
