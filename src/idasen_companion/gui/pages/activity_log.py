@@ -104,6 +104,10 @@ class ActivityLogPage(Page):
         self._separator_width = 0
         self._build()
         self._refresh_separator_columns()
+        # register() applies immediately; the initial document has nothing
+        # to restyle. Compare immutable values, since QColor is mutable.
+        self._row_palette = self._row_palette_signature()
+        restyle.register(self, self._restyle_rows)
 
         self.client.logEntry.connect(self._on_log_entry)
         self.client.availableChanged.connect(self._on_available)
@@ -434,10 +438,27 @@ class ActivityLogPage(Page):
         super().resizeEvent(event)
         if not self._refresh_separator_columns():
             return
-        # Redrawing to re-rule the separators would otherwise drag a reader
-        # who had scrolled up back down to the newest line, which is the very
-        # thing _scroll_to_newest is written to avoid. Only follow the feed
-        # here if the reader was already following it.
+        self._redraw_preserving_position()
+
+    @staticmethod
+    def _row_palette_signature() -> tuple[str, ...]:
+        """The colors baked into row and day-separator HTML."""
+        tokens = theme()
+        return tuple(css(color) for color in (
+            tokens.muted, tokens.accent_text, tokens.warning_text,
+            tokens.error, tokens.secondary))
+
+    def _restyle_rows(self) -> None:
+        palette = self._row_palette_signature()
+        if palette == self._row_palette:
+            return
+        self._row_palette = palette
+        if self._entries:
+            self._redraw_preserving_position()
+
+    def _redraw_preserving_position(self) -> None:
+        # Re-ruling separators and restyling rows must both leave a history
+        # reader in place. Only follow the feed if already following it.
         scrollbar = self.log_view.verticalScrollBar()
         was_following = scrollbar.value() >= scrollbar.maximum()
         previous = scrollbar.value()
