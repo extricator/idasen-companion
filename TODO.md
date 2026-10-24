@@ -82,13 +82,8 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       deliberate whitespace exceptions, including Markdown.
 - [ ] **Define Git attributes for repository files** — Inventory current formats and define
       deliberate attributes, including artwork and compiled catalogs.
-- [ ] **Provide an example configuration file** — Add a commented minimal or comprehensive
-      example matching the schema, with harmless values and a documentation link.
 - [ ] **Decide whether to add a task runner** — Assess whether a thin runner helps repeated
       work.
-- [ ] **Refresh development setup and verification instructions** — Align setup and verification
-      instructions with current extras, scripts and CI while preserving deliberate GUI
-      dependency choices.
 
 ## Supply chain and packaging
 
