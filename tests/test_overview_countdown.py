@@ -221,7 +221,7 @@ def test_known_status_actions_and_moving_override(page, monkeypatch):
     assert not page.stop_btn.isEnabled()
 
 
-def test_observed_time_is_shared_while_active_countdown_freezes(page, monkeypatch):
+def test_observed_time_is_shared_while_active_countdown_freezes(qapp, page, monkeypatch):
     from PySide6.QtGui import QIcon
     import shiboken6
     from idasen_companion.gui.tray import TrayIcon
@@ -238,28 +238,43 @@ def test_observed_time_is_shared_while_active_countdown_freezes(page, monkeypatc
     try:
         page.client.positionChanged.emit("sitting")
         page.client.positionObservationChanged.emit()
-        assert page.position_label.accessibleName() == "Sitting for about 0s"
-        assert tray.toolTip().splitlines()[1] == "Sitting for about 0s"
+        page.resize(860, 660)
+        page.show()
+        qapp.processEvents()
+        assert page.observation_chip.accessibleName() == "Sitting for about 0s"
+        assert page.observation_chip.label.text() == "0m 00s"
+        assert tray.toolTip().splitlines()[1] == "Sitting for 0s"
         clock += 600
         page.client.progressChanged.emit(600.0, 1800.0)
         page.client.statusChanged.emit("paused")
         clock += 1200
         page._tick_countdown()
         tray._tick()
-        assert page.position_label.accessibleName() == tray.toolTip().splitlines()[1] == "Sitting for about 30m"
+        qapp.processEvents()
+        assert page.observation_chip.accessibleName() == "Sitting for about 30m"
+        assert page.observation_chip.label.text() == "30m 00s"
+        assert tray.toolTip().splitlines()[1] == "Sitting for 30m"
+        clock += 1
+        page._tick_countdown()
+        qapp.processEvents()
+        assert page.observation_chip.label.text() == "30m 01s"
         assert page._remaining == Duration(1200)
         assert page.countdown_time_word.text() == "20:00"
-        assert page.position_label.accessibleDescription() == (
+        assert page.observation_chip.accessibleDescription() == (
             "Estimated from periodic desk observations; moves between samples may be missed.")
         page.client.movingChanged.emit(True)
         assert page.position_label.accessibleName() == "Moving…"
-        assert "for about" not in tray.toolTip()
+        assert page.observation_chip.isHidden()
+        assert " for " not in tray.toolTip()
         page.client.movingChanged.emit(False)
         monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: None)
         page.client.positionObservationChanged.emit()
         assert page.position_label.accessibleName() == "Sitting"
         assert tray.toolTip().splitlines()[1] == "Sitting"
+        assert page.observation_chip.isHidden()
+        assert page.observation_chip.accessibleDescription() == ""
     finally:
+        page.hide()
         tray.setContextMenu(None)
         shiboken6.delete(tray)
 
@@ -309,21 +324,12 @@ def observed_window(qapp, tmp_path, monkeypatch):
     qapp.processEvents()
 
 
-def _position_document(page):
-    from PySide6.QtGui import QTextDocument
-    doc = QTextDocument()
-    doc.setDocumentMargin(0)
-    doc.setDefaultFont(page.position_label.font())
-    doc.setHtml(page.position_label.text())
-    return doc
-
-
 def _assert_overview_bounds(window):
     from PySide6.QtCore import QRect
     from PySide6.QtWidgets import QPushButton
     page = window.overview
     bounds = window.rect()
-    header = [page.position_label, page.height_label, page.connection_chip]
+    header = [page.position_label, page.height_label, page.observation_chip, page.connection_chip]
     rects = [QRect(widget.mapTo(window, widget.rect().topLeft()), widget.size())
              for widget in header]
     for rect in rects:
@@ -334,11 +340,14 @@ def _assert_overview_bounds(window):
         if control.isVisible():
             assert bounds.contains(QRect(control.mapTo(window, control.rect().topLeft()), control.size()))
             assert control.width() >= control.minimumSizeHint().width()
-    doc = _position_document(page)
-    assert doc.idealWidth() <= page.position_label.contentsRect().width() + 1
-    assert doc.firstBlock().layout().lineCount() == 1
+    assert page.position_label.textFormat() == Qt.TextFormat.PlainText
+    assert page.position_label.fontMetrics().horizontalAdvance(page.position_label.text()) <= page.position_label.width() + 1
     assert page.position_label.focusPolicy() == Qt.FocusPolicy.NoFocus
-    return doc
+    assert page.observation_chip.focusPolicy() == Qt.FocusPolicy.NoFocus
+    assert page.observation_chip.label.textFormat() == Qt.TextFormat.PlainText
+    assert page.observation_chip.label.fontMetrics().horizontalAdvance(
+        page.observation_chip.label.text()) <= page.observation_chip.label.width() + 1
+
 
 
 @pytest.mark.parametrize("language", ["en", "es"])
@@ -354,19 +363,22 @@ def test_observed_phrase_fits_real_shell_and_elides_secondary_first(
         elapsed = Duration(seconds)
         page.client.positionObservationChanged.emit()
         qapp.processEvents()
-        doc = _assert_overview_bounds(window)
-        assert doc.toPlainText() == page.ctx.fmt.position_observation(position, elapsed)
+        _assert_overview_bounds(window)
+        assert page.position_label.text() == position
+        assert page.observation_chip.label.text() == page.ctx.fmt.observed_duration(elapsed)
+        assert page.height_label.x() - (page.position_label.x() + page.position_label.width()) == 10
+        assert page.observation_chip.x() < page.connection_chip.x()
         assert window.size() == original_minimum
     # Unusually long values must yield inside the same finite geometry, while
     # the complete phrase and explanation stay available to accessibility.
     elapsed = Duration(1e30)
     page.client.positionObservationChanged.emit()
     qapp.processEvents()
-    doc = _assert_overview_bounds(window)
-    assert position in doc.toPlainText()
-    assert doc.toPlainText() != page.position_label.accessibleName()
-    assert page.position_label.accessibleName() == page.ctx.fmt.position_observation(position, elapsed)
-    assert page.position_label.accessibleDescription() == page.ctx.fmt.position_observation_description()
+    _assert_overview_bounds(window)
+    assert page.position_label.text() == position
+    assert page.observation_chip.label.text() != page.ctx.fmt.observed_duration(elapsed)
+    assert page.observation_chip.accessibleName() == page.ctx.fmt.position_observation(position, elapsed)
+    assert page.observation_chip.accessibleDescription() == page.ctx.fmt.position_observation_description()
     assert window.size() == original_minimum
 
 
@@ -375,15 +387,13 @@ def test_observed_phrase_tracks_larger_font_and_palette(qapp, observed_window, m
     from idasen_companion.gui import restyle
     from idasen_companion.gui.theme import css
 
+    body = QFont(qapp.font())
+    body.setPointSizeF(body.pointSizeF() * 1.4)
+    qapp.setFont(body)
     window = observed_window("es")
     page = window.overview
     monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: Duration(3900))
-    body = QFont(qapp.font())
-    body.setPointSizeF(body.pointSizeF() * 1.4)
-    heading = QFont(body)
-    heading.setPointSizeF(body.pointSizeF() * 2)
-    heading.setWeight(QFont.Weight.DemiBold)
-    page.position_label.setFont(heading)
+    heading = page.position_label.font()
     palette = QPalette(qapp.palette())
     palette.setColor(QPalette.ColorRole.Window, QColor("#202326"))
     palette.setColor(QPalette.ColorRole.WindowText, QColor("#fcfcfc"))
@@ -391,18 +401,15 @@ def test_observed_phrase_tracks_larger_font_and_palette(qapp, observed_window, m
     restyle.sweep()
     page.client.positionObservationChanged.emit()
     qapp.processEvents()
-    doc = _assert_overview_bounds(window)
-    assert "De pie" in doc.toPlainText()
-    assert page.position_label.accessibleName() == "De pie desde hace unos 1 h 05 min"
-    assert page.position_label.accessibleDescription() == page.ctx.fmt.position_observation_description()
-    assert css(theme().secondary) in page.position_label.text()
-    fragment = doc.begin().begin()
-    point_sizes = []
-    while not fragment.atEnd():
-        point_sizes.append(fragment.fragment().charFormat().font().resolve(doc.defaultFont()).pointSizeF())
-        fragment += 1
-    assert min(point_sizes) == pytest.approx(body.pointSizeF())
-    assert max(point_sizes) == pytest.approx(heading.pointSizeF())
+    _assert_overview_bounds(window)
+    assert page.position_label.text() == "De pie"
+    assert page.observation_chip.accessibleName() == "De pie desde hace unos 1 h 05 min"
+    assert page.observation_chip.accessibleDescription() == page.ctx.fmt.position_observation_description()
+    assert css(theme().secondary) in page.observation_chip.label.styleSheet()
+    assert page.position_label.font().pointSizeF() == pytest.approx(heading.pointSizeF())
+    assert page.observation_chip.label.font().pointSizeF() == pytest.approx(body.pointSizeF())
+    assert page.observation_chip.clock_icon.width() == 16
+
 
 
 def test_observed_phrase_preserves_translated_order_and_escapes_markup(
@@ -423,7 +430,9 @@ def test_observed_phrase_preserves_translated_order_and_escapes_markup(
     monkeypatch.setattr(page.client, "position_observation_elapsed", lambda position: Duration(60))
     page.client.positionObservationChanged.emit()
     qapp.processEvents()
-    doc = _assert_overview_bounds(window)
-    assert doc.toPlainText() == page.position_label.accessibleName() == "<b>About 1m</b>: Standing &"
+    _assert_overview_bounds(window)
+    assert page.observation_chip.accessibleName() == "<b>About 1m</b>: Standing &"
+    assert page.position_label.text() == "Standing"
+    assert page.observation_chip.label.text() == "1m 00s"
     assert page.position_label.layoutDirection() == Qt.LayoutDirection.RightToLeft
-    assert "&lt;b&gt;" in page.position_label.text()
+    assert page.observation_chip.layoutDirection() == Qt.LayoutDirection.RightToLeft

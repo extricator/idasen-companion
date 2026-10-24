@@ -1178,6 +1178,12 @@ msgstr ""
 "Estimación basada en observaciones periódicas del escritorio; pueden pasar "
 "inadvertidos los movimientos entre muestras."
 
+#: src/idasen_companion/core/presentation.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)sm %(seconds)ss"
+msgstr "%(minutes)s min %(seconds)s s"
+
 # What the portal autostarts. Always this project's own daemon executable name, a
 # constant — never assembled from config or user input, since a granted request
 # is a host autostart entry that runs at every login. Bounded so a portal that
@@ -2587,6 +2593,12 @@ msgstr "Conectando…"
 msgctxt "tray"
 msgid "%(position)s · %(status)s"
 msgstr "%(position)s · %(status)s"
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(position)s for %(duration)s"
+msgstr "%(position)s durante %(duration)s"
 
 #: src/idasen_companion/gui/tray.py
 #, python-format

@@ -9,13 +9,14 @@ from __future__ import annotations
 from ..core.i18n import pgettext
 
 from collections.abc import Sequence
+from math import ceil
 
 from ..core.lengths import Length
 from ..core.durations import Duration
 
-from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
-    QColor, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap,
+    QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QPainter, QPen, QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton,
@@ -503,6 +504,66 @@ class ConnectionChip(QWidget):
     def set_state(self, color, text: str) -> None:
         self.dot.set_color(color)
         self.label.setText(text)
+
+
+class ElapsedTimeChip(QWidget):
+    """Informational elapsed-time capsule beside the desk connection status."""
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setObjectName("ElapsedTimeChip")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._text = ""
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 3, 10, 3)
+        # Compensate for the clock artwork's whitespace without changing the
+        # connection chip's solid-dot gap or either capsule's outer padding.
+        row.setSpacing(4)
+        self.clock_icon = QLabel()
+        self.clock_icon.setFixedSize(16, 16)
+        self.label = QLabel()
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
+        self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.label.installEventFilter(self)
+        row.addWidget(self.clock_icon)
+        row.addWidget(self.label)
+        restyle.register(self, self._restyle)
+
+    def _restyle(self) -> None:
+        tokens = theme()
+        self.setStyleSheet(
+            f"QWidget#ElapsedTimeChip {{ background: {css(tokens.window)};"
+            f" border: 1px solid {css(tokens.border)}; border-radius: 11px; }}")
+        self.label.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+        self.clock_icon.setStyleSheet("border: none;")
+        clock = icon("clock", "preferences-system-time", "chronometer")
+        self.clock_icon.setPixmap(tinted_icon(clock, tokens.secondary).pixmap(16, 16))
+        self._render_text()
+
+    def set_text(self, text: str) -> None:
+        """Keep the full value while allowing extreme durations to elide."""
+        self._text = text
+        self._render_text()
+        self.updateGeometry()
+
+    def _render_text(self) -> None:
+        self.label.setText(self.label.fontMetrics().elidedText(
+            self._text, Qt.TextElideMode.ElideRight, self.label.contentsRect().width()))
+
+    def sizeHint(self) -> QSize:  # pylint: disable=invalid-name
+        # Ignored lets only the duration yield at finite widths. Natural text
+        # width keeps the icon adjacent, with no reserved/centred number field.
+        hint = super().sizeHint()
+        width = ceil(QFontMetricsF(self.label.font()).horizontalAdvance(self._text))
+        hint.setWidth(hint.width() + width)
+        return hint
+
+    def eventFilter(self, watched, event):  # pylint: disable=invalid-name
+        if watched is self.label and event.type() in (QEvent.Type.Resize, QEvent.Type.FontChange):
+            self._render_text()
+            if event.type() == QEvent.Type.FontChange:
+                self.updateGeometry()
+        return super().eventFilter(watched, event)
 
 
 class SegmentedControl(QWidget):

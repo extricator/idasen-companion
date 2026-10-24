@@ -1087,6 +1087,12 @@ msgid ""
 "missed."
 msgstr ""
 
+#: src/idasen_companion/core/presentation.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)sm %(seconds)ss"
+msgstr ""
+
 #. Translators: What the desktop permission dialog says will start at login.
 #: src/idasen_companion/gui/background_portal.py
 msgctxt "background-permission"
@@ -2400,6 +2406,12 @@ msgstr ""
 #, python-format
 msgctxt "tray"
 msgid "%(position)s · %(status)s"
+msgstr ""
+
+#: src/idasen_companion/gui/tray.py
+#, python-format
+msgctxt "tray"
+msgid "%(position)s for %(duration)s"
 msgstr ""
 
 #: src/idasen_companion/gui/tray.py

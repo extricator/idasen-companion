@@ -336,15 +336,20 @@ An older daemon without these members still supports ordinary position and
 commands; the duration stays absent.
 
 Overview and tray query that cache on existing tickers without D-Bus or
-statistics reads. One contextual whole message says “for about”; the same
-compact duration floors seconds, and the complete accessible description
-explains periodic samples can miss intervening moves. Overview keeps the
-position heading prominent on its existing line, with a body-size secondary
-clause that elides first at finite width; translated content is escaped and
-placeholder order is preserved. The tray keeps one plain position line in its
-existing multiline tooltip and exposes the complete phrase and explanation
-through its existing menu's accessibility metadata. No live accessibility
-announcement, extra widget/control, row, card, focus stop or preference is
+statistics reads. Overview retains the prominent position heading and adjacent
+height; a separate neutral clock capsule immediately before the connection
+chip shows total minutes and zero-padded seconds, floored and nonnegative.
+Its complete contextual message uses localized numbers, independently of the
+existing compact duration/countdown policies. At finite widths extreme values
+elide inside the time capsule, with the complete estimate and sampling
+limitation available to accessibility and hover. Native fonts, platform clock
+icons and palette restyling follow the existing connection capsule's treatment;
+only the time capsule's icon gap compensates for clock artwork whitespace.
+The existing connection chip is unchanged. Tray text retains its original
+contextual “%(position)s for %(duration)s” wording and compact duration format;
+only the value's source changes to observed elapsed time. Its existing menu
+metadata explains that periodic samples may miss intervening moves. No live
+accessibility announcement, click action, focus stop, row, card or preference is
 introduced. Unavailable-daemon, connecting and moving feedback take precedence;
 position-only fallback remains for unknown or expired observations. This
 describes sampled desk position, never a person's

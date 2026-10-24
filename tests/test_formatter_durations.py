@@ -150,3 +150,12 @@ def test_duration_floors_rather_than_rounds_a_sub_minute_value():
     # fmt_duration used f"{seconds:.0f}", which rounds: fmt_duration(45.6)
     # was "46s". decompose_hms's shared policy floors instead.
     assert _formatter().duration(45.6) == "45s"
+
+
+@pytest.mark.parametrize("seconds,expected", [
+    (-1, "0m 00s"), (0, "0m 00s"), (59.9, "0m 59s"),
+    (60, "1m 00s"), (3600, "60m 00s"), (3902.9, "65m 02s"),
+])
+def test_observed_duration_keeps_total_minutes_and_floored_padded_seconds(seconds, expected):
+    from idasen_companion.core.durations import Duration
+    assert _formatter().observed_duration(Duration(seconds)) == expected

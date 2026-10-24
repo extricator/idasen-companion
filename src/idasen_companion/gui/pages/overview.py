@@ -6,15 +6,12 @@ from __future__ import annotations
 from ...core.i18n import pgettext
 
 import time
-from html import escape
-from math import ceil
 from datetime import datetime
 
-from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QFont, QFontMetricsF
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QDoubleSpinBox, QHBoxLayout, QLabel, QProgressBar, QPushButton,
-    QSizePolicy, QStyle, QVBoxLayout, QWidget,
+    QStyle, QVBoxLayout, QWidget,
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
@@ -31,7 +28,7 @@ from ..util import (
     status_label, suffix_height,
 )
 from ..widgets import (
-    Card, ConnectionChip, HeightRail, StatusDot, emphasize, equal_height_row,
+    Card, ConnectionChip, ElapsedTimeChip, HeightRail, StatusDot, emphasize, equal_height_row,
     icon, primary_button, section_label,
 )
 from .base import Page
@@ -116,10 +113,7 @@ class OverviewPage(Page):
         font.setPointSizeF(font.pointSizeF() * 2.0)
         self.position_label.setFont(emphasize(font))
         self.position_label.setStyleSheet("border: none;")
-        self.position_label.setSizePolicy(
-            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.position_label.installEventFilter(self)
-        restyle.register(self.position_label, self._render_position)
+        self.position_label.setTextFormat(Qt.TextFormat.PlainText)
         self.height_label = QLabel("")
         font = self.height_label.font()
         font.setPointSizeF(font.pointSizeF() * 1.45)
@@ -129,8 +123,12 @@ class OverviewPage(Page):
             target.setStyleSheet(f"color: {css(theme().secondary)}; border: none;")
 
         restyle.register(self.height_label, _restyle_height_label)
-        header.addWidget(self.position_label, 1, Qt.AlignmentFlag.AlignBaseline)
+        header.addWidget(self.position_label, 0, Qt.AlignmentFlag.AlignBaseline)
         header.addWidget(self.height_label, 0, Qt.AlignmentFlag.AlignBaseline)
+        header.addStretch()
+        self.observation_chip = ElapsedTimeChip()
+        self.observation_chip.hide()
+        header.addWidget(self.observation_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         self.connection_chip = ConnectionChip()
         header.addWidget(self.connection_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         desk.body.addLayout(header)
@@ -441,59 +439,25 @@ class OverviewPage(Page):
     def _update_position_word(self) -> None:
         self._render_position()
 
-    def eventFilter(self, watched, event):  # pylint: disable=invalid-name
-        if watched is self.position_label and event.type() in (
-                QEvent.Type.Resize, QEvent.Type.FontChange):
-            self._render_position()
-        return super().eventFilter(watched, event)
-
     def _render_position(self) -> None:
-        """Style only the position within one escaped, translator-ordered phrase.
-
-        The label's minimum reserves the incumbent heading, never the suffix.
-        At a constrained width the secondary text yields first; accessible
-        text always retains the full estimate. No live announcement is sent.
-        """
+        """Keep the heading and height together; elapsed time has its own chip."""
         position = (pgettext('overview', "Moving…") if self._moving
                     else position_or_custom(self._position))
         observation = getattr(self.client, "position_observation_elapsed", None)
         elapsed = (observation(str(self._position))
                    if callable(observation) and not self._moving else None)
-        full = self.ctx.fmt.position_observation(position, elapsed) if elapsed is not None else position
-        label = self.position_label
-        if label.accessibleName() != full:
-            label.setAccessibleName(full)
+        self.position_label.setText(position)
+        self.position_label.setAccessibleName(position)
+        chip = self.observation_chip
+        full = self.ctx.fmt.position_observation(position, elapsed) if elapsed is not None else ""
         description = self.ctx.fmt.position_observation_description() if elapsed is not None else ""
-        if label.accessibleDescription() != description:
-            label.setAccessibleDescription(description)
-        heading_width = ceil(QFontMetricsF(label.font()).horizontalAdvance(position))
-        label.setMinimumWidth(heading_width)
-        if elapsed is None:
-            label.setTextFormat(Qt.TextFormat.PlainText)
-            label.setText(position)
-            return
-        # Substitute a marker through the *whole* message so translations can
-        # place the position on either side without guessing grammar/order.
-        before, _, after = self.ctx.fmt.position_observation("\ufffc", elapsed).partition("\ufffc")
-        body_font = QFont(label.font())
-        body_font.setPointSizeF(label.font().pointSizeF() / 2)
-        body_font.setWeight(QFont.Weight.Normal)
-        metrics = QFontMetricsF(body_font)
-        budget = max(0, label.contentsRect().width() - heading_width)
-        if metrics.horizontalAdvance(before + after) > budget:
-            # Keep both translated sides when they fit, otherwise elide each
-            # within its share. Position itself never competes for this budget.
-            total = max(1.0, metrics.horizontalAdvance(before + after))
-            before = metrics.elidedText(before, Qt.TextElideMode.ElideRight,
-                                        int(budget * metrics.horizontalAdvance(before) / total))
-            after = metrics.elidedText(after, Qt.TextElideMode.ElideRight,
-                                       int(budget * metrics.horizontalAdvance(after) / total))
-        secondary = css(theme().secondary)
-        body_size = body_font.pointSizeF()
-        def clause(text: str) -> str:
-            return f'<span style="font-size:{body_size}pt; font-weight:400; color:{secondary}">{escape(text)}</span>'
-        label.setTextFormat(Qt.TextFormat.RichText)
-        label.setText(clause(before) + escape(position) + clause(after))
+        chip.set_text(self.ctx.fmt.observed_duration(elapsed) if elapsed is not None else "")
+        if chip.accessibleName() != full:
+            chip.setAccessibleName(full)
+        if chip.accessibleDescription() != description:
+            chip.setAccessibleDescription(description)
+        chip.setToolTip(full + "\n" + description if elapsed is not None else "")
+        chip.setVisible(elapsed is not None)
 
     def _on_presets(self, presets: dict) -> None:
         self.height_rail.set_marks(

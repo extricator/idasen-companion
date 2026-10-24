@@ -433,6 +433,8 @@ def test_position_observation_uses_complete_localized_messages(
             translator=GettextTranslator(), unit=HeightUnit.CENTIMETRES,
             time_style=TimeStyle.HOUR_AND_MINUTE_24))
         assert fmt.position_observation(position, Duration(3900.9)) == expected
+        assert fmt.observed_duration(Duration(3900.9)) == (
+            "65 min 00 s" if language == "es" else "65m 00s")
         assert fmt.position_observation_description() == description
     finally:
         i18n.set_language(i18n.SYSTEM)
@@ -447,9 +449,13 @@ def test_position_observation_allows_translator_placeholder_reordering():
             if source == "%(position)s for about %(duration)s":
                 assert source.context == "shared.presentation"
                 return "About %(duration)s: %(position)s" % values
+            if source == "%(minutes)sm %(seconds)ss":
+                assert source.context == "shared.presentation"
+                return "%(seconds)s seconds / %(minutes)s minutes" % values
             return super().message(source, **values)
 
     fmt = Formatter(PresentationContext(
         locale=LocaleProfile("en_US"), translator=Reordered(),
         unit=HeightUnit.CENTIMETRES, time_style=TimeStyle.HOUR_AND_MINUTE_24))
     assert fmt.position_observation("Standing", Duration(59.9)) == "About 59s: Standing"
+    assert fmt.observed_duration(Duration(61)) == "01 seconds / 1 minutes"

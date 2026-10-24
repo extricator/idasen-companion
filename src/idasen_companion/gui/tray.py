@@ -339,7 +339,8 @@ class TrayIcon(QSystemTrayIcon):
         position = (pgettext('overview', 'Moving…') if self._moving
                     else self._position_word())
         elapsed = self._shown_elapsed()
-        held = (self._fmt().position_observation(position, elapsed)
+        held = (pgettext('tray', "%(position)s for %(duration)s") % {
+                    "position": position, "duration": self._fmt().duration(elapsed.seconds)}
                 if elapsed is not None else position)
 
         # "Automation active" is dropped when a countdown is showing: a visible

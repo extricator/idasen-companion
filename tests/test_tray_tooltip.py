@@ -188,7 +188,7 @@ def test_unavailable_paused_tray_survives_ticks_and_observation_clear(tray):
     client.observation = Duration(30)
     client.positionObservationChanged.emit()
     icon._tick()
-    assert icon.toolTip() == "Idasen Companion\nStanding for about 30s\nPaused"
+    assert icon.toolTip() == "Idasen Companion\nStanding for 30s\nPaused"
 
 
 def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):
@@ -226,7 +226,7 @@ def test_position_signal_preserves_tray_labels_and_direction(tray):
         client.positionChanged.emit(raw)
         client.statusChanged.emit("active")
         client.progressChanged.emit(2580.0, 3240.0)
-        held = label + " for about 43m" if raw in ("sitting", "standing") else label
+        held = label + " for 43m" if raw in ("sitting", "standing") else label
         assert icon.toolTip().split("\n")[1:] == [held, direction]
         assert icon._status_action.text() == label + " · 11m left"
 
@@ -255,7 +255,7 @@ def test_status_signal_preserves_tray_actions_and_fallbacks(tray, monkeypatch):
         icon._pause_action.trigger()
         assert dispatched[-1] == ("resume" if resume else "pause")
         lines = icon.toolTip().split("\n")
-        assert lines[1] == "Standing for about 43m"
+        assert lines[1] == "Standing for 43m"
         if raw == "move-failed":
             assert lines[2] == "Last move failed · 11m left"
         elif raw == "snoozed":
@@ -291,7 +291,7 @@ def test_every_stopped_cycle_state_drops_it_not_just_pause(tray, status):
     standing_and_active(icon)
     icon._on_status(status)
 
-    assert icon.toolTip().split("\n")[1] == "Standing for about 43m"
+    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
 
 
 @pytest.mark.parametrize("status", ["user-idle", "locked", "away"])
@@ -302,7 +302,7 @@ def test_a_merely_paused_accumulator_keeps_the_duration(tray, status):
     standing_and_active(icon)
     icon._on_status(status)
 
-    assert icon.toolTip().split("\n")[1] == "Standing for about 43m"
+    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
 
 
 def test_snoozed_tooltip_says_when_automation_resumes(tray):
@@ -436,7 +436,7 @@ def test_today_summary_is_still_the_last_line(tray_with_stats):
     standing_and_active(icon)
 
     assert icon.toolTip().split("\n") == ["Idasen Companion",
-                                          "Standing for about 43m",
+                                          "Standing for 43m",
                                           "Sitting down in 11m",
                                           "Today: 1h 58m sitting / 50m standing"]
 
@@ -506,7 +506,7 @@ def test_first_minute_in_a_position_is_counted_in_seconds(tray):
     icon._on_status("active")
     icon._on_progress(12.0, 3240.0)
 
-    assert icon.toolTip().split("\n")[1] == "Standing for about 12s"
+    assert icon.toolTip().split("\n")[1] == "Standing for 12s"
 
 
 def test_countdown_ticks_between_daemon_pushes(tray):
@@ -520,7 +520,7 @@ def test_countdown_ticks_between_daemon_pushes(tray):
     icon._tick()
 
     lines = icon.toolTip().split("\n")
-    assert lines[1] == "Standing for about 43m"
+    assert lines[1] == "Standing for 43m"
     assert lines[2] == "Sitting down in 30s"
 
 
@@ -573,8 +573,8 @@ def test_connecting_is_a_single_status_line(tray):
 
 
 @pytest.mark.parametrize("language,expected", [
-    ("en", "Standing for about 123h 45m"),
-    ("es", "De pie desde hace unos 123 h 45 min"),
+    ("en", "Standing for 123h 45m"),
+    ("es", "De pie durante 123 h 45 min"),
 ])
 def test_long_observed_tooltip_keeps_one_plain_position_line_and_accessibility(
         tray, language, expected):

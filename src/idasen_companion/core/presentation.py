@@ -47,6 +47,7 @@ solved that on its own — PRES-06 did, by handing those widgets a
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import localcontext
 
 from . import display_prefs as units
 from .durations import Duration, SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
@@ -327,6 +328,19 @@ class Formatter:
         return self._context.translator.message(P_(
             'shared.presentation',
             "Estimated from periodic desk observations; moves between samples may be missed."))
+
+    def observed_duration(self, elapsed: Duration) -> str:
+        """Overview's elapsed estimate as total minutes and padded seconds."""
+        minutes, seconds = divmod(max(0, int(elapsed.seconds)), 60)
+        # Babel quantizes integers using the decimal context. Preserve finite
+        # long observations rather than failing beyond its default precision.
+        with localcontext() as context:
+            context.prec = max(context.prec, len(str(minutes)) + 2)
+            minute_text = self._context.locale.integer(minutes)
+        return self._context.translator.message(
+            P_('shared.presentation', "%(minutes)sm %(seconds)ss"),
+            minutes=minute_text,
+            seconds=self._context.locale.integer(seconds, min_digits=2))
 
     def countdown(self, seconds: float) -> str:
         """A running countdown, e.g. 125 -> "2:05"."""
