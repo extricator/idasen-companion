@@ -148,13 +148,12 @@ class TrayIcon(QSystemTrayIcon):
         # the first snoozed tooltip says "later" and this redraws it with the
         # time. Same reason OverviewPage subscribes to snoozeUntilChanged.
         client.snoozeUntilChanged.connect(lambda *_: self._refresh_texts())
-        # The window owns the config; the only part of it this menu renders is
-        # the unit its preset heights are in. Duck-typed because the tray is
-        # also built in tests around a stand-in window.
+        # The window rebuilds its formatter before announcing config changes.
+        # Refresh both preset heights and cached tooltip text from it.
+        # Duck-typed because tests also use a stand-in window.
         ctx = getattr(window, "ctx", None)
         if ctx is not None:
-            ctx.configChanged.connect(
-                lambda: self._rebuild_presets(self._presets))
+            ctx.configChanged.connect(self._on_config_changed)
 
         # Drive the initial state now that we've subscribed, for the same
         # reason MainWindow re-emits availableChanged after subscribing — but
@@ -198,6 +197,10 @@ class TrayIcon(QSystemTrayIcon):
         self._run_action(self._action(name, default))
 
     # ----- updates -----
+
+    def _on_config_changed(self) -> None:
+        self._rebuild_presets(self._presets)
+        self._refresh_texts()
 
     def _on_available(self, available: bool) -> None:
         if not available:

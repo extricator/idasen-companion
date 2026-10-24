@@ -40,6 +40,8 @@ import shiboken6  # noqa: E402
 from PySide6.QtCore import QLocale, QObject, QTranslator, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 
+import dataclasses  # noqa: E402
+
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.core.config import AppConfig  # noqa: E402
 from idasen_companion.core.clocks import MonotonicInstant, WallInstant  # noqa: E402
@@ -328,7 +330,7 @@ def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
     trays = None
     try:
         config = AppConfig()
-        config.ui.language = "en_GB"
+        config.ui.language = "en_US"
         config.ui.units = "cm"
         config.ui.clock_format = "24"
         today = date.today().isoformat()
@@ -354,15 +356,15 @@ def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
         assert context.write_config(change_display) is None
 
         assert icon.toolTip().split("\n")[2:] == [
-            "Snoozed until 2:32 PM", "Today: 2h sitting / 0m standing"]
-        assert icon._presets_menu.actions()[0].text() == "Stand (43.3 in)"
+            "Snoozed until 2:32 PM", "Today: 2h 00m sitting / 0m standing"]
+        assert icon._presets_menu.actions()[0].text() == "Stand (43.31 in)"
         assert client.stats_calls == calls + 1
         icon._tick()
         assert client.stats_calls == calls + 1
-        assert icon.toolTip().split("\n")[-1] == "Today: 2h sitting / 0m standing"
+        assert icon.toolTip().split("\n")[-1] == "Today: 2h 00m sitting / 0m standing"
     finally:
         if trays is not None:
-            trays.close()
+            next(trays, None)
         for translator in set(qapp.findChildren(QTranslator)) - previous_translators:
             qapp.removeTranslator(translator)
             shiboken6.delete(translator)
