@@ -44,8 +44,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       confirmed parent/window-manager placement behavior.
 - [ ] **Prevent unintended wheel edits while scrolling settings** — Preserve values in unfocused
       spin/combo/time controls while scrolling the page; keep intentional focused editing.
-- [ ] **Refresh tray tooltip on configuration changes** — Refresh relevant tray text on the
-      actual configuration-change/Apply trigger.
 - [ ] **Define and implement the app's high-contrast response** — Define affected controls/text
       and measurable criteria, then implement live preference handling through shared
       theme/restyling.
