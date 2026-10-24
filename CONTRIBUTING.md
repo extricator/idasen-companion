@@ -28,16 +28,45 @@ own.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e . pytest pytest-asyncio PySide6-Essentials
-.venv/bin/python -m pytest
+.venv/bin/python -m pip install -e '.[test]' PySide6-Essentials
+QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest
 ```
 
-Run against a simulated desk — no Bluetooth, no hardware — with a throwaway
-config so your real one is untouched:
+The lightweight path installs the test extra and Qt Essentials without Addons.
+For the CI-equivalent full-PySide6 environment, use the separate choice
+`.venv/bin/python -m pip install -e '.[gui,test]'`. Python 3.11 or newer and
+the host Qt libraries are required; `dbus-run-session` supplies the private
+session bus for automated GUI/D-Bus checks, with Qt forced offscreen.
+
+An optional visible walkthrough can use a simulated desk with a throwaway
+config and its own session bus. Leave the installed app and daemon running;
+the cleanup below targets only the test processes started in this shell:
 
 ```bash
-.venv/bin/idasen-companiond --mock-desk --config /tmp/ic-test.toml
-IDASEN_COMPANION_CONFIG=/tmp/ic-test.toml .venv/bin/idasen-companion
+dbus-run-session -- bash <<'SH'
+set -eu
+test_dir=$(mktemp -d)
+daemon_pid=
+gui_pid=
+cleanup() {
+    if [ -n "$gui_pid" ]; then
+        kill "$gui_pid" 2>/dev/null || true
+        wait "$gui_pid" 2>/dev/null || true
+    fi
+    if [ -n "$daemon_pid" ]; then
+        kill "$daemon_pid" 2>/dev/null || true
+        wait "$daemon_pid" 2>/dev/null || true
+    fi
+    rm -rf "$test_dir"
+}
+trap cleanup EXIT
+.venv/bin/idasen-companiond --mock-desk --config "$test_dir/config.toml" &
+daemon_pid=$!
+IDASEN_COMPANION_CONFIG="$test_dir/config.toml" .venv/bin/idasen-companion &
+gui_pid=$!
+wait "$gui_pid"
+gui_pid=
+SH
 ```
 
 `idasen-companion` also accepts Qt-free subcommands in both package flavors:
@@ -55,19 +84,29 @@ details.
 Before opening a pull request, run:
 
 ```bash
-.venv/bin/python -m pytest
-uvx pylint src/idasen_companion          # naming rules — see "Naming things"
+.venv/bin/python -m pytest tests/test_machine_startup.py
+.venv/bin/python -m pytest tests/test_machine_startup.py::test_start_classifies_current_height
+QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest -q --cov=idasen_companion --cov-fail-under=77
+uvx mypy==2.3.0 --python-executable .venv/bin/python src/
+uvx pylint==4.0.6 src/idasen_companion
+.venv/bin/python scripts/check_naming_span.py src
 ```
+
+The quality tools run separately through `uvx`; they are not project
+dependencies. Use the full `.[gui,test]` environment above for the
+CI-equivalent mypy target. Naming rules are described under "Naming things".
 
 Touching packaging (`MANIFEST.in`, `pyproject.toml`, `data/`, `packaging/`)
 also wants:
 
 ```bash
+.venv/bin/python -m pip install build
 PYTHON=.venv/bin/python bash scripts/build-dist.sh
 ```
 
-It builds the sdist and wheel and fails if either contains a file nobody
-meant to ship.
+`build` is a packaging-only Python prerequisite. The script builds the sdist
+and wheel and audits their contents. It clears stale distribution metadata
+and outputs, so use a disposable checkout to preserve existing local builds.
 
 **Install the local secret-scanning hook once, with:**
 
@@ -238,12 +277,22 @@ bash scripts/verify-release-artifacts.sh dist-release
 
 `docs/TRANSLATING.md` is written for translators and is the place to start.
 
-One contextual gettext catalog owns every app message in the GUI, daemon and
-CLI. Regenerate it with:
+One contextual GNU gettext catalog owns every app message in the GUI, daemon
+and CLI. Install the external gettext tools `xgettext`, `msgmerge` and `msgfmt`
+with your operating system's package manager (`msginit` is also used when
+initializing a language). They are not pip dependencies. Regenerate with:
 
 ```bash
-PATH="$PWD/.venv/bin:$PATH" bash scripts/build-translations.sh
+bash scripts/build-translations.sh
+git diff --exit-code -- po/ src/idasen_companion/locale
 ```
+
+The script extracts `po/idasen_companion.pot`, merges `po/<language>.po`, then
+compiles `src/idasen_companion/locale/<language>/LC_MESSAGES/idasen_companion.mo`.
+For a string change, review the diff, fill new translations in the PO files,
+rerun the script and commit the POT, PO and MO changes. With no string change,
+the diff check must pass. Qt's standard buttons use its separate prebuilt
+`qtbase` catalog; there is no app-owned TS/QM generation step.
 
 A change that adds or alters a user-facing string must regenerate it and fill
 in every shipped language before it lands. Leaving a string untranslated

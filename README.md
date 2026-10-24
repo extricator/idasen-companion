@@ -218,6 +218,11 @@ The configuration file is `~/.config/idasen-companion/config.toml`. Every
 duration accepts a value like `45m`, `1h30m` or `90s`. The Settings tab
 offers the same options, each with an explanation.
 
+[`examples/config.toml`](examples/config.toml) documents every current option.
+Its Bluetooth address is empty and automation is disabled for safe setup;
+supply your real desk's address and measured preset heights before enabling
+automation. Preset heights are always in metres, regardless of display units.
+
 Language, measurement units and hour cycle are independent. `[ui] language`
 selects translated text, number symbols and date/time language. Explicit
 `units = "cm"` / `"in"` and `clock_format = "12"` / `"24"` values always win;
@@ -257,17 +262,22 @@ signals. This is deliberate: PySide6 cannot demarshal non-variant containers.
 
 ```
 python3 -m venv .venv
-.venv/bin/pip install -e . pytest pytest-asyncio PySide6-Essentials
-.venv/bin/python -m pytest
+.venv/bin/python -m pip install -e '.[test]' PySide6-Essentials
+QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest
 ```
 
-The `--mock-desk` flag runs the daemon against a simulated desk, so the whole
-app works without hardware:
+This lightweight setup avoids the Qt Addons. CI uses the separate full-PySide6
+choice, `.venv/bin/python -m pip install -e '.[gui,test]'`. Both install the
+project's test extra. For a focused check:
 
 ```
-.venv/bin/idasen-companiond --mock-desk --config /tmp/ic-test.toml
-IDASEN_COMPANION_CONFIG=/tmp/ic-test.toml .venv/bin/idasen-companion
+.venv/bin/python -m pytest tests/test_machine_startup.py::test_start_classifies_current_height
 ```
+
+Automated GUI/D-Bus checks run offscreen on a private session bus, independent
+of the installed application. The optional `--mock-desk` walkthrough in
+[`CONTRIBUTING.md`](CONTRIBUTING.md#development) uses a throwaway config,
+a private bus and cleanup of only the test processes it starts.
 
 [`docs/MANUAL-TESTING.md`](docs/MANUAL-TESTING.md) covers the behavior that
 needs real hardware.
