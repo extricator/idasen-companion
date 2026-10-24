@@ -33,8 +33,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 - [ ] **Make non-default presets first-class citizens** — Define named-preset cycle order,
       timing, schedule/statistics semantics and daemon-reported next targets before extending
       config, D-Bus and GUI.
-- [ ] **Show observed time in desk position** — Track observed position timing separately,
-      expose knownness/timestamps and age the display locally.
 - [ ] **Show ambient tray feedback for warning moving and failed states** — Define
       warning/moving/failure feedback, priorities and clearing.
 - [ ] **Decide Activity Log history-range and paging improvements** — Decide useful ranges and
