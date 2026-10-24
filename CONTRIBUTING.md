@@ -89,7 +89,6 @@ Before opening a pull request, run:
 QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest -q --cov=idasen_companion --cov-fail-under=77
 uvx mypy==2.3.0 --python-executable .venv/bin/python src/
 uvx pylint==4.0.6 src/idasen_companion
-.venv/bin/python scripts/check_naming_span.py src
 ```
 
 The quality tools run separately through `uvx`; they are not project
