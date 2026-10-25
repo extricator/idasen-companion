@@ -98,6 +98,19 @@ trap 'rm -rf "$WORK"' EXIT
 mkdir "$WORK/wheels"
 mkdir "$WORK/build-backend"
 
+# The literal arrays own versions; the reviewed catalog owns approved bytes.
+CATALOG=packaging/bundled-wheel-hashes.json
+WHEEL_HASHES=scripts/bundled-wheel-hashes.py
+runtime_pins=()
+backend_pins=()
+for pin in "${PINS[@]}"; do runtime_pins+=(--pin "$pin"); done
+for pin in "${BUILD_BACKEND[@]}"; do backend_pins+=(--pin "$pin"); done
+# Validate both inventories before any network download.
+"$PYTHON" "$WHEEL_HASHES" prepare --catalog "$CATALOG" --group runtime \
+    --requirements "$WORK/runtime.txt" "${runtime_pins[@]}"
+"$PYTHON" "$WHEEL_HASHES" prepare --catalog "$CATALOG" --group build-backend \
+    --requirements "$WORK/backend.txt" "${backend_pins[@]}"
+
 echo ">> Downloading the pinned interpreter..."
 # -f is load-bearing: without it an error page from the far end is written to
 # the file as though it were the asset, and nothing but the checksum below
@@ -153,74 +166,19 @@ echo ">> Downloading the pinned wheel set..."
 # asking pip to work them out -- and what ships stays a property of that list
 # rather than of anything the download environment contributes.
 "${INTERPRETER[0]}" -m pip download --only-binary=:all: --no-deps \
-    --dest "$WORK/wheels" "${PINS[@]}"
-
-echo ">> Checking the download is exactly the pinned distributions..."
-pinned_names=""
-missing=()
-for pin in "${PINS[@]}"; do
-    # Wheel filenames lower-case the distribution name and write every
-    # separator as an underscore, so the pin has to be normalised before it
-    # can be looked for.
-    normalized=$(printf '%s' "${pin%%==*}" | tr '[:upper:]-' '[:lower:]_')
-    pinned_names="$pinned_names $normalized"
-    compgen -G "$WORK/wheels/${normalized}-*.whl" >/dev/null || missing+=("$pin")
-done
-if [ ${#missing[@]} -gt 0 ]; then
-    echo "error: no wheel was downloaded for: ${missing[*]}" >&2
-    exit 1
-fi
-
-# The other direction, which nothing checked before. A distribution that
-# arrives without being asked for is installed anyway -- the spec globs this
-# directory -- and then ships with no provides line naming it, no licence
-# text of its own and no arm in the package's licence expression, none of
-# which fails a build.
-unpinned=()
-for wheel in "$WORK"/wheels/*; do
-    # A wheel filename is the distribution, then its version, then the tags it
-    # is compatible with, all separated by the same character.
-    arrived=$(basename "$wheel")
-    case " $pinned_names " in
-        *" ${arrived%%-*} "*) ;;
-        *) unpinned+=("$arrived") ;;
-    esac
-done
-if [ ${#unpinned[@]} -gt 0 ]; then
-    echo "error: the download brought what nothing pinned: ${unpinned[*]}" >&2
-    exit 1
-fi
+    --require-hashes --requirement "$WORK/runtime.txt" --dest "$WORK/wheels"
 
 echo ">> Downloading the build backend the untrimmed install driver installs from..."
 "${INTERPRETER[0]}" -m pip download --only-binary=:all: --no-deps \
-    --dest "$WORK/build-backend" "${BUILD_BACKEND[@]}"
+    --require-hashes --requirement "$WORK/backend.txt" --dest "$WORK/build-backend"
 
-echo ">> Checking the download is exactly the pinned build backend..."
-backend_pinned_names=""
-backend_missing=()
-for pin in "${BUILD_BACKEND[@]}"; do
-    normalized=$(printf '%s' "${pin%%==*}" | tr '[:upper:]-' '[:lower:]_')
-    backend_pinned_names="$backend_pinned_names $normalized"
-    compgen -G "$WORK/build-backend/${normalized}-*.whl" >/dev/null \
-        || backend_missing+=("$pin")
-done
-if [ ${#backend_missing[@]} -gt 0 ]; then
-    echo "error: no wheel was downloaded for: ${backend_missing[*]}" >&2
-    exit 1
-fi
-
-backend_unpinned=()
-for wheel in "$WORK"/build-backend/*; do
-    arrived=$(basename "$wheel")
-    case " $backend_pinned_names " in
-        *" ${arrived%%-*} "*) ;;
-        *) backend_unpinned+=("$arrived") ;;
-    esac
-done
-if [ ${#backend_unpinned[@]} -gt 0 ]; then
-    echo "error: the download brought what nothing pinned: ${backend_unpinned[*]}" >&2
-    exit 1
-fi
+# Stronger than name-only closure: exact approved basenames and streamed hashes,
+# exactly one wheel per pin, no extras or links. Neither group is published
+# until both have passed independently of pip.
+"$PYTHON" "$WHEEL_HASHES" verify --catalog "$CATALOG" --group runtime \
+    --directory "$WORK/wheels" "${runtime_pins[@]}"
+"$PYTHON" "$WHEEL_HASHES" verify --catalog "$CATALOG" --group build-backend \
+    --directory "$WORK/build-backend" "${backend_pins[@]}"
 
 tar czf "$TARBALL" -C "$WORK" wheels build-backend
 
