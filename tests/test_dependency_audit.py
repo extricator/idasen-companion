@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts/audit-bundled-dependencies.py"
@@ -54,8 +55,14 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
     audit = load_audit()
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/fetch-bundled-runtime.sh").write_text(
-        'PINS=("Example_Pkg==1.2.3")\n', encoding="utf-8",
+        'PINS=("Example_Pkg==1.2.3")\nBUILD_BACKEND=("Example_Pkg==1.2.3")\n',
+        encoding="utf-8",
     )
+    flatpak = tmp_path / "packaging/flatpak"
+    flatpak.mkdir(parents=True)
+    (flatpak / "python3-deps.json").write_text(json.dumps({
+        "build-commands": ['pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-build-isolation --no-deps Example_Pkg==1.2.3'],
+    }))
     summary = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
 
@@ -79,3 +86,62 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
         assert "CLEAN" not in output
     if status == 1:
         assert "PYSEC-TEST" in output and "2" in output
+
+
+def test_inventories_preserve_provenance_and_report_all_results(monkeypatch, capsys):
+    audit = load_audit()
+    source = (ROOT / "scripts/fetch-bundled-runtime.sh").read_text()
+    rpm = audit.shell_pins(source, "PINS")
+    backend = audit.shell_pins(source, "BUILD_BACKEND")
+    flatpak = audit.flatpak_pins((ROOT / "packaging/flatpak/python3-deps.json").read_text())
+    assert "PySide6-Essentials==6.11.1" in rpm
+    assert "setuptools==84.0.0" in backend and "setuptools==84.0.0" not in rpm
+    assert "dbus_fast==5.0.22" in flatpak and "dbus-fast==5.0.22" in rpm
+    seen = []
+
+    def fake_audit(pins):
+        seen.append(pins)
+        return [(1, "finding"), (0, "complete"), (2, "unavailable")][len(seen) - 1]
+
+    monkeypatch.setattr(audit, "audit_inventory", fake_audit)
+    assert audit.main(ROOT) == 2
+    assert seen == [rpm, backend, flatpak]
+    output = capsys.readouterr().out
+    assert "RPM shipped: VULNERABLE" in output
+    assert "RPM build backend: CLEAN" in output
+    assert "Flatpak installed: ERROR" in output
+
+
+def test_flatpak_inventory_rejects_missing_or_unpinned_installation():
+    audit = load_audit()
+    for commands in ([], ["echo hello"], ["pip3 install pkg"],
+                     ["pip3 install pkg==1 pkg==2"], ["pip3 install pkg==1 && echo hidden"],
+                     ["pip3 install pkg==1", "pip3 install other==2"]):
+        with pytest.raises(ValueError):
+            audit.flatpak_pins(json.dumps({"build-commands": commands}))
+    with pytest.raises(ValueError):
+        audit.flatpak_pins("not json")
+
+
+@pytest.mark.skipif(not (ROOT / ".github/workflows").is_dir(),
+                    reason="Workflows are intentionally excluded from the sdist")
+def test_weekly_audit_is_read_only_advisory_and_bounded():
+    workflow = ROOT / ".github/workflows/dependency-audit.yml"
+    assert workflow.is_file(), "The weekly advisory workflow must exist"
+    config = yaml.load(workflow.read_text(), Loader=yaml.BaseLoader)
+    assert config["on"] == {"schedule": [{"cron": "17 9 * * 1"}], "workflow_dispatch": ""}
+    assert config["permissions"] == {"contents": "read"}
+    assert len(config["jobs"]) == 1
+    job = config["jobs"]["audit"]
+    assert job["runs-on"] == "ubuntu-latest"
+    assert 0 < int(job["timeout-minutes"]) <= 10
+    assert "permissions" not in job and "continue-on-error" not in job
+    steps = job["steps"]
+    assert [step["uses"].split("@")[0] for step in steps if "uses" in step] == [
+        "actions/checkout", "actions/setup-python",
+    ]
+    assert [step["run"] for step in steps if "run" in step] == [
+        "python -m pip install --disable-pip-version-check pip-audit==2.10.1",
+        "python scripts/audit-bundled-dependencies.py",
+    ]
+    assert not any("continue-on-error" in step or "if" in step for step in steps)
