@@ -91,5 +91,3 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 - [ ] **Add aarch64 RPM build and release support** — Verify matching aarch64
       runtime/build-wheel assets and hashes, then add native/emulated execution, variants,
       portability checks, artifact names and release-set support.
-- [ ] **Decide scheduled dependency auditing and triage** — Compare actual environments and
-      alert coverage, then decide audit scope and finding ownership/triage.
