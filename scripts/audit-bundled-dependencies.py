@@ -35,12 +35,32 @@ def pin_pairs(pins):
 
 def shell_pins(source, variable):
     """Read a constrained shell array as data; never execute shell text."""
+    if len(re.findall(rf"^{variable}(?:\+)?=", source, re.M)) != 1:
+        raise ValueError(f"expected one {variable} assignment")
     matches = re.findall(
         rf"^{variable}=\((.*?)\)[ \t]*(?:#[^\n]*)?$", source, re.M | re.S,
     )
     if len(matches) != 1:
         raise ValueError(f"expected one {variable} array")
     pins = shlex.split(matches[0], comments=True)
+    pin_pairs(pins)
+    return pins
+
+
+def flatpak_pins(source):
+    """Read the generated Flatpak install command, rejecting unknown syntax."""
+    payload = json.loads(source)
+    commands = payload.get("build-commands") if isinstance(payload, dict) else None
+    if not isinstance(commands, list) or len(commands) != 1 or not isinstance(commands[0], str):
+        raise ValueError("expected one Flatpak install command")
+    tokens = shlex.split(commands[0])
+    if tokens[:2] != ["pip3", "install"]:
+        raise ValueError("expected pip3 install")
+    options = {
+        "--no-index", "--find-links=file://${PWD}", "--prefix=${FLATPAK_DEST}",
+        "--no-build-isolation", "--no-deps",
+    }
+    pins = [token for token in tokens[2:] if token not in options]
     pin_pairs(pins)
     return pins
 
@@ -113,10 +133,15 @@ def main(root=ROOT):
     """Print labeled reports and append the same evidence to Actions summary."""
     status = 0
     reports = []
-    for label in ["RPM shipped"]:
+    fetcher = root / "scripts/fetch-bundled-runtime.sh"
+    inventories = [
+        ("RPM shipped", fetcher, lambda source: shell_pins(source, "PINS")),
+        ("RPM build backend", fetcher, lambda source: shell_pins(source, "BUILD_BACKEND")),
+        ("Flatpak installed", root / "packaging/flatpak/python3-deps.json", flatpak_pins),
+    ]
+    for label, path, extract in inventories:
         try:
-            source = (root / "scripts/fetch-bundled-runtime.sh").read_text(encoding="utf-8")
-            pins = shell_pins(source, "PINS")
+            pins = extract(path.read_text(encoding="utf-8"))
             result, detail = audit_inventory(pins)
             detail = "Requested pins:\n" + "\n".join(pins) + "\n" + detail
         except (OSError, ValueError, subprocess.SubprocessError) as error:

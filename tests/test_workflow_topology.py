@@ -111,7 +111,7 @@ def test_main_and_manual_modes(tmp_path):
 
 def test_reusable_topology_and_release_keep_all_package_proofs():
     assert {p.name for p in WORKFLOWS.glob("*.yml")} == {
-        "ci.yml", "verify.yml", "packages.yml", "release.yml"
+        "ci.yml", "verify.yml", "packages.yml", "release.yml", "dependency-audit.yml"
     }
     for name in ("verify.yml", "packages.yml"):
         assert set(workflow(name)["on"]) == {"workflow_call"}
