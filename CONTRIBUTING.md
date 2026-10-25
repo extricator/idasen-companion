@@ -489,9 +489,9 @@ For each finding, the maintainer should:
    package (or uses it only during the build), and the application's exposure.
    Treat an audit error as an investigation task, not a clean result.
 2. Check existing Dependabot alerts, PRs, and tracked work before opening
-   duplicate remediation. The observed alerts API request returned 403; alert
-   counts and actual Dependabot coverage remain unknown. Its dependency graph
-   is not proof of these exact bundled inventories.
+   duplicate remediation. If alerts are inaccessible, record that limitation;
+   do not assume there are no alerts. The dependency graph is not proof of
+   these exact bundled inventories.
 3. Use a normal PR to update affected pins, validate the change, and rebuild
    and release affected packages. If deferring, record the advisory, affected
    inventory, owner, exposure rationale, and a concrete expiry/review date in
