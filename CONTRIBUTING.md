@@ -448,6 +448,61 @@ updates. Bundled dependencies pinned in RPM specs and Flatpak manifests also
 need review during release preparation; Dependabot does not cover every
 bundled runtime or library.
 
+### Weekly bundled Python advisory audit
+
+The maintainer owns the separate **Bundled dependency audit** workflow in
+`.github/workflows/dependency-audit.yml`. It runs Mondays at 09:17 UTC and can
+be started manually through Actions. It has read-only repository access and
+reports in the job summary and logs. Findings fail that run for attention;
+operational errors or incomplete package coverage also fail, with a distinct
+error report. This advisory workflow is independent of required PR checks.
+GitHub notifications depend on each maintainer's account and repository
+notification settings; email delivery is not guaranteed. Scheduled runs use
+the default branch and may be delayed or disabled under GitHub's scheduling
+rules, so check the Actions history when reviewing dependency health.
+
+To reproduce from the repository root, use a disposable environment (only audit
+tooling is installed; the packages being audited are neither installed nor
+resolved):
+
+```bash
+audit_tmp=$(mktemp -d)
+python3 -m venv "$audit_tmp/venv"
+"$audit_tmp/venv/bin/python" -m pip install --disable-pip-version-check pip-audit==2.10.1
+"$audit_tmp/venv/bin/python" scripts/audit-bundled-dependencies.py
+```
+
+The entrypoint reads the authoritative `PINS` and `BUILD_BACKEND` arrays in
+`scripts/fetch-bundled-runtime.sh` as data and the install pins in
+`packaging/flatpak/python3-deps.json`. It reports RPM shipped packages (the full
+set includes the headless subset), the RPM build backend, and Flatpak installed
+packages separately. It sends only exact name/version requirements to
+`pip-audit --no-deps --disable-pip`; it never sources the fetch script, changes
+pins, downloads audited wheels, or automatically fixes findings. Exit codes
+are 0 for complete clean results, 1 for findings, and 2 for an audit or input
+error, including skipped or missing packages. Review audit-tool pin updates
+through normal PRs independently of application pins.
+
+For each finding, the maintainer should:
+
+1. Confirm the advisory's affected versions, the inventory that ships the
+   package (or uses it only during the build), and the application's exposure.
+   Treat an audit error as an investigation task, not a clean result.
+2. Check existing Dependabot alerts, PRs, and tracked work before opening
+   duplicate remediation. The observed alerts API request returned 403; alert
+   counts and actual Dependabot coverage remain unknown. Its dependency graph
+   is not proof of these exact bundled inventories.
+3. Use a normal PR to update affected pins, validate the change, and rebuild
+   and release affected packages. If deferring, record the advisory, affected
+   inventory, owner, exposure rationale, and a concrete expiry/review date in
+   tracked work. An exception is time-bounded and does not suppress the audit.
+
+This is a PyPI package advisory lookup for declared pins, not an inspection of
+shipped bytes or a guarantee of no vulnerabilities. It excludes CPython and
+its embedded libraries, complete Qt/native-code coverage, distro packages,
+and the Flatpak platform and BaseApp. Bundled-runtime monitoring and wheel
+hash verification remain separate work.
+
 Before the initial public visibility change, audit a fresh remote clone rather
 than the development clone, which also holds deliberately unpublished backup
 history:

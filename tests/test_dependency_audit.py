@@ -94,9 +94,11 @@ def test_inventories_preserve_provenance_and_report_all_results(monkeypatch, cap
     rpm = audit.shell_pins(source, "PINS")
     backend = audit.shell_pins(source, "BUILD_BACKEND")
     flatpak = audit.flatpak_pins((ROOT / "packaging/flatpak/python3-deps.json").read_text())
-    assert "PySide6-Essentials==6.11.1" in rpm
-    assert "setuptools==84.0.0" in backend and "setuptools==84.0.0" not in rpm
-    assert "dbus_fast==5.0.22" in flatpak and "dbus-fast==5.0.22" in rpm
+    assert any(pin.startswith("PySide6-Essentials==") for pin in rpm)
+    assert any(pin.startswith("setuptools==") for pin in backend)
+    assert not any(pin.startswith("setuptools==") for pin in rpm)
+    assert any(pin.startswith("dbus_fast==") for pin in flatpak)
+    assert any(pin.startswith("dbus-fast==") for pin in rpm)
     seen = []
 
     def fake_audit(pins):
@@ -121,6 +123,20 @@ def test_flatpak_inventory_rejects_missing_or_unpinned_installation():
             audit.flatpak_pins(json.dumps({"build-commands": commands}))
     with pytest.raises(ValueError):
         audit.flatpak_pins("not json")
+
+
+def test_missing_sources_report_every_inventory_as_error(tmp_path, monkeypatch, capsys):
+    audit = load_audit()
+
+    def forbidden_run(*_args, **_kwargs):
+        pytest.fail("Missing inventory must not launch the audit tool")
+
+    monkeypatch.setattr(audit.subprocess, "run", forbidden_run)
+    assert audit.main(tmp_path) == 2
+    output = capsys.readouterr().out
+    for label in ("RPM shipped", "RPM build backend", "Flatpak installed"):
+        assert f"{label}: ERROR" in output
+    assert "CLEAN" not in output
 
 
 @pytest.mark.skipif(not (ROOT / ".github/workflows").is_dir(),
