@@ -17,8 +17,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       operation.
 - [ ] **Verify RPM and Flatpak presentation and automation** — Verify software-centre
       presentation and a full scheduled cycle for published RPM and Flatpak artifacts.
-- [ ] **Verify remaining desktop hardware and policy paths** — Work through selected
-      GNOME/KDE-session, pairing, unavailable-desk and policy checks in docs/MANUAL-TESTING.md.
 
 ## Features and preferences
 

@@ -275,6 +275,18 @@ sessions, GNOME, unpair/power checks and the other sweeps were not attempted.
 No tests were added, expanded or removed; the historical 1,906-test suite was
 not rerun for this documentation-only recording.
 
+#### User-confirmed follow-up completion
+
+Later on 2026-10-25, the user confirmed the proposed follow-up checks were
+already complete: manual paddle interruption under Leave it, manual
+interruption under Try again, and explicit-height interruption under Undo.
+Their report was: "i did all those checks already, seems like this todo is
+completed". The general desktop/hardware verification todo was closed on that
+confirmation. The three detailed observations above remain the guided evidence;
+the follow-up confirmation supplies no additional timestamps or setup details.
+Individual checklist boxes are not bulk-ticked by this closure. Separate
+package-verification tasks and the Bluetooth-stall investigation remain open.
+
 ## Packaging variant
 
 The standalone full and headless bundled RPMs ship and are rebuilt constantly
