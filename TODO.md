@@ -93,5 +93,3 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
       portability checks, artifact names and release-set support.
 - [ ] **Decide scheduled dependency auditing and triage** — Compare actual environments and
       alert coverage, then decide audit scope and finding ownership/triage.
-- [ ] **Decide release artifact attestations or signatures** — Define downloader verification
-      goals and choose an identity/key model and mechanism.
