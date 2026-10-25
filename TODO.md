@@ -78,8 +78,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 ## Repository maintenance
 
-- [ ] **Add EditorConfig formatting conventions** — Encode existing file-type conventions and
-      deliberate whitespace exceptions, including Markdown.
 - [ ] **Define Git attributes for repository files** — Inventory current formats and define
       deliberate attributes, including artwork and compiled catalogs.
 - [ ] **Decide whether to add a task runner** — Assess whether a thin runner helps repeated
