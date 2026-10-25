@@ -3,6 +3,7 @@
 
 import importlib.util
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -137,6 +138,35 @@ def test_missing_sources_report_every_inventory_as_error(tmp_path, monkeypatch, 
     for label in ("RPM shipped", "RPM build backend", "Flatpak installed"):
         assert f"{label}: ERROR" in output
     assert "CLEAN" not in output
+
+
+def test_stale_wheel_catalog_blocks_rpm_audit_and_preserves_other_reports(
+    tmp_path, monkeypatch, capsys,
+):
+    audit = load_audit()
+    for relative in ("scripts/fetch-bundled-runtime.sh", "packaging/flatpak/python3-deps.json",
+                     "packaging/bundled-wheel-hashes.json"):
+        destination = tmp_path / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, destination)
+    catalog_path = tmp_path / "packaging/bundled-wheel-hashes.json"
+    catalog = json.loads(catalog_path.read_text())
+    del catalog["runtime"][next(iter(catalog["runtime"]))]
+    catalog_path.write_text(json.dumps(catalog))
+    seen = []
+
+    def fake_audit(pins):
+        seen.append(pins)
+        return 0, "complete"
+
+    monkeypatch.setattr(audit, "audit_inventory", fake_audit)
+    assert audit.main(tmp_path) == 2
+    assert seen == [audit.shell_pins((tmp_path / "scripts/fetch-bundled-runtime.sh").read_text(),
+                                    "BUILD_BACKEND"),
+                    audit.flatpak_pins((tmp_path / "packaging/flatpak/python3-deps.json").read_text())]
+    output = capsys.readouterr().out
+    assert "RPM shipped: ERROR" in output and "missing catalog pins" in output
+    assert "RPM build backend: CLEAN" in output and "Flatpak installed: CLEAN" in output
 
 
 @pytest.mark.skipif(not (ROOT / ".github/workflows").is_dir(),
