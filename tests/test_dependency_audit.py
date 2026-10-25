@@ -56,11 +56,16 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
     audit = load_audit()
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/fetch-bundled-runtime.sh").write_text(
-        'PINS=("Example_Pkg==1.2.3")\nBUILD_BACKEND=("Example_Pkg==1.2.3")\n',
+        'PINS=("Example_Pkg==1.2.3")\nBUILD_BACKEND=("Backend_Pkg==1.2.3")\n',
         encoding="utf-8",
     )
     flatpak = tmp_path / "packaging/flatpak"
     flatpak.mkdir(parents=True)
+    (tmp_path / "packaging/bundled-wheel-hashes.json").write_text(json.dumps({
+        "schema": 1,
+        "runtime": {"example_pkg-1.2.3-py3-none-any.whl": "a" * 64},
+        "build-backend": {"backend_pkg-1.2.3-py3-none-any.whl": "b" * 64},
+    }))
     (flatpak / "python3-deps.json").write_text(json.dumps({
         "build-commands": ['pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-build-isolation --no-deps Example_Pkg==1.2.3'],
     }))
@@ -71,10 +76,13 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
         assert "--no-deps" in command and "--disable-pip" in command
         assert "--fix" not in command
         requirements = Path(command[command.index("-r") + 1]).read_text()
-        assert requirements == "Example_Pkg==1.2.3\n"
+        assert requirements in ("Example_Pkg==1.2.3\n", "Backend_Pkg==1.2.3\n")
         if payload is not None:
+            report = payload if isinstance(payload, str) else json.dumps(payload)
+            if requirements.startswith("Backend_Pkg"):
+                report = report.replace("example-pkg", "backend-pkg")
             Path(command[command.index("-o") + 1]).write_text(
-                payload if isinstance(payload, str) else json.dumps(payload),
+                report,
             )
         return subprocess.CompletedProcess(command, returncode, "", "diagnostic")
 

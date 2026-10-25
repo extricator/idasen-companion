@@ -6,6 +6,7 @@ import html
 import json
 import os
 import re
+import runpy
 import shlex
 import subprocess
 import sys
@@ -13,6 +14,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+WHEEL_HASHES = runpy.run_path(str(ROOT / "scripts/bundled-wheel-hashes.py"))
 
 
 def pin_pairs(pins):
@@ -135,16 +137,19 @@ def main(root=ROOT):
     reports = []
     fetcher = root / "scripts/fetch-bundled-runtime.sh"
     inventories = [
-        ("RPM shipped", fetcher, lambda source: shell_pins(source, "PINS")),
-        ("RPM build backend", fetcher, lambda source: shell_pins(source, "BUILD_BACKEND")),
-        ("Flatpak installed", root / "packaging/flatpak/python3-deps.json", flatpak_pins),
+        ("RPM shipped", fetcher, lambda source: shell_pins(source, "PINS"), "runtime"),
+        ("RPM build backend", fetcher, lambda source: shell_pins(source, "BUILD_BACKEND"), "build-backend"),
+        ("Flatpak installed", root / "packaging/flatpak/python3-deps.json", flatpak_pins, None),
     ]
-    for label, path, extract in inventories:
+    for label, path, extract, group in inventories:
         try:
             pins = extract(path.read_text(encoding="utf-8"))
+            if group is not None:
+                catalog = WHEEL_HASHES["load_catalog"](root / "packaging/bundled-wheel-hashes.json")
+                WHEEL_HASHES["approved_wheels"](catalog, group, pins)
             result, detail = audit_inventory(pins)
             detail = "Requested pins:\n" + "\n".join(pins) + "\n" + detail
-        except (OSError, ValueError, subprocess.SubprocessError) as error:
+        except (OSError, ValueError, RecursionError, subprocess.SubprocessError) as error:
             result, detail = 2, str(error)
         state = ["CLEAN", "VULNERABLE", "ERROR"][result]
         report = f"{label}: {state}\n{detail}"

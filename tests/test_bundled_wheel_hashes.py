@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import runpy
 import shutil
 import subprocess
 import sys
@@ -96,3 +97,103 @@ def test_happy_path_hashes_both_groups_before_publication(fetch_project, monkeyp
         assert {member.name for member in bundle if member.isfile()} == {
             "wheels/alpha_pkg-1.0-py3-none-any.whl", "build-backend/backend-2.0-py3-none-any.whl",
         }
+
+
+@pytest.fixture
+def catalog_case(tmp_path):
+    helper = runpy.run_path(str(ROOT / "scripts/bundled-wheel-hashes.py"))
+    directory = tmp_path / "wheels"
+    directory.mkdir()
+    wheel = directory / "alpha_pkg-1.0-py3-none-any.whl"
+    wheel.write_bytes(b"approved wheel")
+    catalog = {"schema": 1, "runtime": {wheel.name: digest(wheel)},
+               "build-backend": {"backend-2.0-py3-none-any.whl": "b" * 64}}
+    return helper, catalog, directory, wheel
+
+
+@pytest.mark.parametrize("fault", ["duplicate-key", "schema", "basename", "digest", "cross-group"])
+def test_catalog_rejects_ambiguous_or_unsafe_input(catalog_case, tmp_path, fault):
+    helper, catalog, _directory, wheel = catalog_case
+    if fault == "schema":
+        catalog["unknown"] = {}
+    elif fault == "basename":
+        catalog["runtime"]["../" + wheel.name] = catalog["runtime"].pop(wheel.name)
+    elif fault == "digest":
+        catalog["runtime"][wheel.name] = "not a sha256"
+    elif fault == "cross-group":
+        catalog["build-backend"] = dict(catalog["runtime"])
+    raw = json.dumps(catalog)
+    if fault == "duplicate-key":
+        raw = raw.replace('"schema": 1', '"schema": 1, "schema": 1')
+    path = tmp_path / "catalog.json"
+    path.write_text(raw)
+    with pytest.raises(ValueError):
+        helper["load_catalog"](path)
+
+
+@pytest.mark.parametrize("pins", [["alpha-pkg==2.0"], ["alpha-pkg==1.0", "missing==1"],
+                                  ["alpha-pkg==1.0", "Alpha_Pkg==1.0"]])
+def test_catalog_requires_exact_complete_unique_pins(catalog_case, tmp_path, pins):
+    helper, catalog, _directory, _wheel = catalog_case
+    destination = tmp_path / "requirements.txt"
+    destination.write_text("preserve existing input\n")
+    with pytest.raises(ValueError):
+        helper["prepare"](catalog, "runtime", pins, destination)
+    assert destination.read_text() == "preserve existing input\n"
+
+
+def test_approved_alternatives_emit_all_hashes_but_accept_only_one(catalog_case, tmp_path):
+    helper, catalog, directory, wheel = catalog_case
+    alternate = directory / "alpha_pkg-1.0-cp314-cp314-manylinux_2_41_x86_64.whl"
+    alternate.write_bytes(b"approved alternative")
+    catalog["runtime"][alternate.name] = digest(alternate)
+    destination = tmp_path / "requirements.txt"
+    helper["prepare"](catalog, "runtime", ["alpha-pkg==1.0"], destination)
+    assert destination.read_text().split() == ["alpha-pkg==1.0"] + [
+        "--hash=sha256:" + value for value in sorted(catalog["runtime"].values())]
+    with pytest.raises(ValueError, match="multiple wheels"):
+        helper["verify"](catalog, "runtime", ["alpha-pkg==1.0"], directory)
+    original_bytes = wheel.read_bytes()
+    wheel.unlink()
+    helper["verify"](catalog, "runtime", ["alpha-pkg==1.0"], directory)
+    alternate.unlink()
+    wheel.write_bytes(original_bytes)
+    helper["verify"](catalog, "runtime", ["alpha-pkg==1.0"], directory)
+
+
+@pytest.mark.parametrize("fault,message", [("bytes", "SHA256 mismatch"),
+                                           ("rename", "unapproved wheel"),
+                                           ("symlink", "non-symlink"),
+                                           ("directory", "non-symlink"),
+                                           ("missing", "missing downloaded pins")])
+def test_downloaded_content_must_match_exact_identity(catalog_case, fault, message):
+    helper, catalog, directory, wheel = catalog_case
+    if fault == "bytes":
+        wheel.write_bytes(wheel.read_bytes() + b"tampered")
+    elif fault == "rename":
+        wheel.rename(directory / "alpha_pkg-1.0-1-py3-none-any.whl")
+    elif fault == "symlink":
+        target = directory.parent / "outside.whl"
+        wheel.rename(target)
+        wheel.symlink_to(target)
+    elif fault == "directory":
+        wheel.unlink()
+        wheel.mkdir()
+    else:
+        wheel.unlink()
+    with pytest.raises(ValueError, match=message):
+        helper["verify"](catalog, "runtime", ["alpha-pkg==1.0"], directory)
+
+
+@pytest.mark.parametrize("group", ["runtime", "build-backend"])
+def test_neither_output_is_published_when_either_group_fails(fetch_project, monkeypatch, group):
+    wheel = next((fetch_project / "fixtures" / group).iterdir())
+    wheel.write_bytes(b"unexpected arriving bytes")
+    output = fetch_project / "output"
+    output.mkdir()
+    sentinel = output / "idasen-companion-wheels-1.0.tar.gz"
+    sentinel.write_bytes(b"previous output")
+    result = run_fetch(fetch_project, monkeypatch)
+    assert result.returncode != 0 and "SHA256 mismatch" in result.stderr
+    assert sentinel.read_bytes() == b"previous output"
+    assert list(output.iterdir()) == [sentinel]
