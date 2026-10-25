@@ -130,6 +130,15 @@ distinct staged, history, worktree and hosted checks and their limits.
 `docs/ARCHITECTURE.md` explains why the code is shaped the way it is; read it
 before changing the shape of something rather than working within it.
 
+## Editor conventions
+
+EditorConfig-compatible editors read the root `.editorconfig` for the existing
+text and indentation conventions. Markdown hard breaks, tabbed Debian recipes,
+verbatim licenses, generated or upstream metadata, artwork, and binary assets
+have deliberate exceptions. Properties set to `unset` remain controlled by
+editor defaults; this does not lock file bytes. The configuration is contributor
+guidance, not a formatter, linter, or request to reformat existing files in bulk.
+
 ## Building the packages
 
 Released artifacts are built by CI. Build them by hand when you change

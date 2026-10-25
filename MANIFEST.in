@@ -12,6 +12,8 @@ include CHANGELOG.md
 # A root-level file, named here for the same reason as CHANGELOG.md above:
 # the new hook test reads its text after the sdist is unpacked.
 include CONTRIBUTING.md
+# Ship the editor guidance to contributors working from an unpacked sdist.
+include .editorconfig
 include examples/config.toml
 # Name the files that ship, rather than sweeping the directory. MANIFEST.in
 # reads the *filesystem*, not git, so an unbounded sweep of this directory

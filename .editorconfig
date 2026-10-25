@@ -1,0 +1,63 @@
+# Record existing conventions; these settings do not reformat the tree.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{py,sh}]
+indent_style = space
+indent_size = 4
+
+[.githooks/pre-commit]
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Only maintained JSON has an indentation convention here.
+[{.github/repository-policy.json,tests/goldens/*.json,packaging/interpreter/PROVENANCE.json}]
+indent_style = space
+indent_size = 2
+
+# Debian build recipes require tabs.
+[debian/rules]
+indent_style = tab
+
+# Two trailing spaces can be a Markdown hard break.
+[*.md]
+trim_trailing_whitespace = false
+
+# Preserve verbatim license formatting. Unset delegates to editor defaults.
+[{LICENSE,packaging/licenses/**}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+tab_width = unset
+
+# Generated dependencies and upstream metadata keep their producer's format.
+[{packaging/flatpak/python3-deps.json,packaging/interpreter/PYTHON.json}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+tab_width = unset
+
+# Artwork and binary assets have no text-formatting policy.
+[*.{svg,png,mo}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+tab_width = unset
