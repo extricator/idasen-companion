@@ -84,8 +84,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 - [ ] **Monitor bundled runtime and build dependencies** — Define component inventory,
       review/triage and coordinated pin/metadata updates, including embedded interpreter
       libraries.
-- [ ] **Pin hashes for downloaded runtime and build wheels** — Record and enforce hashes for
-      intended wheel sets.
 - [ ] **Make bundled wheel archives reproducible** — Normalize archive creation while preserving
       member layout and runtime/build-backend contents.
 - [ ] **Add aarch64 RPM build and release support** — Verify matching aarch64
