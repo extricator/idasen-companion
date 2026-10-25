@@ -327,7 +327,8 @@ def test_openssl_notice_subset_uses_only_reviewed_build_selection(tool, tree):
 def test_fetcher_checks_metadata_before_curl_or_output_creation(package_tree, tmp_path):
     """Run only the isolated shell preflight, ending at a refusing curl sentinel."""
     tree = package_tree
-    for relative in ("scripts/verify-interpreter-metadata.py", "src/idasen_companion/__init__.py"):
+    for relative in ("scripts/verify-interpreter-metadata.py", "src/idasen_companion/__init__.py",
+                     "scripts/bundled-wheel-hashes.py", "packaging/bundled-wheel-hashes.json"):
         target = tree / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((ROOT / relative).read_bytes())
