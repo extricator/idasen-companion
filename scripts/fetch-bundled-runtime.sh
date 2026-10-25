@@ -72,7 +72,7 @@ PINS=(
 # names, and is discarded with the rest of that tree when the build ends.
 # ---------------------------------------------------------------------------
 BUILD_BACKEND=(
-    "setuptools==84.0.0"
+    "setuptools==84.1.0"
 )
 
 if [ $# -ne 1 ]; then
