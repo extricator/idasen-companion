@@ -141,6 +141,8 @@ include scripts/trim-pyside6.py
 # still passes, because the file is sitting right there in the working tree.
 include scripts/trim-cpython.py
 include scripts/fetch-bundled-runtime.sh
+# The bundled-pin audit tests also run from the unpacked source distribution.
+include scripts/audit-bundled-dependencies.py
 include scripts/verify-interpreter-metadata.py
 # The strip pass %install runs by hand, out of the unpacked tarball like the
 # two trimmers above, for the same reason and with the same consequence for
