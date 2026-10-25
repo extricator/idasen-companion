@@ -473,7 +473,8 @@ python3 -m venv "$audit_tmp/venv"
 ```
 
 The entrypoint reads the authoritative `PINS` and `BUILD_BACKEND` arrays in
-`scripts/fetch-bundled-runtime.sh` as data and the install pins in
+`scripts/fetch-bundled-runtime.sh` as data, validates their reviewed wheel
+catalog coverage, and reads the install pins in
 `packaging/flatpak/python3-deps.json`. It reports RPM shipped packages (the full
 set includes the headless subset), the RPM build backend, and Flatpak installed
 packages separately. It sends only exact name/version requirements to
@@ -500,8 +501,57 @@ For each finding, the maintainer should:
 This is a PyPI package advisory lookup for declared pins, not an inspection of
 shipped bytes or a guarantee of no vulnerabilities. It excludes CPython and
 its embedded libraries, complete Qt/native-code coverage, distro packages,
-and the Flatpak platform and BaseApp. Bundled-runtime monitoring and wheel
-hash verification remain separate work.
+and the Flatpak platform and BaseApp. Bundled-runtime monitoring remains
+separate work; wheel content is checked by the build boundary below.
+
+### Reviewed bundled-wheel hashes
+
+`PINS` and `BUILD_BACKEND` in `scripts/fetch-bundled-runtime.sh` remain the
+version authority. `packaging/bundled-wheel-hashes.json` binds intended wheel
+basenames to reviewed SHA256 digests, separately for shipped runtime and the
+build-only backend. The fetcher validates both groups before downloading,
+generates temporary requirements for pip's `--require-hashes` mode, and checks
+exact filenames, bytes, and one wheel per pin before publishing either output.
+The bundled interpreter still selects compatible wheels through the configured
+pip index or mirror; a mirror must serve the approved bytes. Downloads remain
+binary-only and dependency resolution stays disabled. The RPM installs from
+those separate verified wheel directories offline.
+
+Refresh this catalog explicitly when changing pins or intended artifacts:
+
+1. Choose the intended release and exact compatible filenames. Keep the fetcher
+   pins, spec declarations and other existing version consumers synchronized;
+   do not add a second editable version list. Review both current CPython 3.14
+   x86_64 `dbus-fast` alternatives (the older-glibc and `manylinux_2_41` wheels).
+   Both are approved, but exactly one may enter a runtime archive.
+2. Fetch the primary PyPI release metadata at
+   `https://pypi.org/pypi/<project>/<version>/json`. Check each intended filename,
+   release identity, wheel type, yanked status, size and `digests.sha256`.
+3. Download each exact intended artifact into disposable storage, independently
+   compute its SHA256 (for example, `sha256sum <downloaded-wheel>`), and require
+   agreement with that primary metadata and its size. Review every catalog
+   entry, including the alternative wheel that this host's pip did not select.
+   Never approve hashes from a pip error suggestion, URL fragment, cache
+   listing, or arriving build directory alone.
+4. Edit the catalog and review the filename, group, digest and pin diff together.
+   Run the focused offline checks:
+
+   ```bash
+   .venv/bin/python -m pytest -q tests/test_bundled_wheel_hashes.py tests/test_dependency_audit.py tests/test_packaging.py
+   ```
+
+   In disposable storage, use the fetcher with its verified bundled interpreter
+   to check actual selection, both groups' complete closure and separate
+   `--no-index --no-deps` installation. Build and check the source package in a
+   disposable committed checkout so local build outputs stay intact. Submit
+   the reviewed catalog and matching pin changes through a normal PR.
+
+The initial review trusts the chosen upstream metadata and downloaded bytes;
+agreement cannot prove that upstream was uncompromised at that moment. Once
+reviewed and committed, the catalog rejects later substitutions from an index,
+mirror or cache. Ordinary builds only consume approval: the helper provides
+`prepare` and `verify`, with no refresh or auto-accept operation. Keep the catalog
+diff and metadata/actual-byte review evidence with the maintenance review.
 
 Before the initial public visibility change, audit a fresh remote clone rather
 than the development clone, which also holds deliberately unpublished backup

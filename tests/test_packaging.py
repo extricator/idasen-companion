@@ -562,6 +562,23 @@ def test_every_script_the_bundled_build_runs_ships_in_the_sdist():
         f"passes: {missing}")
 
 
+def test_wheel_hash_inputs_ship_and_cover_the_authoritative_pin_groups(tmp_path):
+    """A source-only build and advisory audit share the reviewed byte catalog."""
+    required = ("scripts/bundled-wheel-hashes.py", "packaging/bundled-wheel-hashes.json",
+                "scripts/fetch-bundled-runtime.sh", "scripts/audit-bundled-dependencies.py")
+    manifest = read(MANIFEST)
+    for relative in required:
+        assert (ROOT / relative).is_file()
+        assert f"include {relative}" in manifest.splitlines()
+    helper = runpy.run_path(str(ROOT / "scripts/bundled-wheel-hashes.py"))
+    catalog = helper["load_catalog"](ROOT / "packaging/bundled-wheel-hashes.json")
+    for group, pins in (("runtime", bundled_pins()), ("build-backend", build_backend_pins())):
+        destination = tmp_path / (group + ".txt")
+        helper["prepare"](catalog, group, [f"{name}=={version}" for name, version in pins.items()],
+                          destination)
+        assert len(destination.read_text().splitlines()) == len(pins)
+
+
 def test_the_check_runs_the_daemon_the_way_the_package_will():
     """Two properties make this a proof about the package rather than about
     whatever happened to be installed on the build host. It has to be the
