@@ -73,8 +73,6 @@ or hardware results. Follow `AGENTS.md` and `CONTRIBUTING.md` when selecting wor
 
 - [ ] **Gate Spanish Activity Log message rendering** — Exercise the compiled Spanish catalog
       and matching formatter across substitutions, plurals, cycle and fallback branches.
-- [ ] **Clarify translated-return marker semantics** — Define the marker contract and retain
-      bad-sentence detection.
 
 ## Repository maintenance
 
