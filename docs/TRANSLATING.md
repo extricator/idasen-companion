@@ -155,6 +155,16 @@ from `core.i18n`. They return string-compatible keys carrying
 their semantic context; `GettextTranslator` performs the lookup at render time,
 so a later language rebind remains visible.
 
+`gui.util.returns_translated` declares that a helper's result may be or contain
+translated text; plain fallback results are valid, and it makes no strict `str`
+return-type guarantee. Marked calls are conservative taint boundaries for sentence
+assembly: the bounded AST guard treats aliases, every unpacked target and a
+subscript of a marked result as possibly translated, without tuple-element
+dataflow. This includes non-text members such as `connection_state`'s color in its
+`(color, footer_text, chip_text)` tuple; no current rendering failure is established.
+Use whole messages with named substitutions that translators can reorder rather
+than adding suppression entries.
+
 Do not use `QObject.tr`, `QCoreApplication.translate`, `QT_TRANSLATE_NOOP`,
 opaque gettext source ids, sentence fragments, or hand-written plural
 selection for app-owned messages.

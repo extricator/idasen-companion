@@ -488,8 +488,8 @@ def test_a_call_through_a_second_function_reaches_tr():
 def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
     """A `gui/util.py` forwarder that delegates the word itself to
     `core/presentation.py` no longer calls the module-private wrapper -- it
-    builds the Qt-free translator backend and hands it over. Its result is
-    still translated text, so it must still be seen to reach a translator.
+    builds the Qt-free translator backend and hands it over. Its result
+    contains translated text, so it must still be seen to reach a translator.
     """
     tree = ast.parse(
         "from idasen_companion.core.i18n import GettextTranslator\n"
@@ -558,6 +558,23 @@ def test_a_def_is_not_reported_as_undecoratable():
 
 
 # ---- Integration test against the real module ----------------------------
+
+def test_returns_translated_is_a_pure_identity_declaration_for_mixed_values(monkeypatch):
+    from idasen_companion.gui import util  # pylint: disable=import-outside-toplevel
+
+    registry = set()
+    monkeypatch.setattr(util, "RETURNS_TRANSLATED", registry)
+    mixed = (object(), "Connected", "Desk connected")
+
+    def mixed_result():
+        return mixed
+
+    declared = util.returns_translated(mixed_result)
+
+    assert registry == {"mixed_result"}
+    assert declared is mixed_result
+    assert declared() is mixed
+
 
 def test_util_helpers_that_reach_tr_carry_the_mark():
     """A `gui/util.py` helper gains a translated string, nobody decorates it
@@ -810,13 +827,16 @@ def unrelated_local(fmt: F, plain):
 # What this reads: a "translated value" is a call to one of the translation
 # entry points named in `_TRANSLATING_CALLS`, or a call to a name in the
 # caller-supplied marked set (`gui/util.py`'s `RETURNS_TRANSLATED`, so a
-# helper's result counts the same as a direct call). Either counts whether it
+# helper's result may be or contain translated text). Either counts whether it
 # is written as a bare name or as an attribute of the module it lives in.
 # A value glued with `+`, interpolated into an f-string, or handed to
 # `.join()` is flagged; a translated template substituted with `%` is not --
 # that is the shape every conversion in this phase converts *to*, not a
 # glue. Accumulating with `+=` is the same glue written as a statement, and
 # reads the same way.
+# Aliases, every unpacked target and direct subscripts retain the marked
+# expression conservatively, including non-text tuple members such as
+# connection_state's color. This bounded check does not track tuple elements.
 #
 # Every scope is read, not only function bodies: a module-level constant is
 # this project's house style for a string that has to exist before the
@@ -847,7 +867,7 @@ _TRANSLATING_ATTRS = frozenset({"tr", "translate", "_tr"})
 
 
 def _is_translated_call(node, marked):
-    """Is `node` itself a call whose result is translated text.
+    """Is `node` a call whose result may be or contain translated text.
 
     A marked helper counts whichever way it is called. Several files reach
     `gui/util.py` through the module object rather than importing each name,
@@ -980,7 +1000,8 @@ def _scope_bindings(scope):
     records the whole right-hand side against each name it binds -- as
     precise as this check gets anywhere, since it already discards a
     subscript's index when resolving and so cannot tell which member of a
-    returned tuple a name took.
+    returned tuple a name took. Every target therefore remains possibly
+    translated, even a non-text member such as connection_state's color.
     """
     assigns: dict[str, list] = {}
     appends: dict[str, list] = {}
@@ -1229,6 +1250,14 @@ def test_a_name_bound_by_tuple_unpacking_and_glued_after_is_flagged():
     assert [shape for _, shape, _ in offenders] == ["f-string"]
 
 
+def test_a_subscript_of_a_marked_mixed_return_is_conservatively_flagged():
+    offenders = _glued(
+        "def f(tokens):\n"
+        "    return f'{connection_state(tokens, True, True, False)[0]} —'\n",
+        marked={"connection_state"})
+    assert [shape for _, shape, _ in offenders] == ["f-string"]
+
+
 def test_a_glue_against_the_module_private_wrapper_is_flagged():
     offenders = _glued(
         "def f(key):\n"
@@ -1244,7 +1273,7 @@ def test_no_translated_value_is_glued_to_anything():
     translator can reorder, and the two halves ship looking fine in English
     -- nothing fails until a language whose word order differs discovers the
     seam. This walks every file under `src/idasen_companion` and fails when
-    a translated value -- the result of `tr()`/`translate()`/`_()`/
+    a possibly translated value -- the result of `tr()`/`translate()`/`_()`/
     `ngettext()`, or of a `gui/util.py` helper marked `RETURNS_TRANSLATED`
     -- is an operand of `+`, interpolated into an f-string, or handed to
     `.join()`.

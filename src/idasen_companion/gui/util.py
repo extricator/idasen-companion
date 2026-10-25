@@ -39,7 +39,7 @@ def _tr(text: MessageKey) -> str:
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
-# Names of every helper below whose return value is translated text.
+# Names of every helper below whose result may be or contain translated text.
 # tests/test_translation_markers.py reads this set to know which calls a
 # concatenation check must treat as equivalent to a bare _tr() call, and
 # checks it against the module's own call graph so the set can't drift from
@@ -48,13 +48,14 @@ RETURNS_TRANSLATED: set[str] = set()
 
 
 def returns_translated(func: _F) -> _F:
-    """Declare that ``func``'s return value is translated text.
+    """Declare that ``func``'s result may be or contain translated text.
 
     A pure declaration, not behavior: it adds ``func.__name__`` to
     :data:`RETURNS_TRANSLATED` and returns ``func`` unchanged. The test suite
-    reads the registry to decide which calls count as translated values when
-    checking for glued-together translations; a helper that reaches ``_tr()``
-    without this mark fails the suite at its own definition instead.
+    reads the registry as a conservative boundary when checking for
+    glued-together translations. Plain fallback branches are valid, and the
+    mark makes no strict ``str`` return-type guarantee. A helper that reaches
+    ``_tr()`` without this mark fails the suite at its own definition instead.
     """
     RETURNS_TRANSLATED.add(func.__name__)
     return func
@@ -65,7 +66,10 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
     """Desk connection appearance as ``(color, footer_text, chip_text)``.
 
     Shared by the sidebar footer and the Overview connection chip so both
-    read the same state. ``tokens`` is the active theme.
+    read the same state. ``tokens`` is the active theme. This mixed tuple
+    contains translated text; the guard conservatively treats aliases,
+    every unpacked target and subscripts as possibly translated, including
+    the color, without tracking individual tuple elements.
 
     **Why this one stays in ``gui/``.** Its words moved to
     ``core/presentation.py`` with the rest of the app's vocabulary,
