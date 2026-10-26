@@ -220,7 +220,9 @@ the same typed source to string annotations on 2.44.1 through 3.x. The legacy
 adapter copies each decorated function, preserving its async code and argument
 names, and converts only explicit signature metadata. It does not alter the
 original function or patch dbus-fast. This keeps Debian 13's packaged 2.44.1
-supported with the same frozen introspection and flat payload contract.
+supported with the same frozen introspection and flat payload contract. Compound
+tuples become lists at the legacy boundary, including awaited method replies,
+because that compiled runtime's notifier requires lists.
 
 This checking has limits at the decorators and dynamic dispatch. `dbus_method`
 exposes `None` to direct Python callers, including erasing async results into a

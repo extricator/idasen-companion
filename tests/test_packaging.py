@@ -574,8 +574,9 @@ def test_wheel_hash_inputs_ship_and_cover_the_authoritative_pin_groups(tmp_path)
     catalog = helper["load_catalog"](ROOT / "packaging/bundled-wheel-hashes.json")
     for group, pins in (("runtime", bundled_pins()), ("build-backend", build_backend_pins())):
         destination = tmp_path / (group + ".txt")
-        helper["prepare"](catalog, group, [f"{name}=={version}" for name, version in pins.items()],
-                          destination)
+        with destination.open("w", encoding="utf-8") as stream:
+            helper["prepare"](catalog, group,
+                              [f"{name}=={version}" for name, version in pins.items()], stream)
         assert len(destination.read_text().splitlines()) == len(pins)
 
 

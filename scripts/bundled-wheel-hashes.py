@@ -5,17 +5,11 @@
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
-import tempfile
 from pathlib import Path
 
 GROUPS = ("runtime", "build-backend")
-WHEEL = re.compile(
-    r"([A-Za-z0-9_]+)-([0-9][A-Za-z0-9_.!+]*)-"
-    r"(?:[0-9][A-Za-z0-9_]*-)?[A-Za-z0-9_.]+-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+\.whl"
-)
 
 
 def normalized(name):
@@ -42,10 +36,17 @@ def pin_pairs(pins):
 
 def wheel_pair(filename):
     """Read identity only; pip remains responsible for compatibility selection."""
-    match = WHEEL.fullmatch(filename)
-    if not match:
+    parts = filename.removesuffix(".whl").split("-")
+    if not filename.endswith(".whl") or len(parts) not in (5, 6):
         raise ValueError(f"invalid wheel basename: {filename!r}")
-    return normalized(match[1]), match[2]
+    name, version, *tags = parts
+    build = tags.pop(0) if len(tags) == 4 else None
+    if (not re.fullmatch(r"[A-Za-z0-9_]++", name)
+            or not re.fullmatch(r"[0-9][A-Za-z0-9_.!+]*+", version)
+            or (build is not None and not re.fullmatch(r"[0-9][A-Za-z0-9_]*+", build))
+            or not all(re.fullmatch(r"[A-Za-z0-9_.]++", tag) for tag in tags)):
+        raise ValueError(f"invalid wheel basename: {filename!r}")
+    return normalized(name), version
 
 
 def unique_object(pairs):
@@ -103,8 +104,8 @@ def approved_wheels(catalog, group, pins):
     return entries
 
 
-def prepare(catalog, group, pins, destination):
-    """Atomically write all and only approved hashes for each exact pin."""
+def prepare(catalog, group, pins, output):
+    """Write complete approved requirements to a caller-owned stream."""
     entries = approved_wheels(catalog, group, pins)
     lines = []
     for pin in pins:
@@ -112,10 +113,7 @@ def prepare(catalog, group, pins, destination):
         hashes = sorted({digest for filename, digest in entries.items()
                          if wheel_pair(filename)[0] == name})
         lines.append(pin + "".join(f" --hash=sha256:{digest}" for digest in hashes))
-    with tempfile.TemporaryDirectory(dir=destination.parent) as temporary_directory:
-        temporary = Path(temporary_directory) / "requirements.txt"
-        temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        os.replace(temporary, destination)
+    output.write("\n".join(lines) + "\n")
 
 
 def verify(catalog, group, pins, directory):
@@ -147,24 +145,23 @@ def main():
     parser.add_argument("--catalog", required=True, type=argparse.FileType("rb"))
     parser.add_argument("--group", required=True, choices=GROUPS)
     parser.add_argument("--pin", required=True, action="append")
-    parser.add_argument("--requirements", type=Path)
     parser.add_argument("--directory", type=Path)
     args = parser.parse_args()
-    if args.command == "prepare" and (args.requirements is None or args.directory is not None):
-        parser.error("prepare needs --requirements and no --directory")
-    if args.command == "verify" and (args.directory is None or args.requirements is not None):
-        parser.error("verify needs --directory and no --requirements")
+    if args.command == "prepare" and args.directory is not None:
+        parser.error("prepare writes requirements to stdout and accepts no --directory")
+    if args.command == "verify" and args.directory is None:
+        parser.error("verify needs --directory")
     try:
         with args.catalog:
             catalog = read_catalog(args.catalog)
         if args.command == "prepare":
-            prepare(catalog, args.group, args.pin, args.requirements)
+            prepare(catalog, args.group, args.pin, sys.stdout)
         else:
             verify(catalog, args.group, args.pin, args.directory)
     except (OSError, ValueError, RecursionError) as error:
         print(f"wheel hashes: {error}", file=sys.stderr)
         return 2
-    print(f"wheel hashes: {args.command} {args.group} OK")
+    print(f"wheel hashes: {args.command} {args.group} OK", file=sys.stderr)
     return 0
 
 

@@ -107,9 +107,9 @@ for pin in "${PINS[@]}"; do runtime_pins+=(--pin "$pin"); done
 for pin in "${BUILD_BACKEND[@]}"; do backend_pins+=(--pin "$pin"); done
 # Validate both inventories before any network download.
 "$PYTHON" "$WHEEL_HASHES" prepare --catalog "$CATALOG" --group runtime \
-    --requirements "$WORK/runtime.txt" "${runtime_pins[@]}"
+    "${runtime_pins[@]}" > "$WORK/runtime.txt"
 "$PYTHON" "$WHEEL_HASHES" prepare --catalog "$CATALOG" --group build-backend \
-    --requirements "$WORK/backend.txt" "${backend_pins[@]}"
+    "${backend_pins[@]}" > "$WORK/backend.txt"
 
 echo ">> Downloading the pinned interpreter..."
 # -f is load-bearing: without it an error page from the far end is written to

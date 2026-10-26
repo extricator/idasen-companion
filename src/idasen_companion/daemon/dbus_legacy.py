@@ -50,11 +50,12 @@ def _string_annotations(function):
     # that requires a list. Normalize at the legacy boundary for both async
     # method replies and synchronous signals.
     if iscoroutinefunction(adapted):
-        async def compound(*args, **kwargs):
+        async def async_compound(*args, **kwargs):
             return list(await adapted(*args, **kwargs))
-    else:
-        def compound(*args, **kwargs):
-            return list(adapted(*args, **kwargs))
+        return update_wrapper(async_compound, adapted)
+
+    def compound(*args, **kwargs):
+        return list(adapted(*args, **kwargs))
     return update_wrapper(compound, adapted)
 
 

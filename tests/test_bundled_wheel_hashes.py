@@ -2,6 +2,7 @@
 """Offline content and publication boundaries for bundled wheels."""
 
 import hashlib
+import io
 import json
 import os
 import re
@@ -133,23 +134,22 @@ def test_catalog_rejects_ambiguous_or_unsafe_input(catalog_case, tmp_path, fault
 
 @pytest.mark.parametrize("pins", [["alpha-pkg==2.0"], ["alpha-pkg==1.0", "missing==1"],
                                   ["alpha-pkg==1.0", "Alpha_Pkg==1.0"]])
-def test_catalog_requires_exact_complete_unique_pins(catalog_case, tmp_path, pins):
+def test_catalog_requires_exact_complete_unique_pins(catalog_case, pins):
     helper, catalog, _directory, _wheel = catalog_case
-    destination = tmp_path / "requirements.txt"
-    destination.write_text("preserve existing input\n")
+    destination = io.StringIO("preserve existing input\n")
     with pytest.raises(ValueError):
         helper["prepare"](catalog, "runtime", pins, destination)
-    assert destination.read_text() == "preserve existing input\n"
+    assert destination.getvalue() == "preserve existing input\n"
 
 
-def test_approved_alternatives_emit_all_hashes_but_accept_only_one(catalog_case, tmp_path):
+def test_approved_alternatives_emit_all_hashes_but_accept_only_one(catalog_case):
     helper, catalog, directory, wheel = catalog_case
     alternate = directory / "alpha_pkg-1.0-cp314-cp314-manylinux_2_41_x86_64.whl"
     alternate.write_bytes(b"approved alternative")
     catalog["runtime"][alternate.name] = digest(alternate)
-    destination = tmp_path / "requirements.txt"
+    destination = io.StringIO()
     helper["prepare"](catalog, "runtime", ["alpha-pkg==1.0"], destination)
-    assert destination.read_text().split() == ["alpha-pkg==1.0"] + [
+    assert destination.getvalue().split() == ["alpha-pkg==1.0"] + [
         "--hash=sha256:" + value for value in sorted(catalog["runtime"].values())]
     with pytest.raises(ValueError, match="multiple wheels"):
         helper["verify"](catalog, "runtime", ["alpha-pkg==1.0"], directory)
