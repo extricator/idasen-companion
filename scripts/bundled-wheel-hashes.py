@@ -29,7 +29,7 @@ def pin_pairs(pins):
         raise ValueError("empty pin inventory")
     for pin in pins:
         if not isinstance(pin, str) or not re.fullmatch(
-            r"[A-Za-z0-9][A-Za-z0-9._-]*==[0-9][A-Za-z0-9.!+_]*", pin,
+            r"[A-Za-z0-9][A-Za-z0-9._-]*+==[0-9][A-Za-z0-9.!+_]*+", pin,
         ):
             raise ValueError(f"not an exact name/version pin: {pin!r}")
         name, version = pin.split("==")
@@ -60,7 +60,12 @@ def unique_object(pairs):
 def load_catalog(path):
     """Validate the entire bounded catalog, including the unselected group."""
     with Path(path).open("rb") as stream:
-        raw = stream.read(1024 * 1024 + 1)
+        return read_catalog(stream)
+
+
+def read_catalog(stream):
+    """Read a bounded catalog from a caller-opened input."""
+    raw = stream.read(1024 * 1024 + 1)
     if len(raw) > 1024 * 1024:
         raise ValueError("wheel catalog exceeds 1 MiB")
     catalog = json.loads(raw, object_pairs_hook=unique_object)
@@ -107,16 +112,10 @@ def prepare(catalog, group, pins, destination):
         hashes = sorted({digest for filename, digest in entries.items()
                          if wheel_pair(filename)[0] == name})
         lines.append(pin + "".join(f" --hash=sha256:{digest}" for digest in hashes))
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=destination.parent,
-                                         prefix=destination.name + ".", delete=False) as stream:
-            temporary = Path(stream.name)
-            stream.write("\n".join(lines) + "\n")
+    with tempfile.TemporaryDirectory(dir=destination.parent) as temporary_directory:
+        temporary = Path(temporary_directory) / "requirements.txt"
+        temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
         os.replace(temporary, destination)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
 
 
 def verify(catalog, group, pins, directory):
@@ -145,7 +144,7 @@ def verify(catalog, group, pins, directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("prepare", "verify"))
-    parser.add_argument("--catalog", required=True, type=Path)
+    parser.add_argument("--catalog", required=True, type=argparse.FileType("rb"))
     parser.add_argument("--group", required=True, choices=GROUPS)
     parser.add_argument("--pin", required=True, action="append")
     parser.add_argument("--requirements", type=Path)
@@ -156,7 +155,8 @@ def main():
     if args.command == "verify" and (args.directory is None or args.requirements is not None):
         parser.error("verify needs --directory and no --requirements")
     try:
-        catalog = load_catalog(args.catalog)
+        with args.catalog:
+            catalog = read_catalog(args.catalog)
         if args.command == "prepare":
             prepare(catalog, args.group, args.pin, args.requirements)
         else:

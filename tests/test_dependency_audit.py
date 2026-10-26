@@ -70,7 +70,6 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
         "build-commands": ['pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-build-isolation --no-deps Example_Pkg==1.2.3'],
     }))
     summary = tmp_path / "summary.md"
-    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
 
     def fake_run(command, **_kwargs):
         assert "--no-deps" in command and "--disable-pip" in command
@@ -87,7 +86,8 @@ def test_audit_outcomes_distinguish_clean_findings_and_errors(
         return subprocess.CompletedProcess(command, returncode, "", "diagnostic")
 
     monkeypatch.setattr(audit.subprocess, "run", fake_run)
-    assert audit.main(tmp_path) == status
+    with summary.open("a", encoding="utf-8") as stream:
+        assert audit.main(tmp_path, summary=stream) == status
     output = capsys.readouterr().out
     assert f"RPM shipped: {word}" in output
     assert f"RPM shipped: {word}" in summary.read_text()
@@ -196,6 +196,6 @@ def test_weekly_audit_is_read_only_advisory_and_bounded():
     ]
     assert [step["run"] for step in steps if "run" in step] == [
         "python -m pip install --disable-pip-version-check pip-audit==2.10.1",
-        "python scripts/audit-bundled-dependencies.py",
+        'python scripts/audit-bundled-dependencies.py --summary "$GITHUB_STEP_SUMMARY"',
     ]
     assert not any("continue-on-error" in step or "if" in step for step in steps)

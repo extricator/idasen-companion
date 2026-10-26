@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Look up advisories for exact bundled Python pins without resolving packages."""
 
+import argparse
 import html
 import json
-import os
 import re
 import runpy
 import shlex
@@ -131,7 +131,7 @@ def audit_inventory(pins):
         return status, report
 
 
-def main(root=ROOT):
+def main(root=ROOT, summary=None):
     """Print labeled reports and append the same evidence to Actions summary."""
     status = 0
     reports = []
@@ -156,13 +156,11 @@ def main(root=ROOT):
         print(report, flush=True)
         reports.append(report)
         status = max(status, result)
-    summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if summary:
+    if summary is not None:
         try:
-            with Path(summary).open("a", encoding="utf-8") as stream:
-                stream.write("## Exact bundled Python dependency audit\n\n")
-                for report in reports:
-                    stream.write("<pre>" + html.escape(report) + "</pre>\n\n")
+            summary.write("## Exact bundled Python dependency audit\n\n")
+            for report in reports:
+                summary.write("<pre>" + html.escape(report) + "</pre>\n\n")
         except OSError as error:
             print(f"Summary: ERROR\n{error}", file=sys.stderr)
             return 2
@@ -170,4 +168,11 @@ def main(root=ROOT):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--summary", type=argparse.FileType("a", encoding="utf-8"))
+    args = parser.parse_args()
+    try:
+        sys.exit(main(summary=args.summary))
+    finally:
+        if args.summary is not None:
+            args.summary.close()
