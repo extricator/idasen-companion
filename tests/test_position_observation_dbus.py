@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+pytest.importorskip("idasen_companion.gui")
 pytest.importorskip("PySide6")
 
 from dbus_fast.aio import MessageBus

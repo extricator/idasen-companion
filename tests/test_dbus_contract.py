@@ -392,6 +392,8 @@ def test_every_cli_member_exists_on_the_daemon():
         assert wanted["methods"] <= methods
         assert wanted["properties"] <= properties
 def test_gui_length_commands_and_success_envelopes_stay_scalar(monkeypatch):
+    pytest.importorskip("idasen_companion.gui")
+    pytest.importorskip("PySide6")
     from types import SimpleNamespace
     from idasen_companion.core.lengths import Length
     from idasen_companion.gui import dbus_client
