@@ -139,6 +139,17 @@ have deliberate exceptions. Properties set to `unset` remain controlled by
 editor defaults; this does not lock file bytes. The configuration is contributor
 guidance, not a formatter, linter, or request to reformat existing files in bulk.
 
+Git's root `.gitattributes` separately controls index and checkout conversion:
+automatically detected text uses LF, including maintained source, scripts,
+documentation, configuration, and dotfiles or extensionless files. PNG and
+compiled MO catalogs are binary; SVG, verbatim licenses, and the named generated
+or upstream metadata preserve bytes while retaining text diffs. New exceptional
+formats need review. These rules do not prevent editor changes; deeper
+`.gitattributes` files and the repository's `.git/info/attributes` can override
+them, and user attributes can still supply unrelated settings. Adding the policy
+does not rewrite existing blobs; bulk normalization requires separate review in
+a disposable checkout.
+
 ## Building the packages
 
 Released artifacts are built by CI. Build them by hand when you change
