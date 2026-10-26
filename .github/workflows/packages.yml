@@ -86,7 +86,7 @@ jobs:
             python3-pyside6.qtdbus python3-pyside6.qtsvg \
             qt6-svg-plugins qt6-translations-l10n \
             python3-babel python3-tomlkit python3-yaml python3-dbus-fast \
-            python3-idasen python3-bleak
+            python3-idasen python3-bleak dbus
           git config --global --add safe.directory /workspace
           bash scripts/build-release-variants.sh --deb --output dist-deb
           for package in dist-deb/*.deb; do

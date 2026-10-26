@@ -21,7 +21,7 @@ dependencies = [
     "Babel>=2.17",
     "idasen>=0.12",
     "bleak>=0.21",
-    "dbus-fast>=4.0.0",
+    "dbus-fast>=2.44.1",
     "PyYAML>=5.3",
     "tomlkit>=0.11",
 ]

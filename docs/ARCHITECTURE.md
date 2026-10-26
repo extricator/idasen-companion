@@ -215,6 +215,13 @@ bare deferred `None` annotations fail declaration construction in the compiled
 `TYPE_CHECKING`, avoiding a runtime import cycle while letting mypy check the
 service bodies, inputs and collaborator calls without scoped suppressions.
 
+`daemon.dbus_types` uses those native declarations on dbus-fast 4+ and adapts
+the same typed source to string annotations on 2.44.1 through 3.x. The legacy
+adapter copies each decorated function, preserving its async code and argument
+names, and converts only explicit signature metadata. It does not alter the
+original function or patch dbus-fast. This keeps Debian 13's packaged 2.44.1
+supported with the same frozen introspection and flat payload contract.
+
 This checking has limits at the decorators and dynamic dispatch. `dbus_method`
 exposes `None` to direct Python callers, including erasing async results into a
 non-awaitable type; `dbus_signal` results and `dbus_property` descriptor reads

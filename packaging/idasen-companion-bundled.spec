@@ -577,7 +577,7 @@ host_test_framework=$(%{python3} -c \
     'import os, pytest; print(os.path.dirname(os.path.dirname(pytest.__file__)))')
 %if %{with_gui}
 QT_QPA_PLATFORM=offscreen HOST_TEST_FRAMEWORK="$host_test_framework" \
-    %{buildroot}%{bundled_interpreter} -I -B -c \
+    dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B -c \
     'import os, sys; sys.path.append(os.environ["HOST_TEST_FRAMEWORK"]); import pytest; sys.exit(pytest.console_main())' \
     -q
 %else
@@ -585,7 +585,7 @@ QT_QPA_PLATFORM=offscreen HOST_TEST_FRAMEWORK="$host_test_framework" \
 # GUI suites discover missing Qt and skip at collection. The artifact-level
 # negative checks above are the headless boundary's authoritative proof.
 HOST_TEST_FRAMEWORK="$host_test_framework" \
-    %{buildroot}%{bundled_interpreter} -I -B -c \
+    dbus-run-session -- %{buildroot}%{bundled_interpreter} -I -B -c \
     'import os, sys; sys.path.append(os.environ["HOST_TEST_FRAMEWORK"]); import pytest; sys.exit(pytest.console_main())' \
     -q --ignore=tests/test_service_ctl.py \
        --ignore=tests/test_translation_markers.py

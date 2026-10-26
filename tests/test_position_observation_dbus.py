@@ -7,8 +7,11 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+
+pytest.importorskip("PySide6")
+
 from dbus_fast.aio import MessageBus
-from dbus_fast.service import dbus_method
+from idasen_companion.daemon.dbus_types import dbus_method
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
 from idasen_companion.core.config import AppConfig

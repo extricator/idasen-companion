@@ -24,11 +24,12 @@ import json
 from datetime import date
 from typing import Annotated, TYPE_CHECKING
 
-from dbus_fast.annotations import (
+from .dbus_types import (
     DBusBool, DBusDouble, DBusInt32, DBusUInt32, DBusStr, DBusSignature,
+    dbus_property, dbus_method, dbus_signal,
 )
 
-from dbus_fast.service import ServiceInterface, dbus_property, dbus_method, dbus_signal
+from dbus_fast.service import ServiceInterface
 from dbus_fast.constants import PropertyAccess
 
 from .. import DBUS_NAME

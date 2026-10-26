@@ -36,4 +36,4 @@ override_dh_auto_test:
 	# have. Running pytest from the checked-out tree instead keeps every
 	# path real; only the built package's location needs adding to
 	# PYTHONPATH so it imports the same way pybuild's copy would have.
-	PYTHONPATH=$$(echo .pybuild/cpython3_*/build) python3 -m pytest -q
+	QT_QPA_PLATFORM=offscreen PYTHONPATH=$$(echo .pybuild/cpython3_*/build) dbus-run-session -- python3 -m pytest -q
