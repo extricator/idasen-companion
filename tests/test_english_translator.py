@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the English-only :class:`Translator` backend.
 
 ``EnglishTranslator`` returns source text directly, keeping stable journal

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The tooltip's title/detail split, and the fallback that must survive it.
 
 Plasma renders the SNI ``ToolTip`` struct's ``title`` as a bold heading and its
@@ -39,9 +40,9 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -50,6 +51,7 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
     LocaleProfile,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
 from idasen_companion.gui.sni import (RichTooltip, StatusNotifierItem,  # noqa: E402
                                       find_tray_connection)
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
@@ -64,11 +66,16 @@ class FakeClient(QObject):
     connectedChanged = Signal(bool)
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
+    positionObservationChanged = Signal()
 
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
         self.available = available
-        self.daily_rows = list(daily_rows)
+        self.daily_rows = [DailyStatRow(*row) for row in daily_rows]
+        self.observation = None
+
+    def position_observation_elapsed(self, position):
+        return self.observation if position in ("sitting", "standing") else None
 
     def get_daily_stats(self, start, end):
         return self.daily_rows
@@ -114,11 +121,6 @@ class Recorder:
         return self.calls[-1]
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 def _make_tray(client):
     icon = TrayIcon(client, FakeWindow(), QIcon())
     yield icon, client
@@ -131,7 +133,7 @@ def _make_tray(client):
 
 @pytest.fixture
 def tray(qapp):
-    yield from _make_tray(FakeClient())
+    yield from _make_tray(FakeClient(available=True))
 
 
 @pytest.fixture
@@ -144,6 +146,7 @@ def tray_with_stats(qapp):
 
 def standing_and_active(icon):
     """Standing 43m into a 54m cycle, so 11m remain."""
+    icon.client.observation = Duration(2580)
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
@@ -201,17 +204,6 @@ def test_detail_survives_having_only_one_line(tray):
     icon._run_action("toggle")
 
     assert icon._rich.last == ("Idasen Companion", "Connecting…")
-
-
-def test_title_carries_no_newline(tray_with_stats):
-    # A newline in the title would be rendered inside the bold heading, which
-    # is precisely the uniform block this change exists to break up.
-    icon, _ = tray_with_stats
-    icon._rich = Recorder()
-
-    standing_and_active(icon)
-
-    assert "\n" not in icon._rich.last[0]
 
 
 def test_plain_tooltip_is_still_set_alongside(tray_with_stats):

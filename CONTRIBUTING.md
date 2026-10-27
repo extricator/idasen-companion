@@ -28,16 +28,45 @@ own.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e . pytest pytest-asyncio PySide6-Essentials
-.venv/bin/python -m pytest
+.venv/bin/python -m pip install -e '.[test]' PySide6-Essentials
+QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest
 ```
 
-Run against a simulated desk — no Bluetooth, no hardware — with a throwaway
-config so your real one is untouched:
+The lightweight path installs the test extra and Qt Essentials without Addons.
+For the CI-equivalent full-PySide6 environment, use the separate choice
+`.venv/bin/python -m pip install -e '.[gui,test]'`. Python 3.11 or newer and
+the host Qt libraries are required; `dbus-run-session` supplies the private
+session bus for automated GUI/D-Bus checks, with Qt forced offscreen.
+
+An optional visible walkthrough can use a simulated desk with a throwaway
+config and its own session bus. Leave the installed app and daemon running;
+the cleanup below targets only the test processes started in this shell:
 
 ```bash
-.venv/bin/idasen-companiond --mock-desk --config /tmp/ic-test.toml
-IDASEN_COMPANION_CONFIG=/tmp/ic-test.toml .venv/bin/idasen-companion
+dbus-run-session -- bash <<'SH'
+set -eu
+test_dir=$(mktemp -d)
+daemon_pid=
+gui_pid=
+cleanup() {
+    if [ -n "$gui_pid" ]; then
+        kill "$gui_pid" 2>/dev/null || true
+        wait "$gui_pid" 2>/dev/null || true
+    fi
+    if [ -n "$daemon_pid" ]; then
+        kill "$daemon_pid" 2>/dev/null || true
+        wait "$daemon_pid" 2>/dev/null || true
+    fi
+    rm -rf "$test_dir"
+}
+trap cleanup EXIT
+.venv/bin/idasen-companiond --mock-desk --config "$test_dir/config.toml" &
+daemon_pid=$!
+IDASEN_COMPANION_CONFIG="$test_dir/config.toml" .venv/bin/idasen-companion &
+gui_pid=$!
+wait "$gui_pid"
+gui_pid=
+SH
 ```
 
 `idasen-companion` also accepts Qt-free subcommands in both package flavors:
@@ -55,19 +84,28 @@ details.
 Before opening a pull request, run:
 
 ```bash
-.venv/bin/python -m pytest
-uvx pylint src/idasen_companion          # naming rules — see "Naming things"
+.venv/bin/python -m pytest tests/test_machine_startup.py
+.venv/bin/python -m pytest tests/test_machine_startup.py::test_start_classifies_current_height
+QT_QPA_PLATFORM=offscreen dbus-run-session -- .venv/bin/python -m pytest -q --cov=idasen_companion --cov-fail-under=77
+uvx mypy==2.3.0 --python-executable .venv/bin/python src/
+uvx pylint==4.0.6 src/idasen_companion
 ```
+
+The quality tools run separately through `uvx`; they are not project
+dependencies. Use the full `.[gui,test]` environment above for the
+CI-equivalent mypy target. Naming rules are described under "Naming things".
 
 Touching packaging (`MANIFEST.in`, `pyproject.toml`, `data/`, `packaging/`)
 also wants:
 
 ```bash
+.venv/bin/python -m pip install build
 PYTHON=.venv/bin/python bash scripts/build-dist.sh
 ```
 
-It builds the sdist and wheel and fails if either contains a file nobody
-meant to ship.
+`build` is a packaging-only Python prerequisite. The script builds the sdist
+and wheel and audits their contents. It clears stale distribution metadata
+and outputs, so use a disposable checkout to preserve existing local builds.
 
 **Install the local secret-scanning hook once, with:**
 
@@ -85,8 +123,32 @@ bypasses it, and that is deliberate — it is for a false positive in a hurry,
 not an escape route, since the same scan runs in CI where nothing bypasses
 it.
 
+Shared scanner rules do not imply identical input coverage. See the
+[coverage and cost assessment](docs/SECRET-SCANNING-ASSESSMENT.md) for the
+distinct staged, history, worktree and hosted checks and their limits.
+
 `docs/ARCHITECTURE.md` explains why the code is shaped the way it is; read it
 before changing the shape of something rather than working within it.
+
+## Editor conventions
+
+EditorConfig-compatible editors read the root `.editorconfig` for the existing
+text and indentation conventions. Markdown hard breaks, tabbed Debian recipes,
+verbatim licenses, generated or upstream metadata, artwork, and binary assets
+have deliberate exceptions. Properties set to `unset` remain controlled by
+editor defaults; this does not lock file bytes. The configuration is contributor
+guidance, not a formatter, linter, or request to reformat existing files in bulk.
+
+Git's root `.gitattributes` separately controls index and checkout conversion:
+automatically detected text uses LF, including maintained source, scripts,
+documentation, configuration, and dotfiles or extensionless files. PNG and
+compiled MO catalogs are binary; SVG, verbatim licenses, and the named generated
+or upstream metadata preserve bytes while retaining text diffs. New exceptional
+formats need review. These rules do not prevent editor changes; deeper
+`.gitattributes` files and the repository's `.git/info/attributes` can override
+them, and user attributes can still supply unrelated settings. Adding the policy
+does not rewrite existing blobs; bulk normalization requires separate review in
+a disposable checkout.
 
 ## Building the packages
 
@@ -149,6 +211,60 @@ the bundled directories; that is the one thing in `%check` the package cannot
 supply, since nothing in the payload is a test dependency and the build runs
 offline.
 
+### Refreshing bundled interpreter metadata
+
+The fetcher checks the reviewed metadata before downloading or creating outputs.
+Run that same check offline with the existing Python environment:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py verify
+```
+
+For a runtime bump, review the upstream release and source commit, update the
+three interpreter pins, and obtain complete local copies of the install-only
+asset, its matching optimized `pgo+lto` full archive, and the checksum-pinned
+Zstandard source archive. Install-only archives omit `PYTHON.json`. Review the
+complete archive hashes and sizes, metadata member hash and size, and source
+LICENSE hash independently before passing them to refresh:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py refresh \
+    --install-archive "$INSTALL_ARCHIVE" \
+    --install-sha256 "$INSTALL_SHA256" --install-size "$INSTALL_SIZE" \
+    --full-archive "$FULL_ARCHIVE" \
+    --full-sha256 "$FULL_SHA256" --full-size "$FULL_SIZE" \
+    --zstd-archive "$ZSTD_ARCHIVE" \
+    --zstd-sha256 "$ZSTD_SHA256" --zstd-size "$ZSTD_SIZE" \
+    --metadata-sha256 "$METADATA_SHA256" --metadata-size "$METADATA_SIZE" \
+    --zstd-license-sha256 "$ZSTD_LICENSE_SHA256" \
+    --release "$RELEASE" --source-commit "$SOURCE_COMMIT" \
+    --output packaging/interpreter
+```
+
+Refresh reads named regular members without extracting or executing archive
+contents. It uses standard-library Zstandard support when available, otherwise
+`zstd -dc`; ordinary verification needs neither. For the current build, the
+full archive lacks the referenced Zstandard notice, so its exact source
+`LICENSE` is the recorded fallback. The missing zlib-ng alternate path does
+not describe a shipping component: the Unix build uses ordinary zlib.
+
+Review the regenerated raw `PYTHON.json`, deterministic `PROVENANCE.json`, and
+the corresponding exact source notice bytes together. Retained extensions,
+explicit public-domain status, actual trim exclusions, and build-only
+setuptools are separate from wheel terms. Source associations establish
+provenance; they do not establish legal substitutability or complete compliance.
+After copying the reviewed exact notice bytes into `packaging/licenses/interpreter`
+and reconciling the full/headless declarations and staging, run the complete check:
+
+```bash
+.venv/bin/python scripts/verify-interpreter-metadata.py verify
+```
+
+Confirm expanded full/headless declarations separately with actual `rpmspec`
+outputs and the verifier's explicit `verify-expanded` command.
+
+### Other package builds
+
 `packaging/` also holds a three-package split (`idasen-companion.spec` plus
 `python-bleak.spec` and `python-idasen.spec`) for a repository that carries the
 two libraries separately. This is not what ships, and nothing in CI builds
@@ -180,12 +296,22 @@ bash scripts/verify-release-artifacts.sh dist-release
 
 `docs/TRANSLATING.md` is written for translators and is the place to start.
 
-One contextual gettext catalog owns every app message in the GUI, daemon and
-CLI. Regenerate it with:
+One contextual GNU gettext catalog owns every app message in the GUI, daemon
+and CLI. Install the external gettext tools `xgettext`, `msgmerge` and `msgfmt`
+with your operating system's package manager (`msginit` is also used when
+initializing a language). They are not pip dependencies. Regenerate with:
 
 ```bash
-PATH="$PWD/.venv/bin:$PATH" bash scripts/build-translations.sh
+bash scripts/build-translations.sh
+git diff --exit-code -- po/ src/idasen_companion/locale
 ```
+
+The script extracts `po/idasen_companion.pot`, merges `po/<language>.po`, then
+compiles `src/idasen_companion/locale/<language>/LC_MESSAGES/idasen_companion.mo`.
+For a string change, review the diff, fill new translations in the PO files,
+rerun the script and commit the POT, PO and MO changes. With no string change,
+the diff check must pass. Qt's standard buttons use its separate prebuilt
+`qtbase` catalog; there is no app-owned TS/QM generation step.
 
 A change that adds or alters a user-facing string must regenerate it and fill
 in every shipped language before it lands. Leaving a string untranslated
@@ -332,6 +458,111 @@ has been reviewed. `.github/dependabot.yml` groups weekly Python and Actions
 updates. Bundled dependencies pinned in RPM specs and Flatpak manifests also
 need review during release preparation; Dependabot does not cover every
 bundled runtime or library.
+
+### Weekly bundled Python advisory audit
+
+The maintainer owns the separate **Bundled dependency audit** workflow in
+`.github/workflows/dependency-audit.yml`. It runs Mondays at 09:17 UTC and can
+be started manually through Actions. It has read-only repository access and
+reports in the job summary and logs. Findings fail that run for attention;
+operational errors or incomplete package coverage also fail, with a distinct
+error report. This advisory workflow is independent of required PR checks.
+GitHub notifications depend on each maintainer's account and repository
+notification settings; email delivery is not guaranteed. Scheduled runs use
+the default branch and may be delayed or disabled under GitHub's scheduling
+rules, so check the Actions history when reviewing dependency health.
+
+To reproduce from the repository root, use a disposable environment (only audit
+tooling is installed; the packages being audited are neither installed nor
+resolved):
+
+```bash
+audit_tmp=$(mktemp -d)
+python3 -m venv "$audit_tmp/venv"
+"$audit_tmp/venv/bin/python" -m pip install --disable-pip-version-check pip-audit==2.10.1
+"$audit_tmp/venv/bin/python" scripts/audit-bundled-dependencies.py
+```
+
+The entrypoint reads the authoritative `PINS` and `BUILD_BACKEND` arrays in
+`scripts/fetch-bundled-runtime.sh` as data, validates their reviewed wheel
+catalog coverage, and reads the install pins in
+`packaging/flatpak/python3-deps.json`. It reports RPM shipped packages (the full
+set includes the headless subset), the RPM build backend, and Flatpak installed
+packages separately. It sends only exact name/version requirements to
+`pip-audit --no-deps --disable-pip`; it never sources the fetch script, changes
+pins, downloads audited wheels, or automatically fixes findings. Exit codes
+are 0 for complete clean results, 1 for findings, and 2 for an audit or input
+error, including skipped or missing packages. Review audit-tool pin updates
+through normal PRs independently of application pins.
+
+For each finding, the maintainer should:
+
+1. Confirm the advisory's affected versions, the inventory that ships the
+   package (or uses it only during the build), and the application's exposure.
+   Treat an audit error as an investigation task, not a clean result.
+2. Check existing Dependabot alerts, PRs, and tracked work before opening
+   duplicate remediation. If alerts are inaccessible, record that limitation;
+   do not assume there are no alerts. The dependency graph is not proof of
+   these exact bundled inventories.
+3. Use a normal PR to update affected pins, validate the change, and rebuild
+   and release affected packages. If deferring, record the advisory, affected
+   inventory, owner, exposure rationale, and a concrete expiry/review date in
+   tracked work. An exception is time-bounded and does not suppress the audit.
+
+This is a PyPI package advisory lookup for declared pins, not an inspection of
+shipped bytes or a guarantee of no vulnerabilities. It excludes CPython and
+its embedded libraries, complete Qt/native-code coverage, distro packages,
+and the Flatpak platform and BaseApp. Bundled-runtime monitoring remains
+separate work; wheel content is checked by the build boundary below.
+
+### Reviewed bundled-wheel hashes
+
+`PINS` and `BUILD_BACKEND` in `scripts/fetch-bundled-runtime.sh` remain the
+version authority. `packaging/bundled-wheel-hashes.json` binds intended wheel
+basenames to reviewed SHA256 digests, separately for shipped runtime and the
+build-only backend. The fetcher validates both groups before downloading,
+generates temporary requirements for pip's `--require-hashes` mode, and checks
+exact filenames, bytes, and one wheel per pin before publishing either output.
+The bundled interpreter still selects compatible wheels through the configured
+pip index or mirror; a mirror must serve the approved bytes. Downloads remain
+binary-only and dependency resolution stays disabled. The RPM installs from
+those separate verified wheel directories offline.
+
+Refresh this catalog explicitly when changing pins or intended artifacts:
+
+1. Choose the intended release and exact compatible filenames. Keep the fetcher
+   pins, spec declarations and other existing version consumers synchronized;
+   do not add a second editable version list. Review both current CPython 3.14
+   x86_64 `dbus-fast` alternatives (the older-glibc and `manylinux_2_41` wheels).
+   Both are approved, but exactly one may enter a runtime archive.
+2. Fetch the primary PyPI release metadata at
+   `https://pypi.org/pypi/<project>/<version>/json`. Check each intended filename,
+   release identity, wheel type, yanked status, size and `digests.sha256`.
+3. Download each exact intended artifact into disposable storage, independently
+   compute its SHA256 (for example, `sha256sum <downloaded-wheel>`), and require
+   agreement with that primary metadata and its size. Review every catalog
+   entry, including the alternative wheel that this host's pip did not select.
+   Never approve hashes from a pip error suggestion, URL fragment, cache
+   listing, or arriving build directory alone.
+4. Edit the catalog and review the filename, group, digest and pin diff together.
+   Run the focused offline checks:
+
+   ```bash
+   .venv/bin/python -m pytest -q tests/test_bundled_wheel_hashes.py tests/test_dependency_audit.py tests/test_packaging.py
+   ```
+
+   In disposable storage, use the fetcher with its verified bundled interpreter
+   to check actual selection, both groups' complete closure and separate
+   `--no-index --no-deps` installation. Build and check the source package in a
+   disposable committed checkout so local build outputs stay intact. Submit
+   the reviewed catalog and matching pin changes through a normal PR.
+
+The initial review trusts the chosen upstream metadata and downloaded bytes;
+agreement cannot prove that upstream was uncompromised at that moment. Once
+reviewed and committed, the catalog rejects later substitutions from an index,
+mirror or cache. Ordinary builds only consume approval: the helper provides
+`prepare` and `verify`, with no refresh or auto-accept operation. Keep the catalog
+diff and metadata/actual-byte review evidence with the maintenance review.
 
 Before the initial public visibility change, audit a fresh remote clone rather
 than the development clone, which also holds deliberately unpublished backup

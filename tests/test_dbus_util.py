@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """dbus_util.call() deadline behavior.
 
 Regression cover for the failure that parked the daemon's control loop for 41
@@ -11,7 +12,8 @@ import asyncio
 import pytest
 from dbus_fast import MessageType
 
-from idasen_companion.daemon.dbus_util import DBusCallError, call
+from idasen_companion.core.durations import Duration
+from idasen_companion.daemon.dbus_util import DBusCallError, DEFAULT_TIMEOUT, call
 
 # dbus-fast validates these at Message construction, so they must be real-looking.
 DEST, PATH, IFACE = "org.example.Svc", "/org/example/Svc", "org.example.Iface"
@@ -43,6 +45,10 @@ class FakeBus:
         return self._reply
 
 
+def test_default_timeout_is_a_duration():
+    assert isinstance(DEFAULT_TIMEOUT, Duration)
+
+
 async def test_successful_call_returns_body():
     bus = FakeBus(FakeReply(body=["ok"]))
     assert await call(bus, DEST, PATH, IFACE, "Method") == ["ok"]
@@ -57,7 +63,7 @@ async def test_error_reply_raises():
 async def test_silent_peer_times_out_instead_of_hanging():
     bus = FakeBus(hang=True)
     with pytest.raises(DBusCallError, match="no reply within"):
-        await call(bus, DEST, PATH, IFACE, "Method", timeout=0.05)
+        await call(bus, DEST, PATH, IFACE, "Method", timeout=Duration(0.05))
     # The pending call is abandoned, not left dangling on the bus.
     assert bus.cancelled
 
@@ -68,5 +74,5 @@ async def test_timeout_is_bounded_by_the_deadline():
     loop = asyncio.get_running_loop()
     started = loop.time()
     with pytest.raises(DBusCallError):
-        await call(bus, DEST, PATH, IFACE, "Method", timeout=0.05)
+        await call(bus, DEST, PATH, IFACE, "Method", timeout=Duration(0.05))
     assert loop.time() - started < 1.0

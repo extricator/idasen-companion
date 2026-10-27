@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 from dbus_fast import Variant
 
 from idasen_companion.daemon.bluez import (

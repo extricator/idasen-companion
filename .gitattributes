@@ -1,0 +1,13 @@
+# Detect text, including dotfiles and extensionless files; store/check out LF.
+* text=auto eol=lf
+
+# Binary assets: no text conversion, textual diffs, or text merges.
+*.png binary !eol
+*.mo binary !eol
+
+# Preserve artwork, verbatim licenses, and producer metadata; keep text diffs.
+*.svg -text !eol diff
+/LICENSE -text !eol diff
+/packaging/licenses/** -text !eol diff
+/packaging/flatpak/python3-deps.json -text !eol diff
+/packaging/interpreter/PYTHON.json -text !eol diff

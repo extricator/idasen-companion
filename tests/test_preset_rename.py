@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Renaming a preset is one operation, on the wire and on disk.
 
 It used to be two calls — Save under the new name, then Delete the old — with
@@ -13,15 +14,16 @@ it.
 """
 
 import os
-import asyncio
 from unittest.mock import MagicMock
 
 import pytest
 from dbus_fast import DBusError
 
 from idasen_companion.core import logmsg
-from idasen_companion.core.config import AppConfig, load_config, save_config
-from idasen_companion.daemon.main import Daemon
+from idasen_companion.core.lengths import Length
+from idasen_companion.core.config import AppConfig, ConfigError, load_config, save_config
+from daemon_helpers import make_daemon_shell
+from idasen_companion.daemon.config_file import ConfigFileStore
 
 PRESETS = {"sit": 0.62, "perch": 0.95, "stand": 1.14}
 
@@ -33,23 +35,16 @@ PRESETS = {"sit": 0.62, "perch": 0.95, "stand": 1.14}
 def daemon(tmp_path):
     """A Daemon with just the collaborators the preset writers touch.
 
-    ``config_path`` is real and so is ``save_config``: the point of these is
+    The configuration path is real and so is ``save_config``: the point of these is
     that the rename reaches disk in one write, which a mocked writer could not
     show.
     """
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.config = AppConfig()
     d.config.presets = dict(PRESETS)
-    d.config_path = tmp_path / "config.toml"
-    save_config(d.config, d.config_path)
-    # The writers now re-check the file before mutating, so a hand edit made
-    # in the last check_interval isn't clobbered. Seed the mtime the way the
-    # daemon would have after writing this file itself.
-    d._config_mtime = d.config_path.stat().st_mtime
-    d._note_config_mtime = MagicMock()
+    d.config_file = ConfigFileStore(tmp_path / "config.toml", d.activity_log)
+    d.config_file.save(d.config)
     d._ifaces = {"presets": MagicMock(), "automation": MagicMock()}
     # Reached only when the re-check finds the file changed under us, which is
     # the point of test_saving_a_preset_does_not_revert_a_concurrent_hand_edit.
@@ -59,7 +54,7 @@ def daemon(tmp_path):
 
 
 def on_disk(daemon) -> dict:
-    return load_config(daemon.config_path).presets
+    return load_config(daemon.config_file.path).presets
 
 
 def test_a_rename_reaches_disk(daemon):
@@ -69,12 +64,16 @@ def test_a_rename_reaches_disk(daemon):
     assert on_disk(daemon) == {"sit": 0.62, "lean": 0.95, "stand": 1.14}
 
 
-def test_it_is_one_write_and_one_announcement(daemon):
+def test_it_is_one_write_and_one_announcement(daemon, monkeypatch):
+    from idasen_companion.daemon import config_file as config_file_mod
+    writer = MagicMock(wraps=config_file_mod.save_config)
+    monkeypatch.setattr(config_file_mod, "save_config", writer)
     daemon.rename_preset("perch", "lean")
     # The whole point: a client doing Save-then-Delete produced two of each,
     # with a window in between where both names existed.
     assert daemon._ifaces["presets"].PresetsChanged.call_count == 1
-    assert daemon._note_config_mtime.call_count == 1
+    writer.assert_called_once_with(daemon.config, daemon.config_file.path)
+    assert not daemon.config_file.poll_changed()
 
 
 def test_the_key_keeps_its_place_in_what_list_reports(daemon):
@@ -129,34 +128,74 @@ def test_saving_a_preset_does_not_revert_a_concurrent_hand_edit(daemon):
     stamps its own mtime after writing.
     """
     import re
-    text = daemon.config_path.read_text()
+    text = daemon.config_file.path.read_text()
     edited = re.sub(r'idle_threshold = "[^"]*"', 'idle_threshold = "7m"', text)
     assert edited != text, "fixture config has no idle_threshold to edit"
-    daemon.config_path.write_text(edited)
-    os.utime(daemon.config_path, (daemon._config_mtime + 10,) * 2)
+    daemon.config_file.path.write_text(edited)
+    os.utime(daemon.config_file.path, (daemon.config_file.path.stat().st_mtime + 10,) * 2)
 
-    daemon.save_preset("lean", 0.95)
+    daemon.save_preset("lean", Length(0.95))
 
-    reloaded = load_config(daemon.config_path)
+    reloaded = load_config(daemon.config_file.path)
     assert reloaded.automation.idle_threshold == 7 * 60, "hand edit was reverted"
     assert reloaded.presets["lean"] == 0.95, "the preset never reached disk"
 
 
-def test_a_failed_write_leaves_the_presets_as_they_were(daemon, monkeypatch):
+@pytest.mark.parametrize("operation", ["save", "rename", "delete"])
+@pytest.mark.parametrize("error", [ConfigError("invalid"), OSError("disk full")])
+def test_a_failed_write_leaves_the_presets_as_they_were(daemon, monkeypatch, operation, error):
     """Mutating before writing left the daemon serving presets that are not on
     disk when the write failed, with no PresetsChanged and no log line."""
-    import idasen_companion.daemon.main as main_mod
+    import idasen_companion.daemon.config_file as config_file_mod
     before = dict(daemon.config.presets)
 
     def boom(*_a, **_kw):
-        raise OSError("no space left on device")
+        raise error
 
-    monkeypatch.setattr(main_mod, "save_config", boom)
-    with pytest.raises(DBusError):
-        daemon.save_preset("lean", 0.95)
+    monkeypatch.setattr(config_file_mod, "save_config", boom)
+    with pytest.raises(DBusError) as raised:
+        if operation == "save":
+            daemon.save_preset("lean", Length(0.95))
+        elif operation == "rename":
+            daemon.rename_preset("perch", "lean")
+        else:
+            daemon.delete_preset("perch")
 
+    assert raised.value.type.endswith(".Error.ConfigWriteFailed")
     assert daemon.config.presets == before
+    assert on_disk(daemon) == before
     daemon._ifaces["presets"].PresetsChanged.assert_not_called()
+    daemon.activity_log.emit.assert_not_called()
+    assert not daemon.config_file.poll_changed()
+
+
+def test_rename_uses_the_latest_on_disk_preset_height(daemon):
+    edited = daemon.config_file.load()
+    edited.presets["perch"] = 0.99
+    edited.automation.idle_threshold = 7 * 60
+    first_mtime = daemon.config_file.path.stat().st_mtime
+    save_config(edited, daemon.config_file.path)
+    os.utime(daemon.config_file.path, (first_mtime + 10,) * 2)
+
+    daemon.rename_preset("perch", "lean")
+
+    saved = daemon.config_file.load()
+    assert saved.presets["lean"] == 0.99
+    assert "perch" not in saved.presets
+    assert saved.automation.idle_threshold == 7 * 60
+    assert not daemon.config_file.poll_changed()
+
+
+@pytest.mark.parametrize("operation", ["save", "rename", "delete"])
+def test_each_preset_write_consumes_its_own_revision(daemon, operation):
+    if operation == "save":
+        daemon.save_preset("lean", Length(0.95))
+    elif operation == "rename":
+        daemon.rename_preset("perch", "lean")
+    else:
+        daemon.delete_preset("perch")
+
+    assert not daemon.config_file.poll_changed()
 
 
 # ----- the page -----
@@ -168,7 +207,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QLineEdit, QMessageBox,
+    QLineEdit, QMessageBox,
 )
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -201,11 +240,6 @@ class FakeClient(QObject):
 
     def delete_preset(self, name):  # pragma: no cover - as above
         raise AssertionError("a rename is a Rename, not a Save plus a Delete")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

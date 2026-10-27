@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # What the tree this package ships is allowed to link, how new a C library it
 # is allowed to ask for, and what weight it is allowed to carry that nothing
 # reads.

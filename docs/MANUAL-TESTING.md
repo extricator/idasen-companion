@@ -233,6 +233,60 @@ a deliberate pass. All of them involve grabbing the physical paddle mid-move.
       minutes must **not** move the desk; the first input triggers the pending
       transition.
 
+### Installed RPM check — 2026-10-25
+
+A user-guided check on `idasen-companion-1.3.1-1.x86_64`, KDE/X11,
+passed these three selected cases through the normal Toggle hotkey. Automation
+was paused for the checks; interruption policy stayed **Undo**.
+
+1. **Repeat click → Return:** the user reported "it reversed". At 10:55:57
+   AST the journal recorded the repeat gesture reversing toward 0.620 m;
+   afterward the cached height was 0.6201 m, stationary, compared with
+   0.6202 m before the move.
+2. **Repeat click → Stop:** after selecting Stop and Apply, the user reported
+   "stopped and stay there". At 11:00:03 AST the journal recorded the repeat
+   gesture stopping; the cached height held at 0.6837 m, stationary, above
+   the 0.6201 m start. No Undo return was reported. Return was restored and
+   Apply clicked before the next case; the user returned the desk to Sit.
+3. **Manual paddle interruption → Undo:** the user reported "expected" in
+   response to the instruction to expect one return without another retry.
+   At 11:10:42 AST the journal recorded the manual stand move interrupted at
+   0.6915 m and returning toward 0.6202 m. Final cached height was 0.6201 m,
+   stationary; no further retry was observed or reported.
+
+The heights above are passive cached values, not numeric measurements supplied
+by the user. Observation used cached D-Bus properties and existing journal
+entries; the user operated every shortcut, setting and paddle action. The
+application and daemon were kept running. No transport stall was observed in
+these three cases; the separate Bluetooth-stall investigation remains open.
+
+Afterward the user resumed automation. Passive verification confirmed active
+status, no snooze or pending skip, and the exact original config SHA-256
+`3055c96e50139ad41c81059e1103e9c07d2489bb31020558b8dd17fb2e496cdd`
+(Return, Undo, automation enabled, sync interval 0s). Daemon PID 2731649,
+its Oct 24 start time and `/usr/bin/idasen-companiond` service command were
+unchanged. The user's existing `AGENTS.md` changes were preserved.
+
+**The policy checkboxes above remain pending.** This check did not cover
+automated interruption paths, other interruption policies or the slider,
+Off, repeated Sit/Stand, different-action redirects, tray repetitions, or a
+deliberate comparison of cold and already-connected operation. Other KDE
+sessions, GNOME, unpair/power checks and the other sweeps were not attempted.
+No tests were added, expanded or removed; the historical 1,906-test suite was
+not rerun for this documentation-only recording.
+
+#### User-confirmed follow-up completion
+
+Later on 2026-10-25, the user confirmed the proposed follow-up checks were
+already complete: manual paddle interruption under Leave it, manual
+interruption under Try again, and explicit-height interruption under Undo.
+Their report was: "i did all those checks already, seems like this todo is
+completed". The general desktop/hardware verification todo was closed on that
+confirmation. The three detailed observations above remain the guided evidence;
+the follow-up confirmation supplies no additional timestamps or setup details.
+Individual checklist boxes are not bulk-ticked by this closure. Separate
+package-verification tasks and the Bluetooth-stall investigation remain open.
+
 ## Packaging variant
 
 The standalone full and headless bundled RPMs ship and are rebuilt constantly

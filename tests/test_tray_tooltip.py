@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """What the tray tooltip says, and the one-line constraint on the menu entry.
 
 The tooltip answers the two questions a glance at a sit/stand desk is asking —
@@ -36,13 +37,16 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from types import SimpleNamespace  # noqa: E402
 
 import shiboken6  # noqa: E402
-from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtCore import QLocale, QObject, QTranslator, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import dataclasses  # noqa: E402
 
+from idasen_companion.core import i18n as core_i18n  # noqa: E402
+from idasen_companion.core.config import AppConfig  # noqa: E402
+from idasen_companion.core.clocks import MonotonicInstant, WallInstant  # noqa: E402
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
+from idasen_companion.core.durations import Duration  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -51,8 +55,10 @@ from idasen_companion.core.locale_profile import (  # noqa: E402
     LocaleProfile,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.machine import Status  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow  # noqa: E402
+from idasen_companion.gui import tray as tray_mod  # noqa: E402
 from idasen_companion.gui.tray import TrayIcon  # noqa: E402
-from idasen_companion.gui.util import fmt_clock  # noqa: E402
 
 
 class FakeClient(QObject):
@@ -66,17 +72,19 @@ class FakeClient(QObject):
     connectedChanged = Signal(bool)
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
+    positionObservationChanged = Signal()
 
     def __init__(self, available=False, daily_rows=()):
         super().__init__()
-        self._snooze_until = 0.0
+        self._snooze_until = WallInstant(0.0)
         self.stats_calls = 0
+        self.observation = None
         # An instance attribute, not the class-level ``available = False`` the
         # other tray tests get away with: _today_summary returns "" outright
         # when the daemon is unavailable, so the summary line is unreachable
         # without this.
         self.available = available
-        self.daily_rows = list(daily_rows)
+        self.daily_rows = [DailyStatRow(*row) for row in daily_rows]
 
     def get_daily_stats(self, start, end):
         # A real method rather than the __getattr__ fallback below, which
@@ -85,6 +93,9 @@ class FakeClient(QObject):
         # now re-renders once a second.
         self.stats_calls += 1
         return self.daily_rows
+
+    def position_observation_elapsed(self, position):
+        return self.observation if position in ("sitting", "standing") else None
 
     def snooze_until(self):
         # Also real: the fallback returns None, and the tray formats this.
@@ -96,7 +107,7 @@ class FakeClient(QObject):
         Test-only helper; ``DaemonClient`` does this from its async property
         fetch (``dbus_client.py`` ``_set_snooze_until``).
         """
-        self._snooze_until = value
+        self._snooze_until = WallInstant(value)
         self.snoozeUntilChanged.emit(value)
 
     def __getattr__(self, name):
@@ -128,13 +139,8 @@ class FakeWindow:
                 time_style=TimeStyle.HOUR_AND_MINUTE_24)))
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
-def _make_tray(client):
-    icon = TrayIcon(client, FakeWindow(), QIcon())
+def _make_tray(client, window=None):
+    icon = TrayIcon(client, window or FakeWindow(), QIcon())
     yield icon, client
     # Destroy it here rather than letting Python drop the last reference
     # whenever it feels like it: a QSystemTrayIcon collected after the offscreen
@@ -147,7 +153,7 @@ def _make_tray(client):
 
 @pytest.fixture
 def tray(qapp):
-    yield from _make_tray(FakeClient())
+    yield from _make_tray(FakeClient(available=True))
 
 
 @pytest.fixture
@@ -161,8 +167,103 @@ def tray_with_stats(qapp):
 def standing_and_active(icon):
     """Standing 43m into a 54m cycle, so 11m remain."""
     icon._on_position("standing")
+    icon.client.observation = Duration(2580)
     icon._on_status("active")
     icon._on_progress(2580.0, 3240.0)
+
+
+def test_unavailable_paused_tray_survives_ticks_and_observation_clear(tray):
+    icon, client = tray
+    standing_and_active(icon)
+    icon._on_status("paused")
+    client.available = False
+    client.availableChanged.emit(False)
+    client.observation = None
+    client.positionObservationChanged.emit()
+    icon._tick()
+    assert icon.toolTip() == "Idasen Companion\nDaemon not running"
+    assert icon._status_action.text() == "Daemon not running"
+    assert icon.contextMenu().accessibleName() == "Daemon not running"
+    assert icon.contextMenu().accessibleDescription() == ""
+    client.available = True
+    client.availableChanged.emit(True)
+    client.observation = Duration(30)
+    client.positionObservationChanged.emit()
+    icon._tick()
+    assert icon.toolTip() == "Idasen Companion\nStanding for 30s\nPaused"
+
+
+def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):
+    icon, _ = tray
+    clock = 10.0
+    monkeypatch.setattr(tray_mod, "time", SimpleNamespace(monotonic=lambda: clock))
+    icon._on_status("active")
+    icon._on_progress(2580.0, 3240.0)
+
+    assert isinstance(icon._remaining, Duration)
+    assert icon._progress_stamp == MonotonicInstant(10.0)
+
+    clock += 0.25
+    assert icon._since_progress() == Duration(0.25)
+    assert icon._shown_remaining() == 660.0
+    assert icon._shown_elapsed() is None
+
+    # Active credit only ages the countdown; absent observations stay absent.
+    readings = iter((10.75,))
+    monkeypatch.setattr(tray_mod, "time", SimpleNamespace(monotonic=lambda: next(readings)))
+    assert icon._shown_remaining() == 659.0
+    assert icon._shown_elapsed() is None
+
+
+def test_position_signal_preserves_tray_labels_and_direction(tray):
+    icon, client = tray
+    client.observation = Duration(2580)
+    for raw, label, direction in (
+            ("sitting", "Sitting", "Standing up in 11m"),
+            ("standing", "Standing", "Sitting down in 11m"),
+            ("", "Custom", "11m left"),
+            ("custom", "Custom", "11m left"),
+            (" Future-POSITION \t", " future-position \t", "11m left"),
+            ("SITTING", "Sitting", "11m left")):
+        client.positionChanged.emit(raw)
+        client.statusChanged.emit("active")
+        client.progressChanged.emit(2580.0, 3240.0)
+        held = label + " for 43m" if raw in ("sitting", "standing") else label
+        assert icon.toolTip().split("\n")[1:] == [held, direction]
+        assert icon._status_action.text() == label + " · 11m left"
+
+
+def test_status_signal_preserves_tray_actions_and_fallbacks(tray, monkeypatch):
+    icon, client = tray
+    dispatched = []
+    monkeypatch.setattr(client, "pause", lambda: dispatched.append("pause"))
+    monkeypatch.setattr(client, "resume", lambda: dispatched.append("resume"))
+    standing_and_active(icon)
+
+    for raw, label, _stopped, resume, visible in (
+            ("move-failed", "Last move failed", False, False, True),
+            ("paused", "Paused", True, True, True),
+            ("snoozed", "Snoozed", True, True, True),
+            ("held", "Paused — desk moved off sit/stand", True, False, True),
+            ("disabled", "Automation off", True, False, False),
+            (" Future Status ", " Future Status ", False, False, True),
+            ("", "", False, False, True)):
+        client.statusChanged.emit(raw)
+        assert icon._status_action.text() == "Standing · " + label
+        assert all(action.isVisible() is visible for action in icon._cycle_actions)
+        assert icon._cycle_separator.isVisible() is visible
+        assert icon._pause_action.text() == (
+            "Resume automation" if resume else "Pause automation")
+        icon._pause_action.trigger()
+        assert dispatched[-1] == ("resume" if resume else "pause")
+        lines = icon.toolTip().split("\n")
+        assert lines[1] == "Standing for 43m"
+        if raw == "move-failed":
+            assert lines[2] == "Last move failed · 11m left"
+        elif raw == "snoozed":
+            assert lines[2] == "Snoozed until later"
+        else:
+            assert lines[2] == label
 
 
 def test_title_is_the_app_name_on_its_own(tray):
@@ -175,27 +276,6 @@ def test_title_is_the_app_name_on_its_own(tray):
     assert icon.toolTip().split("\n")[0] == "Idasen Companion"
 
 
-def test_held_position_and_next_change_are_separate_lines(tray):
-    icon, _ = tray
-    standing_and_active(icon)
-
-    lines = icon.toolTip().split("\n")
-
-    assert lines[1] == "Standing for 43m"
-    assert lines[2] == "Sitting down in 11m"
-
-
-def test_next_change_names_the_direction_it_is_heading(tray):
-    # Sitting means the next event is standing up — the same wording the
-    # daemon's pre-move notification uses, so one event is named one way.
-    icon, _ = tray
-    icon._on_position("sitting")
-    icon._on_status("active")
-    icon._on_progress(2580.0, 3240.0)
-
-    assert icon.toolTip().split("\n")[2] == "Standing up in 11m"
-
-
 def test_countdown_replaces_the_status_word(tray):
     # Deliberate: a visible countdown already proves automation is running, so
     # "Automation active" beside it was filler.
@@ -205,44 +285,21 @@ def test_countdown_replaces_the_status_word(tray):
     assert "Automation active" not in icon.toolTip()
 
 
-def test_status_word_returns_when_there_is_no_countdown(tray):
-    # ...and it earns its place here, where nothing else explains the state.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("paused")
-
-    assert icon.toolTip().split("\n")[2] == "Paused"
-
-
-def test_a_stopped_cycle_drops_the_held_duration(tray):
-    # The duration is active time, not time in the position: once the cycle
-    # stops running down the machine stops crediting it, so it would stand at
-    # the same number for the whole pause while reading like a running clock.
-    icon, _ = tray
-    standing_and_active(icon)
-    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
-
-    icon._on_status("paused")
-    assert icon.toolTip().split("\n")[1] == "Standing"
-
-
 @pytest.mark.parametrize("status", ["paused", "snoozed", "disabled",
                                     "out-of-schedule", "unconfigured"])
 def test_every_stopped_cycle_state_drops_it_not_just_pause(tray, status):
-    # One rule, taken from the machine's own NO_CYCLE_STATUSES. Hiding it for
-    # a pause but not a snooze would leave the same stopped clock on screen.
+    # Existing state coverage now protects an independently fresh observation.
     icon, _ = tray
     standing_and_active(icon)
     icon._on_status(status)
 
-    assert icon.toolTip().split("\n")[1] == "Standing"
+    assert icon.toolTip().split("\n")[1] == "Standing for 43m"
 
 
 @pytest.mark.parametrize("status", ["user-idle", "locked", "away"])
 def test_a_merely_paused_accumulator_keeps_the_duration(tray, status):
-    # Idle, lock and away stop the accumulator too, but the cycle is still
-    # this one and the freeze ends when the user comes back — stale, not
-    # meaningless. Dropping it here would flicker the line on every absence.
+    # Automation status never supplies or invalidates an observation itself;
+    # the shared cache owns continuity and hard-boundary invalidation.
     icon, _ = tray
     standing_and_active(icon)
     icon._on_status(status)
@@ -259,30 +316,60 @@ def test_snoozed_tooltip_says_when_automation_resumes(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(
-            icon.window.ctx.fmt, datetime(2026, 8, 3, 14, 32)))
+        "Snoozed until %s" % icon.window.ctx.fmt.clock(
+            datetime(2026, 8, 3, 14, 32)))
 
 
-def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(tray):
-    """The clock format applies on Apply, and this is the whole mechanism:
-    `AppContext.write_config` rebuilds `ctx.fmt`, and the tray reads that
-    formatter fresh at every redraw instead of caching it. No new signal and
-    no restart — so what is pinned here is that the surface re-reads, not
-    that the helper formats correctly, which its own tests already own.
-    """
-    icon, client = tray
-    standing_and_active(icon)
-    icon._on_status("snoozed")
-    deadline = datetime(2026, 8, 3, 14, 32)
-    client.set_snooze_until(deadline.timestamp())
-    assert "PM" not in icon.toolTip()
+def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
+        qapp, make_app_context, monkeypatch):
+    """Apply redraws the current text without another daemon or timer input."""
+    previous_locale = QLocale()
+    previous_direction = qapp.layoutDirection()
+    previous_translators = set(qapp.findChildren(QTranslator))
+    monkeypatch.setattr(core_i18n, "_current", core_i18n._current)
+    trays = None
+    try:
+        config = AppConfig()
+        config.ui.language = "en_US"
+        config.ui.units = "cm"
+        config.ui.clock_format = "24"
+        today = date.today().isoformat()
+        client = FakeClient(available=True, daily_rows=[(today, "sitting", 7080.0)])
+        context = make_app_context(
+            client, config, load_config=True, tray_available=True)
+        trays = _make_tray(client, SimpleNamespace(ctx=context))
+        icon, _ = next(trays)
+        standing_and_active(icon)
+        icon._on_status("snoozed")
+        client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
+        client.presetsChanged.emit({"stand": 1.1})
+        assert icon.toolTip().split("\n")[2:] == [
+            "Snoozed until 14:32", "Today: 1h 58m sitting / 0m standing"]
+        assert icon._presets_menu.actions()[0].text() == "Stand (110.0 cm)"
+        calls = client.stats_calls
+        client.daily_rows = [DailyStatRow(today, "sitting", 7200.0)]
 
-    context = icon.window.ctx.fmt.context
-    icon.window.ctx.fmt = Formatter(dataclasses.replace(
-        context, time_style=TimeStyle.HOUR_AND_MINUTE_12))
-    client.set_snooze_until(deadline.timestamp())
+        def change_display(config):
+            config.ui.clock_format = "12"
+            config.ui.units = "in"
 
-    assert icon.toolTip().split("\n")[2] == "Snoozed until 2:32 PM"
+        assert context.write_config(change_display) is None
+
+        assert icon.toolTip().split("\n")[2:] == [
+            "Snoozed until 2:32 PM", "Today: 2h 00m sitting / 0m standing"]
+        assert icon._presets_menu.actions()[0].text() == "Stand (43.31 in)"
+        assert client.stats_calls == calls + 1
+        icon._tick()
+        assert client.stats_calls == calls + 1
+        assert icon.toolTip().split("\n")[-1] == "Today: 2h 00m sitting / 0m standing"
+    finally:
+        if trays is not None:
+            next(trays, None)
+        for translator in set(qapp.findChildren(QTranslator)) - previous_translators:
+            qapp.removeTranslator(translator)
+            shiboken6.delete(translator)
+        qapp.setLayoutDirection(previous_direction)
+        QLocale.setDefault(previous_locale)
 
 
 def test_snoozed_tooltip_says_later_until_the_deadline_arrives(tray):
@@ -307,8 +394,8 @@ def test_deadline_arriving_redraws_the_tooltip(tray):
     client.set_snooze_until(datetime(2026, 8, 3, 9, 5).timestamp())
 
     assert icon.toolTip().split("\n")[2] == (
-        "Snoozed until %s" % fmt_clock(
-            icon.window.ctx.fmt, datetime(2026, 8, 3, 9, 5)))
+        "Snoozed until %s" % icon.window.ctx.fmt.clock(
+            datetime(2026, 8, 3, 9, 5)))
 
 
 def test_menu_entry_keeps_the_bare_word_while_snoozed(tray):
@@ -367,26 +454,6 @@ def test_menu_entry_stays_short_in_a_bad_state(tray):
         assert text.startswith("Standing · ")
 
 
-def test_menu_entry_keeps_the_position_when_not_active(tray):
-    # A status word must not take the whole line: knowing where the desk is
-    # matters most when you are about to press Sit or Stand.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("paused")
-
-    assert icon._status_action.text() == "Standing · Paused"
-
-
-def test_menu_entry_names_the_failure_over_the_countdown(tray):
-    # A failed move still has a countdown running, but the failure is the thing
-    # worth the one line the menu gets.
-    icon, _ = tray
-    standing_and_active(icon)
-    icon._on_status("move-failed")
-
-    assert icon._status_action.text() == "Standing · Last move failed"
-
-
 def test_no_line_ends_with_a_stranded_separator(tray):
     # The original bug: Plasma wrapped after the "·", so a line ended on it.
     icon, _ = tray
@@ -394,20 +461,6 @@ def test_no_line_ends_with_a_stranded_separator(tray):
 
     for line in icon.toolTip().split("\n"):
         assert not line.rstrip().endswith("·"), line
-
-
-def test_empty_position_falls_back_to_custom(tray):
-    # Held off sit/stand. "Custom" mirrors the Overview title, and with no
-    # sit/stand to head towards the countdown loses its direction word.
-    icon, _ = tray
-    icon._on_position("")
-    icon._on_status("active")
-    icon._on_progress(2580.0, 3240.0)
-
-    lines = icon.toolTip().split("\n")
-
-    assert lines[1] == "Custom for 43m"
-    assert lines[2] == "11m left"
 
 
 def test_today_summary_is_still_the_last_line(tray_with_stats):
@@ -480,6 +533,7 @@ def test_first_minute_in_a_position_is_counted_in_seconds(tray):
     # The same flooring on the other side of the cycle: "Standing for 0m" for
     # the first minute after every transition.
     icon, _ = tray
+    icon.client.observation = Duration(12)
     icon._on_position("standing")
     icon._on_status("active")
     icon._on_progress(12.0, 3240.0)
@@ -493,12 +547,12 @@ def test_countdown_ticks_between_daemon_pushes(tray):
     # was given, the way Overview already does.
     icon, _ = tray
     standing_and_active(icon)
-    icon._progress_stamp -= 630.0
+    icon._progress_stamp -= Duration(630.0)
 
     icon._tick()
 
     lines = icon.toolTip().split("\n")
-    assert lines[1] == "Standing for 53m"
+    assert lines[1] == "Standing for 43m"
     assert lines[2] == "Sitting down in 30s"
 
 
@@ -508,7 +562,7 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
     # be there.
     icon, client = tray_with_stats
     standing_and_active(icon)
-    icon._progress_stamp -= 630.0
+    icon._progress_stamp -= Duration(630.0)
     before = client.stats_calls
 
     icon._tick()
@@ -518,24 +572,24 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
         "Today: 1h 58m sitting / 50m standing")
 
 
-def test_ticker_does_no_work_when_there_is_no_countdown(tray):
-    # It runs for the life of the tray, so the two states that have nothing to
-    # age — no countdown showing, and a cycle already spent — must cost a
-    # comparison rather than a re-render.
+@pytest.mark.parametrize("status", ["paused", " Future Status ", ""])
+def test_ticker_does_no_work_when_there_is_no_countdown(tray, status):
+    # No countdown does not mean no observation. Repaint without statistics
+    # I/O so valid observations age and expired observations disappear.
     icon, _ = tray
     standing_and_active(icon)
-    icon._on_status("paused")
+    icon._on_status(status)
     renders = []
-    icon._refresh_texts = lambda *a, **kw: renders.append(1)
+    icon._refresh_texts = lambda *a, **kw: renders.append(kw)
 
     icon._tick()
-    assert renders == []
+    assert renders == [{"stats": False}]
 
     # Set directly: _on_status would re-render through the spy itself.
-    icon._status = "active"
-    icon._progress_stamp -= 660.0
+    icon._status = Status.ACTIVE
+    icon._progress_stamp -= Duration(660.0)
     icon._tick()
-    assert renders == []
+    assert renders == [{"stats": False}, {"stats": False}]
 
 
 def test_connecting_is_a_single_status_line(tray):
@@ -548,3 +602,44 @@ def test_connecting_is_a_single_status_line(tray):
 
     assert icon._status_action.text() == "Connecting…"
     assert icon.toolTip() == "Idasen Companion\nConnecting…"
+
+
+@pytest.mark.parametrize("language,expected", [
+    ("en", "Standing for 123h 45m"),
+    ("es", "De pie durante 123 h 45 min"),
+])
+def test_long_observed_tooltip_keeps_one_plain_position_line_and_accessibility(
+        tray, language, expected):
+    from idasen_companion.core import i18n
+    from idasen_companion.core.i18n import GettextTranslator
+
+    icon, client = tray
+    try:
+        i18n.set_language(language)
+        context = icon.window.ctx.fmt.context
+        icon.window.ctx.fmt = Formatter(dataclasses.replace(
+            context, translator=GettextTranslator(),
+            locale=LocaleProfile("es_ES" if language == "es" else "en_US")))
+        standing_and_active(icon)
+        client.observation = Duration((123 * 60 + 45) * 60)
+        client.positionObservationChanged.emit()
+        lines = icon.toolTip().splitlines()
+        assert len(lines) == 3
+        assert lines[1] == expected
+        assert lines.count(expected) == 1
+        assert "<" not in icon.toolTip()
+        menu = icon.contextMenu()
+        explanation = icon.window.ctx.fmt.position_observation_description()
+        assert menu.accessibleName() == expected
+        assert menu.accessibleDescription() == explanation
+        before = client.stats_calls
+        icon._tick()
+        assert menu.accessibleName() == expected
+        assert menu.accessibleDescription() == explanation
+        assert client.stats_calls == before
+        client.observation = None
+        client.positionObservationChanged.emit()
+        assert icon.toolTip().splitlines()[1] == icon.window.ctx.fmt.position_or_custom(icon._position)
+        assert menu.accessibleDescription() == ""
+    finally:
+        i18n.set_language(i18n.SYSTEM)

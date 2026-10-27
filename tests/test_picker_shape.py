@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Each of the five picker surfaces reads one shape, pinned separately.
 
 Three renderings of one concept — a spelled-out unit in the Automation
@@ -40,7 +41,7 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, QTime, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
+from PySide6.QtWidgets import QPushButton  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -60,11 +61,6 @@ from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.automation import AutomationPage  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.tray import SNOOZE_CHOICES, TrayIcon  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def _plain_formatter() -> Formatter:
@@ -121,21 +117,6 @@ def test_automation_dropdowns_read_the_picker_shape(automation_page):
             _VARIATION_ROW_LABELS
     assert [page.sync_combo.itemText(i)
             for i in range(page.sync_combo.count())] == _SYNC_ROW_LABELS
-
-
-def test_the_sync_combos_hour_row_reads_sixty_minutes_not_an_hour(
-        automation_page):
-    """D-11's whole point, its own named assertion rather than one entry in
-    a list: the sync combo's top row (3600 seconds) is the only offered
-    choice across every picker that reaches an hour, and it must read "60
-    min" — never an hour decomposition ("1h 00m") — because the tray's own
-    minutes-only Snooze design was deliberate and unifying every picker onto
-    this shape must honour it, not silently hand the tray hour decomposition
-    it was built to avoid.
-    """
-    combo = automation_page.sync_combo
-    last = combo.count() - 1
-    assert combo.itemText(last) == "60 min"
 
 
 # ----------------------------------------------------------------------

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Qt-side client for the daemon's D-Bus service.
 
 Wraps QtDBus in a QObject that re-emits daemon state as Qt signals, so
@@ -17,6 +18,8 @@ Properties.Get, which QtDBus handles fine.
 from __future__ import annotations
 
 import json
+import math
+import time
 
 from PySide6.QtCore import QObject, Signal, Slot, SLOT
 from PySide6.QtDBus import (
@@ -28,7 +31,16 @@ from PySide6.QtDBus import (
     QDBusVariant,
 )
 
+from ..core.lengths import Length
+from ..core.clocks import MonotonicInstant, WallInstant
+from ..core.durations import Duration
 from .. import DBUS_NAME, DBUS_PATH
+from ..core.decoded_data import (
+    DailyStatRow, LogEntry, TransitionRow, decode_daily_rows, decode_transition_rows,
+    decode_log_entry, decode_log_entries, decode_timestamp,
+)
+from ..core.machine import DeskState, PositionObservation, Status, TIME_JUMP_THRESHOLD_SECONDS
+from ..core.state_values import StatusValue, parse_status
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
 IFACE_AUTO = f"{DBUS_NAME}.Automation1"
@@ -60,6 +72,7 @@ class DaemonClient(QObject):
     # Desk1
     heightChanged = Signal(float)
     positionChanged = Signal(str)  # sitting / standing
+    positionObservationChanged = Signal()
     connectedChanged = Signal(bool)
     movingChanged = Signal(bool)
 
@@ -87,15 +100,21 @@ class DaemonClient(QObject):
         super().__init__(parent)
         self.bus = QDBusConnection.sessionBus()
         self.available = False
-        self._snooze_until = 0.0
+        self._snooze_until = WallInstant(0.0)
+        self._position_observation: PositionObservation | None = None
+        self._observation_receipt = MonotonicInstant(time.monotonic())
+        self._observation_wall = WallInstant(time.time())
+        self._observation_generation = 0
 
         self._watcher = QDBusServiceWatcher(
             DBUS_NAME, self.bus,
             QDBusServiceWatcher.WatchForRegistration
-            | QDBusServiceWatcher.WatchForUnregistration,
+            | QDBusServiceWatcher.WatchForUnregistration
+            | QDBusServiceWatcher.WatchForOwnerChange,
             self)
         self._watcher.serviceRegistered.connect(lambda _: self._set_available(True))
         self._watcher.serviceUnregistered.connect(lambda _: self._set_available(False))
+        self._watcher.serviceOwnerChanged.connect(self._on_observation_owner_changed)
 
         def subscribe(iface: str, signal_name: str, slot_name: str) -> None:
             self.bus.connect(DBUS_NAME, DBUS_PATH, iface, signal_name,
@@ -103,6 +122,7 @@ class DaemonClient(QObject):
 
         subscribe(IFACE_DESK, "HeightChanged", "_on_height")
         subscribe(IFACE_DESK, "PositionChanged", "_on_position")
+        subscribe(IFACE_DESK, "PositionObservationChanged", "_on_position_observation")
         subscribe(IFACE_DESK, "ConnectedChanged", "_on_connected")
         subscribe(IFACE_DESK, "MovingChanged", "_on_moving")
         subscribe(IFACE_AUTO, "StatusChanged", "_on_status")
@@ -124,10 +144,78 @@ class DaemonClient(QObject):
         return bool(reply.arguments() and reply.arguments()[0])
 
     def _set_available(self, available: bool) -> None:
+        self._clear_position_observation()
         self.available = available
         self.availableChanged.emit(available)
         if available:
             self.refresh_all()
+
+    def _on_observation_owner_changed(self, _name: str, _old: str, new: str) -> None:
+        self._clear_position_observation()
+        if new:
+            self._refresh_position_observation()
+
+    def _clear_position_observation(self) -> None:
+        self._observation_generation += 1
+        self._position_observation = None
+        self.positionObservationChanged.emit()
+
+    @staticmethod
+    def _decode_position_observation(args: list | None) -> PositionObservation | None:
+        if args is None or len(args) != 5:
+            return None
+        position, known, started, elapsed, remaining = args
+        if type(position) is not str or type(known) is not bool:
+            return None
+        if any(type(value) is not float or not math.isfinite(value)
+               for value in (started, elapsed, remaining)):
+            return None
+        if not known or position not in (DeskState.SITTING, DeskState.STANDING):
+            return None
+        if elapsed < 0 or remaining <= 0:
+            return None
+        return PositionObservation(DeskState(position), WallInstant(started),
+                                   Duration(elapsed), Duration(remaining))
+
+    def _cache_position_observation(self, args: list | None) -> None:
+        self._position_observation = self._decode_position_observation(args)
+        self._observation_receipt = MonotonicInstant(time.monotonic())
+        self._observation_wall = WallInstant(time.time())
+        self.positionObservationChanged.emit()
+
+    @Slot(QDBusMessage)
+    def _on_position_observation(self, message: QDBusMessage) -> None:
+        self._observation_generation += 1
+        self._cache_position_observation(message.arguments())
+
+    def _refresh_position_observation(self) -> None:
+        self._observation_generation += 1
+        generation = self._observation_generation
+        message = QDBusMessage.createMethodCall(
+            DBUS_NAME, DBUS_PATH, IFACE_DESK, "GetPositionObservation")
+        watcher = QDBusPendingCallWatcher(self.bus.asyncCall(message), self)
+
+        def finished(reply_watcher: QDBusPendingCallWatcher) -> None:
+            reply_watcher.deleteLater()
+            if generation == self._observation_generation:
+                self._cache_position_observation(_reply_args(reply_watcher.reply()))
+
+        watcher.finished.connect(finished)
+
+    def position_observation_elapsed(self, position: str) -> Duration | None:
+        wall = WallInstant(time.time())
+        wall_gap = wall - self._observation_wall
+        self._observation_wall = wall
+        if wall_gap < Duration(0) or wall_gap > Duration(TIME_JUMP_THRESHOLD_SECONDS):
+            self._clear_position_observation()
+        observation = self._position_observation
+        if observation is None or observation.position != position:
+            return None
+        age = MonotonicInstant(time.monotonic()) - self._observation_receipt
+        if age < Duration(0) or age >= observation.remaining:
+            self._clear_position_observation()
+            return None
+        return observation.elapsed + age
 
     # ----- signal handlers (all take the raw message; args are flat) -----
 
@@ -150,7 +238,7 @@ class DaemonClient(QObject):
     @Slot(QDBusMessage)
     def _on_status(self, message: QDBusMessage) -> None:
         status = str(message.arguments()[0])
-        self._note_status(status)
+        self._note_status(parse_status(status))
         self.statusChanged.emit(status)
 
     @Slot(QDBusMessage)
@@ -179,7 +267,10 @@ class DaemonClient(QObject):
         args = message.arguments()
         if len(args) < 3:
             return
-        entry_timestamp, level = args[0], args[1]
+        entry_timestamp = decode_timestamp(args[0])
+        if entry_timestamp is None:
+            return
+        level = args[1]
         if len(args) >= 6:
             channel, msg_id, params, text = args[2], args[3], args[4], args[5]
         else:
@@ -191,10 +282,12 @@ class DaemonClient(QObject):
             decoded = json.loads(str(params)) if params else {}
         except ValueError:
             decoded = {}
-        if not isinstance(decoded, dict):
-            decoded = {}
-        self.logEntry.emit(float(entry_timestamp), str(level), str(channel), str(msg_id),
-                           decoded, str(text))
+        entry = decode_log_entry({"ts": entry_timestamp, "level": level,
+                                  "channel": channel, "msg_id": msg_id,
+                                  "params": decoded, "text": text})
+        if entry is not None:
+            self.logEntry.emit(entry["ts"], entry["level"], entry["channel"], entry["msg_id"],
+                               entry["params"], entry["text"])
 
     # ----- reads -----
 
@@ -234,6 +327,7 @@ class DaemonClient(QObject):
         return json.loads(replied[0]) if replied else None
 
     def refresh_all(self) -> None:
+        self._refresh_position_observation()
         height = self.get_property(IFACE_DESK, "Height")
         if height is not None:
             self.heightChanged.emit(float(height))
@@ -248,7 +342,7 @@ class DaemonClient(QObject):
             self.movingChanged.emit(bool(moving))
         status = self.get_property(IFACE_AUTO, "Status")
         if status is not None:
-            self._note_status(str(status))
+            self._note_status(parse_status(str(status)))
             self.statusChanged.emit(str(status))
         active_time = self.get_property(IFACE_AUTO, "ActiveTime")
         target = self.get_property(IFACE_AUTO, "TargetDuration")
@@ -259,7 +353,7 @@ class DaemonClient(QObject):
     def set_automation_enabled(self, enabled: bool) -> None:
         self._async_call(IFACE_AUTO, "SetEnabled", bool(enabled))
 
-    def _note_status(self, status: str) -> None:
+    def _note_status(self, status: StatusValue) -> None:
         """Keep the snooze deadline cached alongside the status it belongs to.
 
         Reading it is a round-trip, and the Overview drew it straight from a
@@ -268,20 +362,20 @@ class DaemonClient(QObject):
         announced — including a second snooze extending the first, which
         re-announces ``snoozed`` — so this is the one place it needs fetching,
         asynchronously, with ``snooze_until()`` served from cache."""
-        if status == "snoozed":
+        if status == Status.SNOOZED:
             self.get_property_async(IFACE_AUTO, "SnoozeUntil",
                                     self._set_snooze_until)
         else:
             self._set_snooze_until(0.0)
 
     def _set_snooze_until(self, value) -> None:
-        value = float(value or 0.0)
-        if value != self._snooze_until:
-            self._snooze_until = value
-            self.snoozeUntilChanged.emit(value)
+        until = WallInstant(float(value or 0.0))
+        if until != self._snooze_until:
+            self._snooze_until = until
+            self.snoozeUntilChanged.emit(until.epoch_seconds)
 
-    def snooze_until(self) -> float:
-        """Cached, never a round-trip — see ``_note_status``. 0.0 when the
+    def snooze_until(self) -> WallInstant:
+        """Cached, never a round-trip — see ``_note_status``. False zero when the
         cycle isn't snoozed, and briefly when a snooze has just been announced
         but its deadline hasn't arrived yet; ``snoozeUntilChanged`` says when
         it has."""
@@ -295,22 +389,31 @@ class DaemonClient(QObject):
         return ({name: float(h) for name, h in presets.items()}
                 if isinstance(presets, dict) else {})
 
-    def get_daily_stats(self, start: str, end: str) -> list:
-        rows = self._call_for_json(IFACE_STATS, "GetDaily", start, end)
-        return [tuple(row) for row in rows] if rows else []
+    def get_daily_stats(self, start: str, end: str) -> list[DailyStatRow]:
+        try:
+            rows = self._call_for_json(IFACE_STATS, "GetDaily", start, end)
+        except (TypeError, ValueError):
+            return []
+        return decode_daily_rows(rows)
 
-    def get_transitions(self, limit: int = 50) -> list:
-        rows = self._call_for_json(IFACE_STATS, "GetTransitions", limit)
-        return [tuple(row) for row in rows] if rows else []
+    def get_transitions(self, limit: int = 50) -> list[TransitionRow]:
+        try:
+            rows = self._call_for_json(IFACE_STATS, "GetTransitions", limit)
+        except (TypeError, ValueError):
+            return []
+        return decode_transition_rows(rows)
 
-    def get_recent_log(self) -> list[dict]:
+    def get_recent_log(self) -> list[LogEntry]:
         """The daemon's in-memory backlog, as entry dicts.
 
         Only what the *running* daemon has seen. History from before it
         started comes from the journal instead (``core.journal.read_recent``),
         which is what makes the Activity Log survive a restart."""
-        rows = self._call_for_json(IFACE_LOG, "GetRecent")
-        return [row for row in rows if isinstance(row, dict)] if rows else []
+        try:
+            rows = self._call_for_json(IFACE_LOG, "GetRecent")
+        except (TypeError, ValueError):
+            return []
+        return decode_log_entries(rows)
 
     def discover(self, timeout: int = 8) -> list:
         """Blocking scan call — run from the wizard with a busy cursor.
@@ -374,8 +477,8 @@ class DaemonClient(QObject):
     def move_to_preset(self, name: str) -> None:
         self._async_call(IFACE_DESK, "MoveToPreset", name)
 
-    def move_to_height(self, height: float) -> None:
-        self._async_call(IFACE_DESK, "MoveToHeight", float(height))
+    def move_to_height(self, height: Length) -> None:
+        self._async_call(IFACE_DESK, "MoveToHeight", float(height.metres))
 
     def stop(self) -> None:
         self._async_call(IFACE_DESK, "Stop")
@@ -395,8 +498,8 @@ class DaemonClient(QObject):
     def reload_config(self) -> None:
         self._async_call(IFACE_AUTO, "ReloadConfig")
 
-    def save_preset(self, name: str, height: float) -> None:
-        self._async_call(IFACE_PRESETS, "Save", name, float(height))
+    def save_preset(self, name: str, height: Length) -> None:
+        self._async_call(IFACE_PRESETS, "Save", name, float(height.metres))
 
     def rename_preset_sync(self, old: str, new: str) -> tuple[bool, str]:
         """Blocking Rename — one daemon-side write, so it cannot half-happen.

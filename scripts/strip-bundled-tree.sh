@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # The strip the build root's own policy would have run, scoped by hand.
 #
 #     scripts/strip-bundled-tree.sh <tree>

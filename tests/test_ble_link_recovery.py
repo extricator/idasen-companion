@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Startup robustness and connect-failure handling.
 
 Written after a desk went unreachable for 45 minutes. Two real defects were
@@ -16,11 +17,18 @@ safely clear a device-wide link whose client owner is unknown.
 import asyncio
 import os
 from datetime import date
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
+from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.idle import SEAT_BACKGROUND, SEAT_FOREGROUND, SEAT_NONE
+from idasen_companion.daemon.accounting import ActiveTimeAccounting
+from idasen_companion.daemon.stats import Stats
+from idasen_companion.daemon import bluetooth as bluetooth_mod
+from idasen_companion.daemon.bluetooth import BluetoothSupport
 from idasen_companion.desk.ble import BleDesk
 
 
@@ -104,10 +112,14 @@ def _bare_daemon(monkeypatch):
 
     d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
     d.activity_log = MagicMock()
+    d.bluetooth = BluetoothSupport(d.activity_log)
     d.stats = MagicMock()
     d.mock_mode = True
-    d.config_path = None
-    d._pending_credit = {}
+    from idasen_companion.daemon.config_file import ConfigFileStore
+    d.config_file = MagicMock(spec=ConfigFileStore)
+    d.config_file.path = Path("unused-config.toml")
+    d.config_file.load_or_bootstrap.return_value = cfg
+    d.accounting = MagicMock(spec=["start", "account", "flush"])
     d._stop_event = asyncio.Event()
     d._initial_read = None
     d.config = cfg
@@ -115,7 +127,6 @@ def _bare_daemon(monkeypatch):
     d.desk.disconnect = MagicMock(side_effect=lambda: asyncio.sleep(0))
     d._session = MagicMock()
     d._session.state = AsyncMock(return_value=SEAT_FOREGROUND)
-    monkeypatch.setattr(d, "_load_or_bootstrap_config", lambda: cfg)
     monkeypatch.setattr(d, "_unconfigured", lambda: False)
     monkeypatch.setattr(d, "_make_desk", lambda: d.desk)
     monkeypatch.setattr(main_mod, "set_language", lambda _l: None)
@@ -136,8 +147,8 @@ async def test_signal_handlers_are_installed_before_anything_can_block(monkeypat
 
     monkeypatch.setattr(main_mod.asyncio, "get_running_loop", lambda: Recorder())
     d = _bare_daemon(monkeypatch)
-    monkeypatch.setattr(d, "_load_or_bootstrap_config",
-                        lambda: (order.append("config"), _cfg_for(d))[1])
+    d.config_file.load_or_bootstrap.side_effect = (
+        lambda: (order.append("config"), _cfg_for(d))[1])
 
     async def setup_dbus():
         order.append("dbus")
@@ -198,8 +209,7 @@ async def test_bookkeeping_failures_never_cost_the_desk_release(monkeypatch,
         if break_step == "ring":
             d.activity_log.emit = MagicMock(side_effect=boom)
         else:
-            d.stats.add_active_time = MagicMock(side_effect=boom)
-            d._pending_credit = {(date.today(), "sitting"): 60.0}
+            d.accounting.flush.side_effect = boom
 
     monkeypatch.setattr(d, "_setup_dbus", setup_dbus)
     monkeypatch.setattr(d, "_run_until_stopped", run_until_stopped)
@@ -207,6 +217,8 @@ async def test_bookkeeping_failures_never_cost_the_desk_release(monkeypatch,
     await d.run()  # must not raise
 
     assert d.desk.disconnect.called, "desk not released when bookkeeping failed"
+    d.accounting.flush.assert_called_once_with()
+    d.stats.close.assert_called_once_with()
 
 
 async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
@@ -219,6 +231,7 @@ async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
     d.activity_log.emit = MagicMock(
         side_effect=lambda *a, **k: order.append("activity_log"))
     d.stats.close = MagicMock(side_effect=lambda: order.append("stats"))
+    d.accounting.flush.side_effect = lambda: order.append("accounting")
 
     async def setup_dbus():
         return True
@@ -232,12 +245,61 @@ async def test_the_desk_is_released_before_the_bookkeeping(monkeypatch):
     await d.run()
 
     assert order[0] == "disconnect", f"released the desk too late: {order}"
+    assert order[-3:] == ["activity_log", "accounting", "stats"]
+
+
+async def test_shutdown_cancels_read_then_releases_and_flushes_real_credit(monkeypatch):
+    d = _bare_daemon(monkeypatch)
+    order = []
+    flushed_rows = []
+    d.stats = Stats(Path(":memory:"))
+    d.accounting = ActiveTimeAccounting(d.stats)
+    owner = d.accounting
+    owner.start(WallInstant(0.0))
+    real_flush = owner.flush
+    real_close = d.stats.close
+
+    def flush():
+        order.append("flush")
+        real_flush()
+        flushed_rows.extend(d.stats.daily_totals(date.today(), date.today()))
+
+    async def initial_read():
+        try:
+            await asyncio.Event().wait()
+        finally:
+            order.append("read cancelled")
+
+    async def run_until_stopped(now):
+        d._initial_read = asyncio.create_task(initial_read())
+        await asyncio.sleep(0)
+        owner.account("sitting", WallInstant(60), held=False, idle_ms=60000, absent=False,
+                      idle_threshold_seconds=600)
+        assert d.stats.daily_totals(date.today(), date.today()) == []
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(owner, "flush", MagicMock(side_effect=flush))
+    monkeypatch.setattr(d.stats, "close", MagicMock(
+        side_effect=lambda: (order.append("close"), real_close())))
+    d.desk.disconnect = AsyncMock(side_effect=lambda: order.append("disconnect"))
+    monkeypatch.setattr(d, "_setup_dbus", AsyncMock(return_value=True))
+    monkeypatch.setattr(d, "_run_until_stopped", run_until_stopped)
+
+    with pytest.raises(asyncio.CancelledError):
+        await d.run()
+
+    assert d.accounting is owner
+    assert d._initial_read.cancelled()
+    owner.flush.assert_called_once_with()
+    assert order == ["read cancelled", "disconnect", "flush", "close"]
+    assert flushed_rows == [(date.today().isoformat(), "sitting", 60.0)]
 
 
 async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
     """An unreachable desk must not hold the daemon in startup: it used to
     block for ~8 minutes while reporting Status="active" with every timer at 0,
     which is what the UI rendered as a permanent "0m left"."""
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
 
     reached_loop = asyncio.Event()
@@ -247,14 +309,14 @@ async def test_unreadable_desk_does_not_pin_startup(monkeypatch):
             await asyncio.sleep(3600)   # never answers
 
     d = _bare_daemon(monkeypatch)
-    d.machine = StateMachine(_cfg_for(d), Hanging(), now=0.0)
+    d.machine = StateMachine(_cfg_for(d), Hanging(), now=WallInstant(0.0))
     d.machine.unconfigured = False
     monkeypatch.setattr(d, "_tick", lambda: _set_and_stop(reached_loop, d))
 
-    await asyncio.wait_for(d._run_until_stopped(0.0), 1.0)
+    await asyncio.wait_for(d._run_until_stopped(WallInstant(0.0)), 1.0)
     assert reached_loop.is_set(), "control loop never started"
     # A seeded cycle, not the constructed 0 that can never fire.
-    assert d.machine.target_duration > 0
+    assert d.machine.target_duration > Duration.from_seconds(0)
     d._initial_read.cancel()
 
 
@@ -265,28 +327,29 @@ async def _set_and_stop(event, daemon):
 
 async def test_seeded_cycle_is_replaced_once_the_desk_answers():
     """The background read still adopts the real position when it lands."""
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.core.config import AppConfig
     from idasen_companion.desk.mock import MockDesk
 
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
-    machine = StateMachine(cfg, MockDesk(height=1.10), now=0.0)
-    machine.start_without_desk_read(0.0)
+    machine = StateMachine(cfg, MockDesk(height=Length(1.10)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
     seeded = machine.target_duration
-    assert seeded > 0 and machine.state.value == "sitting"  # the default
+    assert seeded > Duration.from_seconds(0) and machine.state.value == "sitting"  # the default
 
-    await machine.start(0.0)
+    await machine.start(WallInstant(0.0))
     assert machine.state.value == "standing", "real position was never adopted"
     # Was `!= seeded or True`, a tautology. The real property is that adopting
     # the true position re-seeds the cycle from *that* state's duration: the
     # seed above was the sitting default, the desk is standing. The target is a
     # random draw within the configured variation, hence the range.
     a = cfg.automation
-    assert a.stand_duration <= machine.target_duration <= (
-        a.stand_duration + a.stand_variation)
-    assert not (a.sit_duration <= machine.target_duration
-                <= a.sit_duration + a.sit_variation), "still on the sit cycle"
+    assert Duration.from_seconds(a.stand_duration) <= machine.target_duration <= (
+        Duration.from_seconds(a.stand_duration + a.stand_variation))
+    assert not (Duration.from_seconds(a.sit_duration) <= machine.target_duration
+                <= Duration.from_seconds(a.sit_duration + a.sit_variation)), "still on the sit cycle"
 
 
 # ----- a shared desk is expected, not an anomaly -----
@@ -297,28 +360,26 @@ async def test_no_link_is_dropped_while_another_users_daemon_runs(monkeypatch):
     likely one it is using — dropping it starts a tug of war instead of
     fixing anything."""
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [4242])
-    monkeypatch.setattr(d, "_bluez_property",
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [4242])
+    monkeypatch.setattr(d.bluetooth, "property",
                         lambda *a: _async(True))   # BlueZ says connected
 
     dropped = []
-    monkeypatch.setattr("idasen_companion.daemon.main.call",
+    monkeypatch.setattr("idasen_companion.daemon.bluetooth.call",
                         lambda *a, **k: dropped.append(a) or _async([]))
-    assert await d._handle_connect_exhausted() is None
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     assert not dropped, "dropped a link another user's daemon was using"
 
 
 async def test_link_is_left_alone_when_we_are_the_only_daemon(monkeypatch):
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
-    monkeypatch.setattr(d, "_bluez_property", lambda *a: _async(True))
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [])
+    monkeypatch.setattr(d.bluetooth, "property", lambda *a: _async(True))
 
     calls = []
-    monkeypatch.setattr("idasen_companion.daemon.main.call",
+    monkeypatch.setattr("idasen_companion.daemon.bluetooth.call",
                         lambda *a, **k: calls.append(a[-1]) or _async([]))
-    assert await d._handle_connect_exhausted() is None
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     assert "Disconnect" not in calls
     logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
     assert "cannot identify the link's owner" in logged
@@ -328,10 +389,9 @@ async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypat
     """The snapshot is the point: the original outage could not be explained
     afterwards because nothing recorded what BlueZ thought at the time."""
     d = _bare_daemon(monkeypatch)
-    d._system_bus = MagicMock()
-    monkeypatch.setattr(d, "_other_companion_daemons", lambda: [])
-    monkeypatch.setattr(d, "_bluez_property", lambda *a: _async(False))
-    assert await d._handle_connect_exhausted() is None
+    monkeypatch.setattr(d.bluetooth, "_other_companion_daemons", lambda: [])
+    monkeypatch.setattr(d.bluetooth, "property", lambda *a: _async(False))
+    assert await d.bluetooth.report_connect_exhausted(d.config.desk.mac) is None
     # Diagnostic channel: a real warning that means nothing to a desk user.
     logged = " ".join(c.args[1] for c in d.activity_log.diag.call_args_list)
     for field in ("connected=", "paired=", "adapter powered=", "scanning="):
@@ -340,17 +400,39 @@ async def test_failure_is_always_recorded_even_when_nothing_is_dropped(monkeypat
                for c in d.activity_log.diag.call_args_list)
 
 
-def test_own_process_is_not_counted_as_another_daemon(monkeypatch):
-    from idasen_companion.daemon import main as main_mod
-    d = main_mod.Daemon.__new__(main_mod.Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    assert os.getpid() not in d._other_companion_daemons()
+async def test_exhaustion_callback_reads_current_mac_after_desk_construction(monkeypatch):
+    from idasen_companion.desk import ble as ble_mod
+
+    daemon = _bare_daemon(monkeypatch)
+    daemon.mock_mode = False
+    captured = {}
+
+    def make_desk(_mac, **kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    monkeypatch.setattr(ble_mod, "BleDesk", make_desk)
+    monkeypatch.setattr(daemon.bluetooth, "_other_companion_daemons", lambda: [])
+    query = AsyncMock(return_value=False)
+    monkeypatch.setattr(daemon.bluetooth, "property", query)
+    from idasen_companion.daemon.main import Daemon
+    Daemon._make_desk(daemon)
+    daemon.config.desk.mac = "AA:BB:CC:DD:EE:FF"
+    await captured["on_connect_exhausted"]()
+    query.assert_any_await("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF",
+                           "org.bluez.Device1", "Connected")
+
+
+def test_own_process_is_not_counted_as_another_daemon(monkeypatch, tmp_path):
+    own = tmp_path / str(os.getpid())
+    own.mkdir()
+    (own / "cmdline").write_bytes(b"idasen-companiond\0")
+    monkeypatch.setattr(bluetooth_mod, "Path", lambda _: tmp_path)
+    support = BluetoothSupport(MagicMock())
+    assert support._other_companion_daemons() == []
 
 
 def test_other_daemon_started_with_python_module_is_detected(monkeypatch, tmp_path):
-    from idasen_companion.daemon import main as main_mod
-
     candidate = tmp_path / "12345"
     candidate.mkdir()
     (candidate / "cmdline").write_bytes(
@@ -358,9 +440,9 @@ def test_other_daemon_started_with_python_module_is_detected(monkeypatch, tmp_pa
     unrelated = tmp_path / "12346"
     unrelated.mkdir()
     (unrelated / "cmdline").write_bytes(b"/usr/bin/python3\0other.py\0")
-    monkeypatch.setattr(main_mod, "Path", lambda _: tmp_path)
-    d = main_mod.Daemon.__new__(main_mod.Daemon)
-    assert d._other_companion_daemons() == [12345]
+    monkeypatch.setattr(bluetooth_mod, "Path", lambda _: tmp_path)
+    support = BluetoothSupport(MagicMock())
+    assert support._other_companion_daemons() == [12345]
 
 
 # ----- the seat's active session is the lease on the desk -----
@@ -383,12 +465,12 @@ async def test_handoff_leaves_ambiguous_bluez_link_alone(monkeypatch):
     d.mock_mode = False
     d.desk.connected = False
     d.desk.disconnect = AsyncMock()
-    d._bluez_property = AsyncMock(return_value=True)
+    d.bluetooth.property = AsyncMock(return_value=True)
 
     await d._release_desk()
     d.desk.disconnect.assert_awaited_once()
-    d._bluez_property.assert_awaited_once_with(
-        d._bluez_device_path(), "org.bluez.Device1", "Connected")
+    d.bluetooth.property.assert_awaited_once_with(
+        d.bluetooth.device_path(d.config.desk.mac), "org.bluez.Device1", "Connected")
     d.activity_log.diag.assert_called_once()
 
 
@@ -454,7 +536,7 @@ async def test_a_move_asked_for_from_the_background_does_no_desk_io(monkeypatch)
     monkeypatch.setattr(d, "_emit_periodic_properties", MagicMock())
 
     with pytest.raises(DBusError):
-        await d._manual_move(1.10, "stand")
+        await d._manual_move(Length(1.10), "stand")
     d.desk.move_to.assert_not_awaited()
     d.desk.disconnect.assert_not_called()
 
@@ -468,17 +550,18 @@ async def test_seeding_respects_automation_being_switched_off():
     seeding predates [automation] enabled. Seeding a live countdown while the
     UI reports "Automation off" would contradict itself."""
     from idasen_companion.core.config import AppConfig
+    from idasen_companion.core.durations import Duration
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.desk.mock import MockDesk
 
     cfg = AppConfig()
     cfg.presets = {"sit": 0.62, "stand": 1.10}
     cfg.automation.enabled = False
-    machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
-    machine.start_without_desk_read(0.0)
-    assert machine.target_duration == 0
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
+    assert machine.target_duration == Duration.from_seconds(0)
 
     cfg.automation.enabled = True
-    machine = StateMachine(cfg, MockDesk(height=0.62), now=0.0)
-    machine.start_without_desk_read(0.0)
-    assert machine.target_duration > 0
+    machine = StateMachine(cfg, MockDesk(height=Length(0.62)), now=WallInstant(0.0))
+    machine.start_without_desk_read(WallInstant(0.0))
+    assert machine.target_duration > Duration.from_seconds(0)

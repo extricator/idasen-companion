@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rule 1 from docs/LOGGING.md: a line that changes when the desk will next
 move must say when.
 
@@ -9,26 +10,25 @@ lines that most need it: they tell the user the clock went back to zero and
 then decline to say what it is counting toward.
 """
 
-import asyncio
 from unittest.mock import MagicMock
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core import logmsg
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import (
     AwayChanged, DeskState, IdleChanged, MoveFailed, ResumedOnCycle,
     SeatChanged, StateSynced, TimeJumpDetected, TransitionCompleted,
 )
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.ringlog import FORMATTERS
 
 TARGET = 25 * 60
 
 
 def _daemon(target: int = TARGET):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.desk = MagicMock(last_error=None)
@@ -39,7 +39,7 @@ def _daemon(target: int = TARGET):
     d.config.notifications.enabled = False
     d.config.notifications.problems = False
     d._ifaces = {"automation": MagicMock()}
-    d.machine = MagicMock(held=False, target_duration=target)
+    d.machine = MagicMock(held=False, target_duration=Duration.from_seconds(target))
     # What the daemon asks for now: the machine decides whether a cycle is
     # running at all (see test_cycle_target.py for the real thing).
     d.machine.cycle_target.return_value = target
@@ -62,11 +62,14 @@ def _lines(d):
 @pytest.mark.parametrize("event", [
     TransitionCompleted(DeskState.SITTING, DeskState.STANDING,
                         DeskState.STANDING, interrupted=False, recovery="none",
-                        final_height=1.10, trigger="automation",
-                        next_target_duration=TARGET),
-    StateSynced(DeskState.SITTING, DeskState.STANDING, 1.10, TARGET),
-    ResumedOnCycle(DeskState.SITTING, DeskState.STANDING, 1.10, TARGET),
-    MoveFailed(DeskState.SITTING, DeskState.STANDING, 45 * 60),
+                        final_height=Length(1.10), trigger="automation",
+                        next_target_duration=Duration.from_seconds(TARGET)),
+    StateSynced(DeskState.SITTING, DeskState.STANDING, Length(1.10),
+                Duration.from_seconds(TARGET)),
+    ResumedOnCycle(DeskState.SITTING, DeskState.STANDING, Length(1.10),
+                    Duration.from_seconds(TARGET)),
+    MoveFailed(DeskState.SITTING, DeskState.STANDING,
+               Duration.from_seconds(45 * 60)),
 ])
 def test_cycle_restart_says_when_the_next_change_is_due(event):
     d = _daemon()
@@ -81,7 +84,7 @@ def test_cycle_restart_says_when_the_next_change_is_due(event):
     IdleChanged(False, 0, reset=True),
     AwayChanged(False, reset=True),
     SeatChanged(True, reset=True),
-    TimeJumpDetected(3600.0),
+    TimeJumpDetected(Duration.from_seconds(3600.0)),
 ])
 def test_reset_events_say_what_the_clock_is_now_counting_toward(event):
     d = _daemon()
@@ -116,7 +119,7 @@ def test_resume_from_suspend_says_what_the_clock_is_counting_toward(monkeypatch)
     IdleChanged(False, 0, reset=True),
     AwayChanged(False, reset=True),
     SeatChanged(True, reset=True),
-    TimeJumpDetected(3600.0),
+    TimeJumpDetected(Duration.from_seconds(3600.0)),
 ])
 def test_reset_events_promise_nothing_when_no_cycle_is_scheduled(event):
     """Automation off, or the desk held off-cycle: no move is coming, so the
@@ -146,14 +149,15 @@ def test_interrupted_transition_still_says_when_the_next_change_is_due():
     d = _daemon()
     d._handle_event(TransitionCompleted(
         DeskState.SITTING, DeskState.STANDING, DeskState.SITTING,
-        interrupted=True, recovery="undo", final_height=0.95,
-        trigger="automation", next_target_duration=45 * 60), "automation")
+        interrupted=True, recovery="undo", final_height=Length(0.95),
+        trigger="automation", next_target_duration=Duration.from_seconds(45 * 60)), "automation")
     assert "Next change after 45.0 minutes of active time." in _lines(d)[0]
 
 
 def test_failed_move_names_the_retry_window_instead_of_next_cycle():
     d = _daemon()
-    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING, 45 * 60),
+    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING,
+                               Duration.from_seconds(45 * 60)),
                     "automation")
     line = _lines(d)[0]
     assert "will try again next cycle" not in line
@@ -164,7 +168,8 @@ def test_failed_move_falls_back_when_no_cycle_was_scheduled():
     # next_target 0 means nothing was scheduled (automation off, or the desk is
     # held) — the line must not claim a change is coming.
     d = _daemon()
-    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING, 0),
+    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING,
+                               Duration.from_seconds(0)),
                     "automation")
     line = _lines(d)[0]
     assert "Next change after" not in line
@@ -176,6 +181,27 @@ def test_failed_move_carries_the_reason_from_the_desk_layer():
     has to carry the last one or it says something failed but not why."""
     d = _daemon()
     d.desk.last_error = "connect timed out"
-    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING, TARGET),
+    d._handle_event(MoveFailed(DeskState.SITTING, DeskState.STANDING,
+                               Duration.from_seconds(TARGET)),
                     "automation")
     assert "connect timed out" in _lines(d)[0]
+
+
+def test_typed_height_events_keep_numeric_and_optional_json_parameters():
+    import json
+    from idasen_companion.core.machine import HeldOffCycle
+    from idasen_companion.daemon.ringlog import RingLog
+
+    d = _daemon()
+    d.activity_log = RingLog()
+    for height in (Length(0.95), None):
+        d._handle_event(TransitionCompleted(
+            DeskState.SITTING, DeskState.STANDING, DeskState.STANDING,
+            interrupted=False, recovery="none", final_height=height,
+            trigger="automation"), "automation")
+    d._handle_event(HeldOffCycle(Length(0)), "automation")
+    entries = d.activity_log.entries()
+    assert [e.params["height"] for e in entries] == [0.95, None, 0]
+    assert "0.9500m" in entries[0].text
+    assert "N/A" in entries[1].text
+    assert json.loads(json.dumps([e.as_dict() for e in entries]))[2]["params"]["height"] == 0

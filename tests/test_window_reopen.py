@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reopening the window counts as showing the page you left on.
 
 The lazily-reloading pages (Statistics, Activity Log, the settings-class pages,
@@ -30,7 +31,6 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -85,11 +85,6 @@ class FakeClient(QObject):
 def _stub_autostart():
     """The unit is installed and enabled — the banner's uninteresting case."""
     return service_ctl.AutostartState("enabled", True, "")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Babel 2.18 contract for the application's one locale value engine."""
 
 from datetime import datetime

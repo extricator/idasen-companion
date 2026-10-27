@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Deferred gettext wrappers remain extractable and whole-message safe."""
 
 import ast
@@ -73,7 +74,7 @@ def test_no_qobject_or_qcore_app_lookup_remains():
 
 
 def _markable_definitions(tree):
-    """`{name: definition node}` for everything in `tree` that could carry
+    """`{qualified path: definition node}` for everything that could carry
     the mark: a `def` or `async def` at module level or in a class body, and
     a name bound to a `lambda` in either place.
 
@@ -91,17 +92,17 @@ def _markable_definitions(tree):
     """
     definitions = {}
 
-    def collect(body):
+    def collect(body, prefix=()):
         for stmt in body:
             if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                definitions[stmt.name] = stmt
+                definitions[prefix + (stmt.name,)] = stmt
             elif isinstance(stmt, ast.ClassDef):
-                collect(stmt.body)
+                collect(stmt.body, prefix + (stmt.name,))
             elif isinstance(stmt, ast.Assign) and isinstance(stmt.value,
                                                              ast.Lambda):
                 for target in stmt.targets:
                     if isinstance(target, ast.Name):
-                        definitions[target.id] = stmt.value
+                        definitions[prefix + (target.id,)] = stmt.value
 
     collect(tree.body)
     return definitions
@@ -115,86 +116,334 @@ def _lambda_definitions(tree):
     from the rest so the guard can say that, rather than asking for a mark
     that cannot be applied.
     """
-    return {name for name, node in _markable_definitions(tree).items()
+    return {name[-1] for name, node in _markable_definitions(tree).items()
             if isinstance(node, ast.Lambda)}
 
 
-#: The calls that count as reaching a translator directly. `gui/util.py` has
-#: three ways to ask for translated text: the module-private wrapper; the
-#: shared presentation layer's Qt-free translator backend, which a forwarder
-#: constructs on the spot and hands to `core/presentation.py`; and a
-#: `Formatter` the *caller* supplies, whose message-rendering methods reach
-#: that same backend. Each such forwarder's return value is still translated
-#: text -- it is simply looked up one layer further down -- so it must keep
-#: its mark, and this seed set is what lets it. Deleting the mark to make the
-#: check agree is forbidden; widening the seed is the correction.
-#:
-#: The `Formatter` entries are the message-rendering methods `gui/util.py`
-#: actually reaches. They resolve by attribute name alone, so an unrelated
-#: method of the same name would over-reach and ask for a mark that was not
-#: needed -- a loud failure at the definition, which is the trade this whole
-#: rule already documents.
-#: Attribute names that *are* a translator when read, rather than names that
-#: return one when called. A helper taking `fmt` and passing
-#: `fmt.context.translator` down constructs nothing, so the call-name walk
-#: sees no seed and would call the helper's mark spurious -- which is exactly
-#: what happened when gui/util.py's fmt_countdown stopped building its own
-#: backend. Structural rather than a second hand-list.
-_TRANSLATOR_ATTRIBUTES = frozenset({"translator"})
-
-_TRANSLATOR_SEEDS = frozenset({
-    "_tr", "GettextTranslator",
-    "day_and_clock", "snooze_line", "later_label",
-})
+def _close_translation_edges(edges, reached):
+    """Propagate only edges already resolved to an owned definition."""
+    while True:
+        added = {name for name, called in edges.items() if called & reached}
+        if added <= reached:
+            return reached
+        reached |= added
 
 
-def _reaches_tr(tree):
-    """Names in `tree` that can carry the mark and whose body reaches
-    a translator, directly or through another such name.
+def _attribute_path(node):
+    if isinstance(node, ast.Name):
+        return (node.id,)
+    if isinstance(node, ast.Attribute):
+        return _attribute_path(node.value) + (node.attr,)
+    return ()
 
-    Walks each definition's whole body with `ast.walk`, so a call made from
-    inside a nested `FunctionDef` or `Lambda` counts too -- a future helper
-    cannot evade this by tucking its `_tr()` call inside a closure. A call
-    written as an attribute counts by its attribute name, so a method
-    reaching `_tr()` through a sibling method is caught; that resolves by
-    name alone and can over-reach, which asks for a mark that was not needed
-    -- a loud failure at the definition, not a silent one at a call site.
-    `_tr` itself is never included in the result.
+
+def _formatter_translated_methods(tree):
+    """Summarize the owned facade, independently of GUI marks or method names.
+
+    A translator read also covers local aliases and forwarded arguments.
+    Locale reads do not count. Only exact same-class self calls propagate.
     """
-    definitions = _markable_definitions(tree)
+    formatter = next(node for node in tree.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    methods = {node.name: node for node in formatter.body
+               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
-    def _called_names(node):
-        names = set()
-        for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                if isinstance(child.func, ast.Name):
-                    names.add(child.func.id)
-                elif isinstance(child.func, ast.Attribute):
-                    names.add(child.func.attr)
-            # A translator handed *in* rather than constructed. Reading
-            # `fmt.context.translator` and passing it on is the same reach as
-            # calling GettextTranslator(), and it is a call to nothing, so the
-            # call-name walk above cannot see it. This is structural -- any
-            # attribute named `translator`, from any object -- so a helper
-            # that switches to the injected form stays caught without anyone
-            # remembering to add its name to the seed set.
-            elif (isinstance(child, ast.Attribute)
-                    and child.attr in _TRANSLATOR_ATTRIBUTES):
-                names.add(child.attr)
-        return names
+    nested_scopes = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+    comprehensions = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
-    calls = {name: _called_names(node) for name, node in definitions.items()}
-    seeds = _TRANSLATOR_SEEDS | _TRANSLATOR_ATTRIBUTES
-    reached = {name for name, called in calls.items()
-               if called & seeds}
-    changed = True
-    while changed:
-        changed = False
-        for name, called in calls.items():
-            if name not in reached and called & reached:
-                reached.add(name)
-                changed = True
-    return reached - {"_tr"}
+    def enclosing_expressions(scope):
+        """Inputs evaluated before a nested scope's body takes ownership."""
+        expressions = list(getattr(scope, "decorator_list", []))
+        args = getattr(scope, "args", None)
+        if args:
+            expressions.extend(args.defaults)
+            expressions.extend(value for value in args.kw_defaults if value is not None)
+        if isinstance(scope, ast.ClassDef):
+            expressions.extend(scope.bases)
+            expressions.extend(keyword.value for keyword in scope.keywords)
+        return expressions
+
+    def comprehension_body(node):
+        values = [node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt]
+        return [*values, *(condition for gen in node.generators for condition in gen.ifs),
+                *(gen.iter for gen in node.generators[1:])]
+
+    def local_nodes(roots):
+        """Find bindings in one callable, excluding comprehension loop targets.
+
+        Assignment expressions inside a comprehension still bind this callable;
+        nested callable bodies have their own locals, but their defaults do not.
+        """
+        pending = list(roots)
+        while pending:
+            child = pending.pop()
+            yield child
+            if isinstance(child, nested_scopes):
+                pending.extend(enclosing_expressions(child))
+            elif isinstance(child, comprehensions):
+                pending.extend([child.generators[0].iter, *comprehension_body(child)])
+            else:
+                pending.extend(ast.iter_child_nodes(child))
+
+    def owned_expressions(roots):
+        for child in roots:
+            if isinstance(child, nested_scopes):
+                yield from owned_expressions(enclosing_expressions(child))
+                yield from owned_nodes(child, nested=True)
+            elif isinstance(child, comprehensions):
+                # Only the first iterable runs outside the comprehension scope.
+                yield from owned_expressions([child.generators[0].iter])
+                if not any(isinstance(target, ast.Name) and isinstance(target.ctx, ast.Store)
+                           and target.id == "self"
+                           for gen in child.generators for target in ast.walk(gen.target)):
+                    yield from owned_expressions(comprehension_body(child))
+            else:
+                yield child
+                yield from owned_expressions(ast.iter_child_nodes(child))
+
+    def owned_nodes(scope, nested=False):
+        """Keep captures unless this callable itself binds another self."""
+        args = getattr(scope, "args", None)
+        if nested and args and any(arg.arg == "self" for arg in [
+                *args.posonlyargs, *args.args, *args.kwonlyargs,
+                *([args.vararg] if args.vararg else []),
+                *([args.kwarg] if args.kwarg else [])]):
+            return
+        roots = [scope.body] if isinstance(scope, ast.Lambda) else scope.body
+        if any((isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store)
+                and child.id == "self")
+               or (isinstance(child, nested_scopes) and getattr(child, "name", None) == "self")
+               for child in local_nodes(roots)):
+            return
+        yield from owned_expressions(roots)
+
+    owned = {name: list(owned_nodes(node)) for name, node in methods.items()}
+    reached = {name for name, nodes in owned.items()
+               if any(_attribute_path(child) == ("self", "_context", "translator")
+                      for child in nodes)}
+    edges = {name: {child.func.attr for child in nodes
+                    if isinstance(child, ast.Call)
+                    and isinstance(child.func, ast.Attribute)
+                    and _attribute_path(child.func.value) == ("self",)
+                    and child.func.attr in methods}
+             for name, nodes in owned.items()}
+    return _close_translation_edges(edges, reached)
+
+
+def _reaches_tr(tree, presentation_tree=None):
+    """Resolve this guard's bounded imports, annotations and lexical calls.
+
+    Definition identities stay qualified until the name-only registry boundary.
+    Nested bodies contribute to their markable owner as before. Parameters and
+    local bindings shadow outer names; methods resolve self calls in their own
+    class, while bare calls use Python's lexical (not class) scope.
+
+    Supported provenance is an explicit core.presentation Formatter import
+    (including aliases/module imports), a parameter annotation, or a simple
+    local alias/construction. String annotations are parsed, never evaluated.
+    This is not flow/type analysis: dynamic dispatch, inheritance, reassignment
+    across control-flow branches, globals/nonlocals and factory return inference
+    are outside this guard. The broad sentence scanner below is unchanged.
+    """
+    if presentation_tree is None:
+        presentation_tree = ast.parse((SRC / "core" / "presentation.py").read_text())
+    translated_methods = _formatter_translated_methods(presentation_tree)
+    bindings = {(): {"_tr": ("translator",)}}
+    parents = {(): None}
+    definitions = {}
+    classes = {}
+    owners = {}
+    comprehensions = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+    def scope_body(node):
+        if isinstance(node, ast.Lambda):
+            return [node.body]
+        if isinstance(node, comprehensions):
+            values = [node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt]
+            return [*values, *(gen.target for gen in node.generators),
+                    *(condition for gen in node.generators for condition in gen.ifs),
+                    *(gen.iter for gen in node.generators[1:])]
+        return node.body
+
+    def enclosing_expressions(node):
+        expressions = list(getattr(node, "decorator_list", []))
+        args = getattr(node, "args", None)
+        if args:
+            expressions.extend(args.defaults)
+            expressions.extend(value for value in args.kw_defaults if value is not None)
+        if isinstance(node, ast.ClassDef):
+            expressions.extend(node.bases)
+            expressions.extend(keyword.value for keyword in node.keywords)
+        return expressions
+
+    def collect(body, scope=(), owner=None):
+        for node in body:
+            if isinstance(node, comprehensions):
+                collect([node.generators[0].iter], scope, owner)
+                register(f"<comprehension@{node.lineno}:{node.col_offset}>", node,
+                         scope, owner)
+                continue
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                name, value = node.name, node
+            elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
+                names = [target.id for target in node.targets
+                         if isinstance(target, ast.Name)]
+                if not names:
+                    names = [f"<lambda@{node.value.lineno}:{node.value.col_offset}>"]
+                for name in names:
+                    register(name, node.value, scope, owner)
+                continue
+            elif isinstance(node, ast.Lambda):
+                register(f"<lambda@{node.lineno}:{node.col_offset}>", node,
+                         scope, owner)
+                continue
+            else:
+                collect(list(ast.iter_child_nodes(node)), scope, owner)
+                continue
+            register(name, value, scope, owner)
+
+    def register(name, node, scope, owner):
+        # A lambda in a default/decorator captures this enclosing scope too.
+        collect(enclosing_expressions(node), scope, owner)
+        key = scope + (name,)
+        bindings[scope][name] = ("definition", key)
+        bindings[key] = {}
+        parents[key] = parents[scope] if scope in classes else scope
+        if isinstance(node, ast.ClassDef):
+            classes[key] = node
+            collect(node.body, key, owner)
+        else:
+            definitions[key] = node
+            owners[key] = owner or key
+            collect(scope_body(node), key, owner or key)
+
+    collect(tree.body)
+
+    def lookup(name, scope):
+        while scope is not None:
+            if name in bindings[scope]:
+                return bindings[scope][name]
+            scope = parents[scope]
+        return None
+
+    def resolve(node, scope):
+        if isinstance(node, ast.Name):
+            return lookup(node.id, scope)
+        if isinstance(node, ast.Attribute):
+            base = resolve(node.value, scope)
+            if base == ("presentation",) and node.attr == "Formatter":
+                return ("formatter_class",)
+            if base == ("formatter",) and node.attr == "context":
+                return ("context",)
+            if base == ("context",) and node.attr == "translator":
+                return ("translator",)
+            if base and base[0] == "instance":
+                return bindings[base[1]].get(node.attr)
+        if isinstance(node, ast.Call) and resolve(node.func, scope) == ("formatter_class",):
+            return ("formatter",)
+        return None
+
+    def resolve_annotation(node, scope):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            try:
+                node = ast.parse(node.value, mode="eval").body
+            except SyntaxError:
+                return None
+        return resolve(node, scope)
+
+    def body_nodes(node):
+        """Walk one scope, retaining inputs evaluated before nested bodies."""
+        pending = list(scope_body(node))
+        while pending:
+            child = pending.pop()
+            if isinstance(child, comprehensions):
+                pending.append(child.generators[0].iter)
+                continue
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                  ast.ClassDef, ast.Lambda)):
+                pending.extend(enclosing_expressions(child))
+                continue
+            yield child
+            # A comprehension walrus binds the nearest enclosing callable.
+            pending.extend([child.value] if isinstance(child, ast.NamedExpr)
+                           else ast.iter_child_nodes(child))
+
+    def assignment_scope(scope):
+        while scope in definitions and isinstance(definitions[scope], comprehensions):
+            scope = parents[scope]
+        return scope
+
+    scopes = {(): tree, **classes, **definitions}
+    # Predeclare local assignments, so a shadow cannot inherit outer provenance.
+    for scope, node in scopes.items():
+        for child in body_nodes(node):
+            if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Store):
+                bindings[scope].setdefault(child.id, None)
+            elif isinstance(child, ast.NamedExpr):
+                bindings[assignment_scope(scope)].setdefault(child.target.id, None)
+        if scope in definitions and not isinstance(node, comprehensions):
+            args = node.args
+            for arg in [*args.posonlyargs, *args.args, *args.kwonlyargs,
+                        *([args.vararg] if args.vararg else []),
+                        *([args.kwarg] if args.kwarg else [])]:
+                bindings[scope][arg.arg] = None
+
+    for scope, node in scopes.items():
+        for child in body_nodes(node):
+            if isinstance(child, ast.ImportFrom):
+                module = child.module
+                for alias in child.names:
+                    value = None
+                    if module in {"core.presentation", "idasen_companion.core.presentation"}:
+                        if alias.name == "Formatter":
+                            value = ("formatter_class",)
+                    elif module in {"core", "idasen_companion.core"}:
+                        if alias.name == "presentation":
+                            value = ("presentation",)
+                    elif module in {"core.i18n", "idasen_companion.core.i18n"}:
+                        if alias.name == "GettextTranslator":
+                            value = ("translator",)
+                    bindings[scope][alias.asname or alias.name] = value
+        if scope in definitions and not isinstance(node, comprehensions):
+            for arg in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]:
+                if (arg.annotation
+                        and resolve_annotation(arg.annotation, parents[scope]) == ("formatter_class",)):
+                    bindings[scope][arg.arg] = ("formatter",)
+            class_scope = scope[:-1]
+            static = any(isinstance(decorator, ast.Name) and decorator.id == "staticmethod"
+                         for decorator in getattr(node, "decorator_list", []))
+            if class_scope in classes and node.args.args and not static:
+                bindings[scope][node.args.args[0].arg] = ("instance", class_scope)
+        for child in reversed(list(body_nodes(node))):
+            if isinstance(child, ast.Assign):
+                for target in child.targets:
+                    if isinstance(target, ast.Name) and not isinstance(child.value, ast.Lambda):
+                        bindings[scope][target.id] = resolve(child.value, scope)
+            elif isinstance(child, ast.NamedExpr):
+                bindings[assignment_scope(scope)][child.target.id] = resolve(child.value, scope)
+
+    edges = {key: set() for key in definitions}
+    reached = set()
+    for key, node in definitions.items():
+        if key != owners[key]:
+            edges[owners[key]].add(key)
+        for child in body_nodes(node):
+            if isinstance(child, ast.Attribute) and resolve(child, key) == ("translator",):
+                reached.add(key)
+            if not isinstance(child, ast.Call):
+                continue
+            target = resolve(child.func, key)
+            if target == ("translator",) or target == ("definition", ("_tr",)):
+                reached.add(key)
+            elif target and target[0] == "definition" and target[1] in definitions:
+                edges[key].add(target[1])
+            elif (isinstance(child.func, ast.Attribute)
+                  and resolve(child.func.value, key) == ("formatter",)
+                  and child.func.attr in translated_methods):
+                reached.add(key)
+    reached = _close_translation_edges(edges, reached)
+    markable = _markable_definitions(tree)
+    return {key[-1] for key in reached & markable.keys() if key != ("_tr",)}
 
 
 # ---- Unit tests for the reachability rule itself ------------------------
@@ -212,7 +461,8 @@ def test_an_injected_translator_reaches_tr():
     following its result.
     """
     tree = ast.parse(
-        "def f(fmt, x):\n"
+        "from idasen_companion.core.presentation import Formatter\n"
+        "def f(fmt: Formatter, x):\n"
         "    return words.thing(fmt.context.translator, x)\n")
     assert _reaches_tr(tree) == {"f"}
 
@@ -222,14 +472,10 @@ def test_a_locale_only_helper_does_not_reach_tr():
     not reaching a translator, and marking such a helper would make the
     concatenation check flag legitimate composition."""
     tree = ast.parse(
-        "def f(fmt, x):\n"
+        "from idasen_companion.core.presentation import Formatter\n"
+        "def f(fmt: Formatter, x):\n"
         "    return dates.day_short(fmt.context.locale, x)\n")
     assert _reaches_tr(tree) == set()
-
-
-def test_a_direct_tr_call_reaches_tr():
-    tree = ast.parse("def f():\n    return _tr('x')\n")
-    assert _reaches_tr(tree) == {"f"}
 
 
 def test_a_call_through_a_second_function_reaches_tr():
@@ -242,10 +488,11 @@ def test_a_call_through_a_second_function_reaches_tr():
 def test_a_forwarder_constructing_the_gettext_translator_reaches_tr():
     """A `gui/util.py` forwarder that delegates the word itself to
     `core/presentation.py` no longer calls the module-private wrapper -- it
-    builds the Qt-free translator backend and hands it over. Its result is
-    still translated text, so it must still be seen to reach a translator.
+    builds the Qt-free translator backend and hands it over. Its result
+    contains translated text, so it must still be seen to reach a translator.
     """
     tree = ast.parse(
+        "from idasen_companion.core.i18n import GettextTranslator\n"
         "def f(key):\n"
         "    return words.connection_phrases(GettextTranslator(), key)\n")
     assert _reaches_tr(tree) == {"f"}
@@ -258,7 +505,8 @@ def test_a_forwarder_delegating_to_a_supplied_formatter_reaches_tr():
     translated text either way.
     """
     tree = ast.parse(
-        "def f(fmt, when):\n"
+        "from idasen_companion.core.presentation import Formatter\n"
+        "def f(fmt: Formatter, when):\n"
         "    return fmt.day_and_clock(when)\n")
     assert _reaches_tr(tree) == {"f"}
 
@@ -282,11 +530,6 @@ def test_an_async_definition_reaches_tr():
     assert _reaches_tr(tree) == {"f"}
 
 
-def test_a_method_reaches_tr():
-    tree = ast.parse("class C:\n    def f(self):\n        return _tr('x')\n")
-    assert _reaches_tr(tree) == {"f"}
-
-
 def test_a_method_calling_a_sibling_method_reaches_tr():
     tree = ast.parse(
         "class C:\n"
@@ -301,12 +544,37 @@ def test_a_name_bound_to_a_lambda_reaches_tr():
     assert _lambda_definitions(tree) == {"g"}
 
 
+def test_an_attribute_bound_callback_reaches_its_enclosing_function():
+    tree = ast.parse(
+        "def f(holder):\n"
+        "    holder.callback = lambda: _tr('x')\n"
+        "    return holder.callback()\n")
+    assert _reaches_tr(tree) == {"f"}
+
+
 def test_a_def_is_not_reported_as_undecoratable():
     tree = ast.parse("def f():\n    return _tr('x')\n")
     assert _lambda_definitions(tree) == set()
 
 
 # ---- Integration test against the real module ----------------------------
+
+def test_returns_translated_is_a_pure_identity_declaration_for_mixed_values(monkeypatch):
+    from idasen_companion.gui import util  # pylint: disable=import-outside-toplevel
+
+    registry = set()
+    monkeypatch.setattr(util, "RETURNS_TRANSLATED", registry)
+    mixed = (object(), "Connected", "Desk connected")
+
+    def mixed_result():
+        return mixed
+
+    declared = util.returns_translated(mixed_result)
+
+    assert registry == {"mixed_result"}
+    assert declared is mixed_result
+    assert declared() is mixed
+
 
 def test_util_helpers_that_reach_tr_carry_the_mark():
     """A `gui/util.py` helper gains a translated string, nobody decorates it
@@ -330,15 +598,20 @@ def test_util_helpers_that_reach_tr_carry_the_mark():
 
     path = SRC / "gui" / "util.py"
     tree = ast.parse(path.read_text())
-    reaches_tr = _reaches_tr(tree)
+    _assert_translation_registry(tree, RETURNS_TRANSLATED)
+
+
+def _assert_translation_registry(tree, marked, presentation_tree=None):
+    """One registry comparison for real source and independent AST mutations."""
+    reaches_tr = _reaches_tr(tree, presentation_tree)
 
     undecoratable = reaches_tr & _lambda_definitions(tree)
     assert not undecoratable, (
         "these gui/util.py names are bound to a lambda that reaches _tr() -- "
         "a lambda takes no decorator, so it cannot carry the mark where it "
         "is written; give it a def instead: " + str(sorted(undecoratable)))
-    missing_mark = reaches_tr - RETURNS_TRANSLATED
-    spurious_mark = RETURNS_TRANSLATED - reaches_tr
+    missing_mark = reaches_tr - marked
+    spurious_mark = marked - reaches_tr
     assert not missing_mark, (
         "these gui/util.py helpers reach _tr() but carry no "
         "@returns_translated mark -- the concatenation check would not "
@@ -348,6 +621,196 @@ def test_util_helpers_that_reach_tr_carry_the_mark():
         "reach _tr() -- they are locale formatters, and marking them would "
         f"make the concatenation check flag legitimate composition: "
         f"{sorted(spurious_mark)}")
+
+
+def test_an_unseen_formatter_forwarder_requires_a_real_registry_mark():
+    """A new owned sibling wrapper must fail the actual registry assertion."""
+    from idasen_companion.gui.util import (  # pylint: disable=import-outside-toplevel
+        RETURNS_TRANSLATED,
+    )
+
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse(
+        "def new_whole_message(self, value):\n"
+        "    return self.height(value)\n").body)
+    util = ast.parse((SRC / "gui" / "util.py").read_text())
+    util.body.extend(ast.parse(
+        "def fmt_new_whole_message(fmt: Formatter, value):\n"
+        "    return fmt.new_whole_message(value)\n").body)
+
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['fmt_new_whole_message'\]")):
+        _assert_translation_registry(util, RETURNS_TRANSLATED, presentation)
+
+
+def test_a_gui_default_capture_requires_a_real_registry_mark():
+    """A lambda inside a default still contributes to its enclosing facade."""
+    facade = ast.parse(
+        "def gui_default_capture():\n"
+        "    return (lambda text=(lambda: _tr('x'))(): text)()\n")
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['gui_default_capture'\]")):
+        _assert_translation_registry(facade, set())
+
+
+def test_a_formatter_default_capture_requires_a_real_registry_mark():
+    """The default captures the owner even when the lambda parameter shadows it."""
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse(
+        "def default_capture(self):\n"
+        "    return (lambda self=self.height(1): self)()\n").body)
+    facade = ast.parse(
+        "from idasen_companion.core.presentation import Formatter\n"
+        "def fmt_default_capture(fmt: Formatter):\n"
+        "    return fmt.default_capture()\n")
+    with pytest.raises(AssertionError, match=(
+            r"no @returns_translated mark.*\['fmt_default_capture'\]")):
+        _assert_translation_registry(facade, set(), presentation)
+
+
+def test_gui_comprehension_bindings_preserve_receiver_ownership():
+    facade = ast.parse('''
+from idasen_companion.core.presentation import Formatter
+
+def imported_after_comprehension(context):
+    numbers = [Formatter for Formatter in range(2)]
+    return Formatter(context).later_label()
+
+def captured_inside_comprehension(fmt: Formatter):
+    return [(lambda: fmt.height(value))() for value in range(2)]
+
+def shadowed_inside_comprehension(fmt: Formatter, plain):
+    return [(lambda: fmt.height(1))() for fmt in plain]
+''')
+    assert _reaches_tr(facade) == {
+        "imported_after_comprehension", "captured_inside_comprehension",
+    }
+
+
+def test_formatter_comprehension_bindings_preserve_receiver_ownership():
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse('''
+def outside_comprehension(self):
+    numbers = [self for self in range(2)]
+    return self.height(1)
+
+def captured_in_comprehension(self):
+    return [self.height(value) for value in range(2)]
+
+def shadowed_in_comprehension(self, plain):
+    return [self.height(1) for self in plain]
+''').body)
+    facade = ast.parse('''
+from idasen_companion.core.presentation import Formatter
+def fmt_outside(fmt: Formatter):
+    return fmt.outside_comprehension()
+def fmt_captured(fmt: Formatter):
+    return fmt.captured_in_comprehension()
+def fmt_shadowed(fmt: Formatter, plain):
+    return fmt.shadowed_in_comprehension(plain)
+''')
+    assert _reaches_tr(facade, presentation) == {"fmt_outside", "fmt_captured"}
+
+
+def test_translation_reachability_respects_receiver_and_lexical_ownership():
+    """Same spellings are insufficient; locale-only owned calls stay clean."""
+    presentation = ast.parse((SRC / "core" / "presentation.py").read_text())
+    formatter = next(node for node in presentation.body
+                     if isinstance(node, ast.ClassDef) and node.name == "Formatter")
+    formatter.body.extend(ast.parse('''
+def captured_sibling(self):
+    return (lambda: self.height(1))()
+
+def captured_translator(self):
+    return (lambda: self._context.translator)()
+
+def shadowed_parameter(self, plain):
+    return (lambda self: (self.height(1), self._context.translator))(plain)
+
+def shadowed_local(self, plain):
+    def inner():
+        self = plain
+        return self.height(1), self._context.translator
+    return inner()
+''').body)
+    tree = ast.parse('''
+from idasen_companion.core.presentation import Formatter as F
+from idasen_companion.core import presentation as p
+
+def genuine(fmt: F):
+    return fmt.height(1)
+
+def aliased(fmt: "F"):
+    local = fmt
+    return local.duration_verbose(60)
+
+def constructed():
+    local = p.Formatter(None)
+    return local.height(1)
+
+def locale_only(fmt: F):
+    return fmt.clock(0), fmt.height_value(1), fmt.context.locale
+
+def unrelated(fmt):
+    return fmt.height(1), fmt.day_and_clock(0), fmt.context.translator
+
+def ordinary_strings():
+    literal = "not a valid Python expression"
+    fake_type = "F"
+    fake = fake_type(None)
+    return literal, fake.height(1)
+
+def message():
+    return _tr('x')
+
+def module_forward():
+    return message()
+
+class Plain:
+    def message(self):
+        return 0
+    def clean(self):
+        return self.message()
+
+class Translated:
+    def message(self):
+        return _tr('x')
+    def sibling(self):
+        return self.message()
+
+def lexical_shadow():
+    def message():
+        return 0
+    return message()
+
+def closure(fmt: F):
+    return (lambda: fmt.height(1))()
+
+def parameter_shadow(fmt: F):
+    return (lambda fmt: fmt.height(1))(None)
+
+def owned_sibling_capture(fmt: F):
+    return fmt.captured_sibling()
+
+def owned_translator_capture(fmt: F):
+    return fmt.captured_translator()
+
+def unrelated_parameter(fmt: F, plain):
+    return fmt.shadowed_parameter(plain)
+
+def unrelated_local(fmt: F, plain):
+    return fmt.shadowed_local(plain)
+''')
+    assert _reaches_tr(tree, presentation) == {
+        "genuine", "aliased", "constructed", "message", "module_forward",
+        "sibling", "closure", "owned_sibling_capture", "owned_translator_capture",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -364,13 +827,16 @@ def test_util_helpers_that_reach_tr_carry_the_mark():
 # What this reads: a "translated value" is a call to one of the translation
 # entry points named in `_TRANSLATING_CALLS`, or a call to a name in the
 # caller-supplied marked set (`gui/util.py`'s `RETURNS_TRANSLATED`, so a
-# helper's result counts the same as a direct call). Either counts whether it
+# helper's result may be or contain translated text). Either counts whether it
 # is written as a bare name or as an attribute of the module it lives in.
 # A value glued with `+`, interpolated into an f-string, or handed to
 # `.join()` is flagged; a translated template substituted with `%` is not --
 # that is the shape every conversion in this phase converts *to*, not a
 # glue. Accumulating with `+=` is the same glue written as a statement, and
 # reads the same way.
+# Aliases, every unpacked target and direct subscripts retain the marked
+# expression conservatively, including non-text tuple members such as
+# connection_state's color. This bounded check does not track tuple elements.
 #
 # Every scope is read, not only function bodies: a module-level constant is
 # this project's house style for a string that has to exist before the
@@ -401,7 +867,7 @@ _TRANSLATING_ATTRS = frozenset({"tr", "translate", "_tr"})
 
 
 def _is_translated_call(node, marked):
-    """Is `node` itself a call whose result is translated text.
+    """Is `node` a call whose result may be or contain translated text.
 
     A marked helper counts whichever way it is called. Several files reach
     `gui/util.py` through the module object rather than importing each name,
@@ -534,7 +1000,8 @@ def _scope_bindings(scope):
     records the whole right-hand side against each name it binds -- as
     precise as this check gets anywhere, since it already discards a
     subscript's index when resolving and so cannot tell which member of a
-    returned tuple a name took.
+    returned tuple a name took. Every target therefore remains possibly
+    translated, even a non-text member such as connection_state's color.
     """
     assigns: dict[str, list] = {}
     appends: dict[str, list] = {}
@@ -712,7 +1179,7 @@ def test_a_join_whose_argument_is_a_method_call_is_not_flagged():
 def test_an_fstring_interpolating_an_unmarked_locale_formatter_is_not_flagged():
     offenders = _glued(
         "def f(when):\n"
-        "    return f'{fmt_day_label(when)} {fmt_clock(when)}'\n",
+        "    return f'{fmt_day_label(when)} {fmt.clock(when)}'\n",
         marked=set())
     assert offenders == []
 
@@ -783,6 +1250,14 @@ def test_a_name_bound_by_tuple_unpacking_and_glued_after_is_flagged():
     assert [shape for _, shape, _ in offenders] == ["f-string"]
 
 
+def test_a_subscript_of_a_marked_mixed_return_is_conservatively_flagged():
+    offenders = _glued(
+        "def f(tokens):\n"
+        "    return f'{connection_state(tokens, True, True, False)[0]} —'\n",
+        marked={"connection_state"})
+    assert [shape for _, shape, _ in offenders] == ["f-string"]
+
+
 def test_a_glue_against_the_module_private_wrapper_is_flagged():
     offenders = _glued(
         "def f(key):\n"
@@ -798,7 +1273,7 @@ def test_no_translated_value_is_glued_to_anything():
     translator can reorder, and the two halves ship looking fine in English
     -- nothing fails until a language whose word order differs discovers the
     seam. This walks every file under `src/idasen_companion` and fails when
-    a translated value -- the result of `tr()`/`translate()`/`_()`/
+    a possibly translated value -- the result of `tr()`/`translate()`/`_()`/
     `ngettext()`, or of a `gui/util.py` helper marked `RETURNS_TRANSLATED`
     -- is an operand of `+`, interpolated into an f-string, or handed to
     `.join()`.

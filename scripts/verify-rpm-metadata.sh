@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Three questions that can only be put to a finished package.
 #
 #     scripts/verify-rpm-metadata.sh rpmbuild/RPMS/x86_64/idasen-companion-*.rpm

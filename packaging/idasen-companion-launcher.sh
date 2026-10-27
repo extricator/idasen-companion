@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Start one of the app's two entry points on the interpreter this package
 # carries.
 #

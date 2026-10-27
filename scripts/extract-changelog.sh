@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Print one version's section of the changelog, to stdout, for the body of a
 # draft release.
 #

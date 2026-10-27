@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Safe example: all current options, with automation deliberately disabled.
+# Other values match the runtime defaults; choose values suitable for your desk.
+# Durations use compact strings: "45m", "1h30m", "90s"; "0s" disables sync.
+
+[desk]
+# Supply your real desk's Bluetooth MAC address before connecting.
+mac = ""
+connection = "on-demand" # "on-demand" or "persistent"
+linger = "15s" # Stay connected this long after the last operation.
+
+[automation]
+# Enable automation only after configuring and checking your desk.
+# The runtime default is true; false here keeps this example a manual remote.
+enabled = false
+sit_duration = "45m"
+stand_duration = "25m"
+sit_variation = "10m" # Add 0..N random whole minutes to a sitting cycle.
+stand_variation = "5m"
+check_interval = "1m"
+idle_threshold = "10m" # Gates active-time accounting.
+recent_input_threshold = "3m" # Gates automated movement more strictly.
+sync_interval = "5m" # Periodic height sync; "0s" disables it.
+interruption_policy = "undo" # "undo", "leave" or "retry" after a cut-short move.
+external_move_policy = "yield" # "yield" or "adopt" after an off-preset manual move.
+
+[schedule]
+enabled = false
+days = ["mon", "tue", "wed", "thu", "fri"] # Also accepts "sat" and "sun".
+start = "09:00" # Local time, HH:MM.
+end = "17:00"
+
+[notifications]
+enabled = true # Announce upcoming automated movement.
+lead_time = "30s"
+problems = true # Report failed moves independently of announcements.
+
+[advanced]
+movement_tolerance = 0.02 # Metres from the target before a move is interrupted.
+
+[ui]
+language = "system" # "system" or a shipped language code, currently "en" / "es".
+units = "system" # "system", "cm" or "in"; display only.
+clock_format = "system" # "system", "12" or "24".
+tray_left_click = "window" # "window", "toggle", "sit", "stand" or "none".
+tray_middle_click = "toggle" # Same choices as tray_left_click.
+tray_repeat_move = "stop" # "off", "stop" or "reverse" during a repeated move.
+close_action = "tray" # "tray" or "quit" when a tray is available.
+minimize_to_tray = false
+start_minimized = true
+run_at_login = false # Flatpak portal preference; native installs query systemd.
+
+[presets]
+# Heights are in metres regardless of the display units in [ui].
+# Replace these with your measured sit/stand heights (desk range 0.62–1.27 m).
+# Additional named presets are allowed; sit and stand drive the cycle.
+sit = 0.62
+stand = 1.10

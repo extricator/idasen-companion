@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The vocabulary before-picture: ``gui/util.py`` rendered today, whole.
 
 Phases 13-15 move every formatter this file exercises out of ``gui/util.py``
@@ -35,10 +36,10 @@ pytest.importorskip("PySide6")
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QLocale  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core import i18n as register  # noqa: E402
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -47,8 +48,13 @@ from idasen_companion.core.i18n import (  # noqa: E402
     GettextTranslator,
 )
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.gui import util  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
+from idasen_companion.core.machine import DeskState  # noqa: E402
+from idasen_companion.core.state_values import (  # noqa: E402
+    parse_position, parse_status,
+)
 
 #: Set to regenerate the committed goldens instead of comparing against them.
 #: Unset (the default, and the only state CI ever runs in), a mismatch fails
@@ -62,11 +68,6 @@ GOLDEN_DIR = Path(__file__).parent / "goldens"
 #: Only its text outputs are recorded here, so the color values themselves
 #: are never inspected.
 _THEME = SimpleNamespace(success="success", error="error", muted="muted")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 # ----------------------------------------------------------------------
@@ -89,8 +90,8 @@ def _connection_cases() -> dict[str, str]:
     return cases
 
 
-_HEIGHT_METERS = 1.105
-_HEIGHT_METERS_WHOLE = 1.10
+_HEIGHT_METERS = Length(1.105)
+_HEIGHT_METERS_WHOLE = Length(1.10)
 
 
 def _height_formatter(unit: HeightUnit) -> Formatter:
@@ -195,7 +196,7 @@ def _clock_formatter(style: TimeStyle) -> Formatter:
 
 
 def _clock_cases() -> dict[str, str]:
-    return {f"{name}_{clock}": util.fmt_clock(_clock_formatter(style), when)
+    return {f"{name}_{clock}": _clock_formatter(style).clock(when)
             for clock, style in _CLOCKS.items()
             for name, when in _CLOCK_CASES}
 
@@ -231,21 +232,21 @@ def _status_cases() -> dict[str, str]:
     # The key lists come from the register, which is where the tables live
     # after Phase 14; every case still renders through `gui.util`, so the
     # recorded values are unchanged by the move.
-    cases = {f"label_{key}": util.status_label(key)
+    cases = {f"label_{key}": util.status_label(parse_status(key))
              for key in register.STATUS_LABELS}
-    cases["label_unknown"] = util.status_label("unknown-status")
-    cases.update({f"head_{key}": util.status_head(key)
+    cases["label_unknown"] = util.status_label(parse_status("unknown-status"))
+    cases.update({f"head_{key}": util.status_head(parse_status(key))
                   for key in register.STATUS_HEADS})
-    cases["head_unknown"] = util.status_head("unknown-status")
+    cases["head_unknown"] = util.status_head(parse_status("unknown-status"))
     return cases
 
 
 def _position_cases() -> dict[str, str]:
     return {
-        "sitting": util.position_label("sitting"),
-        "standing": util.position_label("standing"),
-        "empty": util.position_label(""),
-        "unknown": util.position_label("custom-spot"),
+        "sitting": util.position_label(DeskState.SITTING),
+        "standing": util.position_label(DeskState.STANDING),
+        "empty": util.position_label(parse_position("")),
+        "unknown": util.position_label(parse_position("custom-spot")),
     }
 
 
@@ -279,17 +280,17 @@ _SNOOZE_UNTIL = 1_800_000_000.0
 def _cycle_cases() -> dict[str, str]:
     cases = {
         "due_now": util.due_now_label(),
-        "position_or_custom_known": util.position_or_custom("standing"),
-        "position_or_custom_custom": util.position_or_custom(""),
+        "position_or_custom_known": util.position_or_custom(DeskState.STANDING),
+        "position_or_custom_custom": util.position_or_custom(parse_position("")),
     }
     for clock, style in _CLOCKS.items():
         fmt = _clock_formatter(style)
         # The "later" branch renders no clock at all, so both recordings of
         # it are identical by construction -- kept per clock anyway, so the
         # day one of them stops being identical the diff says so.
-        cases[f"snooze_later_{clock}"] = util.snooze_line(fmt, 0)
+        cases[f"snooze_later_{clock}"] = util.snooze_line(fmt, WallInstant(0))
         cases[f"snooze_specific_{clock}"] = util.snooze_line(
-            fmt, _SNOOZE_UNTIL)
+            fmt, WallInstant(_SNOOZE_UNTIL))
     return cases
 
 

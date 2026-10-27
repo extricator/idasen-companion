@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The activity message catalog and its renderer (see docs/LOGGING.md)."""
 
 import pytest

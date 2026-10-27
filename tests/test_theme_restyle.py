@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The restyle registry: registration semantics, the palette-change trigger,
 and the shared stylesheet-freshness helper later plans in this phase reuse.
 
@@ -25,11 +26,12 @@ from PySide6.QtCore import (  # noqa: E402
 )
 from PySide6.QtGui import QColor, QIcon, QPalette, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QComboBox, QLabel, QLineEdit, QPushButton, QStyleFactory,
+    QComboBox, QLabel, QLineEdit, QPushButton, QStyleFactory,
     QVBoxLayout, QWidget,
 )
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.decoded_data import TransitionRow  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import main_window as mw  # noqa: E402
 from idasen_companion.gui import restyle, service_ctl  # noqa: E402
@@ -63,11 +65,6 @@ _DARK = {
     QPalette.ColorRole.WindowText: QColor("#fcfcfc"),
     QPalette.ColorRole.Text: QColor("#fcfcfc"),
 }
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)
@@ -722,15 +719,30 @@ def test_the_activity_log_page_follows_a_live_light_to_dark_switch(qapp):
     qapp.processEvents()
     restyle.follow_palette(qapp)
     try:
-        flip_palette(qapp, dark=True)
+        levels = ("debug", "info", "warning", "error", "critical")
+        page.log_level.setCurrentIndex(0)
+        for index, level in enumerate(levels):
+            page._on_log_entry(float(index), level, "activity", "", {},
+                               f"original {level}")
 
-        assert_hexes_are_current_tokens(page)
+        for dark in (True, False):
+            flip_palette(qapp, dark=dark)
 
-        chip_style = page._journal_chip.styleSheet()  # pylint: disable=protected-access
-        assert theme().hover.name() in chip_style, (
-            "the journal chip does not carry the post-switch hover token")
-        assert theme().border.name() in chip_style, (
-            "the journal chip does not carry the post-switch border token")
+            assert_hexes_are_current_tokens(page)
+            document_hexes = set(_HEX_RE.findall(page.log_view.toHtml()))
+            assert document_hexes <= theme_hexes(), (
+                "existing rows or day separators still carry old colors")
+            for index, level in enumerate(levels):
+                page._on_log_entry(100.0 + index, level, "activity", "", {},
+                                   f"appended {dark} {level}")
+            assert set(_HEX_RE.findall(page.log_view.toHtml())) <= theme_hexes()
+            text = page.log_view.toPlainText()
+            assert all(f"original {level}" in text for level in levels)
+            assert all(f"appended {dark} {level}" in text for level in levels)
+
+            chip_style = page._journal_chip.styleSheet()  # pylint: disable=protected-access
+            assert theme().hover.name() in chip_style
+            assert theme().border.name() in chip_style
     finally:
         page.close()
 
@@ -961,8 +973,8 @@ def test_a_switch_does_not_change_the_reported_automation_status(qapp):
 _PRESETS = {"sit": 0.62, "perch": 0.95, "stand": 1.14}
 _PRESETS_REBUILT = {"sit": 0.62, "lean": 0.80, "stand": 1.14}
 _TRANSITIONS = [
-    (1_700_000_000.0, "sitting", "standing", "manual", False),
-    (1_700_000_500.0, "standing", "sitting", "automation", True),
+    TransitionRow(1_700_000_000.0, "sitting", "standing", "manual", False),
+    TransitionRow(1_700_000_500.0, "standing", "sitting", "automation", True),
 ]
 
 
@@ -973,7 +985,7 @@ class _StatsFakeClient(FakeClient):
 
     def __init__(self):
         super().__init__()
-        self.transitions: list[tuple] = list(_TRANSITIONS)
+        self.transitions: list[TransitionRow] = list(_TRANSITIONS)
 
     def get_daily_stats(self, start, end):
         return []

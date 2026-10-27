@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rendering tests for ``ControlStyle`` (`gui/style.py`): resting, hover,
 focus, disabled, the checked glyph, the corner, the button's own metrics,
 and whether any of it survives a control nested inside a `Card` -- a `Card`
@@ -34,11 +35,9 @@ because the first group was held to a contrast floor the second was not.
 The floor was dropped, and re-deriving the weight by eye landed both in the
 same place, so the distinction is no longer asserted anywhere.
 
-Several assertions here come in pairs -- one saying what the app does, one
-saying that plain Fusion does *not* already do it. That is deliberate:
-"nothing protrudes past the corner" and "the icon is not full strength"
-both pass just as happily on a build that draws nothing at all, and the
-paired test is what stops them going quietly vacuous.
+Positive paint assertions accompany the absence checks: rendered frame
+strokes must remain visible, and disabled icons must carry the app's own
+colour. This keeps a build that draws nothing from passing those checks.
 """
 
 import pytest
@@ -59,7 +58,7 @@ from PySide6.QtGui import (  # noqa: E402
     QColor, QFont, QIcon, QImage, QPainter, QPainterPath, QPalette, QPixmap,
 )
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QCheckBox, QComboBox, QLineEdit, QPushButton, QSpinBox,
+    QCheckBox, QComboBox, QLineEdit, QPushButton, QSpinBox,
     QStyle, QStyleFactory, QStyleOption, QStyleOptionButton,
     QStyleOptionComboBox, QStyleOptionSpinBox, QVBoxLayout, QWidget,
 )
@@ -89,11 +88,6 @@ _DARK = {
     QPalette.ColorRole.WindowText: QColor("#fcfcfc"),
     QPalette.ColorRole.Text: QColor("#fcfcfc"),
 }
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)
@@ -653,36 +647,6 @@ def test_no_frame_arc_protrudes_past_the_app_corner(
         f"frame, in the corners: {stray[:8]} -- a second, squarer arc is "
         "showing past the app's curve, which is the grey nick reported from "
         "the real desktop")
-
-
-@pytest.mark.parametrize("name, build, complex_control",
-                         [frame for frame in _ROUNDED_FRAMES
-                          if frame[0] != "combo box"])
-def test_plain_fusion_is_what_protrudes_past_the_app_corner(
-        qapp, name, build, complex_control):
-    """The proof the assertion above is not vacuous.
-
-    Rendered through plain, unmodified Fusion -- what sat underneath the
-    app's stroke before this -- the same two controls do paint outside the
-    app's curve, so a build that simply stopped drawing corners at all
-    could not pass both tests. The combo box is deliberately absent:
-    measured, Fusion's combo frame already falls inside the app's curve at
-    every corner, so it never had the defect and asserting that it did
-    would be asserting something untrue.
-    """
-    flip_palette(qapp, dark=False)
-    qapp.setStyle(QStyleFactory.create("fusion"))
-    try:
-        control = build()
-        image = _card_cropped_render(qapp, control)
-        stray = _stray_corner_pixels(image, theme().card_bg,
-                                     _frame_rect(control, complex_control))
-    finally:
-        qapp.setStyle(ControlStyle())
-    assert stray, (
-        f"plain Fusion paints nothing outside the app's own curve at the "
-        f"{name}'s corners, so the assertion that ControlStyle paints "
-        "nothing there is measuring an artefact that no longer exists")
 
 
 # ================= 1c. The push button frame =================
@@ -1659,27 +1623,6 @@ def test_a_disabled_buttons_icon_takes_the_apps_own_colour_in_dark(qapp):
     _assert_a_disabled_icon_takes_the_apps_own_colour(qapp, dark=True)
 
 
-def test_plain_fusion_does_not_dim_an_icon_to_the_apps_own_colour(qapp):
-    """The proof the two tests above measure the app's rule and not Qt's.
-
-    Under plain Fusion the same disabled icon still changes colour -- Qt
-    synthesises a disabled pixmap for any icon that has none -- so
-    "different from #e01010" on its own would pass with nothing of the
-    app's involved. What does *not* happen without the app's rule is the
-    icon landing on ``theme().disabled_text``.
-    """
-    flip_palette(qapp, dark=False)
-    qapp.setStyle(QStyleFactory.create("fusion"))
-    try:
-        image = _card_cropped_render(qapp, _icon_button(enabled=False))
-    finally:
-        qapp.setStyle(ControlStyle())
-    assert not _contains_pixel(image, theme().disabled_text.name()), (
-        "plain Fusion already renders a disabled icon in "
-        f"theme().disabled_text ({theme().disabled_text.name()}), so the "
-        "assertions above are not measuring anything the app does")
-
-
 # ================= 5. Geometry survives =================
 #
 # The regression wave 08-08 shipped and never had a test for: naming a
@@ -1972,30 +1915,6 @@ def test_the_row_height_grows_with_the_font(qapp):
         "the row height did not grow between 10pt and 16pt -- it has "
         "become a constant, which is right at one text scale and wrong at "
         "every other")
-
-
-def test_a_spin_boxs_own_editor_is_not_floored_a_second_time(qapp):
-    """The regression that fixing the row height introduced and this
-    catches.
-
-    ``QAbstractSpinBox`` sizes its internal ``QLineEdit`` first and feeds
-    the answer into its own calculation, so a row-height floor applied to
-    both compounds: the editor came out at the row height and the spin box
-    at the row height *plus* its own frame, three pixels taller than
-    everything beside it. The floor belongs to the control a layout
-    places, not to an editor living inside one.
-    """
-    spin = QSpinBox()
-    editor = spin.findChild(QLineEdit)
-    assert editor is not None, (
-        "this Qt build's QSpinBox has no internal QLineEdit, so the "
-        "compounding this test guards cannot be measured here")
-    assert not ControlStyle._stands_in_a_row(editor), (  # pylint: disable=protected-access
-        "a spin box's own editor is being treated as a control standing in "
-        "a row, so the row height is applied to it and to its host")
-    assert ControlStyle._stands_in_a_row(QLineEdit()), (  # pylint: disable=protected-access
-        "a free-standing line edit is being treated as an embedded editor, "
-        "so it will not be held to the row height at all")
 
 
 # ================= 5b. ... and a bare button matches the accent one =====

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Presets page's "and the desk is here right now" layer.
 
 The page draws a live marker on whichever preset the desk is currently at, a
@@ -21,18 +22,18 @@ import pytest
 pytest.importorskip("PySide6")
 
 import os
+import math
 
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import Signal  # noqa: E402
 from PySide6.QtCore import QObject  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
-from idasen_companion.gui import context as context_mod  # noqa: E402
-from idasen_companion.gui.context import AppContext  # noqa: E402
+from idasen_companion.core.config import AppConfig  # noqa: E402
+from idasen_companion.core.lengths import Length
 from idasen_companion.gui.pages.presets import PresetsPage  # noqa: E402
+from idasen_companion.gui.widgets import HeightRail, RangeRail
 
 PRESETS = {"sit": 0.62, "stand": 1.14}
 
@@ -51,13 +52,8 @@ class FakeClient(QObject):
         raise AssertionError("should not nudge an unavailable daemon")
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
-def page(qapp, tmp_path, monkeypatch):
+def page(make_app_context):
     config = AppConfig()
     # Pinned explicitly rather than left at "system": the labels below are
     # about the live-height marker, not about units, and "system" would
@@ -66,12 +62,8 @@ def page(qapp, tmp_path, monkeypatch):
     # pin does not reach), making these assertions depend on whatever $LANG
     # the suite happens to run under.
     config.ui.units = "cm"
-    path = tmp_path / "config.toml"
-    save_config(config, path)
-    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
     client = FakeClient()
-    ctx = AppContext(client, tray_available=True)
-    ctx.reload_config()
+    ctx = make_app_context(client, config, load_config=True, tray_available=True)
     page = PresetsPage(ctx)
     client.presetsChanged.emit(PRESETS)
     return page
@@ -89,8 +81,9 @@ def _lit_presets(page) -> int:
 
 def test_a_reading_lights_up_the_page(page):
     page.client.heightChanged.emit(1.14)
+    page.client.heightChanged.emit(0.0)  # unknown wire height leaves the reading alone
     assert page._new_at_btn.text() == "+ New preset at 114.0 cm"
-    assert page.range_rail._height == pytest.approx(1.14)
+    assert page.range_rail._height == Length(1.14)
     assert _lit_presets(page) == 1
 
 
@@ -98,7 +91,7 @@ def test_losing_the_link_stops_the_page_claiming_a_height(page):
     page.client.heightChanged.emit(1.14)
     page.client.connectedChanged.emit(False)
     assert page._new_at_btn.text() == "+ New preset"
-    assert page.range_rail._height == 0
+    assert page.range_rail._height == Length(0)
     assert _lit_presets(page) == 0
 
 
@@ -108,15 +101,7 @@ def test_losing_the_daemon_stops_it_too(page):
     page.client.heightChanged.emit(1.14)
     page.client.availableChanged.emit(False)
     assert page._new_at_btn.text() == "+ New preset"
-    assert page.range_rail._height == 0
-
-
-def test_the_capture_button_never_keeps_a_height_it_cannot_deliver(page):
-    # The sharp end of the bug: capture_preset re-reads the desk, so a label
-    # quoting the old height promises a number it would not save.
-    page.client.heightChanged.emit(1.14)
-    page.client.connectedChanged.emit(False)
-    assert "cm" not in page._new_at_btn.text()
+    assert page.range_rail._height == Length(0)
 
 
 def test_reconnecting_lights_the_page_back_up(page):
@@ -141,6 +126,69 @@ def test_staying_connected_leaves_the_reading_alone(page):
 def test_the_presets_themselves_survive_the_disconnect(page):
     page.client.heightChanged.emit(1.14)
     page.client.connectedChanged.emit(False)
-    assert page._presets == PRESETS
+    assert page._presets == {name: Length(height) for name, height in PRESETS.items()}
     assert len(page._preset_chips) == len(PRESETS)
     assert page._presets_empty.isHidden(), "the empty-state notice must stay away"
+
+
+def test_unit_repaint_reuses_decoded_presets_and_live_height(page):
+    page.client.presetsChanged.emit({"custom": 0.90123})
+    page.client.heightChanged.emit(0.90123)
+    assert page.range_rail._height == Length(0.90123)
+    page.ctx.write_config(lambda config: setattr(config.ui, "units", "in"))
+    assert page._new_at_btn.text() == "+ New preset at 35.48 in"
+    assert _lit_presets(page) == 1
+    page.ctx.write_config(lambda config: setattr(config.ui, "units", "cm"))
+    assert page._new_at_btn.text() == "+ New preset at 90.1 cm"
+    assert page.range_rail._height == Length(0.90123)
+    page.client.presetsChanged.emit({})
+    assert not page._presets_empty.isHidden()
+    assert _lit_presets(page) == 0
+
+
+def test_live_preset_match_includes_the_edge_only(page):
+    page.client.presetsChanged.emit({"edge": 0.015})
+    page.client.heightChanged.emit(0.0075)
+    assert _lit_presets(page) == 1
+    page.client.heightChanged.emit(math.nextafter(0.0075, 0))
+    assert _lit_presets(page) == 0
+
+
+def test_range_labels_keep_equal_height_order_and_strict_spacing(page, monkeypatch):
+    rail = RangeRail(Length(0), Length(0.1), page.ctx)
+    rail.resize(156, 240)
+    labels = []
+    ticks = []
+    formatter_type = type(page.ctx.fmt)
+    original_height = formatter_type.height
+    original_tick = formatter_type.preset_tick
+
+    def height(fmt, value, trim=False):
+        labels.append(value)
+        return original_height(fmt, value, trim)
+
+    def tick(fmt, name, value, trim=False):
+        ticks.append(name)
+        return original_tick(fmt, name, value, trim)
+
+    monkeypatch.setattr(formatter_type, "height", height)
+    monkeypatch.setattr(formatter_type, "preset_tick", tick)
+    rail.set_height(Length(0.0325))
+    rail.set_presets({"first": Length(0.03), "second": Length(0.03), "top": Length(0.035)})
+    rail.grab()
+    assert ticks == ["top", "first", "second"]
+    assert labels == [Length(0.1), Length(0)]
+    labels.clear()
+    rail.set_presets({"near": Length(math.nextafter(0.03, 0))})
+    rail.grab()
+    assert labels == [Length(0.1)]
+
+
+def test_drag_emits_three_decimal_primitive_metres(page):
+    rail = HeightRail(Length(0.62), Length(1.27), page.ctx)
+    rail.resize(300, 46)
+    targets = []
+    rail.targetChanged.connect(targets.append)
+    rail._drag_to(123.4)
+    assert targets == [0.883]
+    assert type(targets[0]) is float

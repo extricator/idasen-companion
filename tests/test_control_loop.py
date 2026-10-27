@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The control loop must outlive a failing tick.
 
 `_tick` touches the desk, the session bus, logind and SQLite — all of which
@@ -9,21 +10,29 @@ the Activity Log to show for it.
 """
 
 import asyncio
+from datetime import date
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.config import AppConfig
+from idasen_companion.daemon.accounting import ActiveTimeAccounting
 from idasen_companion.daemon.main import Daemon
+from machine_helpers import Driver
+from daemon_helpers import make_daemon_shell
 
 
 def make_daemon(tick):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.config = AppConfig()
+    d.desk = MagicMock()
+    d._current_move_id = 0
     d.config.automation.check_interval = 0  # don't wait between ticks
     d.activity_log = MagicMock()
+    d.accounting = MagicMock()
     d.machine = MagicMock()
     d._stop_event = asyncio.Event()
     d._initial_read = None
@@ -43,7 +52,7 @@ async def test_a_failing_tick_does_not_stop_the_loop():
         d._stop_event.set()
 
     d = make_daemon(tick)
-    await asyncio.wait_for(d._run_until_stopped(now=1_000_000.0), timeout=5)
+    await asyncio.wait_for(d._run_until_stopped(now=WallInstant(1_000_000.0)), timeout=5)
 
     assert len(calls) == 4  # kept going through all three failures
     levels = [c.args[0] for c in d.activity_log.diag.call_args_list]
@@ -59,7 +68,89 @@ async def test_cancellation_still_stops_the_loop():
 
     d = make_daemon(tick)
     with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(d._run_until_stopped(now=1_000_000.0), timeout=5)
+        await asyncio.wait_for(d._run_until_stopped(now=WallInstant(1_000_000.0)), timeout=5)
+
+
+@pytest.mark.asyncio
+async def test_loop_interval_equality_overrun_and_scalar_wait(monkeypatch):
+    from idasen_companion.daemon import main as main_mod
+
+    d = make_daemon(AsyncMock())
+    d.config.automation.check_interval = 2
+    readings = iter((10.0, 12.0, 20.0, 22.25))
+    monkeypatch.setattr(main_mod, "time", SimpleNamespace(monotonic=lambda: next(readings)))
+    waits = []
+
+    async def wait_for(awaitable, *, timeout):
+        awaitable.close()
+        waits.append(timeout)
+        if len(waits) == 1:
+            d.activity_log.diag.assert_not_called()
+        else:
+            d._stop_event.set()
+
+    monkeypatch.setattr(main_mod, "asyncio", SimpleNamespace(
+        ensure_future=asyncio.ensure_future, CancelledError=asyncio.CancelledError,
+        TimeoutError=asyncio.TimeoutError, wait_for=wait_for))
+    formatter = MagicMock(wraps=main_mod.format_duration_human)
+    monkeypatch.setattr(main_mod, "format_duration_human", formatter)
+    await d._run_until_stopped(WallInstant(1_000_000.0))
+    await d._initial_read
+
+    assert waits == [2, 2] and all(type(interval) is int for interval in waits)
+    assert [call.args[0] for call in formatter.call_args_list] == [2.25, 2]
+    d.activity_log.diag.assert_called_once_with(
+        "warning", "Control loop tick took 2 seconds (check interval is 2 seconds); "
+        "automation was stalled for that long.")
+
+
+@pytest.mark.asyncio
+async def test_startup_origin_survives_adoption_setup_reload_and_controls(monkeypatch, tmp_path):
+    from idasen_companion.daemon import main as main_mod
+
+    origin = 1_000_000.0
+    clock = origin - 1000  # construction age must not become active time
+    driver = Driver(now=clock)
+    d = Daemon(tmp_path / "config.toml", mock_desk=True, stats_path=Path(":memory:"))
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.config.automation.check_interval = 1
+    d.config_file.save(d.config)
+    d._idle = MagicMock(get_idle_ms=AsyncMock(return_value=1000))
+    d._lock = MagicMock(is_locked=AsyncMock(return_value=False))
+    d._session = MagicMock(state=AsyncMock(return_value="foreground"))
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    d._emit_automation_state = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+    totals = []
+
+    async def tick():
+        nonlocal clock
+        if not totals:
+            clock = origin + 25
+            await d._initial_read  # real adoption resets the cycle at this later time
+        else:
+            clock += 30
+            await d._start_after_setup()
+            d.reload_config()
+            d.set_automation_enabled(False)
+            d.set_automation_enabled(True)
+            d.pause()
+            d.snooze(5)
+            d.resume()
+            clock += 30
+        await Daemon._tick(d)
+        totals.append(sum(seconds for _, _, seconds in d.stats.daily_totals(
+            date(1970, 1, 1), date(2100, 1, 1))))
+        if len(totals) == 2:
+            d._stop_event.set()
+
+    d._tick = tick
+    try:
+        await asyncio.wait_for(d._run_until_stopped(WallInstant(origin)), timeout=5)
+        assert totals == [25, 85]
+    finally:
+        d.stats.close()
 
 
 def sqlite_style_error():
@@ -181,13 +272,12 @@ async def test_the_tick_takes_the_desk_lock():
     d._lock = MagicMock(is_locked=AsyncMock(return_value=False))
     d._session = MagicMock(state=AsyncMock(return_value="foreground"))
     d.stats = MagicMock()
-    d._pending_credit = {}
+    d.accounting = ActiveTimeAccounting(d.stats)
     d._handle_event = MagicMock()
     d._maybe_warn = AsyncMock()
     d._emit_periodic_properties = MagicMock()
     d.machine.held = False
     d.machine.state = MagicMock(value="sitting")
-    d.machine._last_check = 0.0
 
     await d._desk_lock.acquire()          # a manual move is in flight
     try:
@@ -261,3 +351,156 @@ async def test_stop_is_not_blocked_by_a_move_holding_the_lock():
 
     d.desk.stop.assert_awaited_once()
     assert d.moving is False
+
+
+@pytest.mark.asyncio
+async def test_automated_move_refreshes_presence_at_the_ble_command_boundary(monkeypatch):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.core.machine import StateMachine, TransitionCompleted
+    from test_ble_desk import make_desk
+
+    driver = Driver()
+    desk, fake = make_desk(connection_mode="persistent")
+    d = make_daemon(AsyncMock())
+    d.config, d.desk = driver.cfg, desk
+    d._current_move_id = 0
+    d.machine = StateMachine(d.config, desk, now=driver.now)
+    await d.machine.start(driver.now)
+    d.machine.active_time = d.machine.target_duration
+    target = d.machine.target_duration
+    clock = driver.now.epoch_seconds
+    idle = 0
+    observed = asyncio.Event()
+    order = []
+
+    async def get_idle():
+        order.append("idle")
+        observed.set()
+        return idle
+
+    async def unlocked():
+        order.append("lock")
+        return False
+
+    async def foreground():
+        order.append("seat")
+        return "foreground"
+
+    d._check_config_file = MagicMock()
+    d._idle = SimpleNamespace(get_idle_ms=get_idle)
+    d._lock = SimpleNamespace(is_locked=unlocked)
+    d._session = SimpleNamespace(state=foreground)
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+
+    await d._desk_lock.acquire()
+    tick = asyncio.create_task(Daemon._tick(d))
+    try:
+        await asyncio.wait_for(observed.wait(), 2)
+        idle = d.config.automation.recent_input_threshold * 1000
+        clock += 1
+    finally:
+        d._desk_lock.release()
+    try:
+        await asyncio.wait_for(tick, 2)
+        assert fake.moves == [], "stale pre-lock input authorized a physical command"
+        assert order[-3:] == ["lock", "seat", "idle"]
+        assert d.machine.target_duration == target
+        assert d.machine.active_time == target
+        assert not any(isinstance(c.args[0], TransitionCompleted)
+                       for c in d._handle_event.call_args_list)
+        idle -= 1  # adjacent eligible millisecond, not a new cycle
+        await asyncio.wait_for(Daemon._tick(d), 2)
+        assert fake.moves == [1.10]
+        assert d.machine.active_time == Duration.from_seconds(0)
+    finally:
+        await desk.disconnect()
+
+
+@pytest.mark.parametrize("invalidation", [
+    "snooze", "config", "preset", "desk", "control", "target", "schedule-boundary",
+])
+async def test_automated_guard_rechecks_controls_after_presence_yield(monkeypatch, invalidation):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.durations import Duration
+
+    driver = Driver()
+    await driver.start()
+    d = make_daemon(AsyncMock())
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.machine.active_time = d.machine.target_duration
+    clock = driver.now.epoch_seconds
+    if invalidation == "schedule-boundary":
+        # Start inside an allowed window and finish on a disallowed day.
+        from datetime import datetime
+        d.config.schedule.enabled = True
+        d.config.schedule.days = [datetime.fromtimestamp(clock).strftime("%a").lower()]
+        d.config.schedule.start, d.config.schedule.end = "00:00", "23:59"
+    entered, release = asyncio.Event(), asyncio.Event()
+    calls = 0
+
+    async def idle():
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            entered.set()
+            await release.wait()
+        return 0
+
+    d._idle = SimpleNamespace(get_idle_ms=idle)
+    d._lock = SimpleNamespace(is_locked=AsyncMock(return_value=False))
+    d._session = SimpleNamespace(state=AsyncMock(return_value="foreground"))
+    d._check_config_file = MagicMock()
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: clock)
+    task = asyncio.create_task(Daemon._tick(d))
+    await asyncio.wait_for(entered.wait(), 2)
+    if invalidation == "snooze":
+        d.machine.snooze(5, driver.now)
+    elif invalidation == "config":
+        d.config = AppConfig()
+    elif invalidation == "preset":
+        d.config.presets["stand"] = 1.15
+    elif invalidation == "desk":
+        d.desk = MagicMock()
+    elif invalidation == "control":
+        d._current_move_id += 1
+    elif invalidation == "target":
+        d.machine.target_duration += Duration.from_seconds(1)
+    else:
+        clock += 86400
+    release.set()
+    await asyncio.wait_for(task, 2)
+    assert driver.desk.move_calls == []
+    d._handle_event.assert_not_called()
+
+
+@pytest.mark.parametrize("seat, locked, expected_moves", [
+    ("background", False, []), ("no-session", False, []),
+    ("unknown", False, [1.10]), ("foreground", True, []),
+], ids=["background", "seatless", "unknown", "locked"])
+async def test_refreshed_absence_verdict_reaches_automated_admission(
+        monkeypatch, seat, locked, expected_moves):
+    from idasen_companion.daemon import main as main_mod
+    from idasen_companion.core.lengths import Length
+
+    driver = Driver()
+    await driver.start()
+    d = make_daemon(AsyncMock())
+    d.config, d.desk, d.machine = driver.cfg, driver.desk, driver.m
+    d.machine.active_time = d.machine.target_duration
+    d._idle = SimpleNamespace(get_idle_ms=AsyncMock(return_value=0))
+    d._lock = SimpleNamespace(is_locked=AsyncMock(side_effect=[False, locked]))
+    d._session = SimpleNamespace(state=AsyncMock(side_effect=["foreground", seat]))
+    d._check_config_file = MagicMock()
+    d._handle_event = MagicMock()
+    d._maybe_warn = AsyncMock()
+    d._emit_periodic_properties = MagicMock()
+    monkeypatch.setattr(main_mod.time, "time", lambda: driver.now.epoch_seconds)
+    await asyncio.wait_for(Daemon._tick(d), 2)
+    assert driver.desk.move_calls == [Length(height) for height in expected_moves]

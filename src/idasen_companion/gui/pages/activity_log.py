@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Activity Log page: the daemon's log, filtered by audience and severity.
 
 Two controls, because there are two questions (``docs/LOGGING.md``): *who is
@@ -28,6 +29,7 @@ from PySide6.QtGui import (QFontDatabase, QFontMetricsF, QGuiApplication,
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QTextEdit, QVBoxLayout
 
 from ...core import journal
+from ...core.decoded_data import LogEntry, LogParams
 from .. import log_catalog, restyle, util
 from ..theme import CONTROL_RADIUS, css, theme
 from ..widgets import Card, SegmentedControl, SpacedLabelButton, icon, tinted_icon
@@ -92,7 +94,7 @@ class ActivityLogPage(Page):
 
     def __init__(self, ctx):
         super().__init__(ctx)
-        self._entries: list[dict] = []
+        self._entries: list[LogEntry] = []
         self._seeded = False
         self._loading = False
         self._awaiting_scroll_range = False
@@ -102,6 +104,10 @@ class ActivityLogPage(Page):
         self._separator_width = 0
         self._build()
         self._refresh_separator_columns()
+        # register() applies immediately; the initial document has nothing
+        # to restyle. Compare immutable values, since QColor is mutable.
+        self._row_palette = self._row_palette_signature()
+        restyle.register(self, self._restyle_rows)
 
         self.client.logEntry.connect(self._on_log_entry)
         self.client.availableChanged.connect(self._on_available)
@@ -241,7 +247,7 @@ class ActivityLogPage(Page):
 
     # ----- data -----
 
-    def _visible(self, entry: dict) -> bool:
+    def _visible(self, entry: LogEntry) -> bool:
         if self.channel.currentIndex() == 0 and entry["channel"] != "activity":
             return False
         try:
@@ -270,11 +276,11 @@ class ActivityLogPage(Page):
         reader.signals.done.connect(self._on_backlog_read)
         QThreadPool.globalInstance().start(reader)
 
-    def _on_backlog_read(self, entries: list) -> None:
+    def _on_backlog_read(self, entries: list[LogEntry]) -> None:
         self._loading = False
         self._merge_backlog(entries)
 
-    def _merge_backlog(self, entries: list) -> None:
+    def _merge_backlog(self, entries: list[LogEntry]) -> None:
         """Rebuild from the journal, the running daemon's ring, and what is
         already on screen.
 
@@ -284,10 +290,10 @@ class ActivityLogPage(Page):
         is already on screen overlaps both — but it is the only place a line
         that arrived over D-Bus *during* this read can be.
         """
-        merged: list[dict] = []
+        merged: list[LogEntry] = []
         positions: dict[str, list[int]] = {}
 
-        def add(entry: dict) -> None:
+        def add(entry: LogEntry) -> None:
             same = positions.setdefault(entry["text"], [])
             for merged_index in same:
                 if abs(entry["ts"] - merged[merged_index]["ts"]) >= self._SAME_LINE_WINDOW:
@@ -306,35 +312,23 @@ class ActivityLogPage(Page):
         for entry in entries:
             add(entry)
         if self.client.available:
-            for raw in self.client.get_recent_log():
-                add(self._normalize(raw))
+            for entry in self.client.get_recent_log():
+                add(entry)
         for entry in self._entries:
             add(entry)
         self._entries = sorted(merged, key=lambda e: e["ts"])
         self._seeded = True
         self._redraw()
 
-    @staticmethod
-    def _normalize(entry: dict) -> dict:
-        """Fill in anything an older daemon's JSON left out."""
-        return {
-            "ts": float(entry.get("ts", 0.0)),
-            "level": str(entry.get("level", "info")),
-            "channel": str(entry.get("channel", "activity")),
-            "msg_id": str(entry.get("msg_id", "")),
-            "params": entry.get("params") or {},
-            "text": str(entry.get("text", "")),
-        }
-
     def _on_log_entry(self, ring_ts: float, level: str, channel: str, msg_id: str,
-                      params: dict, text: str) -> None:
-        entry = {"ts": ring_ts, "level": level, "channel": channel,
-                 "msg_id": msg_id, "params": params, "text": text}
+                      params: LogParams, text: str) -> None:
+        entry = LogEntry(ts=ring_ts, level=level, channel=channel,
+                         msg_id=msg_id, params=params, text=text)
         self._entries.append(entry)
         if self._visible(entry):
             self._append(entry)
 
-    def _day_of(self, entry: dict) -> date:
+    def _day_of(self, entry: LogEntry) -> date:
         """The calendar day an entry falls on, in local time.
 
         Separator decisions compare these ``date`` objects directly, never a
@@ -343,7 +337,7 @@ class ActivityLogPage(Page):
         """
         return datetime.fromtimestamp(entry["ts"]).date()
 
-    def _trim_to_budget(self, shown: list[dict], limit: int) -> list[dict]:
+    def _trim_to_budget(self, shown: list[LogEntry], limit: int) -> list[LogEntry]:
         """Keep the newest entries whose rows-plus-separators fit ``limit``
         blocks.
 
@@ -444,10 +438,27 @@ class ActivityLogPage(Page):
         super().resizeEvent(event)
         if not self._refresh_separator_columns():
             return
-        # Redrawing to re-rule the separators would otherwise drag a reader
-        # who had scrolled up back down to the newest line, which is the very
-        # thing _scroll_to_newest is written to avoid. Only follow the feed
-        # here if the reader was already following it.
+        self._redraw_preserving_position()
+
+    @staticmethod
+    def _row_palette_signature() -> tuple[str, ...]:
+        """The colors baked into row and day-separator HTML."""
+        tokens = theme()
+        return tuple(css(color) for color in (
+            tokens.muted, tokens.accent_text, tokens.warning_text,
+            tokens.error, tokens.secondary))
+
+    def _restyle_rows(self) -> None:
+        palette = self._row_palette_signature()
+        if palette == self._row_palette:
+            return
+        self._row_palette = palette
+        if self._entries:
+            self._redraw_preserving_position()
+
+    def _redraw_preserving_position(self) -> None:
+        # Re-ruling separators and restyling rows must both leave a history
+        # reader in place. Only follow the feed if already following it.
         scrollbar = self.log_view.verticalScrollBar()
         was_following = scrollbar.value() >= scrollbar.maximum()
         previous = scrollbar.value()
@@ -574,7 +585,7 @@ class ActivityLogPage(Page):
         self._awaiting_scroll_range = False
         scrollbar.setValue(maximum)
 
-    def _row_html(self, entry: dict) -> str:
+    def _row_html(self, entry: LogEntry) -> str:
         """One log row as markup: a timestamp, a severity label and the
         message the catalog rendered.
 
@@ -619,7 +630,7 @@ class ActivityLogPage(Page):
             f'<span style="color:{css(color)};font-weight:600">{label}</span>'
             f'{pad}{html.escape(message)}')
 
-    def _append(self, entry: dict) -> None:
+    def _append(self, entry: LogEntry) -> None:
         """Add one line as it arrives, and a separator ahead of it when its
         day is new. Incremental insertion is the right shape for a single
         row — it is only doing this in a loop that was slow."""

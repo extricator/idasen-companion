@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The pre-move warning and its Snooze / Skip buttons.
 
 The most-seen output the app produces, and it sat at zero coverage:
@@ -20,9 +21,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from idasen_companion.core.config import AppConfig
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.machine import DeskState, Status
 from idasen_companion.daemon.dbus_util import DBusCallError
 from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 from idasen_companion.daemon.notify import NOTIFY_IFACE, Notifier
 
 
@@ -141,16 +144,14 @@ async def test_unrelated_signals_are_left_alone(monkeypatch):
 def warn_daemon(*, remaining, target=1500, status="active",
                 lead_time=30, check_interval=60, enabled=True,
                 state=DeskState.SITTING):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.config = AppConfig()
     d.config.notifications.enabled = enabled
     d.config.notifications.lead_time = lead_time
     d.config.automation.check_interval = check_interval
     d.machine = MagicMock()
-    d.machine.time_remaining.return_value = remaining
-    d.machine.target_duration = target
+    d.machine.time_remaining.return_value = Duration.from_seconds(remaining)
+    d.machine.target_duration = Duration.from_seconds(target)
     d.machine.state = state
     # A real Status, not a MagicMock: _maybe_warn compares against
     # COUNTDOWN_STATUSES, and a stand-in matches nothing.
@@ -190,10 +191,10 @@ async def test_warning_does_not_repeat_within_the_same_cycle():
 async def test_warning_rearms_once_the_cycle_moves_out_of_the_window():
     d = warn_daemon(remaining=45)
     await d._maybe_warn(0.0)
-    d.machine.time_remaining.return_value = 900      # new cycle, far out
+    d.machine.time_remaining.return_value = Duration.from_seconds(900)  # new cycle, far out
     await d._maybe_warn(0.0)
     assert d._warned_this_cycle is False
-    d.machine.time_remaining.return_value = 45
+    d.machine.time_remaining.return_value = Duration.from_seconds(45)
     await d._maybe_warn(0.0)
     await drain()
     assert d._ifaces["automation"].PreMoveWarning.call_count == 2

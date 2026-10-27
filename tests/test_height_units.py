@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Showing heights in inches: the ``[ui] units`` setting.
 
 A display-layer setting only. What these pin down is that the *stored* height
@@ -23,8 +24,8 @@ import shiboken6  # noqa: E402
 from PySide6.QtCore import (  # noqa: E402
     QCoreApplication, QLocale, QObject, QTranslator, Signal,
 )
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
 from idasen_companion.core.config import (  # noqa: E402
     MAX_HEIGHT, MIN_HEIGHT, AppConfig, load_config, save_config,
@@ -35,11 +36,6 @@ from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
 from idasen_companion.gui.pages.overview import OverviewPage  # noqa: E402
 from idasen_companion.gui.pages.settings import SettingsPage  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture
@@ -107,8 +103,8 @@ def test_centimetres_render_as_before(locale):
     from idasen_companion.gui.util import suffix_height
 
     fmt = _formatter(core_units.HeightUnit.CENTIMETRES)
-    assert fmt.height(1.105) == "110.5 cm"
-    assert fmt.height_value(0.62, trim=True) == "62"
+    assert fmt.height(Length(1.105)) == "110.5 cm"
+    assert fmt.height_value(Length(0.62), trim=True) == "62"
     assert suffix_height(core_units.HeightUnit.CENTIMETRES) == " cm"
 
 
@@ -117,7 +113,7 @@ def test_inches_render_as_inches(locale):
     from idasen_companion.gui.util import suffix_height
 
     fmt = _formatter(core_units.HeightUnit.INCHES)
-    assert fmt.height(1.105) == "43.50 in"
+    assert fmt.height(Length(1.105)) == "43.50 in"
     assert suffix_height(core_units.HeightUnit.INCHES) == " in"
 
 
@@ -135,7 +131,7 @@ def test_the_locale_still_owns_the_decimal_separator(locale):
         locale=LocaleProfile(QLocale().name()), translator=GettextTranslator(),
         unit=core_units.HeightUnit.INCHES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24))
-    assert fmt.height(1.105).startswith("43,50")
+    assert fmt.height(Length(1.105)).startswith("43,50")
 
 
 @pytest.mark.parametrize("unit", [core_units.HeightUnit.CENTIMETRES,
@@ -326,4 +322,4 @@ def test_a_unit_change_keeps_the_target_the_user_dialled_in(locale, ctx):
     ctx.write_config(lambda cfg: setattr(cfg.ui, "units", "in"))
 
     assert ctx.fmt.from_display_height(
-        page.height_spin.value()) == pytest.approx(0.90, abs=0.0005)
+        page.height_spin.value()).metres == pytest.approx(0.90, abs=0.0005)

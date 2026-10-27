@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Whether the Qt-free path stays Qt-free is measured, in a process that has
 never imported Qt -- not asserted in-process.
 
@@ -131,6 +132,22 @@ def test_the_daemon_entry_point_never_imports_qt(monkeypatch):
         present=_PRESENT, absent=_ABSENT)
     result = _run_isolated(program)
     _assert_qt_free(result, "daemon/main.py")
+
+
+def test_daemon_and_bluetooth_support_keep_ble_imports_deferred():
+    program = "\n".join((
+        "import sys",
+        f"sys.path.insert(0, {PACKAGE_ROOT!r})",
+        "import idasen_companion.daemon.main",
+        "import idasen_companion.daemon.bluetooth",
+        "assert 'PySide6' not in sys.modules",
+        "assert 'shiboken6' not in sys.modules",
+        "assert 'idasen_companion.desk.ble' not in sys.modules",
+        "assert 'idasen_controller' not in sys.modules",
+        "assert 'bleak' not in sys.modules",
+    ))
+    result = _run_isolated(program)
+    assert result.returncode == 0, result.stderr
 
 
 def test_the_cli_entry_point_never_imports_qt(monkeypatch):

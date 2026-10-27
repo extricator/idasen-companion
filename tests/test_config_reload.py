@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rule 2 from docs/LOGGING.md: the activity channel records changes, not
 requests.
 
@@ -13,13 +14,15 @@ silently re-randomizes the cycle the user is already in.
 
 import os
 from pathlib import Path
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from idasen_companion.core.config import load_config
-from idasen_companion.daemon.main import Daemon
+from idasen_companion.core.clocks import WallInstant
+from idasen_companion.core.config import ConfigError, load_config
+from idasen_companion.core.durations import Duration
+from daemon_helpers import make_daemon_shell
+from idasen_companion.daemon.config_file import ConfigFileStore
 
 CONFIG = """
 [desk]
@@ -37,16 +40,14 @@ stand_variation = "5m"
 def daemon(tmp_path: Path):
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = path
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
-    d.machine = MagicMock(unconfigured=False, held=False, target_duration=1500)
+    d.config_file = ConfigFileStore(path, d.activity_log)
+    d.machine = MagicMock(unconfigured=False, held=False,
+                          target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
-    d._config_mtime = None
     return d
 
 
@@ -72,13 +73,13 @@ def test_a_no_op_reload_is_still_visible_to_a_developer(daemon):
 
 
 def test_a_real_change_does_write_an_activity_line(daemon):
-    daemon.config_path.write_text(CONFIG.replace('"25m"', '"30m"'))
+    daemon.config_file.path.write_text(CONFIG.replace('"25m"', '"30m"'))
     daemon.reload_config()
     assert "config.reloaded" in _emitted_ids(daemon)
 
 
 def test_an_unknown_option_loads_and_is_reported_once(daemon):
-    daemon.config_path.write_text(CONFIG.replace(
+    daemon.config_file.path.write_text(CONFIG.replace(
         "[automation]", "[automation]\nfuture_strategy = 'gentle'"))
 
     daemon.reload_config()
@@ -101,7 +102,7 @@ def test_a_no_op_reload_does_not_re_roll_the_cycle_target(daemon):
 
 
 def test_changing_a_duration_re_rolls_the_cycle_target(daemon):
-    daemon.config_path.write_text(CONFIG.replace('"25m"', '"30m"'))
+    daemon.config_file.path.write_text(CONFIG.replace('"25m"', '"30m"'))
     daemon.reload_config()
     assert daemon.machine.update_config.call_args.kwargs["reroll_target"] is True
 
@@ -109,7 +110,7 @@ def test_changing_a_duration_re_rolls_the_cycle_target(daemon):
 def test_changing_an_unrelated_setting_leaves_the_cycle_alone(daemon):
     """The target derives from the four duration fields and nothing else, so
     editing the idle threshold must not re-randomize the current cycle."""
-    daemon.config_path.write_text(
+    daemon.config_file.path.write_text(
         CONFIG.replace("[automation]", '[automation]\nidle_threshold = "7m"'))
     daemon.reload_config()
     assert "config.reloaded" in _emitted_ids(daemon)
@@ -131,7 +132,7 @@ def test_changing_an_unrelated_setting_leaves_the_cycle_alone(daemon):
 ])
 def test_a_broken_config_is_reported_and_the_old_one_kept(daemon, broken):
     before = daemon.config
-    daemon.config_path.write_text(broken)
+    daemon.config_file.path.write_text(broken)
     daemon.reload_config()  # must not raise
     assert "config.reload_failed" in _emitted_ids(daemon)
     assert daemon.config is before
@@ -145,17 +146,14 @@ def test_the_target_survives_repeated_no_op_reloads(tmp_path: Path):
 
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = path
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
+    d.config_file = ConfigFileStore(path, d.activity_log)
     d._ifaces = {"automation": MagicMock()}
-    d._config_mtime = None
-    d.machine = StateMachine(d.config, MockDesk(), now=0.0)
-    d.machine.start_without_desk_read(0.0)
+    d.machine = StateMachine(d.config, MockDesk(), now=WallInstant(0.0))
+    d.machine.start_without_desk_read(WallInstant(0.0))
 
     target = d.machine.target_duration
     for _ in range(20):
@@ -166,7 +164,7 @@ def test_the_target_survives_repeated_no_op_reloads(tmp_path: Path):
 # ----- the mtime watch that *is* hot-reload -----
 
 async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: Path):
-    """`_note_config_mtime` records None when the file does not exist, and
+    """`note_mtime` records None when the file does not exist, and
     `_check_config_file` used to require a non-None mtime before doing
     anything — without ever assigning one on that branch. So once None, always
     None: the daemon watched nothing for the rest of its life, silently.
@@ -176,43 +174,41 @@ async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: P
     hot-reloads.
     """
     path = tmp_path / "config.toml"
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = path
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)          # defaults; no file on disk
     d.activity_log = MagicMock()
-    d.machine = MagicMock(unconfigured=True, held=False, target_duration=0)
+    d.config_file = ConfigFileStore(path, d.activity_log)
+    d.machine = MagicMock(unconfigured=True, held=False,
+                          target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
-    d._note_config_mtime()
-    assert d._config_mtime is None
+    d.config_file.note_mtime()
+    assert not d.config_file.poll_changed()
 
     path.write_text(CONFIG)               # the user writes their MAC
     d._check_config_file()
 
-    assert d._config_mtime is not None, "still watching nothing"
+    assert not d.config_file.poll_changed(), "first revision was not consumed"
     assert d.config.desk.mac == "AA:BB:CC:DD:EE:FF", "the edit never arrived"
 
 
 async def test_later_edits_are_picked_up_too(tmp_path: Path):
     path = tmp_path / "config.toml"
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = path
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
-    d.machine = MagicMock(unconfigured=True, held=False, target_duration=0)
+    d.config_file = ConfigFileStore(path, d.activity_log)
+    d.machine = MagicMock(unconfigured=True, held=False,
+                          target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
-    d._note_config_mtime()
+    d.config_file.note_mtime()
 
     path.write_text(CONFIG)
     d._check_config_file()
-    first = d._config_mtime
+    first = path.stat().st_mtime
 
     os.utime(path, (first + 10, first + 10))
     path.write_text(CONFIG.replace('"45m"', '"50m"'))
@@ -225,18 +221,74 @@ async def test_later_edits_are_picked_up_too(tmp_path: Path):
 def test_an_unchanged_file_is_not_reloaded_every_tick(tmp_path: Path):
     path = tmp_path / "config.toml"
     path.write_text(CONFIG)
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = path
+    d = make_daemon_shell()
     d.mock_mode = True
     d.config = load_config(path)
     d.activity_log = MagicMock()
-    d.machine = MagicMock(unconfigured=False, held=False, target_duration=1500)
+    d.config_file = ConfigFileStore(path, d.activity_log)
+    d.machine = MagicMock(unconfigured=False, held=False,
+                          target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
-    d._note_config_mtime()
+    d.config_file.note_mtime()
 
     d.reload_config = MagicMock()
     for _ in range(5):
         d._check_config_file()
     d.reload_config.assert_not_called()
+
+
+def test_an_invalid_revision_is_consumed_before_parsing_and_retried_only_after_edit(daemon):
+    path = daemon.config_file.path
+    daemon.config_file.note_mtime()
+    first_mtime = path.stat().st_mtime
+    before = daemon.config
+    path.write_text("not toml at all [")
+    os.utime(path, (first_mtime + 10,) * 2)
+
+    daemon._check_config_file()
+    for _ in range(5):
+        daemon._check_config_file()
+
+    assert daemon.config is before
+    assert _emitted_ids(daemon).count("config.reload_failed") == 1
+    daemon.machine.update_config.assert_not_called()
+
+    path.write_text(CONFIG.replace('"45m"', '"50m"'))
+    os.utime(path, (first_mtime + 20,) * 2)
+    daemon._check_config_file()
+
+    assert daemon.config.automation.sit_duration == 50 * 60
+    daemon.machine.update_config.assert_called_once()
+
+
+def test_a_semantic_no_op_edit_is_consumed_without_reroll_or_repeated_application(daemon):
+    path = daemon.config_file.path
+    daemon.config_file.note_mtime()
+    first_mtime = path.stat().st_mtime
+    path.write_text(CONFIG + "\n# just a comment\n")
+    os.utime(path, (first_mtime + 10,) * 2)
+
+    daemon._check_config_file()
+    for _ in range(5):
+        daemon._check_config_file()
+
+    daemon.machine.update_config.assert_called_once_with(
+        daemon.config, reroll_target=False)
+    assert "config.reloaded" not in _emitted_ids(daemon)
+
+
+@pytest.mark.parametrize("error", [ConfigError("invalid"), OSError("disk full")])
+def test_a_failed_store_save_does_not_consume_an_external_revision(daemon, monkeypatch, error):
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    path = daemon.config_file.path
+    daemon.config_file.note_mtime()
+    first_mtime = path.stat().st_mtime
+    os.utime(path, (first_mtime + 10,) * 2)
+    monkeypatch.setattr(config_file_mod, "save_config", MagicMock(side_effect=error))
+
+    with pytest.raises(type(error)):
+        daemon.config_file.save(daemon.config)
+
+    assert daemon.config_file.poll_changed()
+    assert not daemon.config_file.poll_changed()

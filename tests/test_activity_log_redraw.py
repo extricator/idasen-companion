@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Rebuilding the Activity Log costs one document write, not one per row.
 
 The page used to redraw by calling ``QTextEdit.append`` once per visible
@@ -37,20 +38,16 @@ import os  # noqa: E402
 # reach. See tests/test_settings_form.py for the same rule.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from dataclasses import replace  # noqa: E402
 from datetime import datetime  # noqa: E402
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
-from PySide6.QtGui import QImage  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtGui import QColor, QImage, QTextCursor  # noqa: E402
 
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui import log_catalog, restyle  # noqa: E402
+from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa: E402
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class FakeClient(QObject):
@@ -397,3 +394,139 @@ def test_a_live_line_still_arrives_one_at_a_time(page):
         "the first block should be the day separator, not the row")
     assert lines[1].endswith("first")
     assert lines[-1].endswith("second")
+
+
+def _change_row_palette(monkeypatch):
+    """Change a baked row token without touching the application's palette."""
+    tokens = replace(activity_log_mod.theme(), muted=QColor("#123456"))
+    monkeypatch.setattr(activity_log_mod, "theme", lambda: tokens)
+    restyle.sweep()
+
+
+def test_palette_redraw_preserves_history_through_a_pending_range(page, qapp,
+                                                               monkeypatch):
+    page._entries = [_entry(float(i), f"line {i}") for i in range(800)]
+    page._redraw()
+    qapp.processEvents()
+    scrollbar = page.log_view.verticalScrollBar()
+    # Recreate the estimated range Qt reports during lazy layout, then let
+    # the ordinary newest-scroll path arm its correction before reading up.
+    scrollbar.setMaximum(scrollbar.maximum() + 200)
+    page._scroll_to_newest()
+    previous = scrollbar.maximum() // 3
+    scrollbar.setValue(previous)
+    edits = _count_document_edits(page)
+
+    _change_row_palette(monkeypatch)
+    qapp.processEvents()
+
+    assert edits, "the palette change did not rebuild the populated document"
+    assert scrollbar.value() == min(previous, scrollbar.maximum())
+    # A later range change must not wake an old newest-follow correction.
+    scrollbar.setMaximum(scrollbar.maximum() + 1)
+    assert scrollbar.value() == previous
+
+
+def test_palette_redraw_keeps_newest_following_before_layout_settles(
+        page, qapp, monkeypatch):
+    page._entries = [_entry(float(i), f"line {i}") for i in range(800)]
+    page._redraw()
+    qapp.processEvents()
+    edits = _count_document_edits(page)
+
+    _change_row_palette(monkeypatch)
+    assert edits, "the palette change did not rebuild the populated document"
+    assert not _viewport_is_blank(page)
+    page._on_log_entry(9e5, "info", "activity", "", {}, "after switch")
+    qapp.processEvents()
+
+    scrollbar = page.log_view.verticalScrollBar()
+    assert scrollbar.value() == scrollbar.maximum()
+    assert page.log_view.toPlainText().endswith("after switch")
+
+
+def test_palette_redraw_is_safe_while_hidden_and_follows_when_shown(
+        page, qapp, monkeypatch):
+    page._entries = [_entry(float(i), f"line {i}") for i in range(800)]
+    page._redraw()
+    qapp.processEvents()
+    page.hide()
+    edits = _count_document_edits(page)
+
+    _change_row_palette(monkeypatch)
+    page.show()
+    qapp.processEvents()
+
+    scrollbar = page.log_view.verticalScrollBar()
+    assert edits
+    assert scrollbar.value() == scrollbar.maximum()
+    assert not _viewport_is_blank(page)
+
+
+def test_palette_redraw_filters_and_day_trims_before_one_document_write(
+        page, qapp, monkeypatch):
+    document = page.log_view.document()
+    document.setMaximumBlockCount(12)
+    page._entries = [
+        _entry(float(i * 86400), f"line {i}",
+               channel="activity" if i % 2 == 0 else "diagnostic")
+        for i in range(40)]
+    edits = _count_document_edits(page)
+    page._redraw()
+    qapp.processEvents()
+    single_write_edits = len(edits)
+    edits.clear()
+    calls = _count_renders(monkeypatch)
+
+    _change_row_palette(monkeypatch)
+
+    assert len(calls) == 6, "six rows plus six day headings fill the cap"
+    assert len(edits) == single_write_edits > 0
+    assert document.blockCount() == document.maximumBlockCount()
+    lines = document.toPlainText().splitlines()
+    assert [line.rsplit("line ", 1)[-1] for line in lines[1::2]] == [
+        str(i) for i in range(28, 40, 2)]
+
+
+def test_palette_registration_and_unchanged_sweeps_do_not_redraw(
+        qapp, monkeypatch):
+    redraws = []
+    original = ActivityLogPage._redraw
+
+    def recording(page):
+        redraws.append(1)
+        original(page)
+
+    monkeypatch.setattr(ActivityLogPage, "_redraw", recording)
+    page = ActivityLogPage(context_mod.AppContext(FakeClient(),
+                                                 tray_available=True))
+    assert not redraws, "immediate registration must not redraw"
+    # An empty page records palette changes without editing its document.
+    edits = _count_document_edits(page)
+    _change_row_palette(monkeypatch)
+    assert not edits
+    page.resize(900, 500)
+    page.show()
+    qapp.processEvents()
+    page._entries = [_entry(float(i), f"line {i}") for i in range(300)]
+    page._redraw()
+    qapp.processEvents()
+    cursor = page.log_view.textCursor()
+    cursor.setPosition(15)
+    cursor.setPosition(25, QTextCursor.MoveMode.KeepAnchor)
+    page.log_view.setTextCursor(cursor)
+    selected = cursor.selectedText()
+    scrollbar = page.log_view.verticalScrollBar()
+    scrollbar.setValue(scrollbar.maximum() // 3)
+    previous = scrollbar.value()
+    edits.clear()
+    redraws.clear()
+
+    restyle.sweep()
+    qapp.processEvents()
+
+    assert not edits
+    assert not redraws
+    assert scrollbar.value() == previous
+    assert page.log_view.textCursor().selectedText() == selected
+    page.close()

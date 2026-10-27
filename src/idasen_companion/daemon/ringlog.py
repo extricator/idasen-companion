@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """In-memory ring buffer of recent daemon events, exposed over D-Bus for the
 GUI's Activity Log. The journal remains the full, persistent record.
 
@@ -24,6 +25,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from ..core import journal
+from ..core.decoded_data import LogEntry, LogParams
 from ..core.logmsg import ENGLISH_FORMATTERS, Channel, Message, render
 
 logger = logging.getLogger("idasen_companion")
@@ -54,10 +56,10 @@ class Entry:
     level: str
     channel: str
     msg_id: str = ""
-    params: dict = field(default_factory=dict)
+    params: LogParams = field(default_factory=dict)
     text: str = ""
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> LogEntry:
         return {"ts": self.ts, "level": self.level, "channel": self.channel,
                 "msg_id": self.msg_id, "params": self.params,
                 "text": self.text}
@@ -65,7 +67,7 @@ class Entry:
 
 class RingLog:
     def __init__(self, maxlen: int = 500, clock: Callable[[], float] = time.time):
-        self._entries: collections.deque = collections.deque(maxlen=maxlen)
+        self._entries: collections.deque[Entry] = collections.deque(maxlen=maxlen)
         self._clock = clock
         self.on_entry: Callable[[Entry], None] | None = None
 

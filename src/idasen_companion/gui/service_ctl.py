@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Control of the daemon's systemd **user** unit, on the GUI's behalf.
 
 The GUI — not the package — is what turns the daemon on. Fedora policy is

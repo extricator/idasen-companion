@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Automation1.IdleProvider must be readable before the idle monitor exists.
 
 Regression for: `_idle` is annotation-only on Daemon (`self._idle: IdleMonitor`,

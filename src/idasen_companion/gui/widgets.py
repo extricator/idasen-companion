@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reusable building blocks for the redesigned screens: cards, section
 headers, status dots, and a segmented control (Qt Widgets has no native
 one). Everything colors itself from :mod:`.theme` so it follows the
@@ -8,10 +9,14 @@ from __future__ import annotations
 from ..core.i18n import pgettext
 
 from collections.abc import Sequence
+from math import ceil
 
-from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
+from ..core.lengths import Length
+from ..core.durations import Duration
+
+from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
-    QColor, QFont, QFontMetrics, QIcon, QPainter, QPen, QPixmap,
+    QColor, QFont, QFontMetrics, QFontMetricsF, QIcon, QPainter, QPen, QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton,
@@ -21,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from . import restyle
 from .context import AppContext
+from .chart_data import DailyChartRow
 from .theme import (
     BORDER_WIDTH, BUTTON_PADDING_H, BUTTON_PADDING_V, CONTROL_RADIUS,
     NAV_ICON_SIZE, NAV_ICON_TEXT_GAP, NAV_ITEM_MARGIN_H, NAV_ITEM_PADDING_H,
@@ -500,6 +506,66 @@ class ConnectionChip(QWidget):
         self.label.setText(text)
 
 
+class ElapsedTimeChip(QWidget):
+    """Informational elapsed-time capsule beside the desk connection status."""
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setObjectName("ElapsedTimeChip")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._text = ""
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 3, 10, 3)
+        # Compensate for the clock artwork's whitespace without changing the
+        # connection chip's solid-dot gap or either capsule's outer padding.
+        row.setSpacing(4)
+        self.clock_icon = QLabel()
+        self.clock_icon.setFixedSize(16, 16)
+        self.label = QLabel()
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
+        self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.label.installEventFilter(self)
+        row.addWidget(self.clock_icon)
+        row.addWidget(self.label)
+        restyle.register(self, self._restyle)
+
+    def _restyle(self) -> None:
+        tokens = theme()
+        self.setStyleSheet(
+            f"QWidget#ElapsedTimeChip {{ background: {css(tokens.window)};"
+            f" border: 1px solid {css(tokens.border)}; border-radius: 11px; }}")
+        self.label.setStyleSheet(f"color: {css(tokens.secondary)}; border: none;")
+        self.clock_icon.setStyleSheet("border: none;")
+        clock = icon("clock", "preferences-system-time", "chronometer")
+        self.clock_icon.setPixmap(tinted_icon(clock, tokens.secondary).pixmap(16, 16))
+        self._render_text()
+
+    def set_text(self, text: str) -> None:
+        """Keep the full value while allowing extreme durations to elide."""
+        self._text = text
+        self._render_text()
+        self.updateGeometry()
+
+    def _render_text(self) -> None:
+        self.label.setText(self.label.fontMetrics().elidedText(
+            self._text, Qt.TextElideMode.ElideRight, self.label.contentsRect().width()))
+
+    def sizeHint(self) -> QSize:  # pylint: disable=invalid-name
+        # Ignored lets only the duration yield at finite widths. Natural text
+        # width keeps the icon adjacent, with no reserved/centred number field.
+        hint = super().sizeHint()
+        width = ceil(QFontMetricsF(self.label.font()).horizontalAdvance(self._text))
+        hint.setWidth(hint.width() + width)
+        return hint
+
+    def eventFilter(self, watched, event):  # pylint: disable=invalid-name
+        if watched is self.label and event.type() in (QEvent.Type.Resize, QEvent.Type.FontChange):
+            self._render_text()
+            if event.type() == QEvent.Type.FontChange:
+                self.updateGeometry()
+        return super().eventFilter(watched, event)
+
+
 class SegmentedControl(QWidget):
     """Joined row of exclusive checkable buttons ("segmented button").
 
@@ -744,14 +810,14 @@ class HeightRail(QWidget):
     _TRACK_Y = 14      # track centerline
     _TRACK_H = 6
 
-    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+    def __init__(self, min_height: Length, max_height: Length, ctx: AppContext,
                  parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
         self._height = min_height
         self._target = min_height
         self._dragging = False
-        self._marks: list[tuple[str, float]] = []   # (label, meters)
+        self._marks: list[tuple[str, Length]] = []   # (label, meters)
         # ctx, not a stored Formatter: AppContext.fmt is rebuilt on every
         # config change, so paintEvent reads self.ctx.fmt at paint time
         # rather than holding a snapshot that would keep painting the
@@ -765,28 +831,28 @@ class HeightRail(QWidget):
 
     # ----- data -----
 
-    def set_height(self, meters: float) -> None:
+    def set_height(self, meters: Length) -> None:
         self._height = meters
         self.update()
 
-    def set_target(self, meters: float) -> None:
+    def set_target(self, meters: Length) -> None:
         self._target = min(max(meters, self._lo), self._hi)
         self.update()
 
-    def set_marks(self, marks: list[tuple[str, float]]) -> None:
+    def set_marks(self, marks: list[tuple[str, Length]]) -> None:
         """Labeled tick positions, e.g. [("Sit", 0.62), ("Stand", 1.144)]."""
         self._marks = marks
         self.update()
 
     # ----- geometry -----
 
-    def _x(self, meters: float) -> float:
+    def _x(self, meters: Length) -> float:
         span = self.width() - 2 * self._PAD
         frac = (meters - self._lo) / (self._hi - self._lo)
         logical_x = self._PAD + _clamp01(frac) * span
         return self.width() - logical_x if self.isRightToLeft() else logical_x
 
-    def _meters(self, pixel_x: float) -> float:
+    def _meters(self, pixel_x: float) -> Length:
         span = self.width() - 2 * self._PAD
         logical_x = self.width() - pixel_x if self.isRightToLeft() else pixel_x
         frac = (logical_x - self._PAD) / max(1.0, span)
@@ -806,8 +872,8 @@ class HeightRail(QWidget):
         self._dragging = False
 
     def _drag_to(self, pixel_x: float) -> None:
-        self._target = round(self._meters(pixel_x), 3)
-        self.targetChanged.emit(self._target)
+        self._target = Length(round(self._meters(pixel_x).metres, 3))
+        self.targetChanged.emit(float(self._target.metres))
         self.update()
 
     # ----- painting -----
@@ -866,29 +932,29 @@ class RangeRail(QWidget):
 
     _PAD = 14
     _TRACK_X = 10
-    MATCH = 0.0075  # meters within which the desk counts as "at" a preset
+    MATCH = Length(0.0075)  # distance within which the desk counts as "at" a preset
 
-    def __init__(self, min_height: float, max_height: float, ctx: AppContext,
+    def __init__(self, min_height: Length, max_height: Length, ctx: AppContext,
                  parent: QWidget | None = None):
         super().__init__(parent)
         self._lo, self._hi = min_height, max_height
-        self._height = 0.0
-        self._presets: dict[str, float] = {}
+        self._height = Length(0.0)
+        self._presets: dict[str, Length] = {}
         # See HeightRail.__init__ for why this holds the context rather
         # than a stored Formatter.
         self.ctx = ctx
         self.setMinimumWidth(96)
         self.setMinimumHeight(180)
 
-    def set_height(self, meters: float) -> None:
+    def set_height(self, meters: Length) -> None:
         self._height = meters
         self.update()
 
-    def set_presets(self, presets: dict[str, float]) -> None:
+    def set_presets(self, presets: dict[str, Length]) -> None:
         self._presets = dict(presets)
         self.update()
 
-    def _y(self, meters: float) -> float:
+    def _y(self, meters: Length) -> float:
         span = self.height() - 2 * self._PAD
         frac = (self._hi - meters) / (self._hi - self._lo)
         return self._PAD + _clamp01(frac) * span
@@ -926,7 +992,7 @@ class RangeRail(QWidget):
         metrics = painter.fontMetrics()
         for meters, label_y in ((self._hi, metrics.ascent()),
                                 (self._lo, self.height() - metrics.descent())):
-            if any(abs(pm - meters) < 0.03 for pm in self._presets.values()):
+            if any(abs(pm - meters) < Length(0.03) for pm in self._presets.values()):
                 continue
             label = self.ctx.fmt.height(meters, trim=True)
             label_x = (0 if self.isRightToLeft()
@@ -935,9 +1001,9 @@ class RangeRail(QWidget):
 
         live_shown = False
         for name, meters in sorted(self._presets.items(),
-                                   key=lambda kv: -kv[1]):
+                                   key=lambda kv: kv[1].metres, reverse=True):
             tick_y = self._y(meters)
-            at_preset = (self._height > 0
+            at_preset = (self._height > Length(0)
                   and abs(meters - self._height) <= self.MATCH)
             color = tokens.accent_text if at_preset else tokens.muted
             painter.setPen(QPen(tokens.accent if at_preset else tokens.muted, 2))
@@ -956,7 +1022,7 @@ class RangeRail(QWidget):
                 text_x, tick_y + painter.fontMetrics().ascent() / 2 - 1), text)
             live_shown = live_shown or at_preset
 
-        if self._height > 0 and not live_shown:
+        if self._height > Length(0) and not live_shown:
             tick_y = self._y(self._height)
             painter.setPen(QPen(tokens.accent, 2))
             painter.drawLine(QPointF(track_x - 5, tick_y), QPointF(track_x + 5, tick_y))
@@ -984,8 +1050,7 @@ class DailyBarsChart(QWidget):
 
     def __init__(self, ctx: AppContext, parent: QWidget | None = None):
         super().__init__(parent)
-        # rows: (label, sit_seconds, stand_seconds, is_today)
-        self._rows: list[tuple[str, float, float, bool]] = []
+        self._rows: list[DailyChartRow] = []
         # See HeightRail.__init__ for why this holds the context rather
         # than a stored Formatter.
         self.ctx = ctx
@@ -1001,18 +1066,18 @@ class DailyBarsChart(QWidget):
             return QColor("#5a6068"), QColor("#6ba7dd")
         return QColor("#c5cdd6"), QColor("#5b9bd1")
 
-    def set_rows(self, rows: list[tuple[str, float, float, bool]]) -> None:
+    def set_rows(self, rows: list[DailyChartRow]) -> None:
         self._rows = rows
         self.setMinimumHeight(self.ROW_H * max(1, len(rows)))
         self.update()
 
     def _tooltip_for(self, index: int) -> str:
-        label, sit, stand, _ = self._rows[index]
-        if sit or stand:
+        row = self._rows[index]
+        if row.sitting or row.standing:
             return pgettext('statistics.chart', "%(day)s: sitting %(sit)s, standing %(stand)s") % {
-                "day": label, "sit": self.ctx.fmt.duration_hm(sit),
-                "stand": self.ctx.fmt.duration_hm(stand)}
-        return pgettext('statistics.chart', "%(day)s: no data") % {"day": label}
+                "day": row.label, "sit": self.ctx.fmt.duration_hm(row.sitting.seconds),
+                "stand": self.ctx.fmt.duration_hm(row.standing.seconds)}
+        return pgettext('statistics.chart', "%(day)s: no data") % {"day": row.label}
 
     def _visual_rect(self, logical: QRectF) -> QRectF:
         """Map a logical LTR painter rectangle through this widget's direction."""
@@ -1042,22 +1107,22 @@ class DailyBarsChart(QWidget):
         left = self.LABEL_W + 8
         right = self.width() - self.SHARE_W - 8
         span = max(1, right - left)
-        max_total = max((sit + stand for _, sit, stand, _ in self._rows),
-                        default=0) or 1
+        max_total = max((row.sitting + row.standing for row in self._rows),
+                        default=Duration(0)) or Duration(1)
 
-        for i, (label, sit_seconds, stand, is_today) in enumerate(self._rows):
+        for i, row in enumerate(self._rows):
             bar_y = i * self.ROW_H + (self.ROW_H - self.BAR_H) / 2
             baseline = i * self.ROW_H + self.ROW_H / 2 \
                 + painter.fontMetrics().ascent() / 2 - 1
 
-            painter.setFont(today_font if is_today else small)
-            painter.setPen(tokens.accent_text if is_today else tokens.secondary)
-            label_width = painter.fontMetrics().horizontalAdvance(label)
+            painter.setFont(today_font if row.is_today else small)
+            painter.setPen(tokens.accent_text if row.is_today else tokens.secondary)
+            label_width = painter.fontMetrics().horizontalAdvance(row.label)
             label_x = self.width() - 4 - label_width if self.isRightToLeft() else 4
-            painter.drawText(QPointF(label_x, baseline), label)
+            painter.drawText(QPointF(label_x, baseline), row.label)
 
-            sit_w = span * sit_seconds / max_total
-            stand_w = span * stand / max_total
+            sit_w = (span * row.sitting) / max_total
+            stand_w = (span * row.standing) / max_total
             painter.setPen(Qt.PenStyle.NoPen)
             if sit_w > 0:
                 # Round the baseline (outer) end; the inner end facing the
@@ -1078,10 +1143,10 @@ class DailyBarsChart(QWidget):
                     round_left=(True if self.isRightToLeft() else sit_w <= 0),
                     round_right=(sit_w <= 0 if self.isRightToLeft() else True))
 
-            total = sit_seconds + stand
+            total = row.sitting + row.standing
             painter.setFont(small)
             painter.setPen(tokens.secondary if total else tokens.muted)
-            share = (self.ctx.fmt.context.locale.percent(stand / total)
+            share = (self.ctx.fmt.context.locale.percent(row.standing / total)
                      if total else "—")
             share_w = painter.fontMetrics().horizontalAdvance(share)
             share_x = 2 if self.isRightToLeft() else self.width() - share_w - 2

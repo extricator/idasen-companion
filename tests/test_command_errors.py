@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A daemon command that fails must reach the user.
 
 Every `_async_call` discarded its reply. dbus-fast *does* send an error reply
@@ -22,7 +23,6 @@ pytest.importorskip("PySide6")
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion import DBUS_NAME  # noqa: E402
 from idasen_companion.core import i18n as core_i18n  # noqa: E402
@@ -30,11 +30,6 @@ from idasen_companion.core.i18n import (  # noqa: E402
     DAEMON_ERROR_MESSAGES,
 )
 from idasen_companion.gui.util import daemon_error_message  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def test_a_known_error_name_gets_its_own_sentence(qapp):

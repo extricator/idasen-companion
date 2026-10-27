@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BleDesk — the real desk over BLE, built on the idasen library (newAM).
 
 Connection policy is on-demand by default: connect when there is work,
@@ -23,7 +24,12 @@ import asyncio
 import logging
 import struct
 import time
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable, overload
+
+from ..core.clocks import MonotonicInstant
+from ..core.durations import Duration
+from ..core.lengths import Length
+from .port import MoveFailure, MoveGuard
 
 if TYPE_CHECKING:
     # Runtime import stays inside _default_desk_factory — importing idasen
@@ -55,9 +61,9 @@ READ_TIMEOUT = 30.0
 CONNECT_TIMEOUT = 30.0
 
 
-def _decode_height(data: bytes) -> float:
+def _decode_height(data: bytes) -> Length:
     raw = struct.unpack("<H", data[:2])[0]
-    return raw / 10_000 + MIN_HEIGHT
+    return Length(raw / 10_000 + MIN_HEIGHT)
 
 
 def _default_desk_factory(mac: str, disconnected_callback):
@@ -83,7 +89,7 @@ class BleDesk:
         read_timeout: float = READ_TIMEOUT,
         connect_timeout: float = CONNECT_TIMEOUT,
         desk_factory: Callable = _default_desk_factory,
-        on_height: Callable[[float], None] | None = None,
+        on_height: Callable[[Length], None] | None = None,
         on_connection_change: Callable[[bool], None] | None = None,
         on_error: Callable[[str], None] | None = None,
         on_connect_exhausted: Callable[[], Awaitable[None]] | None = None,
@@ -92,7 +98,7 @@ class BleDesk:
         self.connection_mode = connection_mode
         self.linger = linger
         self._retry_delays = retry_delays
-        self._wakeup_grace = wakeup_grace
+        self._wakeup_grace = Duration(wakeup_grace)
         self._disconnect_timeout = disconnect_timeout
         self._read_timeout = read_timeout
         self._connect_timeout = connect_timeout
@@ -113,7 +119,7 @@ class BleDesk:
         # Monotonic time the controller was last known awake — set by a
         # successful connect (idasen's connect() wakes it) and by an explicit
         # _wakeup(). None means "assume asleep". See _controller_awake.
-        self._awake_since: float | None = None
+        self._awake_since: MonotonicInstant | None = None
         # True only while a move_to_target is actively driving the desk, so a
         # second move can preempt it (rather than queue behind the lock).
         self._move_in_flight = False
@@ -156,7 +162,7 @@ class BleDesk:
         doze timeout, so a genuine linger reuse still re-wakes.
         """
         return (self._awake_since is not None
-                and time.monotonic() - self._awake_since < self._wakeup_grace)
+                and MonotonicInstant(time.monotonic()) - self._awake_since < self._wakeup_grace)
 
     def _report_error(self, context: str, exc: Exception) -> None:
         message = f"{context}: {exc.__class__.__name__}: {exc}"
@@ -217,7 +223,7 @@ class BleDesk:
                     await asyncio.sleep(self._retry_delays[attempt])
                 continue
             # idasen's connect() issues the full controller wakeup itself.
-            self._awake_since = time.monotonic()
+            self._awake_since = MonotonicInstant(time.monotonic())
             if self._on_connection_change:
                 self._on_connection_change(True)
             # Subscribe to live heights off the critical path: the first move
@@ -333,7 +339,7 @@ class BleDesk:
 
     # ----- DeskPort -----
 
-    async def get_height(self) -> float | None:
+    async def get_height(self) -> Length | None:
         async with self._lock:
             try:
                 height = await asyncio.wait_for(self._read_height_locked(),
@@ -357,12 +363,20 @@ class BleDesk:
             self._on_height(height)
         return height
 
-    async def _read_height_locked(self) -> float | None:
+    async def _read_height_locked(self) -> Length | None:
         if not await self._ensure_connected():
             return None
-        return await self._handle.get_height()
+        height = await self._handle.get_height()
+        return Length(height) if height is not None else None
 
-    async def move_to(self, height: float) -> bool:
+    @overload
+    async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
+
+    @overload
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | MoveFailure | None: ...
+
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None
+                      ) -> bool | MoveFailure | None:
         # If the desk is already being driven to a target, cancel that first so
         # the new target takes over at once instead of queuing behind it
         # (last-write-wins). stop() ends the in-flight move_to_target
@@ -370,6 +384,7 @@ class BleDesk:
         if self._move_in_flight:
             await self.stop()
         stop_generation = self._stop_generation
+        command_issued = False
         async with self._lock:
             try:
                 try:
@@ -382,12 +397,12 @@ class BleDesk:
                             f"no reply within {self._connect_timeout:g}s"))
                     await self._disconnect_locked()
                     self.forget_handle()
-                    return False
+                    return MoveFailure.NOT_ISSUED if guard is not None else False
                 if not connected:
-                    return False
+                    return MoveFailure.NOT_ISSUED if guard is not None else False
                 if stop_generation != self._stop_generation:
                     await self._disconnect_locked()
-                    return False
+                    return None if guard is not None else False
                 # A controller woken moments ago (by idasen's connect(), or by
                 # the read that a tray gesture does first) needs no second
                 # wakeup; only re-wake when the link has been idle long enough
@@ -397,15 +412,24 @@ class BleDesk:
                     await self._wakeup()
                 if stop_generation != self._stop_generation:
                     await self._disconnect_locked()
-                    return False
+                    return None if guard is not None else False
+                if guard is not None and not await guard():
+                    return None
+                # Stop can run while the presence guard yields. Nothing may
+                # yield between this comparison and invoking the driver.
+                if stop_generation != self._stop_generation:
+                    return None if guard is not None else False
                 self._move_in_flight = True
                 try:
-                    await self._handle.move_to_target(height)
+                    command_issued = True
+                    await self._handle.move_to_target(height.metres)
                 finally:
                     self._move_in_flight = False
                 return True
             except Exception as exc:
-                self._report_error(f"move_to {height:.4f}m", exc)
+                self._report_error(f"move_to {height.metres:.4f}m", exc)
+                if guard is not None and not command_issued:
+                    return MoveFailure.NOT_ISSUED
                 return False
             finally:
                 self._schedule_release()
@@ -433,7 +457,7 @@ class BleDesk:
         except Exception as exc:
             self._report_error("wakeup", exc)
         else:
-            self._awake_since = time.monotonic()
+            self._awake_since = MonotonicInstant(time.monotonic())
 
     async def pair(self) -> bool:
         async with self._lock:
@@ -463,9 +487,9 @@ async def discover_desks(timeout: float = 8.0) -> list[tuple[str, str]]:
 async def _smoke(mac: str) -> None:
     """Manual hardware smoke test: connect, read height, disconnect."""
     logging.basicConfig(level=logging.DEBUG)
-    desk = BleDesk(mac, on_height=lambda h: print(f"  height update: {h:.4f} m"))
+    desk = BleDesk(mac, on_height=lambda h: print(f"  height update: {h.metres:.4f} m"))
     height = await desk.get_height()
-    print(f"height: {'N/A' if height is None else f'{height:.4f} m'}")
+    print(f"height: {'N/A' if height is None else f'{height.metres:.4f} m'}")
     print(f"connected: {desk.connected} (will linger {desk.linger}s then drop)")
     await desk.disconnect()
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The "Check desk position every" dropdown on the Automation page.
 
 The control offers a short list of polling cadences instead of the free
@@ -20,7 +21,6 @@ import os
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -37,11 +37,6 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

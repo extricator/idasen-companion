@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The sidebar's own width math, and the gate that keeps it honest.
 
 ``gui/widgets.py::sidebar_width_for_labels`` is a pure function: given the
@@ -35,7 +36,7 @@ import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QFont, QFontMetrics, QIcon, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QLabel, QListWidget, QListWidgetItem,
+    QLabel, QListWidget, QListWidgetItem,
 )
 
 from language_context import installed_language as _language  # noqa: E402
@@ -47,11 +48,6 @@ from idasen_companion.gui.widgets import (  # noqa: E402
     SIDEBAR_WIDTH_CEILING, SIDEBAR_WIDTH_FLOOR, emphasize,
     sidebar_width_for_labels,
 )
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def test_short_labels_return_exactly_the_floor(qapp):

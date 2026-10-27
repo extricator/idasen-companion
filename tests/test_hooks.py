@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The local hook is the only layer that acts before a commit exists, and it
 is worth nothing if it stops shipping executable or if the one command that
 installs it stops being written down.

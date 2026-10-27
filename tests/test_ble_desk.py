@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BleDesk connection-policy tests using a fake idasen library desk.
 
 No hardware or BLE stack involved: the fake stands in for
@@ -6,8 +7,13 @@ idasen.IdasenDesk via the desk_factory injection point.
 
 import asyncio
 import struct
+from types import SimpleNamespace
+
+import pytest
 
 from idasen_companion.desk.ble import BleDesk, _decode_height
+from idasen_companion.core.clocks import MonotonicInstant
+from idasen_companion.core.lengths import Length
 
 
 class FakeIdasenDesk:
@@ -58,9 +64,89 @@ def make_desk(fake=None, **kw):
     return desk, fake
 
 
+@pytest.mark.parametrize("preparation", ["lock", "connect", "wakeup"])
+async def test_guard_runs_after_ble_preparation(preparation):
+    desk, fake = make_desk(connection_mode="persistent")
+    entered, release = asyncio.Event(), asyncio.Event()
+    order = []
+    lock_owned = False
+
+    async def admit():
+        order.append("guard")
+        return False
+
+    if preparation == "lock":
+        await desk._lock.acquire()
+        lock_owned = True
+    else:
+        if preparation == "wakeup":
+            await desk.get_height()
+            desk._awake_since = None
+        operation = fake.connect if preparation == "connect" else fake.wakeup
+
+        async def delayed():
+            entered.set()
+            await release.wait()
+            await operation()
+
+        if preparation == "connect":
+            fake.connect = delayed
+        else:
+            fake.wakeup = delayed
+
+    async def move():
+        if preparation == "lock":
+            entered.set()
+        return await desk.move_to(Length(1.10), guard=admit)
+
+    task = asyncio.create_task(move())
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        assert order == []
+        if preparation == "lock":
+            desk._lock.release()
+            lock_owned = False
+        release.set()
+        assert await asyncio.wait_for(task, 2) is None
+        assert order == ["guard"]
+        assert fake.moves == []
+        assert desk.last_error is None
+    finally:
+        if lock_owned:
+            desk._lock.release()
+        release.set()
+        if not task.done():
+            task.cancel()
+        try:
+            await asyncio.wait_for(asyncio.gather(task, return_exceptions=True), 2)
+        finally:
+            await asyncio.wait_for(desk.disconnect(), 2)
+
+
+async def test_stop_during_guard_yield_prevents_the_driver_command():
+    desk, fake = make_desk(connection_mode="persistent")
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def admit():
+        entered.set()
+        await release.wait()
+        return True
+
+    task = asyncio.create_task(desk.move_to(Length(1.10), guard=admit))
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        await asyncio.wait_for(desk.stop(), 2)
+        release.set()
+        assert await asyncio.wait_for(task, 2) is None
+        assert fake.moves == []
+    finally:
+        release.set()
+        await desk.disconnect()
+
+
 async def test_on_demand_connects_then_lingers_then_disconnects():
     desk, fake = make_desk()
-    assert await desk.get_height() == 0.62
+    assert await desk.get_height() == Length(0.62)
     assert fake.is_connected  # still connected during linger window
     await asyncio.sleep(0.08)
     assert not fake.is_connected
@@ -70,7 +156,7 @@ async def test_on_demand_connects_then_lingers_then_disconnects():
 async def test_burst_operations_share_one_connection():
     desk, fake = make_desk()
     await desk.get_height()
-    assert await desk.move_to(1.10) is True
+    assert await desk.move_to(Length(1.10)) is True
     await desk.get_height()
     assert fake.connect_calls == 1
     await asyncio.sleep(0.08)
@@ -205,7 +291,7 @@ async def test_hanging_connect_is_bounded_and_next_read_can_try_again():
     desk = BleDesk("AA:BB:CC:DD:EE:FF", desk_factory=factory,
                    retry_delays=(), read_timeout=0.02, linger=60)
     assert await asyncio.wait_for(desk.get_height(), 1) is None
-    assert await asyncio.wait_for(desk.get_height(), 1) == 0.62
+    assert await asyncio.wait_for(desk.get_height(), 1) == Length(0.62)
     assert len(made) == 2
     await desk.disconnect()
 
@@ -218,7 +304,7 @@ async def test_hanging_connect_cannot_leave_a_move_queued_forever():
 
     desk, fake = make_desk(HangingConnect(), connect_timeout=0.02,
                            linger=60)
-    assert await asyncio.wait_for(desk.move_to(1.10), 1) is False
+    assert await asyncio.wait_for(desk.move_to(Length(1.10)), 1) is False
     assert fake.moves == []
     assert desk.last_error and "no reply" in desk.last_error
     desk._cancel_linger()
@@ -237,7 +323,7 @@ async def test_stop_during_connect_prevents_a_late_move():
             await super().connect()
 
     desk, fake = make_desk(SlowConnect(), connection_mode="persistent")
-    move = asyncio.create_task(desk.move_to(1.10))
+    move = asyncio.create_task(desk.move_to(Length(1.10)))
     await asyncio.wait_for(fake.started.wait(), 1)
     await desk.stop()
     fake.finish.set()
@@ -263,7 +349,7 @@ async def test_connect_retries_through_transient_failures():
     fake = FakeIdasenDesk()
     fake.connect_failures = 2  # first two attempts flake, third succeeds
     desk, _ = make_desk(fake)
-    assert await desk.get_height() == 0.62
+    assert await desk.get_height() == Length(0.62)
     assert fake.connect_calls == 3
 
 
@@ -273,7 +359,7 @@ async def test_all_retries_exhausted_returns_gracefully():
     errors = []
     desk, _ = make_desk(fake, on_error=errors.append)
     assert await desk.get_height() is None
-    assert await desk.move_to(1.10) is False
+    assert await desk.move_to(Length(1.10)) is False
     assert desk.last_error is not None
     assert errors  # transient errors reported, not swallowed silently
 
@@ -282,7 +368,7 @@ async def test_cold_move_wakes_once_via_connect():
     # On a fresh connection idasen's connect() already wakes the controller, so
     # BleDesk must not add a redundant second wakeup before the move.
     desk, fake = make_desk()
-    await desk.move_to(1.10)
+    await desk.move_to(Length(1.10))
     assert fake.wakeup_calls == 1  # from connect(), not a duplicate
     assert fake.moves == [1.10]
 
@@ -294,7 +380,7 @@ async def test_warm_move_rewakes_without_reconnecting():
     await desk.get_height()          # fresh connect wakes once
     assert fake.wakeup_calls == 1
     await asyncio.sleep(0.05)        # idle past the grace window
-    await desk.move_to(1.10)         # warm: no reconnect, BleDesk re-wakes
+    await desk.move_to(Length(1.10))         # warm: no reconnect, BleDesk re-wakes
     assert fake.wakeup_calls == 2
     assert fake.connect_calls == 1
     assert fake.moves == [1.10]
@@ -308,10 +394,35 @@ async def test_read_then_move_does_not_rewake():
     # already-open connection and treated it as a lingering reuse.
     desk, fake = make_desk(connection_mode="persistent")
     await desk.get_height()
-    await desk.move_to(1.10)
+    await desk.move_to(Length(1.10))
     assert fake.wakeup_calls == 1    # from connect() only
     assert fake.connect_calls == 1
     assert fake.moves == [1.10]
+
+
+async def test_zero_awake_stamp_grace_equality_and_disconnect(monkeypatch):
+    from idasen_companion.desk import ble as ble_mod
+
+    clock = 0.0
+    monkeypatch.setattr(ble_mod, "time", SimpleNamespace(monotonic=lambda: clock))
+    desk, fake = make_desk(connection_mode="persistent", wakeup_grace=2.0)
+    assert desk._awake_since is None
+    await desk.get_height()
+    assert desk._awake_since == MonotonicInstant(0.0)
+
+    clock = 1.75
+    await desk.move_to(Length(1.10))
+    assert fake.wakeup_calls == 1
+    clock = 2.0
+    await desk.move_to(Length(0.70))
+    assert fake.wakeup_calls == 2
+    assert desk._awake_since == MonotonicInstant(2.0)
+    assert fake.connect_calls == 1
+    assert fake.moves == [1.10, 0.70]
+
+    await desk.disconnect()
+    assert desk._awake_since is None
+    assert not desk._controller_awake
 
 
 async def test_callbacks_fire():
@@ -319,8 +430,17 @@ async def test_callbacks_fire():
     desk, fake = make_desk(on_height=heights.append,
                            on_connection_change=connections.append)
     await desk.get_height()
-    assert heights == [0.62]
+    assert heights == [Length(0.62)]
     assert connections == [True]
+    await desk.disconnect()
+
+
+async def test_library_unreadable_height_stays_none_without_notification():
+    heights = []
+    desk, fake = make_desk(on_height=heights.append)
+    fake.height = None
+    assert await desk.get_height() is None
+    assert heights == []
     await desk.disconnect()
 
 
@@ -329,7 +449,7 @@ async def test_unconfigured_mac_fails_quietly_without_connecting():
     desk = BleDesk("", desk_factory=lambda mac, cb: fake,
                    linger=0.02, retry_delays=(0,))
     assert await desk.get_height() is None
-    assert await desk.move_to(1.10) is False
+    assert await desk.move_to(Length(1.10)) is False
     assert fake.connect_calls == 0  # never even tried
     assert desk.last_error == "no desk address configured"
 
@@ -383,10 +503,10 @@ async def test_new_move_preempts_one_in_flight():
     fake = SlowFakeDesk()
     desk, _ = make_desk(fake, connection_mode="persistent")
     await desk.get_height()  # connect up front
-    first = asyncio.ensure_future(desk.move_to(1.10))
+    first = asyncio.ensure_future(desk.move_to(Length(1.10)))
     await asyncio.wait_for(fake.underway.wait(), timeout=5)  # one step done
 
-    assert await desk.move_to(0.70) is True  # preempts and redirects
+    assert await desk.move_to(Length(0.70)) is True  # preempts and redirects
     assert await first is True
     assert abs(fake.height - 0.70) < 1e-9  # ended at the newer target, not 1.10
     assert fake.moves == [1.10, 0.70]
@@ -398,9 +518,9 @@ async def test_new_move_preempts_one_in_flight():
 
 def test_decode_height():
     # raw counts are tenths of a millimeter above minimum height (0.62 m)
-    assert _decode_height(struct.pack("<HH", 0, 0)) == 0.62
-    assert abs(_decode_height(struct.pack("<HH", 4800, 0)) - 1.10) < 1e-9
-    assert abs(_decode_height(struct.pack("<HH", 6500, 0)) - 1.27) < 1e-9
+    assert _decode_height(struct.pack("<HH", 0, 0)) == Length(0.62)
+    assert abs(_decode_height(struct.pack("<HH", 4800, 0)) - Length(1.10)) < Length(1e-9)
+    assert abs(_decode_height(struct.pack("<HH", 6500, 0)) - Length(1.27)) < Length(1e-9)
 
 
 async def test_notify_subscription_decodes_updates():
@@ -421,4 +541,4 @@ async def test_notify_subscription_decodes_updates():
     await asyncio.sleep(0.01)
     assert fake._client.callback is not None
     fake._client.callback(None, bytearray(struct.pack("<HH", 4800, 30)))
-    assert any(abs(h - 1.10) < 1e-9 for h in heights)
+    assert any(abs(h - Length(1.10)) < Length(1e-9) for h in heights)

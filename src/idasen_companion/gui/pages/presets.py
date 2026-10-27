@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Presets page: list, capture, rename, delete named desk heights."""
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
+from ...core.lengths import Length
 from .. import restyle
 from ..theme import css, theme
 from ..util import PROTECTED_PRESETS, preset_label, suffix_height
@@ -26,10 +28,10 @@ from .base import Page
 class PresetsPage(Page):
     def __init__(self, ctx):
         super().__init__(ctx)
-        self._presets: dict[str, float] = {}
+        self._presets: dict[str, Length] = {}
         self._preset_chips: list = []
         self._renaming = False
-        self._live_height = 0.0
+        self._live_height = Length(0.0)
 
         self._build()
 
@@ -97,11 +99,11 @@ class PresetsPage(Page):
         rail_card = Card()
         rail_card.setFixedWidth(156)
         rail_card.body.addWidget(section_label(pgettext('presets', "Range")))
-        self.range_rail = RangeRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
+        self.range_rail = RangeRail(Length(MIN_HEIGHT), Length(MAX_HEIGHT), self.ctx)
         rail_card.body.addWidget(self.range_rail, 1)
         layout.addWidget(rail_card)
 
-    def _make_preset_row(self, name: str, height: float) -> QWidget:
+    def _make_preset_row(self, name: str, height: Length) -> QWidget:
         preset_row = QWidget()
         hbox = QHBoxLayout(preset_row)
         hbox.setContentsMargins(4, 11, 4, 11)
@@ -199,7 +201,11 @@ class PresetsPage(Page):
         return (1, name.lower())
 
     def _on_presets(self, presets: dict) -> None:
-        self._presets = dict(presets)
+        self._presets = {name: Length(height) for name, height in presets.items()}
+        self._rebuild_presets()
+
+    def _rebuild_presets(self) -> None:
+        presets = self._presets
         self.range_rail.set_presets(presets)
 
         clear_layout(self._presets_rows)
@@ -213,12 +219,12 @@ class PresetsPage(Page):
         self._update_presets_live()
 
     def _on_config_changed(self) -> None:
-        self._on_presets(self._presets)
+        self._rebuild_presets()
         self.range_rail.update()
 
     def _on_height(self, height: float) -> None:
         if height > 0:
-            self._live_height = height
+            self._live_height = Length(height)
             self._update_presets_live()
 
     def _on_connected(self, connected: bool) -> None:
@@ -239,7 +245,7 @@ class PresetsPage(Page):
         claim about a height it will not deliver.
         """
         if self._live_height:
-            self._live_height = 0.0
+            self._live_height = Length(0.0)
             self._update_presets_live()
 
     def _update_presets_live(self) -> None:
@@ -247,12 +253,12 @@ class PresetsPage(Page):
         # Without a height the button drops back to its plain label, rather
         # than keeping the last one it happened to be given.
         text = (pgettext('presets', "+ New preset at %s") % self.ctx.fmt.height(height)
-                if height > 0 else pgettext('presets', "+ New preset"))
+                if height > Length(0) else pgettext('presets', "+ New preset"))
         if self._new_at_btn.text() != text:
             self._new_at_btn.setText(text)
         self.range_rail.set_height(height)
         for preset_height, chip in self._preset_chips:
-            chip.setVisible(height > 0 and
+            chip.setVisible(height > Length(0) and
                             abs(preset_height - height) <= RangeRail.MATCH)
 
     def _rename_preset(self, old: str, edit: QLineEdit) -> None:
@@ -301,7 +307,7 @@ class PresetsPage(Page):
         if captured and isinstance(result, float):
             self._status_message(
                 pgettext('presets', "Preset '%(name)s' set to %(height)s.")
-                % {"name": name, "height": self.ctx.fmt.height(result)}, 5000)
+                % {"name": name, "height": self.ctx.fmt.height(Length(result))}, 5000)
         else:
             QMessageBox.warning(
                 self, pgettext('presets', "Idasen Companion"),
@@ -326,8 +332,9 @@ class PresetsPage(Page):
             # never disagree — its leading space is for setSuffix, which
             # inserts none, and is not wanted inside a sentence.
             pgettext('presets', "Height (%s):") % suffix_height(fmt.unit).strip(),
-            fmt.to_display_height(1.0),
-            fmt.to_display_height(MIN_HEIGHT), fmt.to_display_height(MAX_HEIGHT),
+            fmt.to_display_height(Length(1.0)),
+            fmt.to_display_height(Length(MIN_HEIGHT)),
+            fmt.to_display_height(Length(MAX_HEIGHT)),
             fmt.height_decimals())
         if accepted:
             self.client.save_preset(

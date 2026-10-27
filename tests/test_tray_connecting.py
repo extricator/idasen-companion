@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The tray's "Connecting…" feedback while a click waits on the BLE link.
 
 With on-demand Bluetooth the link is dropped a few seconds after every
@@ -29,7 +30,6 @@ from types import SimpleNamespace  # noqa: E402
 import shiboken6  # noqa: E402
 from PySide6.QtCore import QObject, Signal  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.presentation import EnglishTranslator  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
@@ -55,7 +55,10 @@ class FakeClient(QObject):
     movingChanged = Signal(bool)
     snoozeUntilChanged = Signal(float)
 
-    available = False
+    available = True
+
+    def get_daily_stats(self, _start, _end):
+        return []
 
     def __init__(self):
         super().__init__()
@@ -91,11 +94,6 @@ class FakeWindow:
                 locale=LocaleProfile("en_US"), translator=EnglishTranslator(),
                 unit=HeightUnit.CENTIMETRES,
         time_style=TimeStyle.HOUR_AND_MINUTE_24)))
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture
@@ -183,23 +181,30 @@ def test_repeat_click_while_moving_does_not_show_connecting(tray):
 def test_move_failed_clears_connecting(tray):
     # The desk never moves in this case, so nothing else would take the label
     # down before the backstop timer.
-    icon, _ = tray
+    icon, client = tray
     icon._on_connected(False)
     icon._on_moving(False)
     icon._run_action("toggle")
 
-    icon._on_status("move-failed")
+    for raw in (" Future Status ", ""):
+        client.statusChanged.emit(raw)
+        assert label(icon) == "Connecting…"
+        assert icon._connecting_timer.isActive()
+
+    client.statusChanged.emit("move-failed")
 
     assert label(icon) != "Connecting…"
+    assert not icon._connecting_timer.isActive()
 
 
 def test_daemon_going_away_clears_connecting(tray):
-    icon, _ = tray
+    icon, client = tray
     icon._on_connected(False)
     icon._on_moving(False)
     icon._run_action("toggle")
 
-    icon._on_available(False)
+    client.available = False
+    client.availableChanged.emit(False)
 
     assert not icon._connecting
     assert label(icon) == "Daemon not running"

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Small GUI formatting helpers.
 
 The height, duration, day and clock renderers that once lived here now live
@@ -24,6 +25,8 @@ from ..core.presentation import Formatter
 from ..core.i18n import GettextTranslator
 from ..core.i18n import MessageKey, P_
 from ..core.display_prefs import HeightUnit
+from ..core.clocks import WallInstant
+from ..core.state_values import PositionValue, StatusValue
 
 # The automation engine moves to these; they can't be deleted or renamed.
 PROTECTED_PRESETS = ("sit", "stand")
@@ -36,7 +39,7 @@ def _tr(text: MessageKey) -> str:
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 
-# Names of every helper below whose return value is translated text.
+# Names of every helper below whose result may be or contain translated text.
 # tests/test_translation_markers.py reads this set to know which calls a
 # concatenation check must treat as equivalent to a bare _tr() call, and
 # checks it against the module's own call graph so the set can't drift from
@@ -45,13 +48,14 @@ RETURNS_TRANSLATED: set[str] = set()
 
 
 def returns_translated(func: _F) -> _F:
-    """Declare that ``func``'s return value is translated text.
+    """Declare that ``func``'s result may be or contain translated text.
 
     A pure declaration, not behavior: it adds ``func.__name__`` to
     :data:`RETURNS_TRANSLATED` and returns ``func`` unchanged. The test suite
-    reads the registry to decide which calls count as translated values when
-    checking for glued-together translations; a helper that reaches ``_tr()``
-    without this mark fails the suite at its own definition instead.
+    reads the registry as a conservative boundary when checking for
+    glued-together translations. Plain fallback branches are valid, and the
+    mark makes no strict ``str`` return-type guarantee. A helper that reaches
+    ``_tr()`` without this mark fails the suite at its own definition instead.
     """
     RETURNS_TRANSLATED.add(func.__name__)
     return func
@@ -62,7 +66,10 @@ def connection_state(tokens, connected: bool, available: bool, persistent: bool)
     """Desk connection appearance as ``(color, footer_text, chip_text)``.
 
     Shared by the sidebar footer and the Overview connection chip so both
-    read the same state. ``tokens`` is the active theme.
+    read the same state. ``tokens`` is the active theme. This mixed tuple
+    contains translated text; the guard conservatively treats aliases,
+    every unpacked target and subscripts as possibly translated, including
+    the color, without tracking individual tuple elements.
 
     **Why this one stays in ``gui/``.** Its words moved to
     ``core/presentation.py`` with the rest of the app's vocabulary,
@@ -141,7 +148,7 @@ def fmt_days(days: list[str]) -> str:
 
 
 @returns_translated
-def status_label(status: str) -> str:
+def status_label(status: StatusValue) -> str:
     """Translated automation-status sentence for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
@@ -149,7 +156,7 @@ def status_label(status: str) -> str:
 
 
 @returns_translated
-def status_head(status: str) -> str:
+def status_head(status: StatusValue) -> str:
     """Translated Overview status head word for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
@@ -157,7 +164,7 @@ def status_head(status: str) -> str:
 
 
 @returns_translated
-def position_label(position: str) -> str:
+def position_label(position: PositionValue) -> str:
     """Translated display word for a desk position wire value.
 
     Falls back to a capitalized copy for anything unrecognized, and "" for an
@@ -201,19 +208,6 @@ def fmt_day_heading(fmt: Formatter, when: datetime) -> str:
     return presentation.day_heading(fmt.context.locale, when)
 
 
-def fmt_clock(fmt: Formatter, when: datetime) -> str:
-    """A wall-clock time, e.g. "14:32" or "2:32 PM".
-
-    Which clock comes from ``fmt`` — the formatter the caller supplies —
-    and not from this process's locale, because it is a setting the user
-    owns. A caller reads that formatter fresh from the shared context at
-    use time rather than caching it, which is what carries a change
-    through to the next redraw; ``gui/tray.py``'s ``_fmt`` writes that
-    reasoning down in full. See ``core/presentation.py``'s ``clock``.
-    """
-    return fmt.clock(when)
-
-
 @returns_translated
 def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     """A day plus a wall-clock time, e.g. "Mon 03 14:32".
@@ -221,11 +215,11 @@ def fmt_day_and_clock(fmt: Formatter, when: datetime) -> str:
     Renders through one whole translated message so the separating space
     stops being a Python literal — a language that separates a date from a
     time differently has no other way to say so. Neither fmt_day_label nor
-    fmt_clock is itself a translated value (both format through the locale
-    backend and carry no catalog entry, the same as Formatter.height_value),
-    so no mechanical check can ever flag this site; it converts on that
-    reasoning alone. The clock half follows ``fmt``, for the reason
-    :func:`fmt_clock` gives. See ``core/presentation.py``'s
+    Formatter.clock is itself a translated value (both format through the
+    locale backend and carry no catalog entry, the same as
+    Formatter.height_value), so no mechanical check can ever flag this
+    site; it converts on that reasoning alone. Formatter.clock follows
+    ``fmt``'s locale and time-style settings. See ``core/presentation.py``'s
     ``day_and_clock`` for the shared implementation.
     """
     return fmt.day_and_clock(when)
@@ -257,10 +251,10 @@ def daemon_error_message(name: str, detail: str = "") -> str:
 
 
 @returns_translated
-def snooze_line(fmt: Formatter, until: float) -> str:
+def snooze_line(fmt: Formatter, until: WallInstant) -> str:
     """"Snoozed until 14:32", or "…until later" before the deadline arrives.
 
-    ``until`` is a unix timestamp, or 0 when it is not known yet: the client
+    ``until`` is a wall instant, or false zero when it is not known yet: the client
     fetches ``SnoozeUntil`` asynchronously on the snoozed announcement, so the
     first render has no time to show.
 
@@ -269,7 +263,7 @@ def snooze_line(fmt: Formatter, until: float) -> str:
     clock the user chose reaches this line like every other. It stays one
     whole message with the time substituted in; nothing is joined here.
     """
-    when = (fmt.clock(datetime.fromtimestamp(until)) if until
+    when = (fmt.clock(datetime.fromtimestamp(until.epoch_seconds)) if until
             else fmt.later_label())
     return fmt.snooze_line(when)
 
@@ -281,6 +275,6 @@ def due_now_label() -> str:
 
 
 @returns_translated
-def position_or_custom(position: str) -> str:
+def position_or_custom(position: PositionValue) -> str:
     """The desk's position as a word, or "Custom" when it is at neither preset."""
     return presentation.position_or_custom(GettextTranslator(), position)

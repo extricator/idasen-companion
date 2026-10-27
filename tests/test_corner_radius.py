@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Two corner radii and no third: a surface radius for cards, panels and
 pills, a control radius for buttons, the segmented control, the Activity
 Log's journal-copy chip and the standard control frames the proxy style
@@ -39,7 +40,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
 from PySide6.QtGui import QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QCheckBox, QComboBox, QLineEdit, QPushButton,
+    QCheckBox, QComboBox, QLineEdit, QPushButton,
     QStyleFactory,
 )
 
@@ -61,11 +62,6 @@ from idasen_companion.gui.widgets import (  # noqa: E402
 # carries no __init__.py, and no other test module in this suite imports
 # across siblings; that module's own FakeClient docstring records the same
 # reasoning.
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

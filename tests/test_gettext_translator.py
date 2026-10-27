@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the Qt-free ``Translator`` backend.
 
 ``GettextTranslator`` delegates to ``core/i18n.py``'s process-wide catalog

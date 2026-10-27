@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The logind sleep-delay lock that buys time to hand the desk back.
 
 Releasing the BLE link takes about two seconds — 2.14s measured on real
@@ -29,6 +30,7 @@ import os
 from dbus_fast import Message, MessageType
 from dbus_fast.errors import DBusError
 
+from ..core.durations import Duration
 from .dbus_util import DBusCallError, DEFAULT_TIMEOUT, call
 
 logger = logging.getLogger(__name__)
@@ -40,20 +42,20 @@ _MANAGER_PATH = "/org/freedesktop/login1"
 # otherwise. Read rather than assumed at runtime because it is configurable,
 # and the budget derived from it is the only thing between a stuck disconnect
 # and a process frozen in the middle of one.
-DEFAULT_MAX_DELAY = 5.0
+DEFAULT_MAX_DELAY = Duration(5.0)
 
 # Left unspent out of logind's allowance. Overrunning it is not an error that
 # can be caught — logind simply stops waiting and the machine goes down
 # wherever the code happens to be. This is the margin in which bounded work
 # gives up, and says so, while the machine is still running.
-DELAY_HEADROOM = 1.0
+DELAY_HEADROOM = Duration(1.0)
 
 # Floor and ceiling on the budget derived from logind's allowance. The floor
 # keeps a machine configured down to a fraction of a second from producing a
 # budget of zero; the ceiling says no configured allowance justifies holding a
 # suspend up longer than this for work measured at roughly two seconds.
-MIN_BUDGET = 1.0
-MAX_BUDGET = 10.0
+MIN_BUDGET = Duration(1.0)
+MAX_BUDGET = Duration(10.0)
 
 
 def _descriptor_from(reply) -> int | None:
@@ -105,7 +107,7 @@ class SleepInhibitor:
         return self._inhibitor_fd is not None
 
     @property
-    def budget(self) -> float:
+    def budget(self) -> Duration:
         """Seconds pre-sleep work may take before logind stops waiting."""
         return min(MAX_BUDGET,
                    max(MIN_BUDGET, self._max_delay - DELAY_HEADROOM))
@@ -131,7 +133,7 @@ class SleepInhibitor:
         # descriptors the message carried, not a descriptor.
         try:
             reply = await asyncio.wait_for(self._bus.call(message),
-                                           DEFAULT_TIMEOUT)
+                                           DEFAULT_TIMEOUT.seconds)
         except (asyncio.TimeoutError, DBusError, OSError) as error:
             logger.debug("logind refused a sleep-delay lock: %s", error)
             return False
@@ -165,7 +167,7 @@ class SleepInhibitor:
             microseconds = getattr(body[0], "value", body[0])
         except (DBusCallError, DBusError, IndexError) as error:
             logger.debug("logind would not say its delay maximum (%s); "
-                         "assuming %gs", error, DEFAULT_MAX_DELAY)
+                         "assuming %gs", error, DEFAULT_MAX_DELAY.seconds)
             return
         if isinstance(microseconds, int) and microseconds > 0:
-            self._max_delay = microseconds / 1_000_000
+            self._max_delay = Duration.from_microseconds(microseconds)

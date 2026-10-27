@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Resolve independent clock and height-unit display preferences."""
 
 

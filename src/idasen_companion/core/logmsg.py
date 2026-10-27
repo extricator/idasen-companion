@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The activity-channel message catalog.
 
 See ``docs/LOGGING.md`` for the policy this implements. In short: log lines

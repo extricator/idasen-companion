@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The Activity Log page's cosmetic polish: day separators, the three-day
 history window, and the copy chip's muted, spaced icon.
 
@@ -26,11 +27,12 @@ from PySide6.QtGui import (  # noqa: E402
     QColor, QFontMetrics, QFontMetricsF, QIcon, QPixmap,
 )
 from PySide6.QtWidgets import (  # noqa: E402
-    QApplication, QPushButton, QStyle, QStyleOptionButton,
+    QPushButton, QStyle, QStyleOptionButton,
 )
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core import activity_log
 from idasen_companion.core.presentation import Formatter  # noqa: E402
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
@@ -40,11 +42,6 @@ from idasen_companion.gui.pages import activity_log as activity_log_mod  # noqa:
 from idasen_companion.gui.pages.activity_log import ActivityLogPage  # noqa: E402
 from idasen_companion.gui.theme import extra_icon_gap, theme  # noqa: E402
 from idasen_companion.gui.widgets import emphasize  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class FakeClient(QObject):
@@ -198,6 +195,17 @@ def test_the_row_stamp_reads_to_the_second(page):
     page._redraw()
 
     assert _last_row(page).startswith("14:32:05  INFO")
+
+
+def test_scalar_height_log_renders_zero_absence_and_mixed_version_fallback(page):
+    params = {"mac": "mock", "height": 0.0}
+    assert activity_log.render("setup.desk_configured", params, "wire", fmt=page.ctx.fmt) == (
+        "Desk configured: mock (height 0.0 cm).")
+    params["height"] = None
+    assert activity_log.render("setup.desk_configured", params, "wire", fmt=page.ctx.fmt) == (
+        "Desk configured: mock (height N/A).")
+    assert activity_log.render("future.height", params, "wire", fmt=page.ctx.fmt) == "wire"
+    assert params == {"mac": "mock", "height": None}
 
 
 def test_the_row_stamp_follows_the_clock_format(page):

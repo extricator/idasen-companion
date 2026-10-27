@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Configuration model, loading, validation, and saving.
 
 The config lives at ``~/.config/idasen-companion/config.toml``. Reading

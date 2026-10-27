@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Structured reads and writes against the systemd journal.
 
 The journal is this app's log of record (``docs/LOGGING.md``): everything goes
@@ -31,7 +32,8 @@ import socket
 import struct
 import subprocess
 from pathlib import Path
-from typing import Any
+
+from .decoded_data import LogEntry, LogParams, decode_timestamp
 
 SYSLOG_IDENTIFIER = "idasen-companion"
 _SOCKET_PATH = "/run/systemd/journal/socket"
@@ -98,7 +100,7 @@ def encode_params(params: dict | None) -> str:
         return "{}"
 
 
-def wire_params(params: dict | None) -> dict:
+def wire_params(params: dict | None) -> LogParams:
     """``params`` reduced to what will survive the wire.
 
     Applied once when a line is recorded, so every consumer downstream —
@@ -191,9 +193,11 @@ def send(message: str, level: str = "info", *, channel: str = "activity",
         return False
 
 
-def _entry_from_record(raw: dict) -> dict[str, Any] | None:
+def _entry_from_record(raw: object) -> LogEntry | None:
     """One ``journalctl -o json`` record as a log entry, or None if it carries
     no message this app can show."""
+    if not isinstance(raw, dict):
+        return None
     message = raw.get("MESSAGE")
     if isinstance(message, list):  # binary field: journalctl gives bytes
         try:
@@ -204,11 +208,12 @@ def _entry_from_record(raw: dict) -> dict[str, Any] | None:
         return None
     try:
         entry_timestamp = int(raw.get("__REALTIME_TIMESTAMP", 0)) / 1_000_000
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         entry_timestamp = 0.0
+    decoded_timestamp = decode_timestamp(entry_timestamp, 0.0)
     try:
         priority = int(raw.get("PRIORITY", 6))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         priority = 6
     params = {}
     if raw.get(FIELD_PARAMS):
@@ -217,7 +222,7 @@ def _entry_from_record(raw: dict) -> dict[str, Any] | None:
         except (TypeError, ValueError):
             params = {}
     return {
-        "ts": entry_timestamp,
+        "ts": decoded_timestamp if decoded_timestamp is not None else 0.0,
         "level": _PRIORITY_TO_LEVEL.get(priority, "info"),
         # **The activity channel is opt-in.** Only entries this app wrote
         # through `send` carry a channel; everything else under the same
@@ -228,14 +233,14 @@ def _entry_from_record(raw: dict) -> dict[str, Any] | None:
         # the user's "why did my desk move?" feed. They are still worth
         # keeping: an unhandled GUI exception is exactly what a bug report
         # wants. It is just diagnostics.
-        "channel": raw.get(FIELD_CHANNEL) or "diagnostic",
-        "msg_id": raw.get(FIELD_MSG_ID) or "",
+        "channel": str(raw.get(FIELD_CHANNEL) or "diagnostic"),
+        "msg_id": str(raw.get(FIELD_MSG_ID) or ""),
         "params": params if isinstance(params, dict) else {},
         "text": message,
     }
 
 
-def read_recent(since: str = "-7 days", limit: int = 2000) -> list[dict]:
+def read_recent(since: str = "-7 days", limit: int = 2000) -> list[LogEntry]:
     """Recent entries this app wrote, oldest first.
 
     Returns dicts of ``{ts, level, channel, msg_id, params, text}`` — the same
@@ -257,12 +262,7 @@ def read_recent(since: str = "-7 days", limit: int = 2000) -> list[dict]:
     if proc.returncode != 0:
         return []
 
-    # Heterogeneous records — float timestamp, str level, dict params — so the
-    # inferred value type was a union, and sorting on "ts" read as sorting on
-    # something possibly a dict. It is always the float computed above; saying
-    # `Any` is closer to the truth than a union that lists types no single key
-    # can hold.
-    entries: list[dict[str, Any]] = []
+    entries: list[LogEntry] = []
     for line in proc.stdout.splitlines():
         if not line.strip():
             continue

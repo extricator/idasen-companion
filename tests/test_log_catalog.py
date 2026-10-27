@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Activity Log reader rendering derives from the one canonical catalog."""
 
 import pytest

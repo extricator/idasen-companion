@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """About page: app identity, links, and system info for bug reports."""
 
 from __future__ import annotations

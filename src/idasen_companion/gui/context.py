@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Shared, cross-page application context.
 
 The pages are otherwise independent — each owns its widgets and subscribes

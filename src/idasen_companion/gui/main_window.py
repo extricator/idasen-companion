@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Main window shell: sidebar + page stack + daemon banner.
 
 Each screen lives in its own module under ``gui/pages/`` as a ``Page``

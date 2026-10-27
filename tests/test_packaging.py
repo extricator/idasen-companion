@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Packaging facts that are cheap to check and expensive to get wrong.
 
 None of this needs rpmbuild; it reads the spec files as text. The point is the
@@ -8,6 +9,7 @@ silently — which is how the COPR spec ended up not installing the tray icon.
 import fnmatch
 import importlib.util
 import re
+import runpy
 import subprocess
 import tomllib
 import zipfile
@@ -560,6 +562,24 @@ def test_every_script_the_bundled_build_runs_ships_in_the_sdist():
         f"passes: {missing}")
 
 
+def test_wheel_hash_inputs_ship_and_cover_the_authoritative_pin_groups(tmp_path):
+    """A source-only build and advisory audit share the reviewed byte catalog."""
+    required = ("scripts/bundled-wheel-hashes.py", "packaging/bundled-wheel-hashes.json",
+                "scripts/fetch-bundled-runtime.sh", "scripts/audit-bundled-dependencies.py")
+    manifest = read(MANIFEST)
+    for relative in required:
+        assert (ROOT / relative).is_file()
+        assert f"include {relative}" in manifest.splitlines()
+    helper = runpy.run_path(str(ROOT / "scripts/bundled-wheel-hashes.py"))
+    catalog = helper["load_catalog"](ROOT / "packaging/bundled-wheel-hashes.json")
+    for group, pins in (("runtime", bundled_pins()), ("build-backend", build_backend_pins())):
+        destination = tmp_path / (group + ".txt")
+        with destination.open("w", encoding="utf-8") as stream:
+            helper["prepare"](catalog, group,
+                              [f"{name}=={version}" for name, version in pins.items()], stream)
+        assert len(destination.read_text().splitlines()) == len(pins)
+
+
 def test_the_check_runs_the_daemon_the_way_the_package_will():
     """Two properties make this a proof about the package rather than about
     whatever happened to be installed on the build host. It has to be the
@@ -722,7 +742,8 @@ def test_the_portability_probe_reads_the_statistics_it_wrote_back_out():
         "the probe never asks whether the store opened, so it passes on a "
         "machine where every one of its calls is a no-op")
 
-    write = re.search(r"add_active_time\(\s*[^,]+,\s*([^,)]+)", probe)
+    write = re.search(
+        r"add_active_time\(\s*[^,]+,\s*Duration\.from_seconds\(\s*(\w+)\s*\)", probe)
     assert write, "the probe credits no desk time, so it reads back nothing"
     credited = write.group(1).strip()
 
@@ -738,7 +759,8 @@ def test_the_portability_probe_reads_the_statistics_it_wrote_back_out():
             f"the probe reads {reader} and compares it with nothing, which is "
             f"the same evidence as not reading it at all")
         if reader == "daily_totals":
-            assert any(credited in line for line in compared), (
+            assert any(re.search(rf"\b{re.escape(credited)}\b", line)
+                       for line in compared), (
                 f"the probe compares what {reader} returned against something "
                 f"other than the {credited} it wrote")
 
@@ -1286,7 +1308,14 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
                if term in LICENCE_TEXT_FOR_TERM}
     per_distribution = {f"LICENSE.{pin.replace('-', '_')}"
                         for pin in bundled_pins()}
-    orphaned = sorted(installed_licence_files() - covered - per_distribution)
+    # Component ownership and public-domain evidence are independent of this
+    # term-to-text map. Delegate only the exact inventory-verified notices.
+    verifier = runpy.run_path(str(ROOT / "scripts/verify-interpreter-metadata.py"))
+    verifier["verify_package_variants"]()
+    inventory, provenance = verifier["verify_metadata"]()
+    components = {Path(notice["file"]).name for path, notice in provenance["notices"].items()
+                  if path != inventory["cpython"]["license_path"]}
+    orphaned = sorted(installed_licence_files() - covered - per_distribution - components)
     assert not orphaned, (
         f"the package installs a licence text answering no term the licence "
         f"expression claims: {orphaned}")

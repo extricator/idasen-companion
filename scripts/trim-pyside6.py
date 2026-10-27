@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Trim an installed PySide6 down to the Qt modules this app actually uses.
 
 Usage: trim-pyside6.py <directory holding the installed PySide6 package>

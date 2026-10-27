@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Overview page: live desk state, manual control, and automation status."""
 
 from __future__ import annotations
@@ -14,7 +15,11 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.config import MAX_HEIGHT, MIN_HEIGHT
-from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES
+from ...core.clocks import MonotonicInstant
+from ...core.durations import Duration
+from ...core.lengths import Length
+from ...core.machine import COUNTDOWN_STATUSES, RESUMABLE_STATUSES, DeskState, Status
+from ...core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .. import restyle
 from ..theme import css, theme
 from ..util import (
@@ -23,15 +28,11 @@ from ..util import (
     status_label, suffix_height,
 )
 from ..widgets import (
-    Card, ConnectionChip, HeightRail, StatusDot, emphasize, equal_height_row,
+    Card, ConnectionChip, ElapsedTimeChip, HeightRail, StatusDot, emphasize, equal_height_row,
     icon, primary_button, section_label,
 )
 from .base import Page
 
-
-# The machine speaks ``Status``; the wire and this client speak its values.
-_RESUMABLE_VALUES = frozenset(s.value for s in RESUMABLE_STATUSES)
-_COUNTDOWN_VALUES = frozenset(s.value for s in COUNTDOWN_STATUSES)
 
 # The snooze button's duration, in minutes. Read by both the button's label
 # and its click handler, so the two cannot drift apart from separately edited
@@ -42,20 +43,20 @@ _SNOOZE_MINUTES = 10
 class OverviewPage(Page):
     def __init__(self, ctx):
         super().__init__(ctx)
-        self._remaining = 0.0
-        self._status = ""
+        self._remaining = Duration(0.0)
+        self._status: StatusValue = parse_status("")
         self._connected = False
-        self._position = ""
+        self._position: PositionValue = parse_position("")
         self._moving = False
-        self._progress_stamp = time.monotonic()
+        self._progress_stamp: MonotonicInstant = MonotonicInstant(time.monotonic())
         # The desk's last reported height in metres, kept so the labels that
         # show it can be redrawn without waiting for the next push.
-        self._height = 0.0
+        self._height = Length(0.0)
         # The height the Move button would send, in metres — the spin box's
         # value in the unit-independent form. Held here rather than read back
         # off the box because changing units reshapes the box, and the target
         # has to survive that. Starts where an untouched box does.
-        self._target = MIN_HEIGHT
+        self._target = Length(MIN_HEIGHT)
 
         self._build()
 
@@ -76,6 +77,9 @@ class OverviewPage(Page):
         client = self.client
         client.heightChanged.connect(self._on_height)
         client.positionChanged.connect(self._on_position)
+        observation_changed = getattr(client, "positionObservationChanged", None)
+        if observation_changed is not None and hasattr(observation_changed, "connect"):
+            observation_changed.connect(self._render_position)
         client.connectedChanged.connect(self._on_connected)
         client.movingChanged.connect(self._on_moving)
         client.statusChanged.connect(self._on_status)
@@ -109,6 +113,7 @@ class OverviewPage(Page):
         font.setPointSizeF(font.pointSizeF() * 2.0)
         self.position_label.setFont(emphasize(font))
         self.position_label.setStyleSheet("border: none;")
+        self.position_label.setTextFormat(Qt.TextFormat.PlainText)
         self.height_label = QLabel("")
         font = self.height_label.font()
         font.setPointSizeF(font.pointSizeF() * 1.45)
@@ -121,13 +126,16 @@ class OverviewPage(Page):
         header.addWidget(self.position_label, 0, Qt.AlignmentFlag.AlignBaseline)
         header.addWidget(self.height_label, 0, Qt.AlignmentFlag.AlignBaseline)
         header.addStretch()
+        self.observation_chip = ElapsedTimeChip()
+        self.observation_chip.hide()
+        header.addWidget(self.observation_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         self.connection_chip = ConnectionChip()
         header.addWidget(self.connection_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         desk.body.addLayout(header)
 
         rail_row = QHBoxLayout()
         rail_row.setSpacing(10)
-        self.height_rail = HeightRail(MIN_HEIGHT, MAX_HEIGHT, self.ctx)
+        self.height_rail = HeightRail(Length(MIN_HEIGHT), Length(MAX_HEIGHT), self.ctx)
         self.height_rail.targetChanged.connect(self._on_rail_target)
         self.height_spin = QDoubleSpinBox()
         self._shape_height_spin()
@@ -342,15 +350,15 @@ class OverviewPage(Page):
         spin.blockSignals(True)
         try:
             spin.setDecimals(fmt.height_decimals())
-            spin.setRange(fmt.to_display_height(MIN_HEIGHT),
-                          fmt.to_display_height(MAX_HEIGHT))
+            spin.setRange(fmt.to_display_height(Length(MIN_HEIGHT)),
+                          fmt.to_display_height(Length(MAX_HEIGHT)))
             spin.setSingleStep(fmt.height_step())
             spin.setSuffix(suffix_height(fmt.unit))
             spin.setValue(fmt.to_display_height(self._target))
         finally:
             spin.blockSignals(False)
 
-    def _set_spin_height(self, meters: float) -> None:
+    def _set_spin_height(self, meters: Length) -> None:
         """Show ``meters`` in the spin box without it reading as a user edit —
         the box's own valueChanged is what moves the rail the other way."""
         self.height_spin.blockSignals(True)
@@ -360,15 +368,15 @@ class OverviewPage(Page):
             self.height_spin.blockSignals(False)
 
     def _on_rail_target(self, meters: float) -> None:
-        self._target = meters
-        self._set_spin_height(meters)
+        self._target = Length(meters)
+        self._set_spin_height(self._target)
 
     def _on_spin_changed(self, value: float) -> None:
         self._target = self.ctx.fmt.from_display_height(value)
         self.height_rail.set_target(self._target)
 
     def _toggle_pause(self) -> None:
-        if self._status in _RESUMABLE_VALUES:
+        if self._status in RESUMABLE_STATUSES:
             self.client.resume()
         else:
             self.client.pause()
@@ -384,19 +392,20 @@ class OverviewPage(Page):
     def _on_height(self, height: float) -> None:
         if height <= 0:
             return
-        self._height = height
-        self.height_label.setText(self.ctx.fmt.height(height))
-        self.height_rail.set_height(height)
+        height_value = Length(height)
+        self._height = height_value
+        self.height_label.setText(self.ctx.fmt.height(height_value))
+        self.height_rail.set_height(height_value)
         # While idle the proposed target follows the desk; while moving,
         # or while the user is adjusting it, it stays put.
         if (not self._moving and not self.height_rail.dragging()
                 and not self.height_spin.hasFocus()):
-            self._target = height
-            self.height_rail.set_target(height)
-            self._set_spin_height(height)
+            self._target = height_value
+            self.height_rail.set_target(height_value)
+            self._set_spin_height(height_value)
 
     def _on_position(self, position: str) -> None:
-        self._position = position
+        self._position = parse_position(position)
         self._update_position_word()
 
     def _on_connected(self, connected: bool) -> None:
@@ -410,7 +419,7 @@ class OverviewPage(Page):
         # page repaints on its own next update; the spin box is configured
         # once at construction, so it needs telling.
         self._shape_height_spin()
-        if self._height > 0:
+        if self._height > Length(0):
             self.height_label.setText(self.ctx.fmt.height(self._height))
         self.height_rail.update()
 
@@ -428,19 +437,35 @@ class OverviewPage(Page):
         self._update_position_word()
 
     def _update_position_word(self) -> None:
-        self.position_label.setText(
-            pgettext('overview', "Moving…") if self._moving
-            # Empty position = held off sit/stand; the real height still shows
-            # beside this, so name it "Custom" rather than a bare dash.
-            else position_or_custom(self._position))
+        self._render_position()
+
+    def _render_position(self) -> None:
+        """Keep the heading and height together; elapsed time has its own chip."""
+        position = (pgettext('overview', "Moving…") if self._moving
+                    else position_or_custom(self._position))
+        observation = getattr(self.client, "position_observation_elapsed", None)
+        elapsed = (observation(str(self._position))
+                   if callable(observation) and not self._moving else None)
+        self.position_label.setText(position)
+        self.position_label.setAccessibleName(position)
+        chip = self.observation_chip
+        full = self.ctx.fmt.position_observation(position, elapsed) if elapsed is not None else ""
+        description = self.ctx.fmt.position_observation_description() if elapsed is not None else ""
+        chip.set_text(self.ctx.fmt.observed_duration(elapsed) if elapsed is not None else "")
+        if chip.accessibleName() != full:
+            chip.setAccessibleName(full)
+        if chip.accessibleDescription() != description:
+            chip.setAccessibleDescription(description)
+        chip.setToolTip(full + "\n" + description if elapsed is not None else "")
+        chip.setVisible(elapsed is not None)
 
     def _on_presets(self, presets: dict) -> None:
         self.height_rail.set_marks(
-            [(preset_label(name), presets[name])
+            [(preset_label(name), Length(presets[name]))
              for name in PROTECTED_PRESETS if name in presets])
 
     def _on_status(self, status: str) -> None:
-        self._status = status
+        self._status = parse_status(status)
         self._render_status()
 
     def _schedule_clock(self, stored: str) -> str:
@@ -463,28 +488,28 @@ class OverviewPage(Page):
         tokens = theme()
         status = self._status
         config = self.ctx.cfg
-        if status == "active":
+        if status == Status.ACTIVE:
             color, head = tokens.success, status_head(status)
             reason = ""
-        elif status == "paused":
+        elif status == Status.PAUSED:
             color, head = tokens.warning, status_head(status)
             reason = ""
-        elif status == "snoozed":
+        elif status == Status.SNOOZED:
             color, head = tokens.warning, snooze_line(
                 self.ctx.fmt, self.client.snooze_until())
             reason = ""
-        elif status == "user-idle":
+        elif status == Status.USER_IDLE:
             idle_seconds = config.automation.idle_threshold if config else 600
             color, head = tokens.muted, status_head(status)
             reason = pgettext('overview', "no input for %(idle)s") % {
                 "idle": self.ctx.fmt.duration_minutes(idle_seconds)}
-        elif status == "away":
+        elif status == Status.AWAY:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "locked":
+        elif status == Status.LOCKED:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "out-of-schedule":
+        elif status == Status.OUT_OF_SCHEDULE:
             color, head = tokens.muted, status_head(status)
             if config:
                 # Three substituted values -- the day range, the start time
@@ -503,13 +528,13 @@ class OverviewPage(Page):
                     "end": self._schedule_clock(config.schedule.end)}
             else:
                 reason = ""
-        elif status == "disabled":
+        elif status == Status.DISABLED:
             color, head = tokens.muted, status_head(status)
             reason = ""
-        elif status == "held":
+        elif status == Status.HELD:
             color, head = tokens.warning, status_head(status)
             reason = pgettext('overview', "desk isn't at a preset")
-        elif status == "move-failed":
+        elif status == Status.MOVE_FAILED:
             color, head = tokens.error, status_head(status)
             reason = pgettext('overview', "couldn't reach the desk")
         else:
@@ -525,31 +550,34 @@ class OverviewPage(Page):
         # A failed move doesn't stop the cycle (a fresh one starts right
         # after), so hiding the countdown here would remove information
         # exactly when the user needs it most.
-        self._countdown_widget.setVisible(status in _COUNTDOWN_VALUES)
-        disabled = status == "disabled"
+        self._countdown_widget.setVisible(status in COUNTDOWN_STATUSES)
+        disabled = status == Status.DISABLED
         self._cycle_controls.setVisible(not disabled)
         self.enable_btn.setVisible(disabled)
-        paused = status in _RESUMABLE_VALUES
+        paused = status in RESUMABLE_STATUSES
         self.pause_btn.setText(pgettext('overview', "Resume") if paused else pgettext('overview', "Pause"))
         self.pause_btn.setIcon(icon("media-playback-start") if paused
                                else icon("media-playback-pause"))
 
     def _on_progress(self, active_time: float, target: float) -> None:
-        self._remaining = max(0.0, target - active_time)
-        self._progress_stamp = time.monotonic()
+        self._remaining = max(Duration(0.0), Duration(target - active_time))
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         self.countdown_bar.setMaximum(max(1, int(target)))
         self._update_countdown_text()
 
     def _tick_countdown(self) -> None:
-        if self._status in _COUNTDOWN_VALUES and self._remaining > 0:
-            elapsed = time.monotonic() - self._progress_stamp
-            shown = max(0.0, self._remaining - elapsed)
+        self._render_position()
+        if self._status in COUNTDOWN_STATUSES and self._remaining > Duration(0.0):
+            elapsed = MonotonicInstant(time.monotonic()) - self._progress_stamp
+            shown = max(Duration(0.0), self._remaining - elapsed)
             self._update_countdown_text(shown)
 
-    def _update_countdown_text(self, remaining: float | None = None) -> None:
+    def _update_countdown_text(self, remaining: Duration | None = None) -> None:
         remaining = self._remaining if remaining is None else remaining
-        next_pos = {"sitting": preset_label("stand"),
-                    "standing": preset_label("sit")}.get(self._position)
+        remaining_seconds = remaining.seconds
+        next_pos = ({DeskState.SITTING: preset_label("stand"),
+                     DeskState.STANDING: preset_label("sit")}.get(self._position)
+                    if isinstance(self._position, DeskState) else None)
         self.countdown_next_lbl.setText(pgettext('overview', "Next:") if next_pos else "")
         self.countdown_next_word.setText(next_pos or pgettext('overview', "Next change"))
         # A cycle with nothing left on the clock is *due*, not stalled: the
@@ -558,13 +586,13 @@ class OverviewPage(Page):
         # visible after saving a shorter interval than the time already
         # accumulated, which lands the cycle at zero the moment it reloads.
         # Rounded the same way fmt_countdown rounds, so "0:00" is never shown.
-        due = int(remaining) <= 0
+        due = int(remaining_seconds) <= 0
         self.countdown_in_lbl.setVisible(not due)
         self.countdown_of_lbl.setVisible(not due)
         self.countdown_time_word.setText(
-            due_now_label() if due else fmt_countdown(self.ctx.fmt, remaining))
+            due_now_label() if due else fmt_countdown(self.ctx.fmt, remaining_seconds))
         total = self.countdown_bar.maximum()
-        elapsed = max(0, min(total, int(total - remaining)))
+        elapsed = max(0, min(total, int(total - remaining_seconds)))
         self.countdown_bar.setValue(elapsed)
         self.progress_caption.setText(
             pgettext('overview', "%s%% of this interval elapsed")

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Command and rendering contract for the Qt-free CLI."""
 
 from __future__ import annotations
@@ -10,21 +11,25 @@ import pytest
 from idasen_companion import cli
 from idasen_companion.core import i18n
 from idasen_companion.core.config import load_config, save_config
+from idasen_companion.core.decoded_data import DailyStatRow
 
 
 class FakeClient:
-    def __init__(self) -> None:
+    def __init__(self, *, status: str = "active",
+                 position: str = "standing") -> None:
         self.calls: list[tuple[str, str, tuple[object, ...]]] = []
         self.closed = False
+        self.status = status
+        self.position = position
 
     async def properties(self, interface: str,
                          names: tuple[str, ...]) -> dict[str, object]:
         values = {
             "Connected": True,
             "Height": 1.10,
-            "Position": "standing",
+            "Position": self.position,
             "Moving": False,
-            "Status": "active",
+            "Status": self.status,
             "ActiveTime": 3900.0,
             "TimeRemaining": 1020.0,
             "SnoozeUntil": 0.0,
@@ -64,9 +69,34 @@ async def test_status_has_the_three_settled_sections_and_shared_values():
     assert "Today" in output.splitlines()
     assert "110.0 cm" in output
     assert "Standing" in output
+    assert "  Status: Automation active" in output.splitlines()
     assert "1h 05m" in output
     assert "Sitting down in 17m" in output
     assert "2h 00m" in output
+
+
+@pytest.mark.asyncio
+async def test_status_decodes_named_daily_rows_and_keeps_valid_neighbors(monkeypatch):
+    client = FakeClient()
+
+    async def call(*_args):
+        return json.dumps([
+            ["raw day", "sitting", "3600", "extra"], None,
+            ["day", "standing", "bad"], ["day", "short"],
+            ["day", " Future ", -1], ["day", "standing", 0],
+        ])
+
+    monkeypatch.setattr(client, "call", call)
+    snapshot = await cli._read_status(client)
+    assert snapshot.daily == (
+        DailyStatRow("raw day", "sitting", 3600.0),
+        DailyStatRow("day", " Future ", -1.0), DailyStatRow("day", "standing", 0.0),
+    )
+    assert snapshot.daily[0].seconds == 3600.0
+    output = cli._status_text(snapshot, cli._formatter(load_config()),
+                              persistent_connection=True)
+    assert "  Sitting: 1h 00m" in output.splitlines()
+    assert "  Standing: 0m" in output.splitlines()
 
 
 @pytest.mark.asyncio
@@ -83,6 +113,39 @@ async def test_status_uses_the_selected_spanish_catalog():
     assert "Automatización\n" in output
     assert "Hoy\n" in output
     assert "Altura: 110,0 cm" in output
+    assert "  Posición: De pie" in output.splitlines()
+    assert "  Estado: Automatización activa" in output.splitlines()
+
+
+@pytest.mark.parametrize(
+    ("status", "position", "status_line", "position_line"),
+    [
+        ("future-MODE ", "focus-SPOT", "  Status: future-MODE ",
+         "  Position: Focus-spot"),
+        ("", "", "  Status: ", "  Position: Custom"),
+    ],
+)
+def test_status_command_preserves_open_values(
+    tmp_path, monkeypatch, capsys, status, position, status_line, position_line,
+):
+    path = tmp_path / "config.toml"
+    path.write_text("[ui]\nlanguage = 'en'\n")
+    client = FakeClient(status=status, position=position)
+
+    async def connect():
+        return client
+
+    monkeypatch.setattr(cli.DaemonClient, "connect", connect)
+    try:
+        assert cli.main(["--config", str(path), "status"]) == 0
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert status_line in captured.out.splitlines()
+    assert position_line in captured.out.splitlines()
+    assert "  Next: 17m left" in captured.out.splitlines()
+    assert client.closed
 
 
 @pytest.mark.asyncio
@@ -111,6 +174,36 @@ async def test_log_limit_is_client_side_and_unknown_text_falls_back():
     assert output.endswith("BLE diagnostic")
     assert "Daemon stopping" not in output
     assert client.calls == [(cli.IFACE_LOG, "GetRecent", ())]
+
+
+@pytest.mark.parametrize(("payload", "detail"), [
+    (123, "D-Bus reply was not JSON text"),
+    ('{"unexpected": []}', "D-Bus reply was not a JSON list"),
+])
+def test_log_envelope_errors_keep_exit_one_and_exact_detail(
+    tmp_path, monkeypatch, capsys, payload, detail,
+):
+    path = tmp_path / "config.toml"
+    path.write_text("[ui]\nlanguage = 'en'\n")
+    client = FakeClient()
+
+    async def call(*_args):
+        return payload
+
+    async def connect():
+        return client
+
+    monkeypatch.setattr(client, "call", call)
+    monkeypatch.setattr(cli.DaemonClient, "connect", connect)
+    try:
+        assert cli.main(["--config", str(path), "log"]) == 1
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert detail in captured.err
+    assert "Traceback" not in captured.err
+    assert client.closed
 
 
 @pytest.mark.parametrize("argv", [[], ["preset"], ["log", "--limit", "0"]])

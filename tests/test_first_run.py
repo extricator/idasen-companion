@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The first-run wizard has to open on an actual first run.
 
 A fresh RPM install ships the systemd unit present but *disabled* (Fedora
@@ -22,6 +23,33 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, ConfigWarning  # noqa: E402
+
+
+def test_wizard_discriminates_error_and_scalar_success_before_rendering(qapp, monkeypatch):
+    from types import SimpleNamespace
+    from idasen_companion.gui.context import AppContext
+    from idasen_companion.gui.setup_wizard import SetupWizard
+    from PySide6.QtWidgets import QMessageBox
+
+    result = [False, "read failed"]
+    client = SimpleNamespace(setup=lambda mac: tuple(result))
+    ctx = AppContext(client, tray_available=True)
+    wizard = SetupWizard(client, ctx=ctx)
+    wizard.usage_page.automatic.setChecked(True)
+    monkeypatch.setattr(wizard.scan_page, "selected_mac", lambda: "mock")
+    monkeypatch.setattr(wizard, "_enable_autostart", lambda: "autostart note")
+    warnings, successes = [], []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: warnings.append(args[2]))
+    monkeypatch.setattr(QMessageBox, "information", lambda *args: successes.append(args[2]))
+
+    wizard.accept()
+    assert "read failed" in warnings[0]
+    assert not successes
+    assert wizard.result() == 0
+    result[:] = [True, 0.75]
+    wizard.accept()
+    assert "75.0 cm" in successes[0]
+    assert wizard.result() == 1
 
 
 @pytest.fixture

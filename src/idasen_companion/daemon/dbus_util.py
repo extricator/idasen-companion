@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Small helpers over dbus-fast for one-shot method calls."""
 
 from __future__ import annotations
@@ -5,6 +6,8 @@ from __future__ import annotations
 import asyncio
 
 from dbus_fast import Message, MessageType
+
+from ..core.durations import Duration
 
 
 class DBusCallError(Exception):
@@ -17,12 +20,12 @@ class DBusCallError(Exception):
 # control loop for 41 minutes — no ticks, no logging, no automation, no
 # indication anything was wrong. Every caller already handles DBusCallError
 # with a safe fallback, so a deadline just routes a hang into that path.
-DEFAULT_TIMEOUT = 5.0
+DEFAULT_TIMEOUT = Duration(5.0)
 
 
 async def call(bus, destination: str, path: str, interface: str, member: str,
                signature: str = "", body: list | None = None,
-               timeout: float = DEFAULT_TIMEOUT) -> list:
+               timeout: Duration = DEFAULT_TIMEOUT) -> list:
     """One-shot D-Bus method call; raises DBusCallError on any error reply,
     or if no reply arrives within ``timeout`` seconds."""
     message = Message(
@@ -34,10 +37,10 @@ async def call(bus, destination: str, path: str, interface: str, member: str,
         body=body or [],
     )
     try:
-        reply = await asyncio.wait_for(bus.call(message), timeout)
+        reply = await asyncio.wait_for(bus.call(message), timeout.seconds)
     except asyncio.TimeoutError:
         raise DBusCallError(
-            f"{destination} {member}: no reply within {timeout:g}s") from None
+            f"{destination} {member}: no reply within {timeout.seconds:g}s") from None
     if reply is None or reply.message_type == MessageType.ERROR:
         error = reply.error_name if reply is not None else "no reply"
         raise DBusCallError(f"{destination} {member}: {error}")

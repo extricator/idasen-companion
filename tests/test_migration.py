@@ -1,5 +1,4 @@
-import asyncio
-
+# SPDX-License-Identifier: GPL-3.0-or-later
 import pytest
 
 from idasen_companion.core.config import (
@@ -84,26 +83,21 @@ def test_bootstrap_falls_back_to_defaults_when_the_import_cannot_be_saved(
     """
     from unittest.mock import MagicMock
 
-    import idasen_companion.daemon.main as main_mod
+    import idasen_companion.daemon.config_file as config_file_mod
     from idasen_companion.core.migration import ImportedSettings
 
-    monkeypatch.setattr(main_mod, "import_idasen_cli_config",
+    monkeypatch.setattr(config_file_mod, "import_idasen_cli_config",
                         lambda: ImportedSettings(mac="AA:BB:CC:DD:EE:FF",
                                                  presets={"sit": 9.0}))
 
-    d = main_mod.Daemon.__new__(main_mod.Daemon)
-
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
-    d.config_path = tmp_path / "config.toml"
-    d.activity_log = MagicMock()
-
-    cfg = d._load_or_bootstrap_config()  # must not raise
+    activity_log = MagicMock()
+    store = config_file_mod.ConfigFileStore(
+        tmp_path / "config.toml", activity_log)
+    cfg = store.load_or_bootstrap()  # must not raise
 
     assert cfg.presets["sit"] != 9.0
-    assert not d.config_path.exists()
-    levels = [c.args[0] for c in d.activity_log.diag.call_args_list]
+    assert not store.path.exists()
+    levels = [c.args[0] for c in activity_log.diag.call_args_list]
     assert "error" in levels
 
 
@@ -117,3 +111,57 @@ def test_non_numeric_positions_are_ignored(tmp_path):
     imported = import_idasen_cli_config(p)
     assert imported.presets == {"sit": 0.70}
     assert imported.skipped == []  # wrong type isn't "out of range"
+
+
+def test_bootstrap_without_an_import_keeps_defaults_and_watches_first_appearance(
+        tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    monkeypatch.setattr(config_file_mod, "import_idasen_cli_config", lambda: None)
+    store = config_file_mod.ConfigFileStore(tmp_path / "config.toml", MagicMock())
+
+    assert store.load_or_bootstrap() == AppConfig()
+    assert not store.path.exists()
+    assert not store.poll_changed()
+    save_config(AppConfig(), store.path)
+    assert store.poll_changed()
+    assert not store.poll_changed()
+
+
+def test_bootstrap_import_saves_valid_positions_and_consumes_its_own_revision(
+        tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+    from idasen_companion.core.migration import ImportedSettings
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    monkeypatch.setattr(config_file_mod, "import_idasen_cli_config", lambda:
+                        ImportedSettings(mac="AA:BB:CC:DD:EE:FF",
+                                         presets={"perch": 0.95},
+                                         skipped=["ceiling"]))
+    activity_log = MagicMock()
+    store = config_file_mod.ConfigFileStore(tmp_path / "config.toml", activity_log)
+
+    config = store.load_or_bootstrap()
+
+    assert load_config(store.path) == config
+    assert config.desk.mac == "AA:BB:CC:DD:EE:FF"
+    assert config.presets["perch"] == 0.95
+    assert not store.poll_changed()
+    assert activity_log.emit.call_count == 1
+    assert activity_log.diag.call_args.args[0] == "warning"
+    assert "ceiling" in activity_log.diag.call_args.args[1]
+
+
+def test_an_existing_config_does_not_attempt_bootstrap_import(tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+    from idasen_companion.daemon import config_file as config_file_mod
+
+    importer = MagicMock(side_effect=AssertionError("existing config was imported"))
+    monkeypatch.setattr(config_file_mod, "import_idasen_cli_config", importer)
+    store = config_file_mod.ConfigFileStore(tmp_path / "config.toml", MagicMock())
+    save_config(AppConfig(), store.path)
+
+    assert store.load_or_bootstrap() == AppConfig()
+    importer.assert_not_called()
+    assert not store.poll_changed()

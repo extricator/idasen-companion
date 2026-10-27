@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Pure, Qt-free tests for :mod:`idasen_companion.core.display_prefs`.
 
 No PySide6 import anywhere in this module or in what it imports — that

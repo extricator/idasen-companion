@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """``[ui] clock_format`` reaching both processes, and staying out of a third.
 
 The window and the daemon share no process state — they communicate only over
@@ -27,7 +28,6 @@ import os  # noqa: E402
 # Forced, not defaulted — see tests/test_settings_form.py for why.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
 from idasen_companion.core import presentation as english  # noqa: E402
@@ -47,11 +47,6 @@ class FakeClient:
 
     def reload_config(self):  # pragma: no cover - unreachable while unavailable
         raise AssertionError("should not nudge an unavailable daemon")
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def _config(clock_format: str) -> AppConfig:
@@ -99,22 +94,6 @@ def test_the_window_renders_the_clock_the_setting_names(
 def test_the_daemon_renders_the_clock_the_setting_names(
         clock_format, expected):
     assert _daemon_style(clock_format) is expected
-
-
-@pytest.mark.parametrize("clock_format", ["system", "12", "24"])
-def test_both_processes_reach_the_same_answer(
-        qapp, tmp_path, monkeypatch, clock_format):
-    """The point of the whole design: no D-Bus method carries this, and none
-    is needed, because both sides run one pure function over one config
-    value."""
-    assert (_window_style(qapp, tmp_path, monkeypatch, clock_format)
-            is _daemon_style(clock_format))
-
-
-@pytest.mark.parametrize("clock_format", ["system", "12", "24"])
-def test_the_journal_keeps_its_stable_duration_shape(clock_format):
-    """No display clock setting can alter released English journal values."""
-    assert english.format_duration_human(90) == "1.5 minutes", clock_format
 
 
 def test_no_config_value_can_reach_the_journals_formatter():

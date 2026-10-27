@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Reader-side rendering for structured Activity Log entries.
 
 The message definitions live only in :mod:`idasen_companion.core.logmsg`.

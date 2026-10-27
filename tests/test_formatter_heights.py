@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Height arithmetic on the ``Formatter`` facade — the first real methods.
 
 Built against the real :class:`LocaleProfile` because these methods produce
@@ -8,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.presentation import EnglishTranslator
 from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
@@ -18,7 +20,7 @@ from idasen_companion.core.display_prefs import HeightUnit
 
 #: A fixed height in metres, chosen for a non-trivial fractional result in
 #: both units (1.105 m -> 110.5 cm / 43.5039... in) — see PRES-07.
-HEIGHT_METERS = 1.105
+HEIGHT_METERS = Length(1.105)
 
 
 def _formatter(unit: HeightUnit) -> Formatter:
@@ -58,13 +60,13 @@ def test_height_value_renders_through_the_locale(unit, expected):
 
 
 def test_height_value_trims_a_whole_number():
-    assert _formatter(HeightUnit.CENTIMETRES).height_value(1.20, trim=True) == "120"
+    assert _formatter(HeightUnit.CENTIMETRES).height_value(Length(1.20), trim=True) == "120"
 
 
 def test_from_display_height_is_the_inverse():
     formatter = _formatter(HeightUnit.INCHES)
     display = formatter.to_display_height(HEIGHT_METERS)
-    assert formatter.from_display_height(display) == pytest.approx(HEIGHT_METERS)
+    assert formatter.from_display_height(display).metres == pytest.approx(HEIGHT_METERS.metres)
 
 
 def test_unit_property_reads_the_injected_context():

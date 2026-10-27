@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build the sdist and wheel, and refuse to produce either if it contains
 # something nobody meant to ship.
 #

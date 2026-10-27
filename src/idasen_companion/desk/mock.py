@@ -1,6 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Simulated desk for unit tests and the daemon's --mock-desk mode."""
 
 from __future__ import annotations
+
+from typing import overload
+
+from ..core.lengths import Length
+from .port import MoveGuard
 
 
 class MockDesk:
@@ -19,22 +25,30 @@ class MockDesk:
         takes one client at a time).
     """
 
-    def __init__(self, height: float = 0.62):
-        self.height: float = height
-        self.interrupt_next_move_at: float | None = None
+    def __init__(self, height: Length = Length(0.62)):
+        self.height: Length = height
+        self.interrupt_next_move_at: Length | None = None
         self.fail_next_move: bool = False
         self.height_unavailable: bool = False
         self.last_error: str | None = None
-        self.move_calls: list[float] = []
+        self.move_calls: list[Length] = []
         self.get_height_calls: int = 0
 
-    async def get_height(self) -> float | None:
+    async def get_height(self) -> Length | None:
         self.get_height_calls += 1
         if self.height_unavailable:
             return None
         return self.height
 
-    async def move_to(self, height: float) -> bool:
+    @overload
+    async def move_to(self, height: Length, *, guard: None = None) -> bool: ...
+
+    @overload
+    async def move_to(self, height: Length, *, guard: MoveGuard) -> bool | None: ...
+
+    async def move_to(self, height: Length, *, guard: MoveGuard | None = None) -> bool | None:
+        if guard is not None and not await guard():
+            return None
         self.move_calls.append(height)
         if self.fail_next_move:
             self.fail_next_move = False

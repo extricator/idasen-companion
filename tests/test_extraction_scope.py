@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Guard: every translatable marker is actually extracted.
 
 ``scripts/build-translations.sh``'s ``xgettext`` scan covers every ``*.py``

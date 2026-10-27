@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """idasen-companiond — the automation daemon.
 
 Owns the BLE connection, runs the state machine, and exposes the D-Bus
@@ -15,7 +16,6 @@ import os
 import signal as unix_signal
 import sys
 import time
-from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -28,19 +28,21 @@ from .. import DBUS_NAME, DBUS_PATH, __version__
 from ..core import journal, logmsg
 from ..core.config import (
     AppConfig, ConfigError, DEFAULT_CONFIG_PATH, MAX_HEIGHT, MIN_HEIGHT,
-    load_config, save_config,
 )
 from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.machine import (
     AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
-    MoveFailed,
+    FreshPresence, MoveFailed, PositionObservationTracker,
+    HELD_POLL_INTERVAL, TIME_JUMP_THRESHOLD_SECONDS,
     ResumedOnCycle, SeatChanged, StateMachine, StateSynced, SyncFailed,
-    TIME_JUMP_THRESHOLD_SECONDS, TimeJumpDetected, TransitionCompleted,
+    TimeJumpDetected, TransitionCompleted,
     TransitionHeldForInput, TransitionSkipped,
 )
-from ..core.migration import import_idasen_cli_config
 from ..core.display_prefs import ClockSetting, resolve_clock_style
+from ..core.clocks import MonotonicInstant, WallInstant
+from ..core.durations import Duration
+from ..core.lengths import Length
 from ..core.presentation import format_duration_human
 from ..core.presentation import Formatter, PresentationContext
 from ..core.i18n import GettextTranslator
@@ -48,7 +50,9 @@ from ..core.display_prefs import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
 from ..desk.port import DeskPort
 
-from .bluez import merge_devices, parse_paired_desks
+from .accounting import ActiveTimeAccounting
+from .bluetooth import BluetoothSupport
+from .config_file import ConfigFileStore
 from .dbus_util import DBusCallError, call
 from .idle import (
     IdleMonitor, LockMonitor, SEAT_BACKGROUND, SEAT_NONE, SEAT_UNKNOWN,
@@ -56,7 +60,7 @@ from .idle import (
 )
 from .inhibit import SleepInhibitor
 from .notify import Notifier
-from .ringlog import RingLog
+from .ringlog import Entry, RingLog
 from .service import Automation1, Desk1, Log1, Presets1, Stats1
 from .stats import Stats
 
@@ -71,17 +75,13 @@ logger = logging.getLogger(__name__)
 # button, the tray's Snooze submenu and Overview's Snooze button all call
 # Automation1.Snooze, and the app names one action one way.
 SNOOZE_MINUTES = 5
-HEIGHT_EMIT_INTERVAL = 0.5  # throttle for live height PropertiesChanged
-# How long a BLE scan's results stay good enough to hand back without scanning
-# again — the answer `Discover(0)` gives the setup wizard instantly.
-SCAN_CACHE_SECONDS = 60
+HEIGHT_EMIT_INTERVAL = Duration(0.5)  # throttle for live height PropertiesChanged
 MANUAL_LOCK_TIMEOUT = 30.0
 
 
 class Daemon:
     def __init__(self, config_path: Path, *, mock_desk: bool = False,
                  stats_path: Path | None = None):
-        self.config_path = config_path
         self.mock_mode = mock_desk
         # Built by `run()` before anything can reach them: `run` assigns the
         # config and desk, then exports the D-Bus interfaces that are the only
@@ -96,6 +96,8 @@ class Daemon:
         # and guards on None, which needs the attribute to exist pre-`run`.
         self.machine: StateMachine = None  # type: ignore[assignment]
         self.activity_log = RingLog()
+        self.config_file = ConfigFileStore(config_path, self.activity_log)
+        self.bluetooth = BluetoothSupport(self.activity_log)
         if stats_path is None and mock_desk:
             # Keep simulated runs out of the user's real statistics.
             from .stats import DEFAULT_DB_PATH
@@ -107,9 +109,7 @@ class Daemon:
             stats_path,
             on_error=lambda msg: self.activity_log.diag(
                 "error", f"Statistics unavailable: {msg}"))
-        # Sit/stand time observed during silence, held back until presence is
-        # settled one way or the other (see _tick). Keyed by (day, state).
-        self._pending_credit: dict[tuple[date, str], float] = {}
+        self.accounting = ActiveTimeAccounting(self.stats)
         # Strong references to in-flight fire-and-forget tasks. CPython holds
         # only a *weak* reference to a running task, so an unreferenced one can
         # be collected mid-execution — which for the two that release BLE links
@@ -141,7 +141,7 @@ class Daemon:
         # can reverse back to it). Authoritative here, not in the client, so the
         # decision can't be fooled by lagged movement state.
         self._gesture_action: str | None = None
-        self._gesture_start_height: float | None = None
+        self._gesture_start_height: Length | None = None
         # Bumped whenever a manual move starts *or* is deliberately stopped
         # (Stop, repeat-stop/reverse, or a superseding move). A move only
         # returns to its start on interruption if this hasn't changed during
@@ -163,9 +163,7 @@ class Daemon:
         self._system_bus: MessageBus | None = None
         self._ifaces: dict = {}
         self._warned_this_cycle = False
-        self._config_mtime: float | None = None
-        self._scan_cache: tuple[float, list] | None = None
-        self._last_height_emit = 0.0
+        self._last_height_emit = MonotonicInstant(0.0)
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
         # Whether this daemon's own link was up when the system last announced
@@ -221,42 +219,6 @@ class Daemon:
                 config.ui.language, os.environ)), translator=GettextTranslator(),
             unit=unit, time_style=time_style)
         return Formatter(context)
-
-    def _load_or_bootstrap_config(self) -> AppConfig:
-        config = load_config(self.config_path)
-        if not config.desk.mac and not self.config_path.exists():
-            imported = import_idasen_cli_config()
-            if imported:
-                self.activity_log.emit(logmsg.SETUP_IMPORTED_CLI,
-                               mac=imported.mac, presets=len(imported.presets))
-                if imported.mac:
-                    config.desk.mac = imported.mac
-                for name, height in imported.presets.items():
-                    config.presets[name] = height
-                if imported.skipped:
-                    self.activity_log.diag("warning",
-                                   "idasen CLI positions outside this desk's "
-                                   f"range, not imported: {', '.join(imported.skipped)}")
-                # Never let the import wedge the first start. The file is only
-                # written once save_config succeeds, so a rejected bootstrap
-                # config used to fail identically on every subsequent start —
-                # a crash loop under Restart=on-failure. Running on defaults
-                # with the wizard still available is strictly better than not
-                # running at all.
-                try:
-                    save_config(config, self.config_path)
-                except (ConfigError, OSError) as error:
-                    self.activity_log.diag("error",
-                                   f"could not write the imported config: {error}")
-                    return load_config(self.config_path)
-        self._note_config_mtime()
-        return config
-
-    def _note_config_mtime(self) -> None:
-        try:
-            self._config_mtime = self.config_path.stat().st_mtime
-        except OSError:
-            self._config_mtime = None
 
     def _report_config_warnings(self, config: AppConfig,
                                 previous: AppConfig | None = None) -> None:
@@ -330,6 +292,8 @@ class Daemon:
         if self.moving == moving:
             return
         self.moving = moving
+        if moving:
+            self._invalidate_position_observation()
         desk1 = self._ifaces.get("desk")
         if desk1 is not None:
             desk1.emit_properties_changed({"Moving": moving})
@@ -367,11 +331,11 @@ class Daemon:
             return MockDesk()
         from ..desk.ble import BleDesk
 
-        return BleDesk(
+        desk = BleDesk(
             self.config.desk.mac,
             connection_mode=self.config.desk.connection,
             linger=self.config.desk.linger,
-            on_height=self._on_live_height,
+            on_height=lambda height: self._on_desk_height(desk, height),
             on_connection_change=self._on_connection_change,
             # A per-attempt BLE failure is genuinely a warning, and genuinely
             # not for the person wondering why their desk moved — most are
@@ -380,8 +344,14 @@ class Daemon:
             # stay out of it. This is the case docs/LOGGING.md was written for.
             on_error=lambda msg: self.activity_log.diag(
                 "warning", f"BLE: {msg}"),
-            on_connect_exhausted=self._handle_connect_exhausted,
+            on_connect_exhausted=lambda: self.bluetooth.report_connect_exhausted(
+                self.config.desk.mac),
         )
+        return desk
+
+    def _on_desk_height(self, desk: DeskPort, height: Length) -> None:
+        if desk is self.desk:
+            self._on_live_height(height)
 
     def _on_connection_change(self, connected: bool) -> None:
         self.desk_connected = connected
@@ -390,15 +360,78 @@ class Daemon:
             desk1.emit_properties_changed({"Connected": connected})
             desk1.ConnectedChanged(connected)
 
-    def _on_live_height(self, height: float) -> None:
+    def _on_live_height(self, height: Length) -> None:
+        # BLE reads also invoke this notification seam. A read spanning a hard
+        # boundary must not get a second chance to publish through its callback.
+        if self.machine.accepts_height_callback():
+            self._observe_height(height)
         self.machine.last_height = height
-        now = time.monotonic()
+        now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
             self._last_height_emit = now
             desk1 = self._ifaces.get("desk")
             if desk1:
-                desk1.emit_properties_changed({"Height": height})
-                desk1.HeightChanged(height)
+                desk1.emit_properties_changed({"Height": height.metres})
+                desk1.HeightChanged(height.metres)
+
+    def _observation_tracker(self) -> PositionObservationTracker:
+        # Lazy initialization also keeps allocation-only daemon fixtures useful.
+        if not hasattr(self, "_position_observation"):
+            self._position_observation = PositionObservationTracker(self._observation_lease())
+            self._observation_generation = getattr(self, "_observation_generation", 0)
+        return self._position_observation
+
+    def _observation_lease(self) -> Duration:
+        from ..desk.ble import READ_TIMEOUT
+
+        interval = self.config.automation.sync_interval or HELD_POLL_INTERVAL
+        return Duration(min(interval, HELD_POLL_INTERVAL)
+                        + min(self.config.automation.check_interval, TIME_JUMP_THRESHOLD_SECONDS)
+                        + READ_TIMEOUT)
+
+    def _observe_height(self, height: Length | None) -> None:
+        if height is None:
+            self._invalidate_position_observation()
+            return
+        if (self.moving or getattr(self, "_observation_suspended", False)
+                or self.machine.is_away or self.machine.is_seatless):
+            return
+        tracker = self._observation_tracker()
+        position = self.machine._cycle_state_for_height(height)
+        if position is None:
+            self._invalidate_position_observation()
+            return
+        tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
+        self._emit_position_observation()
+
+    def _invalidate_position_observation(self) -> None:
+        tracker = getattr(self, "_position_observation", None)
+        self._observation_generation = getattr(self, "_observation_generation", 0) + 1
+        if isinstance(self.machine, StateMachine):
+            self.machine.invalidate_height_observation()
+        if tracker is not None:
+            tracker.invalidate()
+            self._emit_position_observation()
+
+    def _check_observation_continuity(self) -> None:
+        # Presence/lock acquisition can await after the accounting timestamp
+        # was captured. Notifications in those awaits already use current time.
+        if not self._observation_tracker().check_continuity(WallInstant(time.time())):
+            self._invalidate_position_observation()
+
+    def position_observation_snapshot(self) -> tuple[str, bool, float, float, float]:
+        self._check_observation_continuity()
+        snapshot = self._observation_tracker().snapshot(
+            WallInstant(time.time()), MonotonicInstant(time.monotonic()))
+        return (snapshot.position.value if snapshot.position is not None else "",
+                snapshot.started is not None,
+                float(snapshot.started.epoch_seconds) if snapshot.started is not None else 0.0,
+                float(snapshot.elapsed.seconds), float(snapshot.remaining.seconds))
+
+    def _emit_position_observation(self) -> None:
+        desk1 = self._ifaces.get("desk")
+        if desk1 is not None:
+            desk1.PositionObservationChanged(*self.position_observation_snapshot())
 
     async def _release_desk(self) -> None:
         """Hand the desk back, because this session is no longer in front.
@@ -422,8 +455,8 @@ class Daemon:
         # Connected is device-wide: it does not identify the client that owns
         # the link. Another session may have connected before this check, so
         # do not call Device1.Disconnect on a link Bleak no longer owns.
-        path = self._bluez_device_path()
-        if await self._bluez_property(path, "org.bluez.Device1", "Connected"):
+        path = self.bluetooth.device_path(self.config.desk.mac)
+        if await self.bluetooth.property(path, "org.bluez.Device1", "Connected"):
             self.activity_log.diag(
                 "warning", "BlueZ reports the desk connected after this "
                 "session released its BLE client; the link's owner is unknown, "
@@ -490,6 +523,7 @@ class Daemon:
             # descriptor stripped and there is nothing to hold.
             self._system_bus = await MessageBus(
                 bus_type=BusType.SYSTEM, negotiate_unix_fd=True).connect()
+            self.bluetooth.bind_bus(self._system_bus)
             await call(self._system_bus, "org.freedesktop.DBus",
                        "/org/freedesktop/DBus", "org.freedesktop.DBus", "AddMatch",
                        "s", ["type='signal',interface='org.freedesktop.login1.Manager',"
@@ -499,6 +533,8 @@ class Daemon:
             self.activity_log.diag("warning",
                            f"logind PrepareForSleep unavailable ({error}); "
                            f"relying on time-jump detection only.")
+
+        self.bluetooth.bind_bus(self._system_bus)
 
         # Constructed even with no system bus, in which case it delays nothing
         # and reports the shipped budget — one fewer optional collaborator for
@@ -535,6 +571,8 @@ class Daemon:
     def _on_system_message(self, message: Message):
         if (message.interface == "org.freedesktop.login1.Manager"
                 and message.member == "PrepareForSleep" and message.body):
+            self._observation_suspended = bool(message.body[0])
+            self._invalidate_position_observation()
             if message.body[0]:
                 self.activity_log.emit(logmsg.SUSPEND_SUSPENDING)
                 self._spawn(self._release_desk_before_sleep(),
@@ -589,11 +627,11 @@ class Daemon:
         """
         budget = self._sleep_inhibitor.budget
         try:
-            await asyncio.wait_for(self.desk.disconnect(), budget)
+            await asyncio.wait_for(self.desk.disconnect(), budget.seconds)
         except asyncio.TimeoutError:
             self.activity_log.diag(
                 "warning",
-                f"Could not hand the desk back within {budget:g}s of the "
+                f"Could not hand the desk back within {budget.seconds:g}s of the "
                 f"system announcing a sleep; the link may survive it, and "
                 f"will be checked on resume.")
         except Exception as error:
@@ -614,12 +652,12 @@ class Daemon:
         """
         if self.mock_mode or not self.config.desk.mac:
             return
-        path = self._bluez_device_path()
-        if not await self._bluez_property(path, "org.bluez.Device1",
+        path = self.bluetooth.device_path(self.config.desk.mac)
+        if not await self.bluetooth.property(path, "org.bluez.Device1",
                                           "Connected"):
             return
         await self.desk.disconnect()
-        if await self._bluez_property(path, "org.bluez.Device1", "Connected"):
+        if await self.bluetooth.property(path, "org.bluez.Device1", "Connected"):
             self.activity_log.diag(
                 "warning",
                 "The desk is still connected after resume and this daemon's "
@@ -636,9 +674,9 @@ class Daemon:
         """
         if self.machine is None:
             return 0
-        return self.machine.cycle_target(time.time())
+        return self.machine.cycle_target(WallInstant(time.time()))
 
-    def _emit_log_entry(self, entry) -> None:
+    def _emit_log_entry(self, entry: Entry) -> None:
         log1 = self._ifaces.get("log")
         if log1:
             log1.Entry(entry.ts, entry.level, entry.channel, entry.msg_id,
@@ -659,7 +697,7 @@ class Daemon:
         for sig in (unix_signal.SIGINT, unix_signal.SIGTERM):
             loop.add_signal_handler(sig, self._stop_event.set)
 
-        self.config = self._load_or_bootstrap_config()
+        self.config = self.config_file.load_or_bootstrap()
         # Localize notifications per the [ui] language setting (default
         # "system" = the daemon's environment locale).
         set_language(self.config.ui.language)
@@ -670,15 +708,17 @@ class Daemon:
         # later than it first looks.
         self.fmt = self._build_formatter(self.config)
         self.activity_log.emit(logmsg.DAEMON_STARTING, version=__version__,
-                       config=str(self.config_path))
+                       config=str(self.config_file.path))
         self._report_config_warnings(self.config)
         if self._unconfigured():
             self.activity_log.emit(logmsg.SETUP_NO_DESK)
 
         self.desk = self._make_desk()
-        now = time.time()
+        now = WallInstant(time.time())
         self.machine = StateMachine(self.config, self.desk, now=now,
-                                    on_moving=self._set_moving)
+                                    on_moving=self._set_moving,
+                                    on_height_observed=self._observe_height,
+                                    on_observation_tick=self._check_observation_continuity)
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return
@@ -709,7 +749,7 @@ class Daemon:
             with self._shutdown_step("saving held-back desk time"):
                 # Stopping is not evidence the user left, so commit whatever
                 # silence was still being held back rather than dropping it.
-                self._flush_pending_credit()
+                self.accounting.flush()
             with self._shutdown_step("closing the statistics store"):
                 self.stats.close()
 
@@ -728,7 +768,7 @@ class Daemon:
                 self.activity_log.diag("warning",
                                f"Could not finish {what} while stopping.")
 
-    async def _run_until_stopped(self, now: float) -> None:
+    async def _run_until_stopped(self, now: WallInstant) -> None:
         """Adopt the desk's position, then run the control loop until stopped.
 
         Split out of ``run`` so that all of it — the initial read included —
@@ -742,13 +782,14 @@ class Daemon:
         # D-Bus is already served by this point, so all the wait ever bought
         # was the "Initial state:" line arriving sooner.
         self.machine.start_without_desk_read(now)
+        self.accounting.start(now)
         self._initial_read = asyncio.ensure_future(self._adopt_initial_state())
         if self._stop_event.is_set():
             return
 
         while not self._stop_event.is_set():
             interval = self.config.automation.check_interval
-            started = time.monotonic()
+            started = MonotonicInstant(time.monotonic())
             try:
                 await self._tick()
             except asyncio.CancelledError:
@@ -767,12 +808,12 @@ class Daemon:
             # A tick that outruns its own interval means automation was
             # stalled — nothing moved, nothing was logged, and previously
             # the only trace was a bogus "time jump" once it recovered.
-            overrun = time.monotonic() - started
-            if overrun > interval:
+            overrun = MonotonicInstant(time.monotonic()) - started
+            if overrun > Duration(interval):
                 self.activity_log.diag(
                     "warning",
                     f"Control loop tick took "
-                    f"{format_duration_human(overrun)} (check interval is "
+                    f"{format_duration_human(overrun.seconds)} (check interval is "
                     f"{format_duration_human(interval)}); automation was "
                     f"stalled for that long.")
             with contextlib.suppress(asyncio.TimeoutError):
@@ -818,7 +859,7 @@ class Daemon:
             self.activity_log.emit(logmsg.STARTUP_DESK_NOT_OURS)
             return
         try:
-            await self.machine.start(time.time())
+            await self.machine.start(WallInstant(time.time()))
         except asyncio.CancelledError:
             raise
         except Exception as error:
@@ -830,15 +871,15 @@ class Daemon:
         if height is None:
             self.activity_log.emit(logmsg.STARTUP_HEIGHT_UNAVAILABLE)
         elif self.machine.held:
-            self.activity_log.emit(logmsg.STARTUP_STATE_HELD, height=height)
+            self.activity_log.emit(logmsg.STARTUP_STATE_HELD, height=height.metres)
         elif not self.config.automation.enabled:
             # No cycle is scheduled with automation off, so don't report a
             # "first target duration" of zero as if one were.
             self.activity_log.emit(logmsg.STARTUP_STATE_AUTOMATION_OFF,
-                           state=self.machine.state.value, height=height)
+                           state=self.machine.state.value, height=height.metres)
         else:
             self.activity_log.emit(logmsg.STARTUP_STATE,
-                           state=self.machine.state.value, height=height,
+                           state=self.machine.state.value, height=height.metres,
                            next_target=self._scheduled_target())
             # Only on this path: a cycle is actually running, so its clock is
             # the thing that just went back to zero. Not emitted from
@@ -850,7 +891,7 @@ class Daemon:
     async def _tick(self) -> None:
         self._check_config_file()
 
-        tick_time = time.time()
+        tick_time = WallInstant(time.time())
         idle_ms = await self._idle.get_idle_ms()
         locked = await self._lock.is_locked()
         # This session's claim on the seat. A backgrounded session (VT switch /
@@ -863,19 +904,35 @@ class Daemon:
         seat = await self._session.state()
         away = seat == SEAT_BACKGROUND
         seatless = seat == SEAT_NONE
+        if away or seatless:
+            self._invalidate_position_observation()
 
         state_before = self.machine.state
         held_before = self.machine.held
-        last_check_before = self.machine._last_check
+        desk, config, move_id = self.desk, self.config, self._current_move_id
+
+        async def refresh_presence() -> FreshPresence:
+            # Idle is sampled last so the other bounded providers do not age
+            # the strict recent-input value before command admission.
+            current_locked = await self._lock.is_locked()
+            current_seat = await self._session.state()
+            current_idle = await self._idle.get_idle_ms()
+            return FreshPresence(
+                WallInstant(time.time()), current_idle, current_locked,
+                away=current_seat == SEAT_BACKGROUND, seatless=current_seat == SEAT_NONE,
+                valid=(self.desk is desk and self.config is config
+                       and self._current_move_id == move_id))
         # Held across the whole tick, not just the move: the machine's
         # transition captures state before its await and writes it back after,
         # so a manual move landing in between is what corrupted it.
         async with self._desk_lock:
-            events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless)
+            events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless,
+                                             refresh_presence=refresh_presence)
 
-        self._account_desk_time(state_before.value, tick_time - last_check_before,
-                                held=held_before, idle_ms=idle_ms,
-                                absent=locked or away or seatless)
+        self.accounting.account(
+            state_before.value, tick_time,
+            held=held_before, idle_ms=idle_ms, absent=locked or away or seatless,
+            idle_threshold_seconds=self.config.automation.idle_threshold)
 
         for event in events:
             self._handle_event(event, trigger="automation")
@@ -883,77 +940,14 @@ class Daemon:
         await self._maybe_warn(tick_time)
         self._emit_periodic_properties()
 
-    def _account_desk_time(self, state: str, elapsed: float, *, held: bool,
-                           idle_ms: int, absent: bool) -> None:
-        """Attribute ``elapsed`` seconds to ``state``'s daily total.
-
-        Real elapsed time goes to the position the desk was in, regardless of
-        automation freeze states — pause and snooze stop the cycle, not the
-        clock you are sitting through.
-
-        Presence is a guess whenever there's no input: a silent stretch is
-        either the user reading at the desk (real sit/stand time) or an empty
-        chair, and the two look identical while they last. So a silent window
-        is held back rather than credited, and settled only once something
-        proves which it was — input inside a later window means the user was
-        there for the silence too, while the away threshold (or a lock, a
-        switched-away session, a suspend-sized gap — all of which arrive here
-        as ``absent``) proves they weren't. Crediting silence outright is what
-        used to bank ~idle_threshold of phantom "active" time on every break,
-        permanently.
-        """
-        # Don't credit a suspend-sized gap to sit/stand totals (the stats-side
-        # twin of the machine's time-jump reset); shared absolute threshold, and
-        # the same both-directions rule — a backward clock step would otherwise
-        # write negative seconds into a daily row, permanently.
-        elapsed_is_plausible = 0 <= elapsed <= TIME_JUMP_THRESHOLD_SECONDS
-        idle_threshold_ms = self.config.automation.idle_threshold * 1000
-        if not elapsed_is_plausible or absent or idle_ms >= idle_threshold_ms:
-            self._pending_credit.clear()
-        elif held:
-            pass  # off-cycle: the desk is at neither preset, so neither gets it
-        elif idle_ms / 1000.0 < elapsed:
-            # Input landed inside this window: the user is here now, which
-            # settles the silence leading up to it as time at the desk.
-            self._flush_pending_credit()
-            self.stats.add_active_time(state, elapsed)
-        else:
-            key = (date.today(), state)
-            self._pending_credit[key] = self._pending_credit.get(key, 0.0) + elapsed
-
-    def _flush_pending_credit(self) -> None:
-        """Commit time held back during silence, now that presence is proven.
-
-        Keyed by day and state, not just totalled: a silent stretch can cross
-        midnight or span a desk move, and each part belongs to the row it was
-        actually spent in.
-        """
-        for (day, state), seconds in self._pending_credit.items():
-            self.stats.add_active_time(state, seconds, day)
-        self._pending_credit.clear()
-
     def _check_config_file(self) -> None:
-        try:
-            mtime = self.config_path.stat().st_mtime
-        except OSError:
-            return
-        # A None mtime — the file did not exist at startup and does now —
-        # compares unequal like any other change, so it reloads and adopts the
-        # mtime. It must not be read as "watching disabled": the old guard
-        # required a non-None mtime *and* never assigned one on that branch, so
-        # once None it stayed None and hot-reload was dead for the rest of the
-        # process's life — silently, on a fresh install with no config to
-        # import, which is exactly when the user hand-writes their MAC into the
-        # file the README says hot-reloads.
-        if mtime == self._config_mtime:
-            return
-        self._config_mtime = mtime
-        self.reload_config()
+        if self.config_file.poll_changed():
+            self.reload_config()
 
-    async def _maybe_warn(self, now: float) -> None:
+    async def _maybe_warn(self, now: WallInstant) -> None:
         ncfg = self.config.notifications
         remaining = self.machine.time_remaining()
-        if not ncfg.enabled or self.machine.target_duration <= 0:
+        if not ncfg.enabled or not self.machine.target_duration:
             return
         # Arm on the reliable window: at least one check_interval wide, so a tick
         # is guaranteed to land inside it. A bare lead_time window narrower than
@@ -963,7 +957,7 @@ class Daemon:
         # real remaining time). Firing at exactly lead_time regardless of the
         # tick needs the timer-based rework tracked in TODO.md.
         window = max(ncfg.lead_time, self.config.automation.check_interval)
-        if remaining > window:
+        if remaining.seconds > window:
             self._warned_this_cycle = False
             return
         # A failed last move doesn't stop the cycle — the next attempt is
@@ -974,7 +968,7 @@ class Daemon:
             return
         self._warned_this_cycle = True
         to_state = self.machine.state.opposite
-        seconds = max(1, int(remaining))
+        seconds = max(1, int(remaining.seconds))
         self._ifaces["automation"].PreMoveWarning(to_state.value, seconds)
         # Fire and forget: whether a popup was drawn is none of the control
         # loop's business, and awaiting the notification server here puts a
@@ -1021,24 +1015,24 @@ class Daemon:
         elif isinstance(event, TimeJumpDetected):
             # Forward and backward steps read as different events to a user, so
             # they get different sentences; the parameter is unsigned either way.
-            line = (logmsg.TIME_JUMP if event.elapsed >= 0
+            line = (logmsg.TIME_JUMP if event.elapsed.seconds >= 0
                     else logmsg.TIME_STEPPED_BACK)
-            self.activity_log.emit(line, elapsed=abs(event.elapsed),
+            self.activity_log.emit(line, elapsed=abs(event.elapsed).seconds,
                            next_target=self._scheduled_target())
         elif isinstance(event, TransitionSkipped):
             self.activity_log.emit(
                 logmsg.CYCLE_SKIPPED, state=event.state.value,
-                next_target=event.next_target_duration)
+                next_target=event.next_target_duration.seconds)
         elif isinstance(event, TransitionCompleted):
             self._on_transition(event)
         elif isinstance(event, StateSynced):
             self.activity_log.emit(logmsg.CYCLE_SYNCED,
                            previous=event.previous.value,
-                           current=event.current.value, height=event.height,
-                           next_target=event.next_target_duration)
+                           current=event.current.value, height=event.height.metres,
+                           next_target=event.next_target_duration.seconds)
             self._record_transition(event.previous, event.current, "external")
         elif isinstance(event, HeldOffCycle):
-            self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height)
+            self.activity_log.emit(logmsg.CYCLE_HELD_OFF, height=event.height.metres)
             if self.config.notifications.enabled:
                 self._spawn(self._notifier.send(
                     self.fmt.automation_paused_summary(),
@@ -1047,8 +1041,8 @@ class Daemon:
         elif isinstance(event, ResumedOnCycle):
             self.activity_log.emit(
                 logmsg.CYCLE_RESUMED_ON, current=event.current.value,
-                height=event.height,
-                next_target=event.next_target_duration)
+                height=event.height.metres,
+                next_target=event.next_target_duration.seconds)
             if event.previous is not event.current:
                 self._record_transition(event.previous, event.current, "external")
         elif isinstance(event, SyncFailed):
@@ -1068,12 +1062,12 @@ class Daemon:
             self.activity_log.emit(logmsg.CYCLE_MOVE_FAILED_REASON,
                            intended=event.intended.value,
                            previous=event.previous.value, reason=str(reason),
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
         else:
             self.activity_log.emit(logmsg.CYCLE_MOVE_FAILED,
                            intended=event.intended.value,
                            previous=event.previous.value,
-                           next_target=event.next_target_duration)
+                           next_target=event.next_target_duration.seconds)
         if not self.config.notifications.problems:
             return
         # The cycle has already restarted, so a whole interval is now at stake
@@ -1135,14 +1129,16 @@ class Daemon:
 
     def _on_transition(self, event: TransitionCompleted) -> None:
         common = dict(intended=event.intended.value, result=event.result.value,
-                      height=event.final_height,
-                      next_target=event.next_target_duration)
+                      height=(event.final_height.metres
+                              if event.final_height is not None else None),
+                      next_target=event.next_target_duration.seconds)
         if not event.interrupted:
             self.activity_log.emit(logmsg.TRANSITION_COMPLETED,
                            previous=event.previous.value,
                            result=event.result.value,
-                           height=event.final_height,
-                           next_target=event.next_target_duration)
+                           height=(event.final_height.metres
+                              if event.final_height is not None else None),
+                           next_target=event.next_target_duration.seconds)
         elif event.recovery == "undo":
             self.activity_log.emit(
                 logmsg.TRANSITION_INTERRUPTED_UNDO, **common)
@@ -1177,24 +1173,27 @@ class Daemon:
         clients update within the D-Bus round-trip instead of waiting up to a
         full ``check_interval`` for the next periodic tick."""
         auto = self._ifaces["automation"]
+        deadline = self.machine.snooze_until
         auto.emit_properties_changed({
             "Enabled": self.config.automation.enabled,
             "Status": self.status_string(),
-            "ActiveTime": self.machine.active_time,
-            "TargetDuration": float(self.machine.target_duration),
-            "TimeRemaining": self.machine.time_remaining(),
-            "SnoozeUntil": self.machine.snooze_until or 0.0,
+            "ActiveTime": self.machine.active_time.seconds,
+            "TargetDuration": self.machine.target_duration.seconds,
+            "TimeRemaining": self.machine.time_remaining().seconds,
+            "SnoozeUntil": (deadline.epoch_seconds or 0.0
+                            if deadline is not None else 0.0),
             "SkipNextPending": self.machine.skip_next,
         })
         auto.StatusChanged(self.status_string())
-        auto.ProgressChanged(self.machine.active_time,
-                             float(self.machine.target_duration))
+        auto.ProgressChanged(self.machine.active_time.seconds,
+                             self.machine.target_duration.seconds)
 
     def _emit_periodic_properties(self) -> None:
         self._emit_automation_state()
         desk1 = self._ifaces["desk"]
         position = self.position_string()
-        height = self.machine.last_height or 0.0
+        height = (self.machine.last_height.metres
+                  if self.machine.last_height is not None else 0.0)
         desk1.emit_properties_changed({
             "Position": position,
             "Height": height,
@@ -1207,7 +1206,7 @@ class Daemon:
     # ----- control operations (called from D-Bus interfaces) -----
 
     def status_string(self) -> str:
-        return self.machine.status(time.time()).value
+        return self.machine.status(WallInstant(time.time())).value
 
     def position_string(self) -> str:
         """Wire desk position. Empty while held off-cycle: the desk isn't at a
@@ -1248,7 +1247,7 @@ class Daemon:
         previous = self.config.automation.enabled
         self.config.automation.enabled = enabled
         try:
-            save_config(self.config, self.config_path)
+            self.config_file.save(self.config)
         except (ConfigError, OSError) as error:
             # Mutating before writing left the daemon running on state that is
             # not on disk when the write failed — and reporting "disabled"
@@ -1257,7 +1256,6 @@ class Daemon:
             self.config.automation.enabled = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self._note_config_mtime()
         self.machine.update_config(self.config)
         self.activity_log.emit(logmsg.AUTOMATION_ENABLED if enabled
                        else logmsg.AUTOMATION_DISABLED)
@@ -1280,7 +1278,7 @@ class Daemon:
 
     def snooze(self, minutes: int) -> None:
         minutes = max(1, int(minutes))
-        self.machine.snooze(minutes, time.time())
+        self.machine.snooze(minutes, WallInstant(time.time()))
         # Param.DURATION is a seconds kind, so each side renders it with its
         # own formatter rather than the sentence spelling out "minutes" itself.
         # Keep the released ``minutes`` wire field for N-1 readers while the
@@ -1292,7 +1290,7 @@ class Daemon:
 
     def reload_config(self) -> None:
         try:
-            new_config = load_config(self.config_path)
+            new_config = self.config_file.load()
         except ConfigError as error:
             self.activity_log.emit(logmsg.CONFIG_RELOAD_FAILED, error=str(error))
             return
@@ -1315,6 +1313,18 @@ class Daemon:
                 new_config.automation.sit_variation,
                 new_config.automation.stand_variation))
         self.config = new_config
+        observation_fields_changed = (
+            (previous_config.presets.get("sit"), previous_config.presets.get("stand"),
+             previous_config.advanced.movement_tolerance,
+             previous_config.automation.sync_interval, previous_config.automation.check_interval)
+            != (new_config.presets.get("sit"), new_config.presets.get("stand"),
+                new_config.advanced.movement_tolerance,
+                new_config.automation.sync_interval, new_config.automation.check_interval))
+        if observation_fields_changed:
+            self._invalidate_position_observation()
+            tracker = getattr(self, "_position_observation", None)
+            if tracker is not None:
+                tracker.lease = self._observation_lease()
         self._report_config_warnings(new_config, previous_config)
         set_language(new_config.ui.language)  # notifications follow the setting
         self.fmt = self._build_formatter(new_config)
@@ -1345,15 +1355,16 @@ class Daemon:
             # does at boot — without it the machine would stay inert forever.
             self.activity_log.emit(logmsg.SETUP_STARTING_AUTOMATION)
             self._spawn(self._start_after_setup(), "starting automation after setup")
-        self._note_config_mtime()
+        self.config_file.note_mtime()
         # Durations may have changed the target/progress; announce now.
         self._emit_automation_state()
 
     async def _start_after_setup(self) -> None:
-        await self.machine.start(time.time())
+        await self.machine.start(WallInstant(time.time()))
         self.activity_log.emit(
             logmsg.STARTUP_STATE, state=self.machine.state.value,
-            height=self.machine.last_height,
+            height=(self.machine.last_height.metres
+                    if self.machine.last_height is not None else None),
             next_target=self._scheduled_target())
         self._emit_automation_state()
 
@@ -1365,7 +1376,7 @@ class Daemon:
         # A preset/gesture move that's cut short by the physical paddle returns
         # to where the desk was (like the reference script and the automation
         # path), rather than parking off-cycle. Capture that position now.
-        await self._manual_move(height, f"preset '{name}'",
+        await self._manual_move(Length(height), f"preset '{name}'",
                                 return_to=self.machine.last_height)
 
     async def toggle_sit_stand(self, *, refresh: bool = True) -> None:
@@ -1377,7 +1388,7 @@ class Daemon:
         skips that read when the caller (``gesture_move``) already did it."""
         await self._require_manual_entitlement()
         if refresh:
-            await self.machine.refresh_height(time.time())
+            await self.machine.refresh_height(WallInstant(time.time()))
         await self.manual_move_to_preset(self.machine.toggle_target_preset())
 
     async def gesture_move(self, action: str) -> None:
@@ -1420,22 +1431,22 @@ class Daemon:
         # sooner, using the cached pre-move height as the (unused) start point.
         needs_read = action == "toggle" or self.config.ui.tray_repeat_move == "reverse"
         if needs_read:
-            await self.machine.refresh_height(time.time())
+            await self.machine.refresh_height(WallInstant(time.time()))
         self._gesture_start_height = self.machine.last_height
         if action == "toggle":
             await self.toggle_sit_stand(refresh=False)
         else:
             await self.manual_move_to_preset(action)
 
-    async def manual_move_to_height(self, height: float) -> None:
-        if not (MIN_HEIGHT <= height <= MAX_HEIGHT):
+    async def manual_move_to_height(self, height: Length) -> None:
+        if not (Length(MIN_HEIGHT) <= height <= Length(MAX_HEIGHT)):
             raise DBusError(f"{DBUS_NAME}.Error.OutOfRange",
-                            f"height {height:.3f}m outside "
+                            f"height {height.metres:.3f}m outside "
                             f"{MIN_HEIGHT}-{MAX_HEIGHT}m")
-        await self._manual_move(height, f"{height:.3f}m")
+        await self._manual_move(height, f"{height.metres:.3f}m")
 
-    async def _manual_move(self, height: float, label: str,
-                           *, return_to: float | None = None) -> None:
+    async def _manual_move(self, height: Length, label: str,
+                           *, return_to: Length | None = None) -> None:
         """Move the desk to ``height``. If ``return_to`` is given and the move
         is cut short *on its own* (the physical paddle stops it before the
         target), return once to ``return_to`` — the same interruption handling
@@ -1466,8 +1477,8 @@ class Daemon:
         finally:
             self._desk_lock.release()
 
-    async def _manual_move_locked(self, height: float, label: str,
-                                  *, return_to: float | None = None) -> None:
+    async def _manual_move_locked(self, height: Length, label: str,
+                                  *, return_to: Length | None = None) -> None:
         self._current_move_id += 1
         move_id = self._current_move_id
         self.activity_log.emit(logmsg.MANUAL_MOVE, target=label)
@@ -1502,11 +1513,11 @@ class Daemon:
                     and self.config.automation.interruption_policy == "undo"
                     and move_id == self._current_move_id):
                 actual = await self.desk.get_height()
-                tolerance = self.config.advanced.movement_tolerance
+                tolerance = Length(self.config.advanced.movement_tolerance)
                 if actual is not None and abs(actual - height) > tolerance:
                     self.activity_log.emit(
                         logmsg.MANUAL_INTERRUPTED, target=label,
-                        actual=actual, return_to=return_to)
+                        actual=actual.metres, return_to=return_to.metres)
                     await self.desk.move_to(return_to)
         finally:
             # Only the current move owns the shared "moving" flag. If a newer
@@ -1524,7 +1535,7 @@ class Daemon:
             # off-cycle ("automation paused"); the move that replaced us reads
             # the real final position and reports it.
             return
-        for event in await self.machine.force_sync(time.time()):
+        for event in await self.machine.force_sync(WallInstant(time.time())):
             # A manual move that changes the classified position (adopting a
             # new state, or resuming from a hold) is an intentional transition,
             # not an "external" one — record it as such. ResumedOnCycle may
@@ -1534,8 +1545,10 @@ class Daemon:
                 if event.previous is not event.current:
                     self.activity_log.emit(
                         logmsg.MANUAL_SYNCED, current=event.current.value,
-                        height=event.height,
-                        next_target=getattr(event, "next_target_duration", 0))
+                        height=event.height.metres,
+                        next_target=getattr(
+                            event, "next_target_duration", Duration.from_seconds(0)
+                        ).seconds)
                     self._record_transition(event.previous, event.current,
                                             "manual")
             else:
@@ -1580,144 +1593,9 @@ class Daemon:
     async def discover(self, timeout: int) -> list[tuple[str, str]]:
         """Known paired desks (from BlueZ) plus live scan results, paired
         first. timeout=0 returns paired devices + cached scan instantly."""
-        if self.mock_mode:
-            return [("Desk 0000 (mock)", "00:11:22:33:44:55")]
+        return await self.bluetooth.discover(timeout, mock_mode=self.mock_mode)
 
-        known = await self._bluez_known_desks()
-
-        timeout = max(0, int(timeout))
-        if timeout == 0:
-            # The age test and the subscript live in one expression so mypy can
-            # narrow `cache` from `tuple[...] | None`. Held apart in a separate
-            # boolean, the narrowing was lost by the time `cache[1]` was read
-            # and mypy called the optional tuple not indexable.
-            cache = self._scan_cache
-            scanned = (cache[1]
-                       if cache is not None
-                       and time.time() - cache[0] < SCAN_CACHE_SECONDS
-                       else [])
-        else:
-            from ..desk.ble import discover_desks
-
-            self.activity_log.emit(logmsg.SCAN_STARTED)
-            try:
-                scanned = await discover_desks(min(timeout, 30))
-            except Exception as error:
-                self.activity_log.emit(logmsg.SCAN_FAILED, error=str(error))
-                scanned = []
-            else:
-                self.activity_log.emit(
-                    logmsg.SCAN_FINISHED, count=len(scanned))
-            self._scan_cache = (time.time(), scanned)
-        return merge_devices(known, scanned)
-
-    def _bluez_device_path(self) -> str:
-        """BlueZ object path for the configured desk (hci0 only, matching the
-        rest of the app's single-adapter assumption)."""
-        return f"/org/bluez/hci0/dev_{self.config.desk.mac.upper().replace(':', '_')}"
-
-    def _other_companion_daemons(self) -> list[int]:
-        """PIDs of other idasen-companiond processes on this machine.
-
-        One desk, one machine, several accounts is the *expected* arrangement,
-        not an anomaly — each logged-in user's session runs its own daemon and
-        they all want the same desk. Ownership is settled by the seat lease
-        (see ``_release_desk``), not by this scan. The PID list gives useful
-        context in a failed-connect diagnostic; it cannot prove link ownership.
-        """
-        own_pid = os.getpid()
-        found = []
-        for entry in Path("/proc").iterdir():
-            if not entry.name.isdigit() or int(entry.name) == own_pid:
-                continue
-            try:
-                argv = (entry / "cmdline").read_bytes().split(b"\0")
-            except OSError:
-                continue  # exited, or another user's process we can't read
-            if any(arg == b"idasen_companion.daemon.main"
-                   or arg.rsplit(b"/", 1)[-1] == b"idasen-companiond"
-                   for arg in argv if arg):
-                found.append(int(entry.name))
-        return found
-
-    async def _bluez_property(self, path: str, iface: str, name: str):
-        if self._system_bus is None:
-            return None
-        try:
-            body = await call(self._system_bus, "org.bluez", path,
-                              "org.freedesktop.DBus.Properties", "Get", "ss",
-                              [iface, name])
-        except (DBusCallError, DBusError):
-            return None
-        return body[0].value if body else None
-
-    async def _handle_connect_exhausted(self) -> None:
-        """Every connect attempt failed. Record the Bluetooth stack state.
-
-        The snapshot is the primary job. A desk that went unreachable for 45
-        minutes could not be explained afterwards because nothing recorded what
-        BlueZ thought at the time; this makes a repeat diagnose itself.
-
-        A BlueZ link has no discoverable client owner, so this hook only logs.
-        """
-        if not self.config.desk.mac:
-            return
-        path = self._bluez_device_path()
-        connected = await self._bluez_property(path, "org.bluez.Device1",
-                                               "Connected")
-        paired = await self._bluez_property(path, "org.bluez.Device1", "Paired")
-        rssi = await self._bluez_property(path, "org.bluez.Device1", "RSSI")
-        powered = await self._bluez_property("/org/bluez/hci0",
-                                             "org.bluez.Adapter1", "Powered")
-        discovering = await self._bluez_property("/org/bluez/hci0",
-                                                 "org.bluez.Adapter1",
-                                                 "Discovering")
-        others = self._other_companion_daemons()
-        # The snapshot exists so a repeat outage diagnoses itself. It is a real
-        # warning and means nothing at all to a desk user, which is exactly the
-        # combination the diagnostic channel is for.
-        self.activity_log.diag(
-            "warning",
-            f"Could not reach the desk. BlueZ reports: connected={connected}, "
-            f"paired={paired}, rssi={rssi}, adapter powered={powered}, "
-            f"scanning={discovering}; other companion daemons running: "
-            f"{others or 'none'}.")
-
-        if not connected:
-            return  # nothing in the way; the failure is something else
-
-        if others:
-            # Shared desk: another account's daemon is running and BlueZ holds
-            # a connection we can't use. Dropping it would just start a fight
-            # neither side wins, and it is very likely being used right now —
-            # a daemon releases the desk when its session leaves the seat, but
-            # not instantly (a move in flight finishes first), so a link that
-            # is on its way out looks exactly like one that is staying.
-            # This one *is* activity: it says why the desk won't move for you,
-            # and what to do about it is a real-world action.
-            self.activity_log.emit(logmsg.DESK_HELD_BY_OTHER,
-                           pids=", ".join(map(str, others)))
-            return
-
-        self.activity_log.diag(
-            "warning",
-            "The desk is connected but unreachable from here. BlueZ cannot "
-            "identify the link's owner, so it was left alone.")
-
-    async def _bluez_known_desks(self) -> list[tuple[str, str]]:
-        """Desks already paired via the system Bluetooth settings."""
-        if self._system_bus is None:
-            return []
-        try:
-            body = await call(self._system_bus, "org.bluez", "/",
-                              "org.freedesktop.DBus.ObjectManager",
-                              "GetManagedObjects")
-        except (DBusCallError, DBusError) as error:
-            self.activity_log.diag("debug", f"BlueZ device query failed: {error}")
-            return []
-        return parse_paired_desks(body[0])
-
-    async def setup_desk(self, desk_mac: str) -> float:
+    async def setup_desk(self, desk_mac: str) -> Length:
         """First-run onboarding: verify we can actually talk to the desk
         (connect, best-effort pair, read height) BEFORE saving the MAC.
         Returns the current height on success."""
@@ -1753,22 +1631,22 @@ class Daemon:
 
         previous_mac = self.config.desk.mac
         self.config.desk.mac = desk_mac
-        save_config(self.config, self.config_path)
-        self._note_config_mtime()
+        self.config_file.save(self.config)
         if not self.mock_mode and desk_mac != previous_mac:
             self._swap_desk()
         self.activity_log.emit(
-            logmsg.SETUP_DESK_CONFIGURED, mac=desk_mac, height=height)
+            logmsg.SETUP_DESK_CONFIGURED, mac=desk_mac, height=height.metres)
         self._spawn(self._post_setup_sync(), "syncing the desk after setup")
-        return float(height)
+        return height
 
     async def _post_setup_sync(self) -> None:
-        for event in await self.machine.force_sync(time.time()):
+        for event in await self.machine.force_sync(WallInstant(time.time())):
             self._handle_event(event, trigger="setup")
         self._emit_periodic_properties()
 
     def _swap_desk(self) -> None:
         """Replace the desk connection after the MAC changed."""
+        self._invalidate_position_observation()
         old_desk = self.desk
         self.desk = self._make_desk()
         self.machine._desk = self.desk
@@ -1777,23 +1655,25 @@ class Daemon:
         # duck-typed check that a new implementation could quietly fail.
         self._spawn(old_desk.disconnect(), "releasing the previous desk")
 
-    async def capture_current_preset(self, name: str) -> float:
-        height = await self.desk.get_height()
+    async def capture_current_preset(self, name: str) -> Length:
+        height = await self.machine._read_height(WallInstant(time.time()))
         if height is None:
             raise DBusError(f"{DBUS_NAME}.Error.NoHeight",
                             "could not read desk height")
-        self.save_preset(name, round(height, 4))
-        return round(height, 4)
+        self.save_preset(name, Length(round(height.metres, 4)))
+        return Length(round(height.metres, 4))
 
-    def save_preset(self, name: str, height: float) -> None:
-        if not name or not (MIN_HEIGHT - 0.01 <= height <= MAX_HEIGHT + 0.01):
+    def save_preset(self, name: str, height: Length) -> None:
+        if not name or not (Length(MIN_HEIGHT - 0.01) <= height <= Length(MAX_HEIGHT + 0.01)):
             raise DBusError(f"{DBUS_NAME}.Error.InvalidPreset",
-                            f"invalid preset {name!r} = {height}")
+                            f"invalid preset {name!r} = {height.metres}")
         self._check_config_file()   # don't clobber a hand edit; see below
         previous = dict(self.config.presets)
-        self.config.presets[name] = round(height, 4)
+        self.config.presets[name] = round(height.metres, 4)
         self._persist_presets(previous)
-        self.activity_log.emit(logmsg.PRESET_SAVED, name=name, height=height)
+        if name in ("sit", "stand") and previous.get(name) != self.config.presets[name]:
+            self._invalidate_position_observation()
+        self.activity_log.emit(logmsg.PRESET_SAVED, name=name, height=height.metres)
 
     def rename_preset(self, old_name: str, new_name: str) -> None:
         """Rename in one write, which is what makes it atomic.
@@ -1848,12 +1728,11 @@ class Daemon:
         disk, with no PresetsChanged and no log line to say so.
         """
         try:
-            save_config(self.config, self.config_path)
+            self.config_file.save(self.config)
         except (ConfigError, OSError) as error:
             self.config.presets = previous
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
-        self._note_config_mtime()  # don't treat our own write as a hot reload
         self._ifaces["presets"].PresetsChanged(json.dumps(self.config.presets))
 
 

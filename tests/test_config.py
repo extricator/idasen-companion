@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+from dataclasses import fields
+from pathlib import Path
+import tomllib
+
 import pytest
 
 from idasen_companion.core.display_prefs import ClockSetting
@@ -49,6 +54,40 @@ def write(tmp_path, text):
     p = tmp_path / "config.toml"
     p.write_text(text)
     return p
+
+
+def test_example_configuration_matches_schema_and_round_trips(tmp_path):
+    example = Path(__file__).resolve().parents[1] / "examples" / "config.toml"
+    assert example.is_file(), "The shipped configuration example must exist"
+    text = example.read_text(encoding="utf-8")
+    data = tomllib.loads(text)
+    expected = AppConfig()
+    sections = {item.name for item in fields(expected)} - {"warnings"}
+    assert set(data) == sections
+    for section in sections - {"presets"}:
+        assert set(data[section]) == {
+            item.name for item in fields(getattr(expected, section))
+        }, section
+
+    config = load_config(example)
+    assert not config.warnings
+    assert config.desk.mac == ""
+    assert config.automation.enabled is False
+    expected.automation.enabled = False
+    assert config == expected
+
+    copy = tmp_path / "config.toml"
+    copy.write_text(text, encoding="utf-8")
+    save_config(config, copy)
+    reloaded = load_config(copy)
+    assert not reloaded.warnings
+    assert reloaded == config
+    for comment in (
+        "# Supply your real desk's Bluetooth MAC address before connecting.",
+        "# Heights are in metres regardless of the display units in [ui].",
+        "# Enable automation only after configuring and checking your desk.",
+    ):
+        assert comment in copy.read_text(encoding="utf-8")
 
 
 def test_missing_file_yields_defaults(tmp_path):

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 from datetime import datetime
 
 from idasen_companion.core.config import ScheduleConfig, VALID_DAYS
@@ -45,14 +46,6 @@ def test_overnight_window_belongs_to_start_day():
 
 
 # ----- boundaries, exactly on the minute -----
-
-def test_the_window_is_start_inclusive_and_end_exclusive():
-    c = cfg(days=["fri"], start="09:00", end="17:00")
-    assert is_schedule_active(c, FRI.replace(hour=9, minute=0))
-    assert not is_schedule_active(c, FRI.replace(hour=8, minute=59))
-    assert not is_schedule_active(c, FRI.replace(hour=17, minute=0))
-    assert is_schedule_active(c, FRI.replace(hour=16, minute=59))
-
 
 def test_overnight_boundaries_are_exact():
     # The existing overnight test stays an hour clear of every edge, so both

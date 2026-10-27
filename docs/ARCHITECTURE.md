@@ -18,8 +18,11 @@ thin D-Bus client plus a tray icon that never touches the desk directly).
 `tick()`/`start()`/`force_sync()` mutate internal state and **return a list of
 `Event` dataclasses** (`StateSynced`, `TransitionCompleted`,
 `TransitionSkipped`, `IdleChanged`, …). It does no logging, no stats, no D-Bus.
-This is why `tests/test_machine.py` can drive it directly and assert on the
-emitted events.
+The state-machine tests drive it directly and assert on the emitted events,
+organized in `tests/test_machine_startup.py`, `tests/test_machine_activity.py`,
+`tests/test_machine_transitions.py`, `tests/test_machine_cycles.py`,
+`tests/test_machine_sync.py`, and `tests/test_machine_controls.py`.
+Their deterministic shared setup lives in `tests/machine_helpers.py`.
 
 The daemon's `_handle_event` (`daemon/main.py`) is the *only* place events
 become side effects (stats rows, ring-log lines, D-Bus signals). When changing
@@ -123,6 +126,57 @@ D-Bus service; the control loop calls `machine.tick()` every `check_interval`.
 `ringlog.py` is the in-memory activity log the GUI reads; `stats.py` is the
 SQLite store.
 
+### Explicit owners, with orchestration retained in `Daemon`
+
+`Daemon` constructs one of each collaborator below. Each owns a distinct state
+domain and accepts only the dependencies or observations it needs:
+
+| Owner | State and interface | Boundary |
+| --- | --- | --- |
+| `accounting.py` `ActiveTimeAccounting` | Private pending credit keyed by original day and position; `account()` and `flush()` | Receives `Stats` for persistence and each tick's observations, including the current idle threshold. It holds no config, machine or desk reference. |
+| `config_file.py` `ConfigFileStore` | Config path and private observed mtime; `load_or_bootstrap()`, `load()`, `poll_changed()`, `note_mtime()` and `save()` | Owns bootstrap/import and file lifecycle, using the existing validated, comment-preserving atomic config writer. It returns fresh config without applying it. |
+| `bluetooth.py` `BluetoothSupport` | Private timestamped discovery cache; `discover()`, `bind_bus()`, `device_path()`, `property()` and `report_connect_exhausted()` | Borrows the optional system bus for discovery and observations. It has no desk client or connect/disconnect authority. |
+
+These are composed owners, not shared-state mixins. There is no universal
+daemon context passed into them. None retains a config snapshot: accounting
+receives the current threshold per call, file reads return fresh config, and
+the connect-exhausted callback resolves the current configured MAC when invoked.
+
+`Daemon` remains authoritative for the applied config, formatter, machine and
+current desk. It decides when to reload, apply changes, replace the desk, update
+machine configuration and notify clients. Each write caller retains its existing
+ordering and rollback policy: automation and preset edits restore their prior
+in-memory values on failed persistence; setup keeps its own sequence. The file
+owner stamps successful writes, consumes a changed revision before a watcher
+reload attempt, and never decides runtime application or rollback.
+
+The tick still captures the position, held state and previous check time before
+calling the machine under the movement lock. After releasing that lock it sends
+those observations to accounting, then handles the machine events. Deferred
+credit retains its original day and position; `Stats` remains the SQLite owner.
+`_handle_event` remains the machine-event-to-side-effect boundary.
+
+Movement locking, generation-based supersession, Stop, tracked background tasks,
+initial-read cancellation, sleep inhibition, session handoff, resume recovery
+and guarded shutdown stay in `Daemon`. Stop can interrupt a move without waiting
+for its lock. Shutdown awaits initial-read cancellation, releases this daemon's
+desk client, flushes accounting and closes statistics, guarding bookkeeping
+steps so their failure cannot prevent release. Bluetooth diagnostics may report a
+device-wide connection, but cannot infer its owner or disconnect it; recovery
+continues to release only this daemon's client.
+
+Discovery preserves paired-first merging and the existing timeout policy:
+positive timeouts always scan (capped at 30 seconds), zero uses only a cache
+younger than 60 seconds, and a failed scan replaces the cache with a newly
+timestamped empty result. The support object borrows the bus after setup without
+owning its lifetime. Scanner/controller/Bleak imports remain deferred to the
+operations that need them; daemon and shared imports remain Qt-free.
+
+These boundaries change internal ownership while preserving the public D-Bus
+surface, config format and persistence, statistics, Activity Log messages and
+notifications. Automated fake/offscreen regression and import checks establish
+those contracts; they do not establish new desktop or hardware observations.
+
 `cli.py` is the Qt-free terminal reader and controller. It connects with
 `dbus-fast`, reads the same scalar properties and JSON tables as the GUI, and
 constructs the shared Babel/gettext `Formatter` directly from `AppConfig`.
@@ -147,8 +201,41 @@ was removed before 0.1.0 on exactly that basis — it had no client, published a
 timestamp whose epoch was undocumented on the wire, and was the only reason
 `StateMachine.last_height_at` existed.
 
-`tests/test_dbus_contract.py` checks every member the GUI asks for exists on
-the daemon side, in the shape it asks for it.
+`tests/test_dbus_contract.py` freezes the complete introspection XML of all
+five interfaces (47 members), checks the GUI/CLI member references, and invokes
+the five compound signals through a mock bus to protect flat field order.
+
+The service declarations use dbus-fast's Python scalar aliases and
+`Annotated[..., DBusSignature(...)]` metadata, available since 4.0.0. Compound
+results are typed tuples with unparenthesized signatures (`dd`, `su`, `ssb`,
+`dsssss`, `sbddd`); dbus-fast flattens them into the same ordered wire arguments.
+Empty exported results use an explicit empty-signature `EmptyResult` alias:
+bare deferred `None` annotations fail declaration construction in the compiled
+5.0.22 runtime. All five constructors refer to the real `Daemon` under
+`TYPE_CHECKING`, avoiding a runtime import cycle while letting mypy check the
+service bodies, inputs and collaborator calls without scoped suppressions.
+
+`daemon.dbus_types` uses those native declarations on dbus-fast 4+ and adapts
+the same typed source to string annotations on 2.44.1 through 3.x. The legacy
+adapter copies each decorated function, preserving its async code and argument
+names, and converts only explicit signature metadata. It does not alter the
+original function or patch dbus-fast. This keeps Debian 13's packaged 2.44.1
+supported with the same frozen introspection and flat payload contract. Compound
+tuples become lists at the legacy boundary, including awaited method replies,
+because that compiled runtime's notifier requires lists.
+
+This checking has limits at the decorators and dynamic dispatch. `dbus_method`
+exposes `None` to direct Python callers, including erasing async results into a
+non-awaitable type; `dbus_signal` results and `dbus_property` descriptor reads
+remain `Any`. `Daemon._ifaces` is still a dynamically typed dictionary. The
+unsigned scalar alias is an `int` for Python checking, without range refinement;
+existing runtime validation and D-Bus marshalling remain responsible for values.
+
+Compatibility was verified with the final service source on pure-source
+dbus-fast 4.0.0 and the current compiled 5.0.22, including full XML equality and
+all four compound notifier paths. Python 3.11 syntax parsing and mypy targeting
+passed, and upstream 4.0.0 declares Python >=3.10 with explicit 3.11 support.
+A native Python 3.11 runtime was not run locally.
 
 ### Why the D-Bus wire format avoids containers
 
@@ -220,6 +307,103 @@ Each page under `gui/pages/` is an independent `Page` (see `pages/base.py`) that
 owns its widgets, subscribes to the client signals it needs, and reloads lazily
 via an `on_shown()` hook. `main.py` enforces single-instance (a second launch
 calls `Activate()` over D-Bus) and is tray-optional.
+
+### Observed desk-position duration is a finite sampled estimate
+
+`core/machine.py`'s `PositionObservationTracker` owns a Qt-free interval and freshness lease,
+separate from active automation credit. Actual startup and sync reads,
+verified final move read-back, preset-capture reads and live height callbacks
+feed observations.
+An unchanged confirmed preset renews freshness without restarting its interval;
+a changed preset starts a new interval. No getter, repeated position/status
+signal, requested target, seeded state or historical transition can renew it.
+
+The lease covers `min(sync_interval or 300, 300)` seconds plus
+`min(check_interval, 300)` and the existing 30-second read timeout (390 seconds
+with default intervals). Failed reads, custom/moving state, seat loss, sleep edges, clock
+discontinuities and desk/observation-policy changes invalidate continuity;
+late reads/callbacks from an invalidated acquisition cannot restore it. A
+task-local acquisition context keeps overlapping reads' generation and desk
+identity separate while allowing genuine notification callbacks. Existing
+machine ticks check clock continuity without renewing freshness; the daemon
+samples the observation clock when the callback executes, after any awaited
+presence acquisition, independently of the tick's accounting timestamp. A
+healthy intentional on-demand BLE release preserves the finite lease. Paused,
+snoozed, disabled or idle automation alone does not stop observed time: real
+samples may keep renewing it while active credit and its countdown freeze.
+After uncertainty or expiry, only a fresh actual confirmation starts a new
+interval. Nothing is persisted and no config or BLE connection/polling policy
+is added or changed for this display.
+
+`Desk1.GetPositionObservation` and `Desk1.PositionObservationChanged` are
+additive, read-only members carrying five flat scalars (`sbddd`): position,
+knownness, interval-start wall epoch, observed elapsed seconds and remaining freshness.
+`DaemonClient` validates the whole result and ages one shared receipt cache
+locally on a monotonic clock, omitting duration at expiry or on owner loss.
+An async reply cannot override a newer observation signal or a new owner.
+An older daemon without these members still supports ordinary position and
+commands; the duration stays absent.
+
+Overview and tray query that cache on existing tickers without D-Bus or
+statistics reads. Overview retains the prominent position heading and adjacent
+height; a separate neutral clock capsule immediately before the connection
+chip shows total minutes and zero-padded seconds, floored and nonnegative.
+Its complete contextual message uses localized numbers, independently of the
+existing compact duration/countdown policies. At finite widths extreme values
+elide inside the time capsule, with the complete estimate and sampling
+limitation available to accessibility and hover. Native fonts, platform clock
+icons and palette restyling follow the existing connection capsule's treatment;
+only the time capsule's icon gap compensates for clock artwork whitespace.
+The existing connection chip is unchanged. Tray text retains its original
+contextual “%(position)s for %(duration)s” wording and compact duration format;
+only the value's source changes to observed elapsed time. Its existing menu
+metadata explains that periodic samples may miss intervening moves. No live
+accessibility announcement, click action, focus stop, row, card or preference is
+introduced. Unavailable-daemon, connecting and moving feedback take precedence;
+position-only fallback remains for unknown or expired observations. This
+describes sampled desk position, never a person's
+posture or presence, and never guarantees uninterrupted physical position.
+
+### Typed state values behind raw transport
+
+The Qt-free `core/state_values.py` owns two distinct open domains:
+`PositionValue = DeskState | UnknownPosition` and
+`StatusValue = Status | UnknownStatus`. Known values reuse the enums in
+`core/machine.py`. Each frozen unknown wrapper retains its original `raw: str`,
+including empty text, casing and whitespace. `parse_position` and `parse_status`
+recognize only exact enum values; unfamiliar values stay in their own domain.
+
+D-Bus signatures, properties and Qt `Signal(str)` declarations still carry raw
+strings. Qt converts emitted string enums back to plain strings, so Overview
+and tray parse **after signal delivery**, once in each receiving `str` slot,
+and retain one typed cache per domain. Their decisions use the existing enum
+groups. The D-Bus client parses status before its typed snooze-cache handler
+and emits the original string afterward, preserving update-before-notify order.
+CLI snapshots and stored Statistics history remain raw; they parse only when
+calling the shared presentation API. No storage or transport migration occurs.
+
+`Formatter` and the `gui/util.py` facades accept the appropriate open domain.
+They explicitly unwrap unknown values before rendering: unknown statuses keep
+their exact text; unfamiliar positions keep the existing capitalized fallback;
+an empty position label stays empty and `position_or_custom` supplies translated
+Custom. Only known sitting/standing positions select an opposite direction.
+An unknown wrapper can contain empty text, so its object truthiness cannot
+replace a check of its raw text. Moving state, countdown timing, actions,
+translations and widget layout keep their existing behavior.
+
+Phase 21 checks the actual final APIs with a temporary executable proof outside
+the repository. From this checkout, run
+`/tmp/idasen-companion-phase21-type-proof/run.sh "$PWD"`. It recreates both
+samples and invokes pinned `uvx mypy==2.3.0` with this checkout's `src` on
+`MYPYPATH` and `.venv/bin/python` for installed package discovery. The positive
+sample exercises both enums, both unknown wrappers and both parsers through
+`Formatter` and GUI facades; it exits 0 with no diagnostics. The negative sample
+exits 1 with exactly eight `arg-type` errors: lines 8–9 pass wrong enums, 10–11
+wrong unknown wrappers, 12–13 wrong parsed open domains, and 14–15 raw typo
+strings. `positive.log`, `negative.log`, their `.status` files and
+`evidence.json` beside the script record the commands, source head and exact
+line/category map. These are temporary verification artifacts; no checker
+subprocess or demonstration API is added to the product or test suite.
 
 ### Two settings-class pages, one shape
 

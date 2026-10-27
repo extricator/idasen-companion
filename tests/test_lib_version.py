@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The About page's Libraries row, and the two names every package has.
 
 What the callers pass is an *import* name. It usually doubles as the

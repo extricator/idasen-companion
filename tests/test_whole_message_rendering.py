@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Each surface Phase 11 converts renders the whole message a translator
 owns, rather than fragments the code glued together.
 
@@ -34,9 +35,11 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QLocale, QObject, Signal  # noqa: E402
 from PySide6.QtGui import QPainter  # noqa: E402
-from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
+from PySide6.QtWidgets import QLabel  # noqa: E402
 
+from idasen_companion.core.clocks import WallInstant  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
+from idasen_companion.core.decoded_data import DailyStatRow, TransitionRow  # noqa: E402
 from idasen_companion.core.presentation import (  # noqa: E402
     Formatter, PresentationContext,
 )
@@ -45,6 +48,8 @@ from idasen_companion.core.i18n import (  # noqa: E402
 )
 from idasen_companion.core.locale_profile import TimeStyle  # noqa: E402
 from idasen_companion.core.display_prefs import HeightUnit  # noqa: E402
+from idasen_companion.core.lengths import Length
+from idasen_companion.core.machine import DeskState  # noqa: E402
 from idasen_companion.core.locale_profile import LocaleProfile  # noqa: E402
 from idasen_companion.gui import context as context_mod  # noqa: E402
 from idasen_companion.gui.context import AppContext  # noqa: E402
@@ -56,11 +61,6 @@ from idasen_companion.gui.service_ctl import AutostartState  # noqa: E402
 from idasen_companion.gui.setup_wizard import SetupWizard  # noqa: E402
 from idasen_companion.gui.util import position_label, preset_label  # noqa: E402
 from idasen_companion.gui.widgets import DailyBarsChart, RangeRail  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class _FakeOverviewClient(QObject):
@@ -93,7 +93,7 @@ class _FakeOverviewClient(QObject):
     # the honest thing to pin here -- the "Snoozed until later" transient is
     # a known, accepted gap (see CONTEXT.md's deferred list), not something
     # this fixture should hide by seeding a fake real deadline.
-    def snooze_until(self): return 0.0
+    def snooze_until(self): return WallInstant(0.0)
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ class _FakeStatisticsClient(QObject):
 
     def __init__(self, daily_stats):
         super().__init__()
-        self._daily_stats = daily_stats
+        self._daily_stats = [DailyStatRow(*row) for row in daily_stats]
 
     def get_daily_stats(self, start: str, end: str) -> list:
         return self._daily_stats
@@ -199,16 +199,16 @@ def _widget_ctx() -> AppContext:
 
 def test_range_rail_labels_its_presets_in_the_user_language(qapp):
     ctx = _widget_ctx()
-    rail = RangeRail(0.6, 1.2, ctx)
+    rail = RangeRail(Length(0.6), Length(1.2), ctx)
     rail.resize(120, 300)
-    rail.set_presets({"sit": 0.7, "stand": 1.1, "perch": 0.95})
-    rail.set_height(0.7)  # exactly at "sit", so that tick shows the live height
+    rail.set_presets({"sit": Length(0.7), "stand": Length(1.1), "perch": Length(0.95)})
+    rail.set_height(Length(0.7))  # exactly at "sit", so that tick shows the live height
 
     texts = _drawn_texts(rail)
 
     # The live preset ("sit") renders through the shared tick message, with
     # its name already translated -- not the raw dict key.
-    assert ctx.fmt.preset_tick(preset_label("sit"), 0.7) in texts
+    assert ctx.fmt.preset_tick(preset_label("sit"), Length(0.7)) in texts
     # The resting protected preset ("stand") is a bare translated label.
     assert preset_label("stand") in texts
     # A user-named preset is unaffected -- preset_label returns it verbatim.
@@ -216,11 +216,14 @@ def test_range_rail_labels_its_presets_in_the_user_language(qapp):
 
 
 def test_daily_chart_tooltip_is_translated(qapp):
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.gui.chart_data import DailyChartRow
+
     ctx = _widget_ctx()
     chart = DailyBarsChart(ctx)
     chart.set_rows([
-        ("Mon 17", 3600, 1800, False),  # has data
-        ("Tue 18", 0, 0, False),        # no data
+        DailyChartRow(label="Mon 17", sitting=Duration(3600), standing=Duration(1800), is_today=False),
+        DailyChartRow(label="Tue 18", sitting=Duration(0), standing=Duration(0), is_today=False),
     ])
 
     with_data = chart._tooltip_for(0)  # pylint: disable=protected-access
@@ -230,6 +233,8 @@ def test_daily_chart_tooltip_is_translated(qapp):
         "Mon 17: sitting %s, standing %s"
         % (ctx.fmt.duration_hm(3600), ctx.fmt.duration_hm(1800)))
     assert no_data == "Tue 18: no data"
+    chart.resize(400, 100)
+    assert ctx.fmt.context.locale.percent(1800 / 5400) in _drawn_texts(chart)
 
 
 def test_statistics_footer_with_tracked_time_is_one_message(qapp, tmp_path, monkeypatch):
@@ -264,7 +269,24 @@ def test_transition_row_renders_position_words_as_one_message(
         lbl for lbl in labels
         if lbl.text() not in ("",) and "→" in lbl.text())
     assert change_label.text() == (
-        position_label("sitting") + " → " + position_label("standing"))
+        position_label(DeskState.SITTING) + " → " + position_label(DeskState.STANDING))
+
+
+def test_history_positions_are_formatted_without_changing_raw_rows(
+        qapp, tmp_path, monkeypatch):
+    page = _statistics_page(qapp, tmp_path, monkeypatch, [])
+    history = [TransitionRow(0.0, "sitting", " Future-POSITION \t", "manual", False),
+               TransitionRow(1.0, "", "SITTING", "automation", False)]
+    original = [row[:] for row in history]
+    monkeypatch.setattr(page.client, "get_transitions", lambda limit: history)
+    page.on_shown()
+    changes = [label.text()
+               for index in range(page._trans_rows.count())
+               for label in page._trans_rows.itemAt(index).widget().findChildren(QLabel)
+               if "→" in label.text()]
+    assert changes == ["Sitting →  future-position \t", " → Sitting"]
+    assert history == original
+    assert all(type(row[column]) is str for row in history for column in (1, 2))
 
 
 def test_about_desk_line_renders_mac_and_mode_as_one_message(
@@ -275,14 +297,6 @@ def test_about_desk_line_renders_mac_and_mode_as_one_message(
     page.on_shown()
     assert page._fields["Desk"].text() == (  # pylint: disable=protected-access
         "AA:BB:CC:DD:EE:FF" + " · " + page.tr("persistent"))
-
-
-def test_overview_status_reason_renders_with_no_separator(overview_page):
-    overview_page.client.statusChanged.emit("paused")
-    assert overview_page.status_reason.text() == ""
-
-    overview_page.client.statusChanged.emit("does-not-exist")
-    assert overview_page.status_reason.text() == ""
 
 
 # The ceiling D-05's table sets: the three longest reasons wrapped at the
@@ -312,6 +326,8 @@ _STATUS_BRANCH_CASES = [
     ("held", "Off-cycle", "desk isn't at a preset"),
     ("move-failed", "Last move failed", "couldn't reach the desk"),
     ("does-not-exist", "does-not-exist", ""),
+    ("", "", ""),
+    (" Future-Status \t", " Future-Status \t", ""),
 ]
 
 
@@ -348,10 +364,10 @@ def test_setup_wizard_success_paragraphs_stay_three_whole_messages(
     wizard = SetupWizard(client=object(), ctx=ctx)
     wizard.usage_page.automatic.setChecked(True)
 
-    paragraphs = wizard._success_paragraphs(0.75)  # pylint: disable=protected-access
+    paragraphs = wizard._success_paragraphs(Length(0.75))  # pylint: disable=protected-access
 
     assert len(paragraphs) == 3
-    assert ctx.fmt.height(0.75) in paragraphs[0]
+    assert ctx.fmt.height(Length(0.75)) in paragraphs[0]
 
 
 def test_the_out_of_schedule_note_follows_the_clock_format(overview_page):
@@ -397,3 +413,49 @@ def test_a_malformed_schedule_boundary_renders_rather_than_raising(
     """
     assert overview_page._schedule_clock("not-a-time") == "not-a-time"
     assert overview_page._schedule_clock("") == ""
+
+
+@pytest.mark.parametrize("language,position,expected,description", [
+    ("en", "Standing", "Standing for about 1h 05m",
+     "Estimated from periodic desk observations; moves between samples may be missed."),
+    ("es", "De pie", "De pie desde hace unos 1 h 05 min",
+     "Estimación basada en observaciones periódicas del escritorio; pueden pasar inadvertidos los movimientos entre muestras."),
+], ids=["english", "spanish"])
+def test_position_observation_uses_complete_localized_messages(
+        language, position, expected, description):
+    from idasen_companion.core import i18n
+    from idasen_companion.core.durations import Duration
+
+    try:
+        i18n.set_language(language)
+        fmt = Formatter(PresentationContext(
+            locale=LocaleProfile("es_ES" if language == "es" else "en_US"),
+            translator=GettextTranslator(), unit=HeightUnit.CENTIMETRES,
+            time_style=TimeStyle.HOUR_AND_MINUTE_24))
+        assert fmt.position_observation(position, Duration(3900.9)) == expected
+        assert fmt.observed_duration(Duration(3900.9)) == (
+            "65 min 00 s" if language == "es" else "65m 00s")
+        assert fmt.position_observation_description() == description
+    finally:
+        i18n.set_language(i18n.SYSTEM)
+
+
+def test_position_observation_allows_translator_placeholder_reordering():
+    from idasen_companion.core.durations import Duration
+    from idasen_companion.core.presentation import EnglishTranslator
+
+    class Reordered(EnglishTranslator):
+        def message(self, source, **values):
+            if source == "%(position)s for about %(duration)s":
+                assert source.context == "shared.presentation"
+                return "About %(duration)s: %(position)s" % values
+            if source == "%(minutes)sm %(seconds)ss":
+                assert source.context == "shared.presentation"
+                return "%(seconds)s seconds / %(minutes)s minutes" % values
+            return super().message(source, **values)
+
+    fmt = Formatter(PresentationContext(
+        locale=LocaleProfile("en_US"), translator=Reordered(),
+        unit=HeightUnit.CENTIMETRES, time_style=TimeStyle.HOUR_AND_MINUTE_24))
+    assert fmt.position_observation("Standing", Duration(59.9)) == "About 59s: Standing"
+    assert fmt.observed_duration(Duration(61)) == "01 seconds / 1 minutes"

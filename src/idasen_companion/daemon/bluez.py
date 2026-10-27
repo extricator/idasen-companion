@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """BlueZ helpers: find desks the computer already knows about.
 
 If the user paired the desk through their desktop's Bluetooth settings

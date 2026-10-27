@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A hand-served StatusNotifierItem, so the tray tooltip can have a title.
 
 The SNI ``ToolTip`` property is a struct ``(icon-name, icon-pixmaps, title,

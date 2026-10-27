@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Desktop notifications via org.freedesktop.Notifications, sent by the
 daemon so pre-move warnings work even when the GUI isn't running."""
 

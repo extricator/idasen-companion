@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Structured journal encoding and the journalctl reader (see docs/LOGGING.md)."""
 
 import json
@@ -157,6 +158,28 @@ def test_read_recent_skips_unparsable_lines():
     with patch.object(journal.subprocess, "run", return_value=Proc()):
         entries = journal.read_recent()
     assert [e["text"] for e in entries] == ["ok"]
+
+
+def test_read_recent_recovers_per_record_with_journal_defaults():
+    with _journalctl([
+        ["not an object"], {"MESSAGE": [999]},
+        {"MESSAGE": [255], "__REALTIME_TIMESTAMP": "bad", "PRIORITY": "bad",
+         journal.FIELD_PARAMS: "[]"},
+        {"MESSAGE": "out of range", "__REALTIME_TIMESTAMP": str(10 ** 30),
+         journal.FIELD_PARAMS: "not json"},
+        {"MESSAGE": "overflow", "__REALTIME_TIMESTAMP": float("inf"),
+         "PRIORITY": float("inf")},
+        {"MESSAGE": "last", "__REALTIME_TIMESTAMP": "-1000000",
+         journal.FIELD_CHANNEL: " Custom ", journal.FIELD_MSG_ID: " raw ",
+         journal.FIELD_PARAMS: '{"nested": [null, {"value": true}]}'},
+    ]):
+        entries = journal.read_recent()
+    assert entries == [
+        {"ts": -1.0, "level": "info", "channel": " Custom ", "msg_id": " raw ",
+         "params": {"nested": [None, {"value": True}]}, "text": "last"},
+        *({"ts": 0.0, "level": "info", "channel": "diagnostic", "msg_id": "",
+           "params": {}, "text": text} for text in ("�", "out of range", "overflow")),
+    ]
 
 
 def test_inherited_journal_stream_does_not_count_as_owning_it():

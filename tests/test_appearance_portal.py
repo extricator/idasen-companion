@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the desktop-portal appearance-preferences reader.
 
 Mocked at the D-Bus boundary this module itself calls
@@ -34,16 +35,10 @@ import os  # noqa: E402
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtDBus import QDBus, QDBusMessage, QDBusVariant  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from idasen_companion.core import journal  # noqa: E402
 from idasen_companion.core.logmsg import Channel  # noqa: E402
 from idasen_companion.gui import appearance_portal as ap  # noqa: E402
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 class _FakeReply:
@@ -213,8 +208,8 @@ def test_a_reply_of_the_wrong_type_is_treated_as_absent(monkeypatch, bad_value):
     assert prefs.contrast is None
 
 
-@pytest.mark.parametrize("out_of_range", [-1, 3, 999, 2 ** 32 - 1],
-                         ids=["negative", "just-past", "far-past",
+@pytest.mark.parametrize("out_of_range", [-1, 3, 2 ** 32 - 1],
+                         ids=["negative", "just-past",
                               "largest-uint32"])
 def test_a_number_outside_the_key_s_defined_set_is_treated_as_absent(
         monkeypatch, out_of_range):

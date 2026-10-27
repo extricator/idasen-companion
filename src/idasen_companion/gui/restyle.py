@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Re-apply theme-derived styling after the desktop palette changes.
 
 Every ``setStyleSheet(...)`` call that bakes a :func:`.theme.theme` value

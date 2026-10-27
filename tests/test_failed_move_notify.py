@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """A failed move comes and tells you.
 
 ``MoveFailed`` means the desk ignored the app for a quarter of a minute across
@@ -15,9 +16,11 @@ machine itself is unchanged by this work.
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.core.machine import (
     DeskState, HeldOffCycle, MoveFailed, SyncFailed,
 )
+from idasen_companion.core.durations import Duration
 from idasen_companion.core.presentation import (
     Formatter, PresentationContext,
 )
@@ -27,15 +30,13 @@ from idasen_companion.core.i18n import (
 )
 from idasen_companion.core.locale_profile import LocaleProfile
 from idasen_companion.core.display_prefs import HeightUnit
-from idasen_companion.daemon.main import Daemon
+from daemon_helpers import make_daemon_shell
 
 TARGET = 45 * 60
 
 
 def _daemon(*, problems: bool = True, enabled: bool = False):
-    d = Daemon.__new__(Daemon)
-    d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
-    d._desk_lock = asyncio.Lock()  # serializes tick vs manual moves
+    d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.stats = MagicMock()
     d.desk = MagicMock(last_error=None)
@@ -43,7 +44,7 @@ def _daemon(*, problems: bool = True, enabled: bool = False):
     d.config.notifications.enabled = enabled
     d.config.notifications.problems = problems
     d._ifaces = {"automation": MagicMock()}
-    d.machine = MagicMock(held=False, target_duration=TARGET)
+    d.machine = MagicMock(held=False, target_duration=Duration.from_seconds(TARGET))
     d.machine.cycle_target.return_value = TARGET
     # A real Formatter, not a MagicMock: these tests assert on the rendered
     # summary and body handed to the notifier. Built directly rather than
@@ -65,7 +66,7 @@ def _failed(intended=DeskState.STANDING):
     previous = (DeskState.SITTING if intended is DeskState.STANDING
                 else DeskState.STANDING)
     return MoveFailed(previous=previous, intended=intended,
-                      next_target_duration=TARGET)
+                      next_target_duration=Duration.from_seconds(TARGET))
 
 
 async def _settle():
@@ -157,11 +158,11 @@ async def test_automation_paused_still_rides_the_announcements_setting():
     explaining itself, not reporting a fault. Moving it onto `problems` would
     also silently change behaviour for anyone who already unticked `enabled`."""
     d = _daemon(problems=True, enabled=False)
-    d._handle_event(HeldOffCycle(0.95), "automation")
+    d._handle_event(HeldOffCycle(Length(0.95)), "automation")
     await _settle()
     d._notifier.send.assert_not_called()
 
     d = _daemon(problems=False, enabled=True)
-    d._handle_event(HeldOffCycle(0.95), "automation")
+    d._handle_event(HeldOffCycle(Length(0.95)), "automation")
     await _settle()
     d._notifier.send.assert_called_once()

@@ -1,10 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Local statistics: per-day sit/stand seconds and transition history.
 
 Active time is credited to the desk state it was spent in — but not per
 tick. A silent window is held back until presence is settled, then flushed if
 input proves the user was there, or discarded if the silence turns out to have
-been an absence. See ``Daemon._tick`` and ``_flush_pending_credit``; the
-``day`` parameter on ``add_active_time`` exists to serve that deferred flush.
+been an absence. ``ActiveTimeAccounting`` owns that attribution and pending
+credit; the ``day`` parameter on ``add_active_time`` serves its deferred flush.
 """
 
 from __future__ import annotations
@@ -15,6 +16,9 @@ import time
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+
+from ..core.decoded_data import DailyStatRow, TransitionRow
+from ..core.durations import Duration
 
 DEFAULT_DB_PATH = Path(
     os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")
@@ -122,7 +126,8 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not close the statistics database", error)
 
-    def add_active_time(self, state: str, seconds: float, day: date | None = None) -> None:
+    def add_active_time(self, state: str, elapsed: Duration,
+                        day: date | None = None) -> None:
         if self._db is None:
             return
         day_str = (day or date.today()).isoformat()
@@ -130,7 +135,7 @@ class Stats:
             self._db.execute(
                 """INSERT INTO daily (day, state, seconds) VALUES (?, ?, ?)
                    ON CONFLICT (day, state) DO UPDATE SET seconds = seconds + excluded.seconds""",
-                (day_str, state, seconds),
+                (day_str, state, elapsed.seconds),
             )
             self._db.commit()
         except sqlite3.Error as error:
@@ -151,7 +156,7 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not record a desk transition", error)
 
-    def daily_totals(self, start: date, end: date) -> list[tuple[str, str, float]]:
+    def daily_totals(self, start: date, end: date) -> list[DailyStatRow]:
         """Rows of (day, state, seconds) between start and end inclusive."""
         if self._db is None:
             return []
@@ -164,9 +169,9 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not read daily desk totals", error)
             return []
-        return [(d, s, float(sec)) for d, s, sec in rows]
+        return [DailyStatRow(d, s, float(sec)) for d, s, sec in rows]
 
-    def recent_transitions(self, limit: int = 50) -> list[tuple[float, str, str, str, bool]]:
+    def recent_transitions(self, limit: int = 50) -> list[TransitionRow]:
         # Clamped: the limit arrives from a D-Bus caller, and a negative one
         # becomes SQLite's "LIMIT -1", i.e. the whole table serialized to JSON.
         limit = max(1, min(int(limit), 1000))
@@ -181,4 +186,4 @@ class Stats:
         except sqlite3.Error as error:
             self._fail("could not read recent desk transitions", error)
             return []
-        return [(float(ts), f, t, trig, bool(i)) for ts, f, t, trig, i in rows]
+        return [TransitionRow(float(ts), f, t, trig, bool(i)) for ts, f, t, trig, i in rows]

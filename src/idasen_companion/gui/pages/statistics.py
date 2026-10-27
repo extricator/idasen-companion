@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Statistics page: daily sit/stand totals and recent transitions."""
 
 from __future__ import annotations
@@ -8,7 +9,11 @@ from datetime import date, datetime, timedelta
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ...core.machine import DeskState
+from ...core.durations import Duration
+from ...core.state_values import parse_position
 from .. import restyle
+from ..chart_data import DailyChartRow
 from ..theme import css, theme
 from ..util import (
     fmt_day_and_clock, fmt_day_label, position_label, trigger_label,
@@ -47,8 +52,8 @@ class StatisticsPage(Page):
         head.addStretch()
         sit_color, stand_color = DailyBarsChart.series_colors()
         legend_dots: list[StatusDot] = []
-        for color, name in ((sit_color, position_label("sitting")),
-                            (stand_color, position_label("standing"))):
+        for color, name in ((sit_color, position_label(DeskState.SITTING)),
+                            (stand_color, position_label(DeskState.STANDING))):
             dot = StatusDot(color)
             legend_dots.append(dot)
             label = QLabel(name)
@@ -116,22 +121,24 @@ class StatisticsPage(Page):
         end_date = date.today()
         start = end_date - timedelta(days=13)
         by_day: dict[str, dict[str, float]] = {}
-        for day_str, state, seconds in self.client.get_daily_stats(
+        for daily in self.client.get_daily_stats(
                 start.isoformat(), end_date.isoformat()):
-            by_day.setdefault(day_str, {})[state] = seconds
+            by_day.setdefault(daily.day, {})[daily.state] = daily.seconds
 
         # One bar per calendar day, oldest first / today last.
-        rows = []
-        total_sit = total_stand = 0.0
+        rows: list[DailyChartRow] = []
+        total_sit = total_stand = Duration(0.0)
         for offset in range(14):
             window_day = start + timedelta(days=offset)
             data = by_day.get(window_day.isoformat(), {})
-            sit = data.get("sitting", 0.0)
-            stand = data.get("standing", 0.0)
+            sit = Duration(data.get("sitting", 0.0))
+            stand = Duration(data.get("standing", 0.0))
             total_sit += sit
             total_stand += stand
-            rows.append((fmt_day_label(self.ctx.fmt, datetime(window_day.year, window_day.month, window_day.day)),
-                         sit, stand, window_day == end_date))
+            rows.append(DailyChartRow(
+                label=fmt_day_label(self.ctx.fmt, datetime(
+                    window_day.year, window_day.month, window_day.day)),
+                sitting=sit, standing=stand, is_today=window_day == end_date))
         self.daily_chart.set_rows(rows)
         overall = total_sit + total_stand
         if overall:
@@ -143,13 +150,14 @@ class StatisticsPage(Page):
         self.stats_footer.setText(footer)
 
         clear_layout(self._trans_rows)
-        for i, (occurred_at, from_state, to_state, trigger, interrupted) in enumerate(
+        for i, transition in enumerate(
                 self.client.get_transitions(50)):
             if i:
                 self._trans_rows.addWidget(separator())
             self._trans_rows.addWidget(
-                self._make_transition_row(occurred_at, from_state, to_state,
-                                          trigger, interrupted))
+                self._make_transition_row(
+                    transition.timestamp, transition.from_state, transition.to_state,
+                    transition.trigger, transition.interrupted))
 
     def _make_transition_row(self, occurred_at: float, from_state: str, to_state: str,
                              trigger: str, interrupted: bool) -> QWidget:
@@ -178,7 +186,8 @@ class StatisticsPage(Page):
         # to know about marked helpers, not just tr() itself.
         # Translators: The arrow may be reversed for right-to-left languages.
         change_text = pgettext('statistics', "%(from)s → %(to)s") % {
-            "from": position_label(from_state), "to": position_label(to_state)}
+            "from": position_label(parse_position(from_state)),
+            "to": position_label(parse_position(to_state))}
         change = QLabel(change_text)
         change.setStyleSheet("border: none;")
         hbox.addWidget(when)

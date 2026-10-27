@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Regenerate packaging/flatpak/python3-deps.json.
 
 Resolves the runtime dependency closure for the Flatpak runtime's Python

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Both desk implementations must satisfy DeskPort — structurally, not just
 in the two methods anyone happened to call.
 
@@ -13,6 +14,7 @@ import inspect
 
 import pytest
 
+from idasen_companion.core.lengths import Length
 from idasen_companion.desk.ble import BleDesk
 from idasen_companion.desk.mock import MockDesk
 from idasen_companion.desk.port import DeskPort
@@ -66,18 +68,29 @@ async def test_the_mock_can_report_a_reason_for_a_failed_move():
 
     desk.fail_next_move = True
     desk.last_error = "connect timed out"
-    assert await desk.move_to(1.10) is False
+    assert await desk.move_to(Length(1.10)) is False
     assert desk.last_error == "connect timed out"
 
 
 async def test_the_mock_disconnect_is_a_no_op_that_can_be_awaited():
-    desk = MockDesk(height=0.9)
+    desk = MockDesk(height=Length(0.9))
     await desk.disconnect()      # must not raise
-    assert desk.height == 0.9    # and must not disturb anything
+    assert desk.height == Length(0.9)    # and must not disturb anything
 
 
-def test_a_mock_desk_is_accepted_where_a_deskport_is_wanted():
-    def wants_port(_d: DeskPort) -> None:
-        pass
+async def test_mock_refusal_preserves_pending_hooks_and_manual_bool_results():
+    desk = MockDesk()
+    desk.fail_next_move = True
+    desk.interrupt_next_move_at = Length(0.9)
+    desk.last_error = "earlier failure"
 
-    wants_port(MockDesk())       # runtime is trivially fine; mypy is the check
+    async def refuse():
+        return False
+
+    assert await desk.move_to(Length(1.10), guard=refuse) is None
+    assert desk.move_calls == [] and desk.height == Length(0.62)
+    assert desk.fail_next_move and desk.interrupt_next_move_at == Length(0.9)
+    assert desk.last_error == "earlier failure"
+    assert await desk.move_to(Length(1.10)) is False
+    assert await desk.move_to(Length(1.10)) is True
+    assert desk.height == Length(0.9)

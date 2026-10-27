@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The ``Formatter`` facade and the context it holds.
 
 This module records the design's § 14 call-site decision — the choice
@@ -46,12 +47,15 @@ solved that on its own — PRES-06 did, by handing those widgets a
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import localcontext
 
 from . import display_prefs as units
-from .durations import SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
+from .durations import Duration, SUB_MINUTE_THRESHOLD_SECONDS, decompose_hms
 from .machine import DeskState
+from .state_values import PositionValue, StatusValue, UnknownPosition, UnknownStatus
 from .display_prefs import HeightUnit
-from .i18n import Translator
+from .lengths import Length
+from .i18n import P_, Translator
 from .i18n import (
     AUTOMATION_PAUSED_BODY, AUTOMATION_PAUSED_SUMMARY, HEIGHT_CENTIMETRES,
     HEIGHT_INCHES, HOURS, HOURS_AND_MINUTES, HOURS_AND_MINUTES_COMPACT,
@@ -124,13 +128,13 @@ class Formatter:
         """The clock wall-clock times render on, from the injected context."""
         return self._context.time_style
 
-    def to_display_height(self, meters: float) -> float:
+    def to_display_height(self, meters: Length) -> float:
         """Metres as the number the user sees (1.105 -> 110.5 cm / 43.5 in)."""
-        return units.to_display_height(meters, self.unit)
+        return meters.to_display(self.unit)
 
-    def from_display_height(self, value: float) -> float:
+    def from_display_height(self, value: float) -> Length:
         """The inverse of :meth:`to_display_height`, back to metres."""
-        return units.from_display_height(value, self.unit)
+        return Length.from_display(value, self.unit)
 
     def height_decimals(self) -> int:
         """Decimal places a height is shown with, for the injected unit."""
@@ -140,7 +144,7 @@ class Formatter:
         """A single step of a height spin box, in display units."""
         return units.height_step(self.unit)
 
-    def height_value(self, meters: float, trim: bool = False) -> str:
+    def height_value(self, meters: Length, trim: bool = False) -> str:
         """Locale-formatted height *number*, with no unit (1.105 -> '110.5').
 
         Carries no translatable string — it is a bare number, never a unit
@@ -151,7 +155,7 @@ class Formatter:
             self.to_display_height(meters),
             decimals=self.height_decimals(), trim_trailing_zeroes=trim)
 
-    def height(self, meters: float, trim: bool = False) -> str:
+    def height(self, meters: Length, trim: bool = False) -> str:
         """A height as the GUI shows it, unit included (1.105 -> '110.5 cm').
 
         One whole translated message per unit, with the formatted number
@@ -166,7 +170,7 @@ class Formatter:
         return self._context.translator.message(
             source, value=self.height_value(meters, trim))
 
-    def preset_tick(self, label: str, meters: float, trim: bool = False) -> str:
+    def preset_tick(self, label: str, meters: Length, trim: bool = False) -> str:
         """A preset tick's name next to its height, e.g. "Sit · 110.5".
 
         The one message every rail renders a preset tick through, so the
@@ -194,15 +198,15 @@ class Formatter:
         key = connection_state_key(connected, available, persistent)
         return connection_phrases(self._context.translator, key)
 
-    def status_label(self, status: str) -> str:
+    def status_label(self, status: StatusValue) -> str:
         """The long automation-status sentence for a status wire value."""
         return status_label(self._context.translator, status)
 
-    def status_head(self, status: str) -> str:
+    def status_head(self, status: StatusValue) -> str:
         """The short Overview status head word for a status wire value."""
         return status_head(self._context.translator, status)
 
-    def position_label(self, position: str) -> str:
+    def position_label(self, position: PositionValue) -> str:
         """The display word for a desk position wire value."""
         return position_label(self._context.translator, position)
 
@@ -309,9 +313,34 @@ class Formatter:
         """The plural word for a count of minutes, e.g. "5 minutes"."""
         return minutes_label(self._context.translator, count)
 
-    def position_or_custom(self, position: str) -> str:
+    def position_or_custom(self, position: PositionValue) -> str:
         """The desk's position as a word, or "Custom" at neither preset."""
         return position_or_custom(self._context.translator, position)
+
+    def position_observation(self, position: str, elapsed: Duration) -> str:
+        """A sampled desk-position estimate, independent of active credit."""
+        return self._context.translator.message(
+            P_('shared.presentation', "%(position)s for about %(duration)s"),
+            position=position, duration=self.duration(elapsed.seconds))
+
+    def position_observation_description(self) -> str:
+        """The complete sampling limitation, for accessible descriptions."""
+        return self._context.translator.message(P_(
+            'shared.presentation',
+            "Estimated from periodic desk observations; moves between samples may be missed."))
+
+    def observed_duration(self, elapsed: Duration) -> str:
+        """Overview's elapsed estimate as total minutes and padded seconds."""
+        minutes, seconds = divmod(max(0, int(elapsed.seconds)), 60)
+        # Babel quantizes integers using the decimal context. Preserve finite
+        # long observations rather than failing beyond its default precision.
+        with localcontext() as context:
+            context.prec = max(context.prec, len(str(minutes)) + 2)
+            minute_text = self._context.locale.integer(minutes)
+        return self._context.translator.message(
+            P_('shared.presentation', "%(minutes)sm %(seconds)ss"),
+            minutes=minute_text,
+            seconds=self._context.locale.integer(seconds, min_digits=2))
 
     def countdown(self, seconds: float) -> str:
         """A running countdown, e.g. 125 -> "2:05"."""
@@ -605,7 +634,7 @@ def connection_phrases(translator: Translator, key: str) -> tuple[str, str]:
             translator.message(CONNECTION_CHIP_ON_DEMAND))
 
 
-def status_label(translator: Translator, status: str) -> str:
+def status_label(translator: Translator, status: StatusValue) -> str:
     """The long automation-status sentence for a status wire value.
 
     Falls back to the raw status string for an unrecognized key: a status
@@ -613,29 +642,34 @@ def status_label(translator: Translator, status: str) -> str:
     as nothing at all, and `tests/test_status_labels.py` is what stops that
     fallback from becoming the way a new status ships.
     """
+    if isinstance(status, UnknownStatus):
+        return status.raw
     source = STATUS_LABELS.get(status)
     return translator.message(source) if source is not None else status
 
 
-def status_head(translator: Translator, status: str) -> str:
+def status_head(translator: Translator, status: StatusValue) -> str:
     """The short Overview status head word for a status wire value.
 
     Falls back to the raw status string for an unrecognized key."""
+    if isinstance(status, UnknownStatus):
+        return status.raw
     source = STATUS_HEADS.get(status)
     return translator.message(source) if source is not None else status
 
 
-def position_label(translator: Translator, position: str) -> str:
+def position_label(translator: Translator, position: PositionValue) -> str:
     """The display word for a desk position wire value.
 
     Falls back to a capitalized copy for anything unrecognized, and ``""``
     for an empty/unknown position (callers substitute their own
     placeholder).
     """
-    source = POSITION_LABELS.get(position)
+    raw = position.raw if isinstance(position, UnknownPosition) else position
+    source = POSITION_LABELS.get(raw)
     if source is not None:
         return translator.message(source)
-    return position.capitalize() if position else ""
+    return raw.capitalize() if raw else ""
 
 
 def preset_label(translator: Translator, name: str) -> str:
@@ -697,7 +731,7 @@ def minutes_label(translator: Translator, count: int) -> str:
     return translator.plural(*MINUTES, count) % count
 
 
-def position_or_custom(translator: Translator, position: str) -> str:
+def position_or_custom(translator: Translator, position: PositionValue) -> str:
     """The desk's position as a word, or "Custom" at neither preset."""
     return (position_label(translator, position)
             or translator.message(CUSTOM))

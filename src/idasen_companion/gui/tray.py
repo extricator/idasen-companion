@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """System tray icon (StatusNotifier via QSystemTrayIcon).
 
 Optional by design: on GNOME without the AppIndicator extension the icon
@@ -8,6 +9,9 @@ window. gui.main decides whether to construct this at all.
 from __future__ import annotations
 
 from ..core.i18n import pgettext
+from ..core.clocks import MonotonicInstant
+from ..core.durations import Duration
+from ..core.lengths import Length
 
 import time
 from datetime import date
@@ -18,20 +22,16 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from ..core.machine import (
-    COUNTDOWN_STATUSES, NO_CYCLE_STATUSES, RESUMABLE_STATUSES,
+    RESUMABLE_STATUSES, DeskState, Status,
 )
 from ..core.presentation import Formatter
+from ..core.state_values import PositionValue, StatusValue, parse_position, parse_status
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,
                    snooze_line, status_label)
 
 SNOOZE_CHOICES = (5, 10, 15, 30, 60)
-
-# The machine speaks ``Status``; the wire and this client speak its values.
-_NO_CYCLE_STATUS_VALUES = frozenset(s.value for s in NO_CYCLE_STATUSES)
-_RESUMABLE_VALUES = frozenset(s.value for s in RESUMABLE_STATUSES)
-_COUNTDOWN_VALUES = frozenset(s.value for s in COUNTDOWN_STATUSES)
 
 # The tooltip's bold title. Not a tr() string: it is the product name, and a
 # brand name is the one piece of UI text that must read the same in every
@@ -58,16 +58,15 @@ class TrayIcon(QSystemTrayIcon):
         super().__init__(icon, parent)
         self.client = client
         self.window = window
-        self._status = ""
-        self._position = ""
+        self._status: StatusValue = parse_status("")
+        self._position: PositionValue = parse_position("")
         # None until the first progress push, and deliberately not 0.0: a zero
         # countdown is a real state ("Due now"), not the absence of one. A
         # falsy 0.0 conflated the two, so the countdown clause vanished
         # outright once the clock ran out — for as long as the move waited.
-        self._remaining: float | None = None
-        self._elapsed: float | None = None
-        # When those two were last true, so the ticker below can age them.
-        self._progress_stamp = time.monotonic()
+        self._remaining: Duration | None = None
+        # Receipt time for the independently interpolated active countdown.
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         # The day's totals, cached: see _refresh_texts for why the ticker
         # must not re-fetch them.
         self._today = ""
@@ -136,6 +135,9 @@ class TrayIcon(QSystemTrayIcon):
         self.activated.connect(self._on_activated)
         client.statusChanged.connect(self._on_status)
         client.positionChanged.connect(self._on_position)
+        observation_changed = getattr(client, "positionObservationChanged", None)
+        if observation_changed is not None and hasattr(observation_changed, "connect"):
+            observation_changed.connect(lambda: self._refresh_texts(stats=False))
         client.progressChanged.connect(self._on_progress)
         client.presetsChanged.connect(self._rebuild_presets)
         client.availableChanged.connect(self._on_available)
@@ -146,13 +148,12 @@ class TrayIcon(QSystemTrayIcon):
         # the first snoozed tooltip says "later" and this redraws it with the
         # time. Same reason OverviewPage subscribes to snoozeUntilChanged.
         client.snoozeUntilChanged.connect(lambda *_: self._refresh_texts())
-        # The window owns the config; the only part of it this menu renders is
-        # the unit its preset heights are in. Duck-typed because the tray is
-        # also built in tests around a stand-in window.
+        # The window rebuilds its formatter before announcing config changes.
+        # Refresh both preset heights and cached tooltip text from it.
+        # Duck-typed because tests also use a stand-in window.
         ctx = getattr(window, "ctx", None)
         if ctx is not None:
-            ctx.configChanged.connect(
-                lambda: self._rebuild_presets(self._presets))
+            ctx.configChanged.connect(self._on_config_changed)
 
         # Drive the initial state now that we've subscribed, for the same
         # reason MainWindow re-emits availableChanged after subscribing — but
@@ -197,12 +198,14 @@ class TrayIcon(QSystemTrayIcon):
 
     # ----- updates -----
 
+    def _on_config_changed(self) -> None:
+        self._rebuild_presets(self._presets)
+        self._refresh_texts()
+
     def _on_available(self, available: bool) -> None:
         if not available:
             self._end_connecting()
-            text = pgettext('tray', "Daemon not running")
-            self._status_action.setText(text)
-            self._set_tooltip(text)
+        self._refresh_texts(stats=False)
 
     def _on_connected(self, connected: bool) -> None:
         self._connected = connected
@@ -215,44 +218,31 @@ class TrayIcon(QSystemTrayIcon):
         self._moving = moving
         if moving:
             self._end_connecting()
+        self._refresh_texts(stats=False)
 
     def _on_status(self, status: str) -> None:
-        self._status = status
-        if status == "move-failed":
+        self._status = parse_status(status)
+        if self._status == Status.MOVE_FAILED:
             self._end_connecting()
         self._pause_action.setText(
-            pgettext('tray', "Resume automation") if status in _RESUMABLE_VALUES
+            pgettext('tray', "Resume automation") if self._status in RESUMABLE_STATUSES
             else pgettext('tray', "Pause automation"))
         for action in self._cycle_actions:
-            action.setVisible(status != "disabled")
-        self._cycle_separator.setVisible(status != "disabled")
+            action.setVisible(self._status != Status.DISABLED)
+        self._cycle_separator.setVisible(self._status != Status.DISABLED)
         self._refresh_texts()
 
     def _on_position(self, position: str) -> None:
-        self._position = position
+        self._position = parse_position(position)
         self._refresh_texts()
 
     def _on_progress(self, active_time: float, target: float) -> None:
-        self._remaining = max(0.0, target - active_time)
-        # The other half of the same number: how long this position has been
-        # held. Both sides of the cycle are worth a line in the tooltip.
-        self._elapsed = max(0.0, active_time)
-        self._progress_stamp = time.monotonic()
+        self._remaining = max(Duration(0.0), Duration(target - active_time))
+        self._progress_stamp = MonotonicInstant(time.monotonic())
         self._refresh_texts()
 
     def _tick(self) -> None:
-        """Age the countdown by a second.
-
-        Only the two states that show one, mirroring Overview's own ticker
-        (``pages/overview.py`` ``_tick_countdown``). Everywhere else this is a
-        bare comparison, and even inside a cycle it usually re-renders the same
-        string — which ``RichTooltip.update`` drops without a D-Bus signal.
-        """
-        if self._status not in _COUNTDOWN_VALUES:
-            return
-        remaining = self._shown_remaining()
-        if remaining is None or remaining <= 0:
-            return
+        """Age cached observations independently of the active countdown."""
         self._refresh_texts(stats=False)
 
     def _shown_remaining(self) -> float | None:
@@ -271,26 +261,15 @@ class TrayIcon(QSystemTrayIcon):
         """
         if self._remaining is None:
             return None
-        return max(0.0, round(self._remaining - self._since_progress()))
+        return max(0.0, round((self._remaining - self._since_progress()).seconds))
 
-    def _cycle_stopped(self) -> bool:
-        """Whether the active-time clock is frozen with no scheduled thaw.
+    def _shown_elapsed(self) -> Duration | None:
+        """Locally aged sampled estimate, including while automation freezes."""
+        elapsed = self.client.position_observation_elapsed(str(self._position))
+        return elapsed if not self._moving else None
 
-        The machine's own list, not a copy of it — see ``NO_CYCLE_STATUSES``.
-        Deliberately excludes idle, lock and away: those stop the accumulator
-        too, but the cycle is still this one and the freeze ends the moment the
-        user comes back, so the duration is stale rather than meaningless.
-        """
-        return self._status in _NO_CYCLE_STATUS_VALUES
-
-    def _shown_elapsed(self) -> float | None:
-        """How long this position has been held, aged the same way."""
-        if self._elapsed is None:
-            return None
-        return float(round(self._elapsed + self._since_progress()))
-
-    def _since_progress(self) -> float:
-        return time.monotonic() - self._progress_stamp
+    def _since_progress(self) -> Duration:
+        return MonotonicInstant(time.monotonic()) - self._progress_stamp
 
     def _time_left(self, remaining: float) -> str:
         """The remaining time as a word: '11m', '45s'.
@@ -344,7 +323,7 @@ class TrayIcon(QSystemTrayIcon):
         # but the failure is the thing worth the line.
         tail = ""
         remaining = self._shown_remaining()
-        if self._status == "active" and remaining is not None:
+        if self._status == Status.ACTIVE and remaining is not None:
             tail = self._countdown_clause(remaining)
         return pgettext('tray', "%(position)s · %(status)s") % {
             "position": self._position_word(),
@@ -353,30 +332,18 @@ class TrayIcon(QSystemTrayIcon):
     def _tooltip_lines(self) -> list[str]:
         """The status as tooltip detail lines.
 
-        Two lines, answering the two questions a glance at a sit/stand desk is
-        actually asking — how long have I been like this, and when does that
-        change. Neither is the app's name, which is why the name is the title
+        Two lines: the sampled time at this desk position, and when automation
+        next changes it. Neither is the app's name, which is why the name is the title
         on its own rather than a compound headline.
         """
         if self._connecting:
             return [pgettext('tray', "Connecting…")]
 
-        position = self._position_word()
-        # Before the first progress push there is no duration to report, and
-        # "Sitting for 0m" would be a claim we can't back. A duration we *do*
-        # know is reported in seconds while it is under a minute, so the first
-        # minute after a transition no longer reads "Sitting for 0m" either.
-        #
-        # Nor is one reported once the cycle stops running down (paused,
-        # snoozed, off, out of hours, held). The number is active time, not
-        # time in the position: the machine stops crediting it the moment the
-        # cycle freezes, so it would sit there unchanged for the whole pause
-        # while reading like a running clock. Showing nothing is the honest
-        # version — the position word alone is still true.
-        elapsed = None if self._cycle_stopped() else self._shown_elapsed()
+        position = (pgettext('overview', 'Moving…') if self._moving
+                    else self._position_word())
+        elapsed = self._shown_elapsed()
         held = (pgettext('tray', "%(position)s for %(duration)s") % {
-                    "position": position,
-                    "duration": self._fmt().duration(int(elapsed))}
+                    "position": position, "duration": self._fmt().duration(elapsed.seconds)}
                 if elapsed is not None else position)
 
         # "Automation active" is dropped when a countdown is showing: a visible
@@ -385,26 +352,26 @@ class TrayIcon(QSystemTrayIcon):
         # (paused, snoozed, off), which is where it stops being filler.
         change = status_label(self._status)
         remaining = self._shown_remaining()
-        if self._status == "snoozed":
+        if self._status == Status.SNOOZED:
             change = self._snooze_line()
-        elif remaining is not None and self._status == "active":
+        elif remaining is not None and self._status == Status.ACTIVE:
             if int(remaining) <= 0:
                 # No direction word here: "Standing up Due now" is not a
                 # sentence, and the held line above already says which way the
                 # desk is about to go.
                 change = due_now_label()
-            elif self._position == "sitting":
+            elif self._position == DeskState.SITTING:
                 # Deliberately the daemon's pre-move notification wording, so
                 # the notification and the tooltip name one event one way.
                 change = (pgettext('tray', "Standing up in %s")
                           % self._time_left(remaining))
-            elif self._position == "standing":
+            elif self._position == DeskState.STANDING:
                 change = (pgettext('tray', "Sitting down in %s")
                           % self._time_left(remaining))
             else:
                 # Off sit/stand: we know when, not what to call it.
                 change = pgettext('tray', "%s left") % self._time_left(remaining)
-        elif remaining is not None and self._status == "move-failed":
+        elif remaining is not None and self._status == Status.MOVE_FAILED:
             change = pgettext('tray', "%(status)s · %(countdown)s") % {
                 "status": change,
                 "countdown": self._countdown_clause(remaining)}
@@ -427,6 +394,15 @@ class TrayIcon(QSystemTrayIcon):
         return snooze_line(self._fmt(), self.client.snooze_until())
 
     def _refresh_texts(self, stats: bool = True) -> None:
+        if not self.client.available:
+            text = pgettext('tray', "Daemon not running")
+            self._status_action.setText(text)
+            menu = self.contextMenu()
+            if menu is not None:
+                menu.setAccessibleName(text)
+                menu.setAccessibleDescription("")
+            self._set_tooltip(text)
+            return
         # `stats=False` on the ticker path, and not an optimization to taste:
         # `_today_summary` makes a blocking D-Bus call for the day's totals,
         # which is fine once per daemon push but not once per second. The
@@ -438,6 +414,15 @@ class TrayIcon(QSystemTrayIcon):
         # `_today` is an optional final member of the list, present only
         # when the daemon has totals to report.
         lines = self._tooltip_lines()
+        menu = self.contextMenu()
+        if menu is not None:
+            full = lines[0]
+            description = (self._fmt().position_observation_description()
+                           if not self._connecting and self._shown_elapsed() is not None else "")
+            if menu.accessibleName() != full:
+                menu.setAccessibleName(full)
+            if menu.accessibleDescription() != description:
+                menu.setAccessibleDescription(description)
         if self._today:
             lines = lines + [self._today]
         # Stacking whole lines this way is layout, not sentence-building:
@@ -470,8 +455,8 @@ class TrayIcon(QSystemTrayIcon):
             return ""
         today = date.today().isoformat()
         totals = {"sitting": 0.0, "standing": 0.0}
-        for _, state, seconds in self.client.get_daily_stats(today, today):
-            totals[state] = seconds
+        for daily in self.client.get_daily_stats(today, today):
+            totals[daily.state] = daily.seconds
         if totals["sitting"] or totals["standing"]:
             fmt = self._fmt()
             return (pgettext('tray', "Today: %(sitting)s sitting / %(standing)s standing")
@@ -487,14 +472,14 @@ class TrayIcon(QSystemTrayIcon):
             self._presets_menu.addAction(
                 pgettext('tray', "%(name)s (%(height)s)") % {
                     "name": preset_label(name),
-                    "height": fmt.height(presets[name])},
+                    "height": fmt.height(Length(presets[name]))},
                 partial(self._move, self.client.move_to_preset, name))
         self._presets_menu.setEnabled(bool(presets))
 
     # ----- actions -----
 
     def _toggle_pause(self) -> None:
-        if self._status in _RESUMABLE_VALUES:
+        if self._status in RESUMABLE_STATUSES:
             self.client.resume()
         else:
             self.client.pause()

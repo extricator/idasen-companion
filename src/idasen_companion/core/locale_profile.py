@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Explicit, Qt-free locale value formatting backed by Babel.
 
 ``LocaleProfile`` is the application's sole renderer for app-owned numbers,

@@ -1074,6 +1074,25 @@ msgctxt "activity-log.entry"
 msgid "Autostart disabled: the daemon will not start at login."
 msgstr ""
 
+#: src/idasen_companion/core/presentation.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(position)s for about %(duration)s"
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "shared.presentation"
+msgid ""
+"Estimated from periodic desk observations; moves between samples may be "
+"missed."
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+#, python-format
+msgctxt "shared.presentation"
+msgid "%(minutes)sm %(seconds)ss"
+msgstr ""
+
 #. Translators: What the desktop permission dialog says will start at login.
 #: src/idasen_companion/gui/background_portal.py
 msgctxt "background-permission"
@@ -1639,7 +1658,7 @@ msgctxt "overview"
 msgid "Idle detection: %s"
 msgstr ""
 
-#: src/idasen_companion/gui/pages/overview.py
+#: src/idasen_companion/gui/pages/overview.py src/idasen_companion/gui/tray.py
 msgctxt "overview"
 msgid "Moving…"
 msgstr ""
@@ -2369,11 +2388,6 @@ msgstr ""
 
 #: src/idasen_companion/gui/tray.py
 msgctxt "tray"
-msgid "Daemon not running"
-msgstr ""
-
-#: src/idasen_companion/gui/tray.py
-msgctxt "tray"
 msgid "Resume automation"
 msgstr ""
 
@@ -2416,6 +2430,11 @@ msgstr ""
 #, python-format
 msgctxt "tray"
 msgid "%(status)s · %(countdown)s"
+msgstr ""
+
+#: src/idasen_companion/gui/tray.py
+msgctxt "tray"
+msgid "Daemon not running"
 msgstr ""
 
 #: src/idasen_companion/gui/tray.py
