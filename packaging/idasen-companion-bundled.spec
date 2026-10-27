@@ -87,7 +87,7 @@
 %global _rpmformat 4
 
 Name:           %{package_name}
-Version:        1.3.1
+Version:        1.4.0
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
@@ -662,6 +662,14 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 
 %changelog
+* Tue Oct 27 2026 extricator <extricator@users.noreply.github.com> - 1.4.0-1
+- Add observed position timing and a safe example configuration.
+- Preserve statistics and recheck movement eligibility after Bluetooth
+  waits.
+- Refresh tray and Activity Log presentation and retain Debian 13 support.
+- Split daemon responsibilities and type internal data boundaries.
+- Harden bundled input verification, dependency audits and package CI.
+
 * Sat Oct 03 2026 extricator <extricator@users.noreply.github.com> - 1.3.1-1
 - Refresh application and symbolic tray SVG assets.
 - Require Debian's SVG icon-loading plugin.
