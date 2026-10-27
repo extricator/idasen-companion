@@ -6,6 +6,41 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-27
+
+### Added
+
+- Overview now shows an approximate time at the current sitting or standing
+  position, based on recent desk readings. Stale observations expire.
+- A comprehensive example configuration documents every setting, with
+  automation disabled for safe setup.
+
+### Changed
+
+- Split daemon responsibilities and strengthen internal time, height, state,
+  statistics and log contracts while preserving existing transport formats.
+- Refresh contributor guidance, consolidate regression tests, and add source
+  license headers and conservative editor and Git conventions.
+
+### Fixed
+
+- Preserve eligible statistics time across cycle resets and automation pauses,
+  snoozes, disabled automation and periods outside the schedule.
+- Recheck presence and movement eligibility after Bluetooth preparation,
+  immediately before an automated command.
+- Refresh tray text after configuration changes and redraw existing Activity
+  Log rows when the theme changes without losing the reader's place.
+- Retain Debian 13 compatibility and correct private-bus and headless test setup.
+  Package CI now checks the complete pull-request diff.
+
+### Security
+
+- Require reviewed wheel hashes, exact dependency inventories and verified
+  interpreter metadata and component notices for bundled RPM builds.
+- Add weekly advisory checks for exact bundled Python pins and update the
+  RPM build backend to setuptools 84.1.0.
+- Reject incomplete secret-scanner reports and harden audit input handling.
+
 ## [1.3.1] - 2026-10-03
 
 ### Changed

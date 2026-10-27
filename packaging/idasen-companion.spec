@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.3.1
+Version:        1.4.0
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -139,6 +139,14 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Tue Oct 27 2026 extricator <extricator@users.noreply.github.com> - 1.4.0-1
+- Add observed position timing and a safe example configuration.
+- Preserve statistics and recheck movement eligibility after Bluetooth
+  waits.
+- Refresh tray and Activity Log presentation and retain Debian 13 support.
+- Split daemon responsibilities and type internal data boundaries.
+- Harden bundled input verification, dependency audits and package CI.
+
 * Sat Oct 03 2026 extricator <extricator@users.noreply.github.com> - 1.3.1-1
 - Refresh application and symbolic tray SVG assets.
 - Require Debian's SVG icon-loading plugin.
