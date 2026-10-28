@@ -395,7 +395,7 @@ class StateMachine:
         self._on_height_observed = on_height_observed
         self._on_observation_tick = on_observation_tick
         self._height_observation_generation = 0
-        self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object] | None] = (
+        self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object, bool] | None] = (
             ContextVar("height_read", default=None))
 
         self.state: DeskState = DeskState.SITTING
@@ -428,6 +428,8 @@ class StateMachine:
         self._strict_selection = config.automation.strict_mode
         self._strict_intent: _StrictIntent | None = None
         self._strict_generation = 0
+        self._startup_available = True
+        self._startup_revision = 0
         self._last_check = now
         self._last_sync = now
         self._last_idle_ms = 0
@@ -467,7 +469,42 @@ class StateMachine:
             # reading a desk that isn't there and seeding a cycle against it.
             self._seed_cycle(now)
             return []
+        self._startup_available = False
         height = await self._read_height(now)
+        self._adopt_start_height(height, now)
+        return []
+
+    def startup_token(self) -> tuple[int, int, int, object] | None:
+        """Consume the one daemon-startup authority before any await."""
+        if not self._startup_available:
+            return None
+        self._startup_available = False
+        return (self._height_observation_generation, self._strict_generation,
+                self._startup_revision, self._desk)
+
+    def startup_token_current(self, token: tuple[int, int, int, object]) -> bool:
+        return (token == (self._height_observation_generation, self._strict_generation,
+                          self._startup_revision, self._desk)
+                and not self.unconfigured)
+
+    def adopt_startup_height(self, height: Length | None, now: WallInstant,
+                             token: tuple[int, int, int, object]) -> bool:
+        """Commit an entitled, freshly acquired startup height if still current."""
+        if not self.startup_token_current(token):
+            return False
+        self._adopt_start_height(height, now)
+        if height is not None:
+            self._report_height_observation(height)
+        state = self._cycle_state_for_height(height) if height is not None else None
+        if (state is not None and self._cfg.automation.enabled
+                and self._cfg.automation.strict_mode in ("both", state.value)):
+            self._strict_generation += 1
+            self._strict_intent = _StrictIntent(
+                StrictSnapshot("arrived", state, height, self._strict_generation), state)
+            self.active_time = Duration.from_seconds(0)
+        return True
+
+    def _adopt_start_height(self, height: Length | None, now: WallInstant) -> None:
         if height is not None:
             self.last_height = height
             cycle_state = self._cycle_state_for_height(height)
@@ -483,7 +520,6 @@ class StateMachine:
                         and self._cfg.automation.external_move_policy != "adopt"):
                     self.held = True
         self._seed_cycle(now)
-        return []
 
     def start_without_desk_read(self, now: WallInstant) -> None:
         """Initialize without reading the desk — the same end state ``start``
@@ -621,6 +657,7 @@ class StateMachine:
             frozen = self._frozen(now)
 
         if can_act() and self.active_time >= self.target_duration:
+            self.invalidate_height_observation()
             if self.skip_next:
                 self.skip_next = False
                 self._begin_cycle(self.state)
@@ -809,6 +846,10 @@ class StateMachine:
         # callers may hand back the *same* AppConfig object mutated in place,
         # in which case the "previous" value is already the new one.
         was_enabled = self._enabled
+        self._startup_revision += 1
+        if (was_enabled != config.automation.enabled
+                or self._strict_selection != config.automation.strict_mode):
+            self.invalidate_height_observation()
         self._enabled = config.automation.enabled
         self._strict_selection = config.automation.strict_mode
         self._cfg = config
@@ -1049,7 +1090,7 @@ class StateMachine:
     async def _read_height(self, now: WallInstant, *, publish: bool = True) -> Length | None:
         generation = self._height_observation_generation
         desk = self._desk
-        token = self._height_read_context.set((asyncio.current_task(), generation, desk))
+        token = self._height_read_context.set((asyncio.current_task(), generation, desk, publish))
         try:
             height = await desk.get_height()
         except Exception:
@@ -1058,7 +1099,7 @@ class StateMachine:
             raise
         finally:
             self._height_read_context.reset(token)
-        if publish and height is not None:
+        if publish and height is not None and generation == self._height_observation_generation and desk is self._desk:
             self.last_height = height
         if publish and generation == self._height_observation_generation and desk is self._desk:
             self._report_height_observation(height)
@@ -1073,7 +1114,7 @@ class StateMachine:
         read = self._height_read_context.get()
         if read is None or read[0] is not asyncio.current_task():
             return True
-        return read[1] == self._height_observation_generation and read[2] is self._desk
+        return read[3] and read[1] == self._height_observation_generation and read[2] is self._desk
 
     def invalidate_height_observation(self) -> None:
         """Prevent a read already in flight from publishing after a hard boundary."""
@@ -1236,6 +1277,7 @@ class StateMachine:
         periodic, pre-decide, on the way back from another session, or the
         daemon's ``force_sync`` — did it immediately afterwards, and a sync is
         a sync however it came to be run."""
+        self.invalidate_height_observation()
         height = await self._read_height(now)
         self._last_sync = now
         if height is None:

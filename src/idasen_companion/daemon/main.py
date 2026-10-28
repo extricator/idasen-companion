@@ -869,11 +869,24 @@ class Daemon:
         just to seed a cycle it is barred from acting on. The edge back to
         entitlement reconciles instead, which is the same read a tick later.
         """
+        machine = self.machine
+        token = machine.startup_token()
+        if token is None:
+            return
         if not await self._entitled_to_desk():
             self.activity_log.emit(logmsg.STARTUP_DESK_NOT_OURS)
             return
         try:
-            await self.machine.start(WallInstant(time.time()))
+            if self.machine is not machine or not machine.startup_token_current(token):
+                return
+            height = await machine._read_height(WallInstant(time.time()), publish=False)
+            if self.machine is not machine or not machine.startup_token_current(token):
+                return
+            if not await self._entitled_to_desk():
+                return
+            if self.machine is not machine or not machine.adopt_startup_height(
+                    height, WallInstant(time.time()), token):
+                return
         except asyncio.CancelledError:
             raise
         except Exception as error:
@@ -1495,6 +1508,7 @@ class Daemon:
     async def _manual_move_locked(self, height: Length, label: str,
                                   *, return_to: Length | None = None) -> None:
         self._current_move_id += 1
+        self._invalidate_position_observation()
         move_id = self._current_move_id
         self.activity_log.emit(logmsg.MANUAL_MOVE, target=label)
         self._set_moving(True)
@@ -1590,6 +1604,7 @@ class Daemon:
         # Deliberate stop: invalidate any in-flight move's return-to-start so a
         # software stop stays put rather than bouncing back like an interruption.
         self._current_move_id += 1
+        self._invalidate_position_observation()
         self._retry_wake.set()
         await self.desk.stop()
         self.activity_log.emit(logmsg.MANUAL_STOPPED)
