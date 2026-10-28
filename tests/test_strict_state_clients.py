@@ -11,7 +11,7 @@ from PySide6.QtDBus import QDBusMessage
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
 from idasen_companion.core.strict_state import StrictState
-from idasen_companion.daemon.service import Automation1
+from idasen_companion.daemon.service import Automation1, Desk1
 from idasen_companion.gui.dbus_client import DaemonClient
 from machine_helpers import Driver, make_config
 from test_strict_retry import daemon_for_driver
@@ -39,6 +39,32 @@ async def test_private_bus_initial_state_signal_and_owner_loss(qapp, monkeypatch
         await bus.release_name(DBUS_NAME)
         await settle(qapp, lambda: client.strict_capability == "unknown")
         assert client.strict_state is None
+    finally:
+        client.deleteLater()
+        bus.disconnect()
+        await asyncio.sleep(0)
+
+
+@pytest.mark.asyncio
+async def test_old_private_bus_peer_keeps_ordinary_refresh(qapp, monkeypatch):
+    assert "/tmp/dbus-" in os.environ.get("DBUS_SESSION_BUS_ADDRESS", "")
+    driver = Driver(make_config())
+    await driver.start()
+    daemon = daemon_for_driver(driver)
+    bus = await MessageBus().connect()
+    bus.export(DBUS_PATH, Desk1(daemon))
+    await bus.request_name(DBUS_NAME)
+    monkeypatch.setattr(DaemonClient, "get_property", lambda _self, _iface, name:
+                        "active" if name == "Status" else None)
+    monkeypatch.setattr(DaemonClient, "list_presets", lambda *_: {})
+    client = DaemonClient()
+    statuses = []
+    client.statusChanged.connect(statuses.append)
+    try:
+        client.refresh_all()
+        await settle(qapp, lambda: client.strict_capability == "unsupported")
+        assert client.strict_state is None
+        assert statuses == ["active"]
     finally:
         client.deleteLater()
         bus.disconnect()
