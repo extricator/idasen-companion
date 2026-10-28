@@ -11,7 +11,8 @@ from dbus_fast.constants import MessageType
 from idasen_companion import DBUS_NAME, DBUS_PATH
 from idasen_companion.core.strict_state import StrictState
 from idasen_companion.daemon.service import Automation1
-from machine_helpers import Driver, make_config
+from idasen_companion.desk.mock import MockDesk
+from machine_helpers import Driver, SIT_H, STAND_H, make_config
 from test_strict_retry import daemon_for_driver
 
 
@@ -23,6 +24,32 @@ from test_strict_retry import daemon_for_driver
 def test_invalid_wire_snapshot_is_rejected(payload):
     with pytest.raises((ValueError, TypeError)):
         StrictState.from_json(payload)
+
+
+async def test_physical_due_and_desk_releases_publish_immediately():
+    driver = Driver(make_config(strict_mode="standing", sync_interval=0), height=STAND_H)
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    from unittest.mock import MagicMock
+    auto = MagicMock()
+    daemon._ifaces = {"automation": auto}
+    driver.m._on_strict_changed = daemon._emit_strict_state
+    assert driver.m.adopt_startup_height(STAND_H, driver.now, driver.m.startup_token())
+    snapshot = driver.m.strict_snapshot
+    driver.m.reconcile_strict_observation(SIT_H, generation=snapshot.generation, now=driver.now)
+    assert StrictState.from_json(auto.StrictStateChanged.call_args.args[0]).stage == "released"
+    driver.desk.height = SIT_H
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    assert StrictState.from_json(auto.StrictStateChanged.call_args.args[0]).stage == "released"
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    driver.m.replace_desk(MockDesk())
+    assert StrictState.from_json(auto.StrictStateChanged.call_args.args[0]).stage == "released"
 
 
 async def test_live_private_bus_snapshot_is_atomic_before_move_finishes():
