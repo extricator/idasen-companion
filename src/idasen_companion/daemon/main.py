@@ -722,7 +722,8 @@ class Daemon:
                                     on_moving=self._set_moving,
                                     on_height_observed=self._observe_height,
                                     on_observation_tick=self._check_observation_continuity,
-                                    observation_time=lambda: WallInstant(time.time()))
+                                    observation_time=lambda: WallInstant(time.time()),
+                                    on_strict_changed=self._emit_strict_state)
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return
@@ -1218,6 +1219,25 @@ class Daemon:
         auto.StatusChanged(self.status_string())
         auto.ProgressChanged(self.machine.active_time.seconds,
                              self.machine.target_duration.seconds)
+        self._emit_strict_state()
+
+    def strict_state_payload(self) -> str:
+        snapshot = self.machine.strict_snapshot
+        return StrictState(self.config.automation.strict_mode,
+                           snapshot.stage if snapshot else "released",
+                           snapshot.posture.value if snapshot else None,
+                           snapshot.target_height.metres if snapshot else None).to_json()
+
+    def _emit_strict_state(self) -> None:
+        auto = self._ifaces.get("automation")
+        if auto is None:
+            return
+        payload = self.strict_state_payload()
+        if payload == getattr(self, "_last_strict_payload", None):
+            return
+        self._last_strict_payload = payload
+        auto.emit_properties_changed({"StrictState": payload})
+        auto.StrictStateChanged(payload)
 
     def _emit_periodic_properties(self) -> None:
         self._emit_automation_state()

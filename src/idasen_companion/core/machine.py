@@ -383,6 +383,7 @@ class StateMachine:
         on_height_observed: Callable[[Length | None], None] | None = None,
         on_observation_tick: Callable[[], None] | None = None,
         observation_time: Callable[[], WallInstant] | None = None,
+        on_strict_changed: Callable[[], None] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -398,6 +399,7 @@ class StateMachine:
         self._on_height_observed = on_height_observed
         self._on_observation_tick = on_observation_tick
         self._observation_time = observation_time
+        self._on_strict_changed = on_strict_changed
         self._height_observation_generation = 0
         self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object, bool] | None] = (
             ContextVar("height_read", default=None))
@@ -505,6 +507,7 @@ class StateMachine:
             self._strict_generation += 1
             self._strict_intent = _StrictIntent(
                 StrictSnapshot("arrived", state, height, self._strict_generation), state)
+            self._notify_strict_changed()
             self.active_time = Duration.from_seconds(0)
         return True
 
@@ -679,6 +682,7 @@ class StateMachine:
                     self._strict_intent = _StrictIntent(
                         StrictSnapshot("pending", intended, self._preset_height(intended),
                                        self._strict_generation), self.state)
+                    self._notify_strict_changed()
                     events.extend(await self._execute_strict_transition(now, guard=guard))
                     if not any(isinstance(event, TransitionCompleted) for event in events):
                         self._last_check = now
@@ -887,6 +891,11 @@ class StateMachine:
         if self._strict_intent is not None:
             self._strict_intent = None
             self._strict_generation += 1
+            self._notify_strict_changed()
+
+    def _notify_strict_changed(self) -> None:
+        if self._on_strict_changed is not None:
+            self._on_strict_changed()
 
     def replace_desk(self, desk: DeskPort) -> None:
         """Invalidate observations and enforcement for the old desk."""
@@ -1231,6 +1240,7 @@ class StateMachine:
         self._strict_generation += 1
         snapshot = replace(intent.snapshot, stage="arrived", generation=self._strict_generation)
         self._strict_intent = replace(intent, snapshot=snapshot)
+        self._notify_strict_changed()
         self.move_failed = False
         self._begin_cycle(snapshot.posture)
         return [TransitionCompleted(intent.original, snapshot.posture, snapshot.posture,

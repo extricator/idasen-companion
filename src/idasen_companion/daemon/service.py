@@ -156,6 +156,14 @@ class Automation1(ServiceInterface):
         self.d = daemon
 
     @dbus_property(access=PropertyAccess.READ)
+    def StrictState(self) -> DBusStr:  # pylint: disable=invalid-name
+        return self.d.strict_state_payload()
+
+    @dbus_signal()
+    def StrictStateChanged(self, state: DBusStr) -> DBusStr:  # pylint: disable=invalid-name
+        return state
+
+    @dbus_property(access=PropertyAccess.READ)
     def Enabled(self) -> DBusBool:  # pylint: disable=invalid-name
         return self.d.config.automation.enabled
 

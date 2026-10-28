@@ -46,7 +46,7 @@ def daemon(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=False, held=False,
+    d.machine = MagicMock(unconfigured=False, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
     return d
@@ -240,7 +240,7 @@ async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: P
     d.config = load_config(path)          # defaults; no file on disk
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=True, held=False,
+    d.machine = MagicMock(unconfigured=True, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
@@ -261,7 +261,7 @@ async def test_later_edits_are_picked_up_too(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=True, held=False,
+    d.machine = MagicMock(unconfigured=True, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
@@ -287,7 +287,7 @@ def test_an_unchanged_file_is_not_reloaded_every_tick(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=False, held=False,
+    d.machine = MagicMock(unconfigured=False, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
     d.config_file.note_mtime()
