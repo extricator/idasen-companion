@@ -32,7 +32,7 @@ from ..core.config import (
 from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.machine import (
-    AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
+    AwayChanged, COUNTDOWN_STATUSES, DeskState, Event, HeldOffCycle, IdleChanged,
     FreshPresence, MoveFailed, PositionObservationTracker,
     HELD_POLL_INTERVAL, TIME_JUMP_THRESHOLD_SECONDS,
     ResumedOnCycle, SeatChanged, StateMachine, StateSynced, SyncFailed,
@@ -1746,6 +1746,7 @@ class Daemon:
         if not await self._manual_current(identity):
             return
         machine._last_sync = now
+        events: list[Event]
         if actual is None:
             machine._report_height_observation(None)
             events = [SyncFailed()]

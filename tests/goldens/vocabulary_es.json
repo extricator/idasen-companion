@@ -29,6 +29,7 @@
   "daemon_error.OutOfRange": "Esa altura está fuera del rango del escritorio.",
   "daemon_error.SetupFailed": "No se pudo conectar con el escritorio. Asegúrate de que está encendido, cerca y en modo de emparejamiento.",
   "daemon_error.SessionInactive": "Vuelve a esta sesión antes de mover el escritorio.",
+  "daemon_error.StrictEnforced": "El requisito programado del modo estricto bloquea esta acción. Espera a que termine el intervalo o desactiva el modo estricto.",
   "daemon_error.UnknownPreset": "No hay ningún preajuste con ese nombre.",
   "daemon_error.generic_fallback": "El servicio en segundo plano no pudo llevar a cabo esa solicitud.",
   "daemon_error.unknown_with_detail": "Message recipient disconnected",

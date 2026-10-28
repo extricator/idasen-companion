@@ -56,6 +56,7 @@ def client(qapp):
     obj._snooze_until = WallInstant(0.0)
     # This fixture isolates snooze-property requests from observation transport.
     obj._refresh_position_observation = lambda: None
+    obj._refresh_strict_state = lambda: None
     obj.requests = []
     obj.get_property_async = lambda iface, name, then: obj.requests.append(
         (name, then))

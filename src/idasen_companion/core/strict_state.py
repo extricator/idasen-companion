@@ -13,6 +13,13 @@ OPTIONAL_MEMBER_ERRORS = frozenset({
     "org.freedesktop.DBus.Error.UnknownMethod",
     "org.freedesktop.DBus.Error.UnknownInterface",
 })
+OPTIONAL_TRANSPORT_ERRORS = frozenset({
+    "org.freedesktop.DBus.Error.NoReply",
+    "org.freedesktop.DBus.Error.Timeout",
+    "org.freedesktop.DBus.Error.Disconnected",
+    "org.freedesktop.DBus.Error.ServiceUnknown",
+    "org.freedesktop.DBus.Error.NameHasNoOwner",
+})
 
 
 def decode_strict_state(payload: object) -> "StrictState | None":

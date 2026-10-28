@@ -31,8 +31,9 @@ from .core.presentation import (
 )
 from .core.i18n import GettextTranslator
 from .core.state_values import parse_position, parse_status
-from .core.strict_state import (OPTIONAL_MEMBER_ERRORS, STRICT_ERROR, StrictCapability,
-                                StrictState, decode_strict_state)
+from .core.strict_state import (OPTIONAL_MEMBER_ERRORS, OPTIONAL_TRANSPORT_ERRORS,
+                                STRICT_ERROR, StrictCapability, StrictState,
+                                decode_strict_state)
 from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
@@ -143,6 +144,8 @@ async def _read_status(client: Client) -> StatusSnapshot:
     except DBusError as error:
         if error.type in OPTIONAL_MEMBER_ERRORS:
             capability = "unsupported"
+        elif error.type not in OPTIONAL_TRANSPORT_ERRORS:
+            raise
     except (ConnectionError, OSError, TimeoutError):
         pass
     return StatusSnapshot(
