@@ -1555,14 +1555,29 @@ class Daemon:
                 self._gesture_action = None
                 await self.stop_movement(expect_successor=reverse_to is not None)
 
-            if snapshot is None:
-                await repeat_stop()
-            else:
-                await self._movement_control(repeat_stop)
             if reverse_to is not None:
-                await self.manual_move_to_height(reverse_to)
-                self.activity_log.emit(logmsg.GESTURE_REVERSE)
+                successor_owner = self._current_move_id + 1
+                try:
+                    if snapshot is None:
+                        await repeat_stop()
+                    else:
+                        await self._movement_control(repeat_stop)
+                    if not (Length(MIN_HEIGHT) <= reverse_to <= Length(MAX_HEIGHT)):
+                        raise DBusError(f"{DBUS_NAME}.Error.OutOfRange",
+                                        f"height {reverse_to.metres:.3f}m outside "
+                                        f"{MIN_HEIGHT}-{MAX_HEIGHT}m")
+                    await self._movement_control(
+                        lambda: self._manual_move_locked(
+                            reverse_to, f"{reverse_to.metres:.3f}m",
+                            on_issue=lambda: self.activity_log.emit(logmsg.GESTURE_REVERSE)))
+                finally:
+                    if self._current_move_id == successor_owner:
+                        self._set_moving(False)
             else:
+                if snapshot is None:
+                    await repeat_stop()
+                else:
+                    await self._movement_control(repeat_stop)
                 self.activity_log.emit(logmsg.GESTURE_STOP)
             return
         async def move() -> None:

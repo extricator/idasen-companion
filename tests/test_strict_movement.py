@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Strict admission covers movement entry and the actual BLE issue point."""
 import asyncio
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from dbus_fast import DBusError
@@ -184,3 +184,34 @@ async def test_predecision_read_reports_admission_denial(denial):
         assert not driver.desk.move_calls
     finally:
         release.set()
+
+
+@pytest.mark.parametrize("failure", ["strict", "session", "preparation"])
+async def test_repeat_reverse_clears_moving_when_successor_cannot_issue(failure):
+    driver = Driver(make_config(strict_mode="standing"))
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = True
+    daemon._gesture_action = "stand"
+    daemon._gesture_start_height = SIT_H
+    daemon.config.ui.tray_repeat_move = "reverse"
+    stop = driver.desk.stop
+
+    async def stopping():
+        await stop()
+        if failure == "strict":
+            driver.desk.height = STAND_H
+            assert driver.m.adopt_startup_height(STAND_H, driver.now, driver.m.startup_token())
+        elif failure == "session":
+            daemon._session.state.return_value = "background"
+
+    driver.desk.stop = stopping
+    if failure == "preparation":
+        from idasen_companion.desk.port import MoveFailure
+        driver.desk.move_to = AsyncMock(return_value=MoveFailure.NOT_ISSUED)
+    with pytest.raises(DBusError):
+        await daemon.gesture_move("stand")
+    daemon._set_moving.assert_called_once_with(False)
+    from idasen_companion.daemon.main import logmsg
+    assert all(call.args[0] != logmsg.GESTURE_REVERSE
+               for call in daemon.activity_log.emit.call_args_list)
