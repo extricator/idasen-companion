@@ -996,7 +996,8 @@ class StateMachine:
                     and not current.locked and not current.away and not current.seatless
                     and current.idle_ms < self._cfg.automation.recent_input_threshold * 1000
                     and not self._frozen(current.now) and not self.held and not self.unconfigured
-                    and not self.skip_next and self.target_duration > Duration.from_seconds(0)
+                    and (pending or not self.skip_next)
+                    and self.target_duration > Duration.from_seconds(0)
                     and (pending or self.active_time >= self.target_duration)
                     and (intent is None or not pending or self._cfg.automation.strict_mode in
                          ("both", intent.snapshot.posture.value)))
