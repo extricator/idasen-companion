@@ -495,3 +495,26 @@ def test_save_rejects_invalid(tmp_path):
     cfg.presets["stand"] = 9.0
     with pytest.raises(ConfigError):
         save_config(cfg, tmp_path / "config.toml")
+@pytest.mark.parametrize("mode", ["off", "standing", "sitting", "both"])
+def test_strict_mode_lossless_roundtrip(tmp_path, mode):
+    from idasen_companion.core.config import load_config, save_config
+
+    path = tmp_path / "config.toml"
+    path.write_text(f'[automation]\n# retained\nstrict_mode = "{mode}"\nfuture = 42\n')
+    config = load_config(path)
+    assert config.automation.strict_mode == mode
+    save_config(config, path)
+    save_config(config, path)
+    assert load_config(path).automation.strict_mode == mode
+    assert "# retained" in path.read_text()
+    assert "future = 42" in path.read_text()
+
+
+@pytest.mark.parametrize("value", ['"invalid"', 'true'])
+def test_strict_mode_rejects_invalid_values(tmp_path, value):
+    from idasen_companion.core.config import ConfigError, load_config
+
+    path = tmp_path / "config.toml"
+    path.write_text(f"[automation]\nstrict_mode = {value}\n")
+    with pytest.raises(ConfigError):
+        load_config(path)

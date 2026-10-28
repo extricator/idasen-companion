@@ -101,6 +101,33 @@ def test_a_no_op_reload_does_not_re_roll_the_cycle_target(daemon):
     assert daemon.machine.update_config.call_args.kwargs["reroll_target"] is False
 
 
+async def test_strict_intent_survives_noop_and_invalid_reload(daemon):
+    from idasen_companion.core.machine import StateMachine
+    from idasen_companion.desk.mock import MockDesk
+    from idasen_companion.core.lengths import Length
+
+    path = daemon.config_file.path
+    path.write_text(CONFIG + '\nstrict_mode = "standing"\n')
+    daemon.config = load_config(path)
+    desk = MockDesk(Length(daemon.config.presets["sit"]))
+    daemon.machine = StateMachine(daemon.config, desk, now=WallInstant(1000))
+    await daemon.machine.start(WallInstant(1000))
+    desk.interrupt_next_move_at = Length(0.9)
+    daemon.machine.active_time = daemon.machine.target_duration
+    await daemon.machine.tick(WallInstant(1001), 0, False)
+    snapshot = daemon.machine.strict_snapshot
+    elapsed, target = daemon.machine.active_time, daemon.machine.target_duration
+    daemon.config_file.save(daemon.config)
+    daemon.reload_config()
+    assert daemon.machine.strict_snapshot == snapshot
+    assert (daemon.machine.active_time, daemon.machine.target_duration) == (elapsed, target)
+    previous = daemon.config
+    path.write_text('[automation]\nstrict_mode = "invalid"\n')
+    daemon.reload_config()
+    assert daemon.config is previous
+    assert daemon.machine.strict_snapshot == snapshot
+
+
 def test_changing_a_duration_re_rolls_the_cycle_target(daemon):
     daemon.config_file.path.write_text(CONFIG.replace('"25m"', '"30m"'))
     daemon.reload_config()

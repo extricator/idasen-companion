@@ -1228,8 +1228,12 @@ class StateMachine:
         (``ResumedOnCycle``). With automation disabled the off-cycle branch
         always classifies (never holds): a desk parked wherever the user likes
         is the normal case in manual use, not a condition to report."""
-        if self._strict_intent and self._strict_intent.snapshot.stage == "pending":
-            return self._strict_arrival(height)
+        if self._strict_intent:
+            snapshot = self._strict_intent.snapshot
+            if snapshot.stage == "pending":
+                return self._strict_arrival(height)
+            if abs(height - snapshot.target_height) <= Length(self._cfg.advanced.movement_tolerance):
+                return []
         cycle_state = self._cycle_state_for_height(height)
         if cycle_state is not None:
             return self._adopt(cycle_state, height)

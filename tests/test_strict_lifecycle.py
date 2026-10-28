@@ -121,3 +121,41 @@ async def test_scheduled_sitting_selection(mode, initial, expected):
     await driver.tick(dt=1)
     assert driver.m.strict_snapshot.posture == expected
     assert driver.m.strict_snapshot.stage == "arrived"
+
+
+async def test_manual_arrival_and_selection_change_do_not_arm():
+    driver = Driver(make_config())
+    await driver.start()
+    driver.desk.height = STAND_H
+    await driver.m.force_sync(driver.now)
+    driver.cfg.automation.strict_mode = "standing"
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    assert driver.m.strict_snapshot is None
+
+
+async def test_skip_and_unselected_scheduled_transition_do_not_arm():
+    driver = Driver(make_config(strict_mode="standing"), height=STAND_H)
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    driver.m.request_skip_next()
+    await driver.tick(dt=1)
+    assert driver.m.strict_snapshot is None
+    driver.m.active_time = driver.m.target_duration
+    events = await driver.tick(dt=1)
+    assert driver.m.strict_snapshot is None
+    assert any(isinstance(e, TransitionCompleted) for e in events)
+
+
+async def test_pending_explicit_target_wins_over_overlapping_preset_bands():
+    config = make_config(strict_mode="standing")
+    config.presets = {"sit": 1.0, "stand": 1.02}
+    config.advanced.movement_tolerance = 0.03125
+    driver = Driver(config, height=Length(1.0))
+    await driver.start()
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    driver.desk.height = Length(1.02 - 0.03125)
+    events = await driver.m.force_sync(driver.now)
+    assert driver.m.state == DeskState.STANDING
+    assert len([e for e in events if isinstance(e, TransitionCompleted)]) == 1
