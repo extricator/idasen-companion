@@ -458,6 +458,13 @@ msgstr ""
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
+msgid ""
+"The scheduled Strict mode requirement blocks this action. Wait for the "
+"interval to finish or turn Strict mode off."
+msgstr ""
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
 msgid "later"
 msgstr ""
 

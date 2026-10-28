@@ -467,6 +467,13 @@ msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
+msgid ""
+"The scheduled Strict mode requirement blocks this action. Wait for the "
+"interval to finish or turn Strict mode off."
+msgstr "El requisito programado del modo estricto bloquea esta acción. Espera a que termine el intervalo o desactiva el modo estricto."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
 msgid "later"
 msgstr "más tarde"
 

@@ -323,7 +323,8 @@ DAEMON_ERROR_MESSAGES = {
 #: Byte-identical to the existing ``util``-context source string.
 DAEMON_ERROR_GENERIC = P_('shared.presentation',
     "The background service could not carry out that request.")
-DAEMON_ERROR_MESSAGES["StrictEnforced"] = DAEMON_ERROR_GENERIC
+DAEMON_ERROR_MESSAGES["StrictEnforced"] = P_('shared.presentation',
+    'The scheduled Strict mode requirement blocks this action. Wait for the interval to finish or turn Strict mode off.')
 
 
 # ----- the shared cycle vocabulary (the tray and Overview say the same) -----
