@@ -43,6 +43,7 @@ VALID_EXTERNAL_POLICIES = ("yield", "adopt")
 # (True = undo, False = leave); both it and its own predecessor
 # retry_on_interruption are still accepted on load.
 VALID_INTERRUPTION_POLICIES = ("undo", "leave", "retry")
+VALID_STRICT_MODES = ("off", "standing", "sitting", "both")
 # GUI window/tray behaviour (only meaningful when a system tray exists).
 # The action a tray-icon gesture performs: open the window, flip sit/stand,
 # go to sit or stand, or nothing.
@@ -137,6 +138,7 @@ class DeskConfig:
 
 @dataclass
 class AutomationConfig:
+    strict_mode: str = "off"
     # Master switch for the sit/stand cycle. Off means the app is a manual
     # desk remote: presets, manual moves and stats all keep working, only the
     # timer stops. Distinct from the transient Pause (D-Bus, lost on restart)
@@ -322,6 +324,7 @@ def _validate(config: AppConfig) -> None:
                     automation.external_move_policy, VALID_EXTERNAL_POLICIES)
     _require_choice("automation", "interruption_policy",
                     automation.interruption_policy, VALID_INTERRUPTION_POLICIES)
+    _require_choice("automation", "strict_mode", automation.strict_mode, VALID_STRICT_MODES)
     _require_choice("desk", "connection",
                     config.desk.connection, VALID_CONNECTION_MODES)
     for key in ("tray_left_click", "tray_middle_click"):
@@ -496,6 +499,7 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
                 "sync_interval"):
         put("automation", toml_key, format_duration_compact(getattr(automation, toml_key)))
     put("automation", "interruption_policy", automation.interruption_policy)
+    put("automation", "strict_mode", automation.strict_mode)
     put("automation", "external_move_policy", automation.external_move_policy)
     # The superseded boolean spellings (both folded into interruption_policy
     # on load).

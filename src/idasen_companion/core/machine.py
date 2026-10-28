@@ -120,6 +120,20 @@ _PRESET_FOR_STATE = {DeskState.SITTING: "sit", DeskState.STANDING: "stand"}
 
 
 @dataclass(frozen=True)
+class StrictSnapshot:
+    stage: str
+    posture: DeskState
+    target_height: Length
+    generation: int
+
+
+@dataclass(frozen=True)
+class _StrictIntent:
+    snapshot: StrictSnapshot
+    original: DeskState
+
+
+@dataclass(frozen=True)
 class PositionObservation:
     """One atomic view of a finite chain of sampled position confirmations."""
 
@@ -411,6 +425,9 @@ class StateMachine:
         self.last_height: Length | None = None
 
         self._enabled = config.automation.enabled
+        self._strict_selection = config.automation.strict_mode
+        self._strict_intent: _StrictIntent | None = None
+        self._strict_generation = 0
         self._last_check = now
         self._last_sync = now
         self._last_idle_ms = 0
@@ -602,6 +619,19 @@ class StateMachine:
                 self._begin_cycle(self.state)
                 events.append(TransitionSkipped(self.state, self.target_duration))
             else:
+                intended = self.state.opposite
+                selected = config.strict_mode in ("both", intended.value)
+                if selected and self._strict_intent is None:
+                    self._strict_generation += 1
+                    self._strict_intent = _StrictIntent(
+                        StrictSnapshot("pending", intended, self._preset_height(intended),
+                                       self._strict_generation), self.state)
+                    events.extend(await self._execute_strict_transition(now, guard=guard))
+                    self._last_check = now
+                    return events
+                if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
+                    self._last_check = now
+                    return events
                 moved = (await self._execute_transition(now) if guard is None
                          else await self._execute_transition(now, guard=guard))
                 if moved is None:
@@ -772,6 +802,7 @@ class StateMachine:
         # in which case the "previous" value is already the new one.
         was_enabled = self._enabled
         self._enabled = config.automation.enabled
+        self._strict_selection = config.automation.strict_mode
         self._cfg = config
         if was_enabled != config.automation.enabled:
             self._begin_cycle(self.state)
@@ -784,6 +815,10 @@ class StateMachine:
             self.target_duration = self._next_target_duration(self.state)
 
     # ----- introspection -----
+
+    @property
+    def strict_snapshot(self) -> StrictSnapshot | None:
+        return self._strict_intent.snapshot if self._strict_intent else None
 
     def status(self, now: WallInstant) -> Status:
         # Outranks everything: with no desk address there is nothing to pause,
@@ -1049,6 +1084,38 @@ class StateMachine:
                 final.final_height if isinstance(final, TransitionCompleted) else None)
         return events
 
+    async def _execute_strict_transition(self, now: WallInstant, *,
+                                         guard: Callable[[], Awaitable[bool]] | None) -> list[Event]:
+        intent = self._strict_intent
+        assert intent is not None
+        desk = self._desk
+        generation = self._height_observation_generation
+        self._note_moving(True)
+        try:
+            moved = (await desk.move_to(intent.snapshot.target_height) if guard is None
+                     else await desk.move_to(intent.snapshot.target_height, guard=guard))
+            if moved is None or self._strict_intent is not intent or desk is not self._desk:
+                return []
+            height = await self._read_height(now)
+        finally:
+            self._note_moving(False)
+        if (self._strict_intent is not intent or desk is not self._desk
+                or generation != self._height_observation_generation or height is None):
+            return []
+        return self._strict_arrival(height)
+
+    def _strict_arrival(self, height: Length) -> list[Event]:
+        intent = self._strict_intent
+        if (intent is None or intent.snapshot.stage != "pending"
+                or abs(height - intent.snapshot.target_height)
+                > Length(self._cfg.advanced.movement_tolerance)):
+            return []
+        snapshot = replace(intent.snapshot, stage="arrived")
+        self._strict_intent = replace(intent, snapshot=snapshot)
+        self._begin_cycle(snapshot.posture)
+        return [TransitionCompleted(intent.original, snapshot.posture, snapshot.posture,
+                                    False, "none", height, "automation", self.target_duration)]
+
     def _note_moving(self, moving: bool) -> None:
         if self._on_moving is not None:
             self._on_moving(moving)
@@ -1161,6 +1228,8 @@ class StateMachine:
         (``ResumedOnCycle``). With automation disabled the off-cycle branch
         always classifies (never holds): a desk parked wherever the user likes
         is the normal case in manual use, not a condition to report."""
+        if self._strict_intent and self._strict_intent.snapshot.stage == "pending":
+            return self._strict_arrival(height)
         cycle_state = self._cycle_state_for_height(height)
         if cycle_state is not None:
             return self._adopt(cycle_state, height)
