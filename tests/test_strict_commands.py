@@ -109,6 +109,27 @@ async def test_in_place_config_change_invalidates_departure_read():
     assert not driver.m.paused
 
 
+async def test_release_during_read_still_requires_current_entitlement():
+    driver, daemon = await arrived_daemon()
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def read():
+        entered.set()
+        await release.wait()
+        return SIT_H
+
+    driver.desk.get_height = read
+    task = asyncio.create_task(daemon.pause())
+    await entered.wait()
+    driver.cfg.automation.strict_mode = "off"
+    driver.m.update_config(driver.cfg)
+    daemon._session.state.return_value = "background"
+    release.set()
+    with pytest.raises(DBusError, match="session"):
+        await task
+    assert not driver.m.paused
+
+
 async def test_notification_control_observes_refusal():
     driver, daemon = await arrived_daemon()
     from idasen_companion.daemon.main import Daemon

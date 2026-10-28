@@ -1351,6 +1351,9 @@ class Daemon:
                         for event in events:
                             self._handle_event(event, "external")
                         self._emit_periodic_properties()
+            # A released or replaced snapshot also invalidates the acquisition;
+            # it does not authorize continuing if the session changed meanwhile.
+            await self._require_manual_entitlement()
         if self.machine.strict_snapshot is not None:
             raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
 
