@@ -156,6 +156,37 @@ async def test_strict_armed_during_ble_connect_prevents_driver_and_gesture_mutat
         await desk.disconnect()
 
 
+async def test_session_loss_during_ble_connect_reports_denial():
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    desk, fake = make_desk(connection_mode="persistent")
+    driver.m.replace_desk(desk)
+    daemon = daemon_for_driver(driver)
+    daemon.desk = desk
+    daemon.moving = False
+    entered, release = asyncio.Event(), asyncio.Event()
+    connect = fake.connect
+
+    async def delayed_connect():
+        entered.set()
+        await release.wait()
+        await connect()
+
+    fake.connect = delayed_connect
+    task = asyncio.create_task(daemon.manual_move_to_preset("stand"))
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        daemon._session.state.return_value = "background"
+        release.set()
+        with pytest.raises(DBusError) as error:
+            await asyncio.wait_for(task, 2)
+        assert error.value.type.endswith("SessionInactive")
+        assert not fake.moves
+    finally:
+        release.set()
+        await desk.disconnect()
+
+
 @pytest.mark.parametrize("denial", ["strict", "session"])
 async def test_predecision_read_reports_admission_denial(denial):
     driver = Driver(make_config(strict_mode="standing"))
