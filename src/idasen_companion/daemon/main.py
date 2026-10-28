@@ -1304,13 +1304,15 @@ class Daemon:
             move_id = self._current_move_id
             observation = getattr(self, "_observation_generation", 0)
             height_generation = machine._height_observation_generation
+            config_revision = machine._startup_revision
 
             def current() -> bool:
                 return (self.machine is machine and self.desk is desk
                         and self.config is config and machine.strict_snapshot == snapshot
                         and self._current_move_id == move_id
                         and getattr(self, "_observation_generation", 0) == observation
-                        and machine._height_observation_generation == height_generation)
+                        and machine._height_observation_generation == height_generation
+                        and machine._startup_revision == config_revision)
 
             await self._require_manual_entitlement()
             if current():

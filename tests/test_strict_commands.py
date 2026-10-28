@@ -79,6 +79,36 @@ async def test_invalidated_read_cannot_release_intent():
     assert not driver.m.paused
 
 
+async def test_unentitled_after_lock_wait_never_reads_desk():
+    driver, daemon = await arrived_daemon()
+    daemon._session.state.side_effect = ["foreground", "background"]
+    driver.desk.get_height = AsyncMock()
+    with pytest.raises(DBusError, match="session"):
+        await daemon.pause()
+    driver.desk.get_height.assert_not_awaited()
+
+
+async def test_in_place_config_change_invalidates_departure_read():
+    driver, daemon = await arrived_daemon()
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def read():
+        entered.set()
+        await release.wait()
+        return SIT_H
+
+    driver.desk.get_height = read
+    task = asyncio.create_task(daemon.pause())
+    await entered.wait()
+    driver.cfg.presets["stand"] = 1.15
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    release.set()
+    with pytest.raises(DBusError, match="strict mode"):
+        await task
+    assert driver.m.strict_snapshot.target_height == STAND_H
+    assert not driver.m.paused
+
+
 async def test_notification_control_observes_refusal():
     driver, daemon = await arrived_daemon()
     from idasen_companion.daemon.main import Daemon
