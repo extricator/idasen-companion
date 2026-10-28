@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from idasen_companion.core.clocks import WallInstant
 from idasen_companion.core.lengths import Length
+from idasen_companion.core.machine import TransitionCompleted
 from test_control_loop import make_daemon
 from machine_helpers import Driver, STAND_H, make_config
 
@@ -46,3 +47,21 @@ async def test_pending_loop_paces_and_shutdown_interrupts_wait():
         loop.cancel()
         await asyncio.gather(loop, return_exceptions=True)
         await daemon._initial_read
+
+
+async def test_disable_during_move_discards_completion():
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    original_move = driver.desk.move_to
+
+    async def move(height, **kwargs):
+        result = await original_move(height, **kwargs)
+        driver.cfg.automation.enabled = False
+        driver.m.update_config(driver.cfg)
+        return result
+
+    driver.desk.move_to = move
+    events = await driver.tick(dt=1)
+    assert driver.m.strict_snapshot is None
+    assert not any(isinstance(event, TransitionCompleted) for event in events)
