@@ -34,6 +34,7 @@ def make_daemon(tick):
     d.activity_log = MagicMock()
     d.accounting = MagicMock()
     d.machine = MagicMock()
+    d.machine.strict_snapshot = None
     d._stop_event = asyncio.Event()
     d._initial_read = None
     d._adopt_initial_state = AsyncMock()

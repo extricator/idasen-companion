@@ -166,6 +166,7 @@ class Daemon:
         self._last_height_emit = MonotonicInstant(0.0)
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
+        self._retry_wake = asyncio.Event()
         # Whether this daemon's own link was up when the system last announced
         # a sleep. Recorded because after the resume there is no way left to
         # tell a leftover link of this daemon's from one belonging to another
@@ -788,6 +789,7 @@ class Daemon:
             return
 
         while not self._stop_event.is_set():
+            self._retry_wake.clear()
             interval = self.config.automation.check_interval
             started = MonotonicInstant(time.monotonic())
             try:
@@ -816,8 +818,20 @@ class Daemon:
                     f"{format_duration_human(overrun.seconds)} (check interval is "
                     f"{format_duration_human(interval)}); automation was "
                     f"stalled for that long.")
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._stop_event.wait(), timeout=interval)
+            snapshot = self.machine.strict_snapshot
+            if snapshot is not None and snapshot.stage == "pending":
+                stop_wait = asyncio.ensure_future(self._stop_event.wait())
+                wake_wait = asyncio.ensure_future(self._retry_wake.wait())
+                try:
+                    await asyncio.wait((stop_wait, wake_wait), timeout=0.1,
+                                       return_when=asyncio.FIRST_COMPLETED)
+                finally:
+                    for task in (stop_wait, wake_wait):
+                        task.cancel()
+                    await asyncio.gather(stop_wait, wake_wait, return_exceptions=True)
+            else:
+                with contextlib.suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(self._stop_event.wait(), timeout=interval)
 
     async def _entitled_to_desk(self) -> bool:
         """Whether this session may touch the desk on its own initiative.
@@ -1289,6 +1303,7 @@ class Daemon:
         self._emit_automation_state()
 
     def reload_config(self) -> None:
+        self._retry_wake.set()
         try:
             new_config = self.config_file.load()
         except ConfigError as error:
@@ -1575,6 +1590,7 @@ class Daemon:
         # Deliberate stop: invalidate any in-flight move's return-to-start so a
         # software stop stays put rather than bouncing back like an interruption.
         self._current_move_id += 1
+        self._retry_wake.set()
         await self.desk.stop()
         self.activity_log.emit(logmsg.MANUAL_STOPPED)
         if expect_successor:

@@ -587,6 +587,12 @@ class StateMachine:
             return (not frozen and not self.held and recently_active
                     and self.target_duration > Duration.from_seconds(0))
 
+        if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
+            if can_act():
+                events.extend(await self._execute_strict_transition(now, guard=guard))
+            self._last_check = now
+            return events
+
         # Report the gate, once per hold. Only when the move is otherwise ready
         # to go: a hold that nothing was waiting on isn't news, and frozen/held
         # already have their own lines saying why nothing is happening.
