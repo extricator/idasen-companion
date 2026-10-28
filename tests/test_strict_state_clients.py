@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from dbus_fast.aio import MessageBus
+pytest.importorskip("PySide6")
 from PySide6.QtDBus import QDBusMessage
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
@@ -66,7 +67,11 @@ def test_late_read_and_obsolete_sender_cannot_overwrite(qapp, monkeypatch):
     client._on_strict_state(signal)
     callbacks.pop()(Watcher())
     assert client.strict_state.stage == "pending"
-    client._on_observation_owner_changed(DBUS_NAME, ":1.1", "")
+    client._refresh_strict_state()
+    monkeypatch.setattr(client, "_refresh_position_observation", lambda: None)
+    monkeypatch.setattr(client, "_refresh_strict_state", lambda: None)
+    client._on_observation_owner_changed(DBUS_NAME, ":1.1", ":1.2")
+    callbacks.pop()(Watcher())
     client._on_strict_state(signal)
     assert client.strict_state is None
     assert client.strict_capability == "unknown"
