@@ -17,21 +17,6 @@ from idasen_companion.desk.mock import MockDesk
 from machine_helpers import Driver, STAND_H, make_config
 
 
-async def test_scheduled_standing_arrives_only_on_verified_readback():
-    driver = Driver(make_config(strict_mode="standing"))
-    await driver.start()
-    driver.m.active_time = driver.m.target_duration
-    events = await driver.tick(dt=1)
-    snapshot = getattr(driver.m, "strict_snapshot", None)
-    assert snapshot is not None
-    assert (snapshot.stage, snapshot.posture, snapshot.target_height) == (
-        "arrived", DeskState.STANDING, STAND_H)
-    completed = [e for e in events if isinstance(e, TransitionCompleted)]
-    assert len(completed) == 1
-    assert completed[0].next_target_duration == driver.m.target_duration
-    assert driver.m.active_time == Duration(0)
-
-
 async def test_saved_policy_reaches_daemon_tick_and_event_handler(tmp_path, monkeypatch):
     from idasen_companion.daemon import main as daemon_module
     from idasen_companion.core.machine import StateMachine
@@ -62,6 +47,7 @@ async def test_saved_policy_reaches_daemon_tick_and_event_handler(tmp_path, monk
     await d._tick()
     assert d.desk.move_calls == [Length(d.config.presets["stand"])]
     assert d.machine.strict_snapshot.stage == "arrived"
+    assert d.machine.strict_snapshot.target_height == Length(d.config.presets["stand"])
     completions = [c.args[0] for c in d._handle_event.call_args_list
                    if isinstance(c.args[0], TransitionCompleted)]
     assert len(completions) == 1
