@@ -372,6 +372,7 @@ def _daemon():
     d.machine.status.return_value = MagicMock(value="active")
     d.config = MagicMock()
     d.config.automation.enabled = True
+    d.config.automation.strict_mode = "off"
     d._ifaces = {"automation": MagicMock()}
     return d
 
@@ -429,9 +430,19 @@ async def test_toggle_moves_to_machine_chosen_preset():
     # moves there — the tray click and --toggle shortcut both ride this path.
     d = make_daemon_shell()
     d.machine = MagicMock()
+    d.machine.strict_snapshot = None
+    d.config = MagicMock()
+    d.config.presets = {"stand": 1.10}
     d.machine.refresh_height = AsyncMock()
     d.machine.toggle_target_preset.return_value = "stand"
     d.manual_move_to_preset = AsyncMock()
+    async def refresh():
+        await d.machine.refresh_height(WallInstant(0))
+        return True
+    d._manual_refresh_locked = refresh
+    async def move(_height, _label, **_kwargs):
+        await d.manual_move_to_preset("stand")
+    d._manual_move_locked = move
     await d.toggle_sit_stand()
     d.machine.refresh_height.assert_awaited_once()  # pre-decide read before deciding
     d.manual_move_to_preset.assert_awaited_once_with("stand")
@@ -458,13 +469,28 @@ def _gesture_daemon(*, moving=False, active=None, start_height=Length(0.62),
     d._gesture_start_height = start_height
     d.config = MagicMock()
     d.config.ui.tray_repeat_move = repeat
+    d.config.presets = {"sit": 0.62, "stand": 1.10}
     d.machine = MagicMock()
+    d.machine.strict_snapshot = None
+    d.machine.toggle_target_preset.return_value = "stand"
     d.machine.last_height = Length(0.75)
     d.machine.refresh_height = AsyncMock()  # the START-path pre-decide read
     d.toggle_sit_stand = AsyncMock()
     d.manual_move_to_preset = AsyncMock()
     d.manual_move_to_height = AsyncMock()
     d.stop_movement = AsyncMock()
+    async def refresh():
+        await d.machine.refresh_height(WallInstant(0))
+        return True
+    async def move(_height, label, *, on_issue=None, **_kwargs):
+        if on_issue is not None:
+            on_issue()
+        if d._gesture_action == "toggle":
+            await d.toggle_sit_stand(refresh=False)
+        else:
+            await d.manual_move_to_preset(label.split("'")[1])
+    d._manual_refresh_locked = refresh
+    d._manual_move_locked = move
     return d
 
 
@@ -666,8 +692,8 @@ async def test_software_stop_mid_move_does_not_return_to_start():
     d.desk.interrupt_next_move_at = Length(0.80)
     orig_move_to = d.desk.move_to
 
-    async def move_to_then_stop(h):
-        result = await orig_move_to(h)
+    async def move_to_then_stop(h, **kwargs):
+        result = await orig_move_to(h, **kwargs)
         d._current_move_id += 1  # stand in for stop_movement()/a superseding move
         return result
 
@@ -684,8 +710,8 @@ async def test_superseded_move_keeps_moving_flag_and_skips_reconcile():
     d.machine.force_sync = AsyncMock(return_value=[])
     orig_move_to = d.desk.move_to
 
-    async def supersede(h):
-        result = await orig_move_to(h)
+    async def supersede(h, **kwargs):
+        result = await orig_move_to(h, **kwargs)
         d._current_move_id += 1  # a newer move started during ours
         return result
 
@@ -737,9 +763,20 @@ async def test_stop_then_the_same_gesture_moves_that_way_not_back():
     d.config = MagicMock()
     d.config.ui.tray_repeat_move = "reverse"
     d.machine = MagicMock(last_height=Length(1.10))
+    d.machine.strict_snapshot = None
     d.machine.refresh_height = AsyncMock()
     d.manual_move_to_preset = AsyncMock()
     d.manual_move_to_height = AsyncMock()
+    d.config.presets = {"stand": 1.10}
+    async def refresh():
+        await d.machine.refresh_height(WallInstant(0))
+        return True
+    async def move(_height, _label, *, on_issue=None, **_kwargs):
+        if on_issue is not None:
+            on_issue()
+        await d.manual_move_to_preset("stand")
+    d._manual_refresh_locked = refresh
+    d._manual_move_locked = move
 
     await d.stop_movement()          # Overview's Stop button / --stop
     await d.gesture_move("stand")    # tray "Stand" again
