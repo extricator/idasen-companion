@@ -1632,21 +1632,32 @@ class Daemon:
                 machine._height_observation_generation, machine._strict_generation,
                 machine._startup_revision)
 
-    async def _manual_current(self, identity: tuple) -> bool:
-        if self._manual_identity() != identity or self.machine.strict_snapshot is not None:
+    async def _manual_current(self, identity: tuple, *, admission: bool = False) -> bool:
+        def current() -> bool:
+            if self._current_move_id != identity[3]:
+                return False
+            if self.machine.strict_snapshot is not None:
+                if admission:
+                    raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
+                return False
+            return self._manual_identity() == identity
+
+        if not current():
             return False
         try:
             await self._require_manual_entitlement()
         except DBusError:
+            if admission and self._current_move_id == identity[3]:
+                raise
             return False
-        return self._manual_identity() == identity and self.machine.strict_snapshot is None
+        return current()
 
     async def _manual_refresh_locked(self) -> bool:
         identity = self._manual_identity()
-        if not await self._manual_current(identity):
+        if not await self._manual_current(identity, admission=True):
             return False
         height = await self.machine._read_height(WallInstant(time.time()), publish=False)
-        if not await self._manual_current(identity):
+        if not await self._manual_current(identity, admission=True):
             return False
         if height is not None:
             self.machine.last_height = height
@@ -1656,16 +1667,21 @@ class Daemon:
     async def _manual_move_locked(self, height: Length, label: str,
                                   *, return_to: Length | None = None,
                                   on_issue=None) -> None:
-        if not await self._manual_current(self._manual_identity()):
+        if not await self._manual_current(self._manual_identity(), admission=True):
             return
         desk, machine = self.desk, self.machine
         issued = False
         move_id = self._current_move_id
         identity = self._manual_identity()
+        admission_error: DBusError | None = None
 
         async def guard() -> bool:
-            nonlocal issued, move_id, identity
-            if not await self._manual_current(identity):
+            nonlocal issued, move_id, identity, admission_error
+            try:
+                if not await self._manual_current(identity, admission=not issued):
+                    return False
+            except DBusError as error:
+                admission_error = error
                 return False
             if not issued:
                 self._current_move_id += 1
@@ -1680,9 +1696,11 @@ class Daemon:
             return True
 
         try:
-            if not await self._manual_current(identity):
+            if not await self._manual_current(identity, admission=True):
                 return
             move_accepted = await desk.move_to(height, guard=guard)
+            if admission_error is not None:
+                raise admission_error
             if move_accepted is None:
                 if self.machine.strict_snapshot is not None:
                     raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")

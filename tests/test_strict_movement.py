@@ -154,3 +154,33 @@ async def test_strict_armed_during_ble_connect_prevents_driver_and_gesture_mutat
     finally:
         release.set()
         await desk.disconnect()
+
+
+@pytest.mark.parametrize("denial", ["strict", "session"])
+async def test_predecision_read_reports_admission_denial(denial):
+    driver = Driver(make_config(strict_mode="standing"))
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = False
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def read():
+        entered.set()
+        await release.wait()
+        return SIT_H
+
+    driver.desk.get_height = read
+    task = asyncio.create_task(daemon.toggle_sit_stand())
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        if denial == "strict":
+            assert driver.m.adopt_startup_height(STAND_H, driver.now, driver.m.startup_token())
+        else:
+            daemon._session.state.return_value = "background"
+        release.set()
+        with pytest.raises(DBusError) as error:
+            await asyncio.wait_for(task, 2)
+        assert error.value.type.endswith("StrictEnforced" if denial == "strict" else "SessionInactive")
+        assert not driver.desk.move_calls
+    finally:
+        release.set()
