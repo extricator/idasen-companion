@@ -425,173 +425,129 @@ async def test_progress_uses_current_machine_values(op):
     d._ifaces["automation"].ProgressChanged.assert_called_with(120.0, 300.0)
 
 
+def _gesture_daemon(*, moving=False, active=None, start_height=Length(0.62),
+                    repeat="reverse"):
+    from machine_helpers import Driver, make_config
+    from test_strict_retry import daemon_for_driver
+
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    d = daemon_for_driver(driver)
+    d._record_transition = MagicMock()
+    d.moving = moving
+    d._gesture_action = active
+    d._gesture_start_height = start_height
+    d.config.ui.tray_repeat_move = repeat
+    d.machine.last_height = Length(0.75)
+    d.desk.height = Length(0.75)
+    d.desk.get_height = AsyncMock(wraps=d.desk.get_height)
+    d.issue_states = []
+    original_move = d.desk.move_to
+
+    async def move(height, *, guard):
+        async def record_issue():
+            accepted = await guard()
+            if accepted:
+                d.issue_states.append((height, d._gesture_action, d._gesture_start_height))
+            return accepted
+        return await original_move(height, guard=record_issue)
+
+    d.desk.move_to = move
+    d.stop_movement = AsyncMock(wraps=d.stop_movement)
+    return d
+
+
 async def test_toggle_moves_to_machine_chosen_preset():
-    # Desk1.Toggle delegates the "which way?" decision to the machine and
-    # moves there — the tray click and --toggle shortcut both ride this path.
-    d = make_daemon_shell()
-    d.machine = MagicMock()
-    d.machine.strict_snapshot = None
-    d.config = MagicMock()
-    d.config.presets = {"stand": 1.10}
-    d.machine.refresh_height = AsyncMock()
-    d.machine.toggle_target_preset.return_value = "stand"
-    d.manual_move_to_preset = AsyncMock()
-    async def refresh():
-        await d.machine.refresh_height(WallInstant(0))
-        return True
-    d._manual_refresh_locked = refresh
-    async def move(_height, _label, **_kwargs):
-        await d.manual_move_to_preset("stand")
-    d._manual_move_locked = move
+    d = _gesture_daemon(repeat="stop")
+    d.desk.height = Length(d.config.presets["sit"])
     await d.toggle_sit_stand()
-    d.machine.refresh_height.assert_awaited_once()  # pre-decide read before deciding
-    d.manual_move_to_preset.assert_awaited_once_with("stand")
+    assert d.desk.move_calls == [Length(d.config.presets["stand"])]
+    assert d.desk.get_height.await_count >= 1
 
 
 async def test_toggle_from_background_never_reads_the_desk():
     from dbus_fast.errors import DBusError
     from idasen_companion.daemon.idle import SEAT_BACKGROUND
 
-    d = Daemon.__new__(Daemon)
-    d._session = MagicMock(state=AsyncMock(return_value=SEAT_BACKGROUND))
-    d.machine = MagicMock(refresh_height=AsyncMock())
+    d = _gesture_daemon()
+    d._session.state.return_value = SEAT_BACKGROUND
     with pytest.raises(DBusError):
         await d.toggle_sit_stand()
-    d.machine.refresh_height.assert_not_awaited()
-
-
-def _gesture_daemon(*, moving=False, active=None, start_height=Length(0.62),
-                    repeat="reverse"):
-    d = make_daemon_shell()
-    d.activity_log = MagicMock()
-    d.moving = moving
-    d._gesture_action = active
-    d._gesture_start_height = start_height
-    d.config = MagicMock()
-    d.config.ui.tray_repeat_move = repeat
-    d.config.presets = {"sit": 0.62, "stand": 1.10}
-    d.machine = MagicMock()
-    d.machine.strict_snapshot = None
-    d.machine.toggle_target_preset.return_value = "stand"
-    d.machine.last_height = Length(0.75)
-    d.machine.refresh_height = AsyncMock()  # the START-path pre-decide read
-    d.toggle_sit_stand = AsyncMock()
-    d.manual_move_to_preset = AsyncMock()
-    d.manual_move_to_height = AsyncMock()
-    d.stop_movement = AsyncMock()
-    async def refresh():
-        await d.machine.refresh_height(WallInstant(0))
-        return True
-    async def move(_height, label, *, on_issue=None, **_kwargs):
-        if on_issue is not None:
-            on_issue()
-        if d._gesture_action == "toggle":
-            await d.toggle_sit_stand(refresh=False)
-        else:
-            await d.manual_move_to_preset(label.split("'")[1])
-    d._manual_refresh_locked = refresh
-    d._manual_move_locked = move
-    return d
+    d.desk.get_height.assert_not_awaited()
 
 
 async def test_gesture_move_idle_starts_and_records_start():
-    d = _gesture_daemon(moving=False)
+    d = _gesture_daemon()
     await d.gesture_move("toggle")
-    d.machine.refresh_height.assert_awaited_once()  # pre-decide read on start
-    d.toggle_sit_stand.assert_awaited_once_with(refresh=False)  # no double read
+    assert d.issue_states == [(Length(d.config.presets["stand"]), "toggle", Length(0.75))]
     d.stop_movement.assert_not_awaited()
-    assert d._gesture_action == "toggle"
-    assert d._gesture_start_height == Length(0.75)  # captured from machine.last_height
 
 
 async def test_gesture_toggle_start_height_is_fresh_not_stale_cache():
-    # The reverse target must be the desk's real position when the gesture
-    # fired, not a stale cache. It's captured AFTER the pre-decide read, so an
-    # external move (cache 0.62, desk really at 1.10) is reflected — and the
-    # toggle direction and reverse target agree.
-    d = _gesture_daemon(moving=False)
-    d.machine.last_height = Length(0.62)  # stale cache
-
-    async def do_refresh(_now):
-        d.machine.last_height = Length(1.10)  # the real position
-
-    d.machine.refresh_height = AsyncMock(side_effect=do_refresh)
+    d = _gesture_daemon()
+    d.machine.last_height = Length(0.62)
+    d.desk.height = Length(d.config.presets["stand"])
     await d.gesture_move("toggle")
-    assert d._gesture_start_height == Length(1.10)  # fresh, not the 0.62 cache
-    d.toggle_sit_stand.assert_awaited_once_with(refresh=False)
+    assert d.issue_states == [(Length(d.config.presets["sit"]), "toggle", Length(d.config.presets["stand"]))]
 
 
 async def test_sit_gesture_also_reads_before_recording_start():
-    # Non-toggle gestures get the same fresh reverse target (and move directly).
-    d = _gesture_daemon(moving=False)
-    d.machine.last_height = Length(0.62)
-
-    async def do_refresh(_now):
-        d.machine.last_height = Length(1.10)
-
-    d.machine.refresh_height = AsyncMock(side_effect=do_refresh)
+    d = _gesture_daemon()
+    d.desk.height = Length(1.10)
     await d.gesture_move("sit")
-    d.machine.refresh_height.assert_awaited_once()
-    assert d._gesture_start_height == Length(1.10)
-    d.manual_move_to_preset.assert_awaited_once_with("sit")
+    assert d.issue_states == [(Length(d.config.presets["sit"]), "sit", Length(1.10))]
 
 
 async def test_sit_gesture_skips_read_when_not_reversing():
-    # With repeat != "reverse" the reverse target is never used, so an explicit
-    # sit/stand skips the pre-move read and starts moving a round-trip sooner.
-    d = _gesture_daemon(moving=False, repeat="stop")
-    d.machine.last_height = Length(0.75)
+    d = _gesture_daemon(repeat="stop")
+    d.config.automation.interruption_policy = "leave"
+    async def move(height, *, guard):
+        assert d.desk.get_height.await_count == 0
+        assert await guard()
+        d.issue_states.append((height, d._gesture_action, d._gesture_start_height))
+        return True
+    d.desk.move_to = move
     await d.gesture_move("sit")
-    d.machine.refresh_height.assert_not_awaited()
-    assert d._gesture_start_height == Length(0.75)  # cached pre-move height
-    d.manual_move_to_preset.assert_awaited_once_with("sit")
+    assert d.issue_states == [(Length(d.config.presets["sit"]), "sit", Length(0.75))]
 
 
 async def test_toggle_gesture_reads_even_without_reverse():
-    # Toggle always needs the fresh position to choose a direction, regardless
-    # of the repeat mode.
-    d = _gesture_daemon(moving=False, repeat="stop")
+    d = _gesture_daemon(repeat="stop")
+    d.desk.height = Length(d.config.presets["stand"])
     await d.gesture_move("toggle")
-    d.machine.refresh_height.assert_awaited_once()
-    d.toggle_sit_stand.assert_awaited_once_with(refresh=False)
+    assert d.issue_states[0][0] == Length(d.config.presets["sit"])
 
 
 async def test_gesture_move_repeat_reverses_to_start():
-    d = _gesture_daemon(moving=True, active="toggle", start_height=Length(0.62),
-                        repeat="reverse")
+    d = _gesture_daemon(moving=True, active="toggle", repeat="reverse")
     await d.gesture_move("toggle")
-    # The reverse move is the successor, so the "moving" flag stays up for it.
     d.stop_movement.assert_awaited_once_with(expect_successor=True)
-    d.manual_move_to_height.assert_awaited_once_with(Length(0.62))
-    assert d._gesture_action is None
+    assert d.desk.move_calls == [Length(0.62)]
+    assert d.issue_states[0][1] is None
 
 
 async def test_gesture_move_repeat_stops_without_reverse():
     d = _gesture_daemon(moving=True, active="toggle", repeat="stop")
     await d.gesture_move("toggle")
-    # Nothing follows this one, so it owns the teardown.
     d.stop_movement.assert_awaited_once_with(expect_successor=False)
-    d.manual_move_to_height.assert_not_awaited()
+    assert not d.desk.move_calls
 
 
 async def test_gesture_move_off_reissues_the_move():
     d = _gesture_daemon(moving=True, active="toggle", repeat="off")
     await d.gesture_move("toggle")
     d.stop_movement.assert_not_awaited()
-    d.toggle_sit_stand.assert_awaited_once()  # re-issued, not cancelled
+    assert d.desk.move_calls == [Length(d.config.presets["stand"])]
 
 
 async def test_gesture_move_different_action_redirects_not_stops():
-    # A different gesture mid-move heads to its own target; the desk layer
-    # preempts the move in flight, so this must not stop.
     d = _gesture_daemon(moving=True, active="toggle", repeat="reverse")
     await d.gesture_move("sit")
     d.stop_movement.assert_not_awaited()
-    d.manual_move_to_preset.assert_awaited_once_with("sit")
+    assert d.desk.move_calls == [Length(d.config.presets["sit"])]
 
 
 async def test_gesture_move_rejects_unknown_action():
-    import pytest
     from dbus_fast.errors import DBusError
     d = _gesture_daemon()
     with pytest.raises(DBusError):
