@@ -89,3 +89,35 @@ async def test_unverified_scheduled_move_stays_pending(readback):
     assert driver.m.strict_snapshot.target_height == STAND_H
     assert driver.m.state == DeskState.SITTING
     assert not any(isinstance(e, TransitionCompleted) for e in events)
+
+
+async def test_pending_intent_survives_noop_reload_and_completes_on_pinned_height():
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    snapshot = driver.m.strict_snapshot
+    elapsed, duration = driver.m.active_time, driver.m.target_duration
+    driver.cfg.presets["stand"] = 1.15
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    assert driver.m.strict_snapshot == snapshot
+    assert (driver.m.active_time, driver.m.target_duration) == (elapsed, duration)
+    driver.desk.height = STAND_H
+    events = await driver.m.force_sync(driver.now)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert len([e for e in events if isinstance(e, TransitionCompleted)]) == 1
+    assert not await driver.m.force_sync(driver.now)
+
+
+@pytest.mark.parametrize("mode,initial,expected", [
+    ("sitting", STAND_H, DeskState.SITTING),
+    ("both", STAND_H, DeskState.SITTING),
+])
+async def test_scheduled_sitting_selection(mode, initial, expected):
+    driver = Driver(make_config(strict_mode=mode), height=initial)
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    assert driver.m.strict_snapshot.posture == expected
+    assert driver.m.strict_snapshot.stage == "arrived"
