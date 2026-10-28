@@ -215,3 +215,22 @@ async def test_repeat_reverse_clears_moving_when_successor_cannot_issue(failure)
     from idasen_companion.daemon.main import logmsg
     assert all(call.args[0] != logmsg.GESTURE_REVERSE
                for call in daemon.activity_log.emit.call_args_list)
+
+
+async def test_failed_reverse_does_not_clear_newer_move_owner():
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = True
+    daemon._gesture_action = "stand"
+    daemon._gesture_start_height = SIT_H
+    daemon.config.ui.tray_repeat_move = "reverse"
+
+    async def stopping():
+        daemon._current_move_id += 1  # A newer operation takes ownership.
+        daemon._session.state.return_value = "background"
+
+    driver.desk.stop = stopping
+    with pytest.raises(DBusError):
+        await daemon.gesture_move("stand")
+    daemon._set_moving.assert_not_called()

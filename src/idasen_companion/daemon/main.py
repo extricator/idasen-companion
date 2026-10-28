@@ -1557,12 +1557,14 @@ class Daemon:
             # check narrows for the call below.
             reverse_to = (self._gesture_start_height
                           if repeat == "reverse" else None)
+            successor_owner: int | None = None
             async def repeat_stop() -> None:
+                nonlocal successor_owner
                 self._gesture_action = None
+                successor_owner = self._current_move_id + 1
                 await self.stop_movement(expect_successor=reverse_to is not None)
 
             if reverse_to is not None:
-                successor_owner = self._current_move_id + 1
                 try:
                     if snapshot is None:
                         await repeat_stop()
@@ -1577,7 +1579,7 @@ class Daemon:
                             reverse_to, f"{reverse_to.metres:.3f}m",
                             on_issue=lambda: self.activity_log.emit(logmsg.GESTURE_REVERSE)))
                 finally:
-                    if self._current_move_id == successor_owner:
+                    if successor_owner is not None and self._current_move_id == successor_owner:
                         self._set_moving(False)
             else:
                 if snapshot is None:
@@ -1726,8 +1728,6 @@ class Daemon:
             if admission_error is not None:
                 raise admission_error
             if move_accepted is None:
-                if self.machine.strict_snapshot is not None:
-                    raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
                 return
             if move_accepted is MoveFailure.NOT_ISSUED or not move_accepted:
                 # The D-Bus error reaches whoever asked, but a tray gesture or
