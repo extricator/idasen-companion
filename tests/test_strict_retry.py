@@ -160,6 +160,37 @@ async def test_return_read_rechecks_pause_and_keeps_off_target_pending(monkeypat
     assert driver.desk.move_calls == [STAND_H]
 
 
+async def test_pending_sync_rechecks_entitlement_after_lock_wait(monkeypatch):
+    from idasen_companion.daemon import main as main_module
+
+    driver = Driver(make_config(strict_mode="standing", sync_interval=5))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    d = daemon_for_driver(driver)
+    clock = [1_000_001.0]
+    monkeypatch.setattr(main_module.time, "time", lambda: clock[0])
+    await d._tick()
+    reads = driver.desk.get_height_calls
+    clock[0] += 5
+    d._session.state.reset_mock()
+    await d._desk_lock.acquire()
+    tick = asyncio.create_task(d._tick())
+    try:
+        for _ in range(10):
+            if d._session.state.await_count:
+                break
+            await asyncio.sleep(0)
+        assert d._session.state.await_count == 1
+        d._session.state.return_value = "background"
+    finally:
+        d._desk_lock.release()
+    await asyncio.wait_for(tick, 1)
+    assert driver.desk.get_height_calls == reads
+    assert driver.desk.move_calls == [STAND_H]
+    assert driver.m.strict_snapshot.stage == "pending"
+
+
 async def test_daemon_reports_failure_once_and_clears_on_verified_arrival(monkeypatch):
     from types import MethodType
     from idasen_companion.daemon import main as main_module

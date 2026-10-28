@@ -1333,6 +1333,12 @@ class StateMachine:
         generation = self._height_observation_generation
         desk = self._desk
         snapshot = self.strict_snapshot
+        if refresh is not None:
+            current = await refresh()
+            if (not current.valid or current.away or current.seatless
+                    or generation != self._height_observation_generation
+                    or desk is not self._desk or snapshot != self.strict_snapshot):
+                return []
         height = await self._read_height(now, publish=False)
         if refresh is not None:
             current = await refresh()
