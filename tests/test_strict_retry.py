@@ -105,6 +105,34 @@ async def test_pending_skip_does_not_block_guarded_retry(monkeypatch):
     assert driver.m.skip_next
 
 
+async def test_paused_pending_periodic_read_observes_physical_arrival():
+    driver = Driver(make_config(strict_mode="standing", sync_interval=5))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    await driver.tick(dt=1)
+    driver.m.pause()
+    driver.desk.height = STAND_H
+    events = await driver.tick(dt=5)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert len(driver.desk.move_calls) == 1
+    assert sum(isinstance(event, TransitionCompleted) for event in events) == 1
+
+
+async def test_return_from_away_reads_pending_target_before_retry():
+    driver = Driver(make_config(strict_mode="standing", sync_interval=0))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    await driver.tick(dt=1)
+    await driver.tick(dt=1, away=True)
+    driver.desk.height = STAND_H
+    events = await driver.tick(dt=1)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert len(driver.desk.move_calls) == 1
+    assert sum(isinstance(event, TransitionCompleted) for event in events) == 1
+
+
 async def test_stop_during_readback_rejects_result_then_allows_new_attempt(monkeypatch):
     from idasen_companion.daemon import main as main_module
 

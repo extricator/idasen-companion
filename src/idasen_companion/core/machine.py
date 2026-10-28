@@ -628,7 +628,10 @@ class StateMachine:
                     and self.target_duration > Duration.from_seconds(0))
 
         if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
-            if can_act():
+            events.extend(await self._periodic_sync(now, presence, refresh_presence))
+            frozen = self._frozen(self._observation_time() if self._observation_time else now)
+            if (self._strict_intent is not None
+                    and self._strict_intent.snapshot.stage == "pending" and can_act()):
                 events.extend(await self._execute_strict_transition(now, guard=guard))
             if not any(isinstance(event, TransitionCompleted) for event in events):
                 self._last_check = now
@@ -774,7 +777,8 @@ class StateMachine:
 
         return _Presence(currently_idle, unentitled, unentitled_edge, events)
 
-    async def _periodic_sync(self, now: WallInstant, presence: _Presence) -> list[Event]:
+    async def _periodic_sync(self, now: WallInstant, presence: _Presence,
+                             refresh: RefreshPresence | None = None) -> list[Event]:
         """Poll the actual desk height on the sync interval (``sync_interval``
         0 disables it, but a held desk still polls at ``HELD_POLL_INTERVAL`` so
         it can notice a return to a preset and resume).
@@ -791,7 +795,7 @@ class StateMachine:
             self._last_sync = now  # no sync debt to discharge on return
             return []
         if presence.unentitled_edge:
-            return await self._sync(now)
+            return await self._sync(now, refresh=refresh)
 
         interval = self._cfg.automation.sync_interval
         if self.held and (interval <= 0 or interval > HELD_POLL_INTERVAL):
@@ -800,7 +804,7 @@ class StateMachine:
             # slower than HELD_POLL_INTERVAL.
             interval = HELD_POLL_INTERVAL
         if interval > 0 and now - self._last_sync >= Duration.from_seconds(interval):
-            return await self._sync(now)
+            return await self._sync(now, refresh=refresh)
         return []
 
     # ----- controls -----
@@ -1311,7 +1315,8 @@ class StateMachine:
         return completed(landed, interrupted=True, recovery=policy,
                          final_height=height)
 
-    async def _sync(self, now: WallInstant) -> list[Event]:
+    async def _sync(self, now: WallInstant, *,
+                    refresh: RefreshPresence | None = None) -> list[Event]:
         """Read the desk and reconcile against it, restarting the sync clock.
 
         The stamp lives here rather than at each call site: every caller —
@@ -1323,6 +1328,10 @@ class StateMachine:
         desk = self._desk
         snapshot = self.strict_snapshot
         height = await self._read_height(now, publish=False)
+        if refresh is not None:
+            current = await refresh()
+            if not current.valid or current.away or current.seatless:
+                return []
         if generation != self._height_observation_generation or desk is not self._desk:
             return []
         if snapshot != self.strict_snapshot:
