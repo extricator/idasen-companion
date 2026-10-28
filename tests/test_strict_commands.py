@@ -44,6 +44,35 @@ async def test_unselected_sitting_pause_needs_no_read():
     assert driver.m.paused
 
 
+@pytest.mark.parametrize("control", ["pause", "skip_next", "snooze"])
+async def test_ordinary_cycle_controls_do_not_wait_for_movement(control):
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    daemon = daemon_for_driver(driver)
+    daemon._emit_automation_state = MagicMock()
+    await daemon._desk_lock.acquire()
+    try:
+        await asyncio.wait_for(getattr(daemon, control)(*((5,) if control == "snooze" else ())), 0.5)
+        assert {"pause": driver.m.paused, "skip_next": driver.m.skip_next,
+                "snooze": driver.m.snooze_until is not None}[control]
+    finally:
+        daemon._desk_lock.release()
+
+
+async def test_pending_controls_and_movement_refuse_while_lock_held():
+    from test_strict_movement import pending_daemon
+    driver, daemon = await pending_daemon()
+    await daemon._desk_lock.acquire()
+    try:
+        for operation in (daemon.pause(), daemon.manual_move_to_preset("sit")):
+            with pytest.raises(DBusError) as error:
+                await asyncio.wait_for(operation, 0.5)
+            assert error.value.type.endswith("StrictEnforced")
+        assert not driver.m.paused
+    finally:
+        daemon._desk_lock.release()
+
+
 @pytest.mark.parametrize("control,field", [("skip_next", "skip_next"), ("snooze", "snooze_until")])
 async def test_cycle_controls_refuse_arrived_and_allow_ordinary(control, field):
     driver, daemon = await arrived_daemon()

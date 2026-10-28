@@ -1359,6 +1359,12 @@ class Daemon:
 
     async def _cycle_control(self, action) -> None:
         await self._require_manual_entitlement()
+        snapshot = self.machine.strict_snapshot
+        if snapshot is None:
+            action()
+            return
+        if snapshot.stage == "pending":
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
         try:
             await asyncio.wait_for(self._desk_lock.acquire(), timeout=MANUAL_LOCK_TIMEOUT)
         except asyncio.TimeoutError as exc:
@@ -1627,6 +1633,9 @@ class Daemon:
     async def _movement_control(self, action) -> None:
         """Admit a whole manual operation under one desk lock."""
         await self._require_manual_entitlement()
+        snapshot = self.machine.strict_snapshot
+        if snapshot is not None and snapshot.stage == "pending":
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
         try:
             await asyncio.wait_for(self._desk_lock.acquire(),
                                    timeout=MANUAL_LOCK_TIMEOUT)
