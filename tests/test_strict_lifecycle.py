@@ -17,6 +17,19 @@ from idasen_companion.desk.mock import MockDesk
 from machine_helpers import Driver, STAND_H, make_config
 
 
+async def test_fresh_physical_departure_releases_arrived_intent():
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    snapshot = driver.m.strict_snapshot
+    driver.desk.height = Length(0.95)
+    await driver.m.force_sync(driver.now)
+    assert driver.m.strict_snapshot is None
+    assert driver.m.held
+    assert snapshot.stage == "arrived"
+
+
 async def test_saved_policy_reaches_daemon_tick_and_event_handler(tmp_path, monkeypatch):
     from idasen_companion.daemon import main as daemon_module
     from idasen_companion.core.machine import StateMachine
