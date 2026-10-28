@@ -195,8 +195,8 @@ class Automation1(ServiceInterface):
         self.d.set_automation_enabled(enabled)
 
     @dbus_method()
-    def Pause(self) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.pause()
+    async def Pause(self) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.pause()
 
     @dbus_method()
     def Resume(self) -> EmptyResult:  # pylint: disable=invalid-name

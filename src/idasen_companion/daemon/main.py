@@ -364,8 +364,9 @@ class Daemon:
     def _on_live_height(self, height: Length) -> None:
         # BLE reads also invoke this notification seam. A read spanning a hard
         # boundary must not get a second chance to publish through its callback.
-        if self.machine.accepts_height_callback():
-            self._observe_height(height)
+        if not self.machine.accepts_height_callback():
+            return
+        self._observe_height(height)
         self.machine.last_height = height
         now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
@@ -1289,10 +1290,64 @@ class Daemon:
                        else logmsg.AUTOMATION_DISABLED)
         self._emit_automation_state()
 
-    def pause(self) -> None:
-        self.machine.pause()
-        self.activity_log.emit(logmsg.AUTOMATION_PAUSED)
-        self._emit_automation_state()
+    async def _admit_strict_locked(self) -> None:
+        """Reconcile current arrived intent; caller owns the desk lock."""
+        machine, desk, config = self.machine, self.desk, self.config
+        snapshot = machine.strict_snapshot
+        if snapshot is None:
+            return
+        if snapshot.stage == "arrived":
+            move_id = self._current_move_id
+            observation = getattr(self, "_observation_generation", 0)
+            height_generation = machine._height_observation_generation
+
+            def current() -> bool:
+                return (self.machine is machine and self.desk is desk
+                        and self.config is config and machine.strict_snapshot == snapshot
+                        and self._current_move_id == move_id
+                        and getattr(self, "_observation_generation", 0) == observation
+                        and machine._height_observation_generation == height_generation)
+
+            await self._require_manual_entitlement()
+            if current():
+                try:
+                    height = await machine._read_height(WallInstant(time.time()), publish=False)
+                except Exception:  # A failed read is not evidence of departure.
+                    height = None
+                if current():
+                    await self._require_manual_entitlement()
+                    if current() and height is not None:
+                        now = WallInstant(time.time())
+                        events = machine.reconcile_strict_observation(
+                            height, generation=snapshot.generation, now=now)
+                        machine.last_height = height
+                        self._observe_height(height)
+                        for event in events:
+                            self._handle_event(event, "external")
+                        self._emit_periodic_properties()
+        if self.machine.strict_snapshot is not None:
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
+
+    async def _cycle_control(self, action) -> None:
+        await self._require_manual_entitlement()
+        try:
+            await asyncio.wait_for(self._desk_lock.acquire(), timeout=MANUAL_LOCK_TIMEOUT)
+        except asyncio.TimeoutError as exc:
+            raise DBusError(f"{DBUS_NAME}.Error.DeskBusy",
+                            "desk command waited too long; please retry") from exc
+        try:
+            await self._require_manual_entitlement()
+            await self._admit_strict_locked()
+            action()
+        finally:
+            self._desk_lock.release()
+
+    async def pause(self) -> None:
+        def apply() -> None:
+            self.machine.pause()
+            self.activity_log.emit(logmsg.AUTOMATION_PAUSED)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
     def resume(self) -> None:
         self.machine.resume()
