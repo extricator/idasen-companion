@@ -133,6 +133,35 @@ async def test_return_from_away_reads_pending_target_before_retry():
     assert sum(isinstance(event, TransitionCompleted) for event in events) == 1
 
 
+async def test_daemon_reports_failure_once_and_clears_on_verified_arrival(monkeypatch):
+    from types import MethodType
+    from idasen_companion.daemon import main as main_module
+    from idasen_companion.core import logmsg
+    from idasen_companion.daemon.main import Daemon
+
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    d = daemon_for_driver(driver)
+    d._handle_event = MethodType(Daemon._handle_event, d)
+    d._on_transition = MagicMock()
+    d.config.notifications.problems = False
+    monkeypatch.setattr(main_module.time, "time", lambda: 1_000_001)
+    driver.desk.height_unavailable = True
+    for _ in range(3):
+        driver.desk.fail_next_move = True
+        await d._tick()
+    assert driver.m.move_failed
+    assert driver.m.strict_snapshot.stage == "pending"
+    assert sum(call.args[0] == logmsg.CYCLE_MOVE_FAILED
+               for call in d.activity_log.emit.call_args_list) == 1
+    driver.desk.height_unavailable = False
+    await d._tick()
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert not driver.m.move_failed
+    assert d._on_transition.call_count == 1
+
+
 async def test_stop_during_readback_rejects_result_then_allows_new_attempt(monkeypatch):
     from idasen_companion.daemon import main as main_module
 

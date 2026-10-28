@@ -1208,7 +1208,12 @@ class StateMachine:
         finally:
             self._note_moving(False)
         if (self._strict_intent is not intent or desk is not self._desk
-                or generation != self._height_observation_generation or height is None):
+                or generation != self._height_observation_generation):
+            return []
+        if height is None:
+            if moved is not True and not self.move_failed:
+                self.move_failed = True
+                return [MoveFailed(intent.original, intent.snapshot.posture, self.target_duration)]
             return []
         self.last_height = height
         self._report_height_observation(height)
@@ -1226,6 +1231,7 @@ class StateMachine:
         self._strict_generation += 1
         snapshot = replace(intent.snapshot, stage="arrived", generation=self._strict_generation)
         self._strict_intent = replace(intent, snapshot=snapshot)
+        self.move_failed = False
         self._begin_cycle(snapshot.posture)
         return [TransitionCompleted(intent.original, snapshot.posture, snapshot.posture,
                                     False, "none", height, "automation", self.target_duration)]
