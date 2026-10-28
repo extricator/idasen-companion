@@ -1570,6 +1570,8 @@ class Daemon:
                         await repeat_stop()
                     else:
                         await self._movement_control(repeat_stop)
+                    if successor_owner is None or self._current_move_id != successor_owner:
+                        return
                     if not (Length(MIN_HEIGHT) <= reverse_to <= Length(MAX_HEIGHT)):
                         raise DBusError(f"{DBUS_NAME}.Error.OutOfRange",
                                         f"height {reverse_to.metres:.3f}m outside "
@@ -1577,7 +1579,8 @@ class Daemon:
                     await self._movement_control(
                         lambda: self._manual_move_locked(
                             reverse_to, f"{reverse_to.metres:.3f}m",
-                            on_issue=lambda: self.activity_log.emit(logmsg.GESTURE_REVERSE)))
+                            on_issue=lambda: self.activity_log.emit(logmsg.GESTURE_REVERSE)),
+                        expected_move_id=successor_owner)
                 finally:
                     if successor_owner is not None and self._current_move_id == successor_owner:
                         self._set_moving(False)
@@ -1632,9 +1635,21 @@ class Daemon:
         await self._movement_control(lambda: self._manual_move_locked(height, label,
                                                                        return_to=return_to))
 
-    async def _movement_control(self, action) -> None:
+    async def _movement_control(self, action, *, expected_move_id: int | None = None) -> None:
         """Admit a whole manual operation under one desk lock."""
-        await self._require_manual_entitlement()
+        def current() -> bool:
+            return expected_move_id is None or self._current_move_id == expected_move_id
+
+        if not current():
+            return
+        try:
+            await self._require_manual_entitlement()
+        except DBusError:
+            if not current():
+                return
+            raise
+        if not current():
+            return
         snapshot = self.machine.strict_snapshot
         if snapshot is not None and snapshot.stage == "pending":
             raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
@@ -1642,11 +1657,24 @@ class Daemon:
             await asyncio.wait_for(self._desk_lock.acquire(),
                                    timeout=MANUAL_LOCK_TIMEOUT)
         except asyncio.TimeoutError as exc:
+            if not current():
+                return
             raise DBusError(f"{DBUS_NAME}.Error.DeskBusy",
                             "desk command waited too long; please retry") from exc
         try:
-            await self._require_manual_entitlement()
-            await self._admit_strict_locked()
+            if not current():
+                return
+            try:
+                await self._require_manual_entitlement()
+                if not current():
+                    return
+                await self._admit_strict_locked()
+            except DBusError:
+                if not current():
+                    return
+                raise
+            if not current():
+                return
             await action()
         finally:
             self._desk_lock.release()

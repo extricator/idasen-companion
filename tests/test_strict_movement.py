@@ -262,6 +262,100 @@ async def test_failed_reverse_does_not_clear_newer_move_owner():
         daemon._session.state.return_value = "background"
 
     driver.desk.stop = stopping
-    with pytest.raises(DBusError):
-        await daemon.gesture_move("stand")
+    await daemon.gesture_move("stand")
     daemon._set_moving.assert_not_called()
+
+
+async def test_later_stop_cancels_reverse_during_first_stop():
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = True
+    daemon._gesture_action = "stand"
+    daemon._gesture_start_height = SIT_H
+    daemon.config.ui.tray_repeat_move = "reverse"
+    entered, release = asyncio.Event(), asyncio.Event()
+    calls = 0
+
+    async def stop():
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            entered.set()
+            await release.wait()
+
+    driver.desk.stop = stop
+    task = asyncio.create_task(daemon.gesture_move("stand"))
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        await daemon.stop_movement()
+        release.set()
+        await asyncio.wait_for(task, 2)
+        assert not driver.desk.move_calls
+        daemon._set_moving.assert_called_once_with(False)
+        from idasen_companion.daemon.main import logmsg
+        assert all(call.args[0] != logmsg.GESTURE_REVERSE
+                   for call in daemon.activity_log.emit.call_args_list)
+    finally:
+        release.set()
+
+
+async def test_later_stop_cancels_reverse_waiting_for_desk_lock():
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = True
+    daemon._gesture_action = "stand"
+    daemon._gesture_start_height = SIT_H
+    daemon.config.ui.tray_repeat_move = "reverse"
+    stopped = asyncio.Event()
+
+    async def stop():
+        stopped.set()
+
+    driver.desk.stop = stop
+    await daemon._desk_lock.acquire()
+    task = asyncio.create_task(daemon.gesture_move("stand"))
+    try:
+        await asyncio.wait_for(stopped.wait(), 2)
+        await asyncio.sleep(0)
+        await daemon.stop_movement()
+        daemon._desk_lock.release()
+        await asyncio.wait_for(task, 2)
+        assert not driver.desk.move_calls
+        daemon._set_moving.assert_called_once_with(False)
+    finally:
+        if daemon._desk_lock.locked():
+            daemon._desk_lock.release()
+
+
+async def test_later_stop_cancels_reverse_during_driver_preparation():
+    driver = Driver(make_config())
+    driver.m.start_without_desk_read(driver.now)
+    daemon = daemon_for_driver(driver)
+    daemon.moving = True
+    daemon._gesture_action = "stand"
+    daemon._gesture_start_height = SIT_H
+    daemon.config.ui.tray_repeat_move = "reverse"
+    entered, release = asyncio.Event(), asyncio.Event()
+    move = driver.desk.move_to
+
+    async def delayed_move(height, *, guard):
+        entered.set()
+        await release.wait()
+        return await move(height, guard=guard)
+
+    driver.desk.move_to = delayed_move
+    task = asyncio.create_task(daemon.gesture_move("stand"))
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        await daemon.stop_movement()
+        release.set()
+        await asyncio.wait_for(task, 2)
+        assert not driver.desk.move_calls
+        daemon._set_moving.assert_called_once_with(False)
+        from idasen_companion.daemon.main import logmsg
+        assert all(call.args[0] != logmsg.GESTURE_REVERSE
+                   for call in daemon.activity_log.emit.call_args_list)
+    finally:
+        release.set()
