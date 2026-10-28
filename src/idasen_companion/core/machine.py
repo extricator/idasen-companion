@@ -498,7 +498,7 @@ class StateMachine:
         if height is not None:
             self._report_height_observation(height)
         state = self._cycle_state_for_height(height) if height is not None else None
-        if (state is not None and self._cfg.automation.enabled
+        if (height is not None and state is not None and self._cfg.automation.enabled
                 and self._cfg.automation.strict_mode in ("both", state.value)):
             self._strict_generation += 1
             self._strict_intent = _StrictIntent(
@@ -992,7 +992,7 @@ class StateMachine:
                     and not self._frozen(current.now) and not self.held and not self.unconfigured
                     and not self.skip_next and self.target_duration > Duration.from_seconds(0)
                     and (pending or self.active_time >= self.target_duration)
-                    and (not pending or self._cfg.automation.strict_mode in
+                    and (intent is None or not pending or self._cfg.automation.strict_mode in
                          ("both", intent.snapshot.posture.value)))
             if admitted:
                 self._strict_admitted_at = current.now

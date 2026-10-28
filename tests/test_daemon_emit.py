@@ -694,6 +694,7 @@ async def test_superseded_move_keeps_moving_flag_and_skips_reconcile():
 
 def _stopping_daemon(*, moving=True, gesture="stand"):
     d = make_daemon_shell()
+    d.machine = MagicMock()
     d.activity_log = MagicMock()
     d.desk = MagicMock()
     d.desk.stop = AsyncMock()
@@ -763,7 +764,7 @@ def _enable_daemon(tmp_path, enabled=True):
     from idasen_companion.core.machine import StateMachine
     from idasen_companion.desk.mock import MockDesk
 
-    d = Daemon.__new__(Daemon)
+    d = make_daemon_shell()
 
     d._tasks = set()  # _spawn's strong-reference set; __init__ is bypassed here
 
