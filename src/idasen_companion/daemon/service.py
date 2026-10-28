@@ -203,12 +203,12 @@ class Automation1(ServiceInterface):
         self.d.resume()
 
     @dbus_method()
-    def SkipNext(self) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.skip_next()
+    async def SkipNext(self) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.skip_next()
 
     @dbus_method()
-    def Snooze(self, minutes: DBusInt32) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.snooze(minutes)
+    async def Snooze(self, minutes: DBusInt32) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.snooze(minutes)
 
     @dbus_method()
     def ReloadConfig(self) -> EmptyResult:  # pylint: disable=invalid-name

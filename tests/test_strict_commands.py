@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Cycle admission uses current strict intent and fresh desk evidence."""
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from dbus_fast import DBusError
@@ -41,3 +42,57 @@ async def test_unselected_sitting_pause_needs_no_read():
     driver.desk.get_height = MagicMock(side_effect=AssertionError("unexpected read"))
     await daemon.pause()
     assert driver.m.paused
+
+
+@pytest.mark.parametrize("control,field", [("skip_next", "skip_next"), ("snooze", "snooze_until")])
+async def test_cycle_controls_refuse_arrived_and_allow_ordinary(control, field):
+    driver, daemon = await arrived_daemon()
+    args = (5,) if control == "snooze" else ()
+    before = getattr(driver.m, field)
+    with pytest.raises(DBusError):
+        await getattr(daemon, control)(*args)
+    assert getattr(driver.m, field) == before
+    daemon.activity_log.emit.assert_not_called()
+    driver.cfg.automation.strict_mode = "off"
+    driver.m.update_config(driver.cfg)
+    await getattr(daemon, control)(*args)
+    assert getattr(driver.m, field) != before
+
+
+async def test_invalidated_read_cannot_release_intent():
+    driver, daemon = await arrived_daemon()
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def read():
+        entered.set()
+        await release.wait()
+        return SIT_H
+
+    driver.desk.get_height = read
+    task = asyncio.create_task(daemon.pause())
+    await entered.wait()
+    daemon._invalidate_position_observation()
+    release.set()
+    with pytest.raises(DBusError):
+        await task
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert not driver.m.paused
+
+
+async def test_notification_control_observes_refusal():
+    driver, daemon = await arrived_daemon()
+    from idasen_companion.daemon.main import Daemon
+    daemon._maybe_warn = Daemon._maybe_warn.__get__(daemon)
+    daemon._warned_this_cycle = False
+    daemon.config.notifications.enabled = True
+    daemon.config.notifications.lead_time = int(driver.m.target_duration.seconds)
+    daemon.fmt = daemon._build_formatter(daemon.config)
+    daemon._ifaces = {"automation": MagicMock()}
+    daemon._notifier = MagicMock(send=AsyncMock())
+    await daemon._maybe_warn(driver.now)
+    await asyncio.gather(*list(daemon._tasks))
+    callback = daemon._notifier.send.await_args.kwargs["actions"]["skip"][1]
+    callback()
+    await asyncio.gather(*list(daemon._tasks))
+    assert not driver.m.skip_next
+    daemon.activity_log.diag.assert_called_once()

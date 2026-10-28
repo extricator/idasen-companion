@@ -1006,8 +1006,10 @@ class Daemon:
             self.fmt.pre_move_body(),
             actions={
                 "snooze": (self.fmt.snooze_action_label(SNOOZE_MINUTES),
-                           lambda: self.snooze(SNOOZE_MINUTES)),
-                "skip": (self.fmt.skip_action_label(), self.skip_next),
+                           lambda: self._spawn(self._notification_control(
+                               self.snooze(SNOOZE_MINUTES)), "snoozing from notification")),
+                "skip": (self.fmt.skip_action_label(), lambda: self._spawn(
+                    self._notification_control(self.skip_next()), "skipping from notification")),
             },
         ), "showing the pre-move warning")
 
@@ -1292,11 +1294,12 @@ class Daemon:
 
     async def _admit_strict_locked(self) -> None:
         """Reconcile current arrived intent; caller owns the desk lock."""
-        machine, desk, config = self.machine, self.desk, self.config
+        machine = self.machine
         snapshot = machine.strict_snapshot
         if snapshot is None:
             return
         if snapshot.stage == "arrived":
+            desk, config = self.desk, self.config
             move_id = self._current_move_id
             observation = getattr(self, "_observation_generation", 0)
             height_generation = machine._height_observation_generation
@@ -1342,6 +1345,12 @@ class Daemon:
         finally:
             self._desk_lock.release()
 
+    async def _notification_control(self, control) -> None:
+        try:
+            await control
+        except DBusError as error:
+            self.activity_log.diag("warning", f"Notification action refused: {error}")
+
     async def pause(self) -> None:
         def apply() -> None:
             self.machine.pause()
@@ -1354,22 +1363,26 @@ class Daemon:
         self.activity_log.emit(logmsg.AUTOMATION_RESUMED)
         self._emit_automation_state()
 
-    def skip_next(self) -> None:
-        self.machine.request_skip_next()
-        self.activity_log.emit(logmsg.AUTOMATION_SKIP_NEXT)
-        self._emit_automation_state()
+    async def skip_next(self) -> None:
+        def apply() -> None:
+            self.machine.request_skip_next()
+            self.activity_log.emit(logmsg.AUTOMATION_SKIP_NEXT)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
-    def snooze(self, minutes: int) -> None:
+    async def snooze(self, minutes: int) -> None:
         minutes = max(1, int(minutes))
-        self.machine.snooze(minutes, WallInstant(time.time()))
+        def apply() -> None:
+            self.machine.snooze(minutes, WallInstant(time.time()))
         # Param.DURATION is a seconds kind, so each side renders it with its
         # own formatter rather than the sentence spelling out "minutes" itself.
         # Keep the released ``minutes`` wire field for N-1 readers while the
         # contextual-catalog reader consumes the raw duration in seconds.
-        self.activity_log.emit(
-            logmsg.AUTOMATION_SNOOZED, minutes=minutes,
-            duration=minutes * 60)
-        self._emit_automation_state()
+            self.activity_log.emit(
+                logmsg.AUTOMATION_SNOOZED, minutes=minutes,
+                duration=minutes * 60)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
     def reload_config(self) -> None:
         self._retry_wake.set()

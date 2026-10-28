@@ -136,8 +136,8 @@ async def test_startup_origin_survives_adoption_setup_reload_and_controls(monkey
             d.reload_config()
             d.set_automation_enabled(False)
             d.set_automation_enabled(True)
-            d.pause()
-            d.snooze(5)
+            await d.pause()
+            await d.snooze(5)
             d.resume()
             clock += 30
         await Daemon._tick(d)

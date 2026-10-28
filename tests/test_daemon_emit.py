@@ -364,6 +364,7 @@ def _daemon():
     d = make_daemon_shell()
     d.activity_log = MagicMock()
     d.machine = MagicMock()
+    d.machine.strict_snapshot = None
     d.machine.active_time = Duration.from_seconds(120.0)
     d.machine.target_duration = Duration.from_seconds(300.0)
     d.machine.snooze_until = None
@@ -382,9 +383,9 @@ def _assert_announced(d):
     assert auto.emit_properties_changed.called, "PropertiesChanged not emitted"
 
 
-def test_pause_emits_state():
+async def test_pause_emits_state():
     d = _daemon()
-    d.pause()
+    await d.pause()
     assert d.machine.pause.called
     _assert_announced(d)
 
@@ -396,16 +397,16 @@ def test_resume_emits_state():
     _assert_announced(d)
 
 
-def test_skip_next_emits_state():
+async def test_skip_next_emits_state():
     d = _daemon()
-    d.skip_next()
+    await d.skip_next()
     assert d.machine.request_skip_next.called
     _assert_announced(d)
 
 
-def test_snooze_emits_state():
+async def test_snooze_emits_state():
     d = _daemon()
-    d.snooze(10)
+    await d.snooze(10)
     assert d.machine.snooze.called
     d.activity_log.emit.assert_called_once()
     assert d.activity_log.emit.call_args.kwargs == {
@@ -414,10 +415,12 @@ def test_snooze_emits_state():
 
 
 @pytest.mark.parametrize("op", ["pause", "resume", "skip_next", "snooze"])
-def test_progress_uses_current_machine_values(op):
+async def test_progress_uses_current_machine_values(op):
     d = _daemon()
-    (d.snooze if op == "snooze" else getattr(d, op))(
+    result = (d.snooze if op == "snooze" else getattr(d, op))(
         *( (10,) if op == "snooze" else () ))
+    if op != "resume":
+        await result
     d._ifaces["automation"].ProgressChanged.assert_called_with(120.0, 300.0)
 
 
@@ -788,7 +791,7 @@ def test_set_automation_enabled_persists_to_config(tmp_path):
     _assert_announced(d)
 
 
-def test_snooze_deadline_adapters_keep_scalar_zero_and_clamped_minutes(tmp_path, monkeypatch):
+async def test_snooze_deadline_adapters_keep_scalar_zero_and_clamped_minutes(tmp_path, monkeypatch):
     from idasen_companion.daemon import main as main_mod
     from idasen_companion.daemon.service import Automation1
 
@@ -797,7 +800,7 @@ def test_snooze_deadline_adapters_keep_scalar_zero_and_clamped_minutes(tmp_path,
     assert d.machine.snooze_until is None
     assert interface.SnoozeUntil == 0.0
     monkeypatch.setattr(main_mod.time, "time", lambda: 0.0)
-    d.snooze(0)
+    await d.snooze(0)
     assert d.machine.snooze_until == WallInstant(60.0)
     assert d.activity_log.emit.call_args.kwargs == {"minutes": 1, "duration": 60}
     for deadline, expected in ((WallInstant(60.0), 60.0),
