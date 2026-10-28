@@ -889,18 +889,22 @@ class StateMachine:
         self._desk = desk
 
     def reconcile_strict_observation(self, height: Length | None, *,
-                                     generation: int) -> list[Event]:
+                                     generation: int, now: WallInstant) -> list[Event]:
         """Reconcile a fresh read of the current desk against a snapshot.
 
         Callers must acquire the height from that desk after taking the
-        snapshot and pass its generation. Stale or absent observations are inert.
+        snapshot and pass its generation and observation time. Stale or absent
+        observations are inert. A verified arrival rebases the existing clock.
         """
         intent = self._strict_intent
         if intent is None or intent.snapshot.generation != generation or height is None:
             return []
         snapshot = intent.snapshot
         if snapshot.stage == "pending":
-            return self._strict_arrival(height)
+            events = self._strict_arrival(height)
+            if events:
+                self._last_check = now
+            return events
         if abs(height - snapshot.target_height) <= Length(self._cfg.advanced.movement_tolerance):
             return []
         self._release_strict()
@@ -1327,10 +1331,8 @@ class StateMachine:
         self.last_height = height
         self._report_height_observation(height)
         if snapshot is not None:
-            events = self.reconcile_strict_observation(height, generation=snapshot.generation)
-            if any(isinstance(event, TransitionCompleted) for event in events):
-                self._last_check = now
-            return events
+            return self.reconcile_strict_observation(height, generation=snapshot.generation,
+                                                     now=now)
         return self._reconcile(height)
 
     def _reconcile(self, height: Length) -> list[Event]:

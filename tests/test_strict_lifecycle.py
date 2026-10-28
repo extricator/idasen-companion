@@ -76,19 +76,22 @@ async def test_reconciliation_requires_current_generation_and_fresh_height():
     driver.m.active_time = driver.m.target_duration
     await driver.tick(dt=1)
     pending = driver.m.strict_snapshot
-    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation)
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation, now=driver.now)
     assert driver.m.strict_snapshot == pending
-    assert not driver.m.reconcile_strict_observation(None, generation=pending.generation)
-    driver.m.reconcile_strict_observation(STAND_H, generation=pending.generation)
+    assert not driver.m.reconcile_strict_observation(None, generation=pending.generation, now=driver.now)
+    observed = driver.now + Duration(20)
+    driver.m.reconcile_strict_observation(STAND_H, generation=pending.generation, now=observed)
     arrived = driver.m.strict_snapshot
     assert arrived.stage == "arrived"
-    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation)
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation, now=observed)
     assert driver.m.strict_snapshot == arrived
-    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation + 1)
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation + 1, now=observed)
     assert driver.m.strict_snapshot == arrived
-    driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation)
+    await driver.m.tick(observed + Duration(1), 0, False)
+    assert driver.m.active_time == Duration(1)
+    driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation, now=observed)
     assert driver.m.strict_snapshot is None
-    assert not driver.m.reconcile_strict_observation(STAND_H, generation=arrived.generation)
+    assert not driver.m.reconcile_strict_observation(STAND_H, generation=arrived.generation, now=observed)
 
 
 @pytest.mark.parametrize("mode,enabled", [("off", True), ("sitting", True), ("standing", False)])
@@ -105,7 +108,7 @@ async def test_policy_removal_releases_and_old_observation_cannot_restore(mode, 
     driver.cfg.automation.strict_mode = "standing"
     driver.cfg.automation.enabled = True
     driver.m.update_config(driver.cfg, reroll_target=False)
-    assert not driver.m.reconcile_strict_observation(STAND_H, generation=old.generation)
+    assert not driver.m.reconcile_strict_observation(STAND_H, generation=old.generation, now=driver.now)
     assert driver.m.strict_snapshot is None
 
 
