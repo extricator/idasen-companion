@@ -4,6 +4,25 @@
 from dataclasses import dataclass
 import json
 import math
+from typing import Literal
+
+StrictCapability = Literal["unknown", "unsupported", "supported"]
+STRICT_ERROR = "io.github.extricator.IdasenCompanion.Error.StrictEnforced"
+OPTIONAL_MEMBER_ERRORS = frozenset({
+    "org.freedesktop.DBus.Error.UnknownProperty",
+    "org.freedesktop.DBus.Error.UnknownMethod",
+    "org.freedesktop.DBus.Error.UnknownInterface",
+})
+
+
+def decode_strict_state(payload: object) -> "StrictState | None":
+    """Decode an optional wire value without inferring an inactive state."""
+    if not isinstance(payload, str):
+        return None
+    try:
+        return StrictState.from_json(payload)
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass(frozen=True)

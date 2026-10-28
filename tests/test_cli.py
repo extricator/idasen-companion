@@ -24,6 +24,8 @@ class FakeClient:
 
     async def properties(self, interface: str,
                          names: tuple[str, ...]) -> dict[str, object]:
+        if names == ("StrictState",):
+            raise AttributeError("older daemon")
         values = {
             "Connected": True,
             "Height": 1.10,
@@ -260,3 +262,39 @@ def test_daemon_absence_is_exit_one_without_traceback(monkeypatch, capsys):
     assert "no session bus owner" in captured.err
     assert "systemctl --user start" in captured.err
     assert "Traceback" not in captured.err
+
+
+@pytest.mark.asyncio
+async def test_optional_strict_status_and_old_or_unavailable_peer(monkeypatch):
+    from dbus_fast.errors import DBusError
+    client = FakeClient()
+    original = client.properties
+    async def properties(interface, names):
+        if names == ("StrictState",):
+            return {"StrictState": '{"mode":"standing","stage":"pending",'
+                    '"posture":"standing","target_height":1.1}'}
+        return await original(interface, names)
+    monkeypatch.setattr(client, "properties", properties)
+    snapshot = await cli._read_status(client)
+    assert snapshot.strict_capability == "supported"
+    assert snapshot.strict_state.stage == "pending"
+    monkeypatch.setattr(client, "properties", original)
+    assert (await cli._read_status(client)).strict_capability == "unsupported"
+    async def unavailable(interface, names):
+        if names == ("StrictState",):
+            raise DBusError("org.freedesktop.DBus.Error.NoReply", "timeout")
+        return await original(interface, names)
+    monkeypatch.setattr(client, "properties", unavailable)
+    assert (await cli._read_status(client)).strict_capability == "unknown"
+
+
+def test_strict_refusal_is_not_reported_as_transport_failure(monkeypatch, capsys):
+    from dbus_fast.errors import DBusError
+    from idasen_companion.core.strict_state import STRICT_ERROR
+    async def run(*_args):
+        raise DBusError(STRICT_ERROR, "internal diagnostic")
+    monkeypatch.setattr(cli, "_run", run)
+    assert cli.main(["sit"]) == 1
+    error = capsys.readouterr().err
+    assert "internal diagnostic" not in error
+    assert "systemctl" not in error

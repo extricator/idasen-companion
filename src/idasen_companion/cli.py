@@ -31,6 +31,8 @@ from .core.presentation import (
 )
 from .core.i18n import GettextTranslator
 from .core.state_values import parse_position, parse_status
+from .core.strict_state import (OPTIONAL_MEMBER_ERRORS, STRICT_ERROR, StrictCapability,
+                                StrictState, decode_strict_state)
 from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
@@ -102,6 +104,8 @@ class StatusSnapshot:
     time_remaining: float
     snooze_until: float
     daily: tuple[DailyStatRow, ...]
+    strict_state: StrictState | None = None
+    strict_capability: StrictCapability = "unknown"
 
 
 def _formatter(config: AppConfig) -> Formatter:
@@ -127,13 +131,28 @@ async def _read_status(client: Client) -> StatusSnapshot:
     today = date.today().isoformat()
     rows = _json_rows(await client.call(IFACE_STATS, "GetDaily", today, today))
     daily = tuple(decode_daily_rows(rows))
+    strict_state = None
+    capability: StrictCapability = "unknown"
+    try:
+        strict = await client.properties(IFACE_AUTO, ("StrictState",))
+        strict_state = decode_strict_state(strict.get("StrictState"))
+        if strict_state is not None:
+            capability = "supported"
+    except AttributeError:
+        capability = "unsupported"
+    except DBusError as error:
+        if error.type in OPTIONAL_MEMBER_ERRORS:
+            capability = "unsupported"
+    except (ConnectionError, OSError, TimeoutError):
+        pass
     return StatusSnapshot(
         connected=bool(desk["Connected"]), height=float(desk["Height"]),
         position=str(desk["Position"]), moving=bool(desk["Moving"]),
         status=str(automation["Status"]),
         active_time=float(automation["ActiveTime"]),
         time_remaining=float(automation["TimeRemaining"]),
-        snooze_until=float(automation["SnoozeUntil"]), daily=daily)
+        snooze_until=float(automation["SnoozeUntil"]), daily=daily,
+        strict_state=strict_state, strict_capability=capability)
 
 
 def _json_rows(payload: object) -> list:
@@ -304,6 +323,9 @@ def main(argv: list[str] | None = None) -> int:
         if isinstance(error, DBusError):
             detail = daemon_error_message(
                 GettextTranslator(), name, detail)
+            if name == STRICT_ERROR:
+                print(detail, file=sys.stderr)
+                return 1
         message = i18n.pgettext(
             "cli.error",
             "Could not contact the Idasen Companion daemon: %(detail)s\n"

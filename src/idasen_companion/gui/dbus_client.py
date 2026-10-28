@@ -41,6 +41,8 @@ from ..core.decoded_data import (
 )
 from ..core.machine import DeskState, PositionObservation, Status, TIME_JUMP_THRESHOLD_SECONDS
 from ..core.state_values import StatusValue, parse_status
+from ..core.strict_state import (OPTIONAL_MEMBER_ERRORS, StrictCapability, StrictState,
+                                 decode_strict_state)
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
 IFACE_AUTO = f"{DBUS_NAME}.Automation1"
@@ -81,6 +83,7 @@ class DaemonClient(QObject):
     progressChanged = Signal(float, float)  # active_time, target_duration
     transitionCompleted = Signal(str, str, bool)
     snoozeUntilChanged = Signal(float)  # unix ts, 0.0 when not snoozed
+    strictStateChanged = Signal()
 
     #: A fire-and-forget command came back an error. (error name, detail).
     #: Every _async_call used to discard its reply, so a desk that could not
@@ -105,6 +108,10 @@ class DaemonClient(QObject):
         self._observation_receipt = MonotonicInstant(time.monotonic())
         self._observation_wall = WallInstant(time.time())
         self._observation_generation = 0
+        self.strict_state: StrictState | None = None
+        self.strict_capability: StrictCapability = "unknown"
+        self._strict_generation = 0
+        self._strict_owner = ""
 
         self._watcher = QDBusServiceWatcher(
             DBUS_NAME, self.bus,
@@ -126,6 +133,7 @@ class DaemonClient(QObject):
         subscribe(IFACE_DESK, "ConnectedChanged", "_on_connected")
         subscribe(IFACE_DESK, "MovingChanged", "_on_moving")
         subscribe(IFACE_AUTO, "StatusChanged", "_on_status")
+        subscribe(IFACE_AUTO, "StrictStateChanged", "_on_strict_state")
         subscribe(IFACE_AUTO, "ProgressChanged", "_on_progress")
         subscribe(IFACE_AUTO, "TransitionCompleted", "_on_transition")
         subscribe(IFACE_PRESETS, "PresetsChanged", "_on_presets_changed")
@@ -145,6 +153,8 @@ class DaemonClient(QObject):
 
     def _set_available(self, available: bool) -> None:
         self._clear_position_observation()
+        self._clear_strict_state()
+        self._strict_owner = self._current_owner() if available else ""
         self.available = available
         self.availableChanged.emit(available)
         if available:
@@ -152,8 +162,63 @@ class DaemonClient(QObject):
 
     def _on_observation_owner_changed(self, _name: str, _old: str, new: str) -> None:
         self._clear_position_observation()
+        self._clear_strict_state()
+        self._strict_owner = new
         if new:
             self._refresh_position_observation()
+            self._refresh_strict_state()
+
+    def _current_owner(self) -> str:
+        iface = self.bus.interface()
+        if iface is None:
+            return ""
+        args = _reply_args(iface.call("GetNameOwner", DBUS_NAME))
+        return str(args[0]) if args else ""
+
+    def _clear_strict_state(self) -> None:
+        self._strict_generation += 1
+        self.strict_state = None
+        self.strict_capability = "unknown"
+        self.strictStateChanged.emit()
+
+    def _cache_strict_state(self, payload: object) -> None:
+        self.strict_state = decode_strict_state(payload)
+        self.strict_capability = "supported" if self.strict_state is not None else "unknown"
+        self.strictStateChanged.emit()
+
+    @Slot(QDBusMessage)
+    def _on_strict_state(self, message: QDBusMessage) -> None:
+        if not self._strict_owner or message.service() != self._strict_owner:
+            return
+        self._strict_generation += 1
+        args = message.arguments()
+        self._cache_strict_state(args[0] if len(args) == 1 else None)
+
+    def _refresh_strict_state(self) -> None:
+        self._strict_generation += 1
+        generation, owner = self._strict_generation, self._strict_owner
+        if not owner:
+            return
+        message = QDBusMessage.createMethodCall(
+            owner, DBUS_PATH, "org.freedesktop.DBus.Properties", "Get")
+        message.setArguments([IFACE_AUTO, "StrictState"])
+        watcher = QDBusPendingCallWatcher(self.bus.asyncCall(message), self)
+
+        def finished(result: QDBusPendingCallWatcher) -> None:
+            reply = result.reply()
+            result.deleteLater()
+            if generation != self._strict_generation or owner != self._strict_owner:
+                return
+            args = _reply_args(reply)
+            if args:
+                self._cache_strict_state(_unwrap(args[0]))
+            else:
+                self.strict_state = None
+                self.strict_capability = ("unsupported" if reply.errorName() in
+                                          OPTIONAL_MEMBER_ERRORS else "unknown")
+                self.strictStateChanged.emit()
+
+        watcher.finished.connect(finished)
 
     def _clear_position_observation(self) -> None:
         self._observation_generation += 1
@@ -328,6 +393,7 @@ class DaemonClient(QObject):
 
     def refresh_all(self) -> None:
         self._refresh_position_observation()
+        self._refresh_strict_state()
         height = self.get_property(IFACE_DESK, "Height")
         if height is not None:
             self.heightChanged.emit(float(height))
