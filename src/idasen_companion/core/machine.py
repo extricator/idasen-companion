@@ -590,7 +590,8 @@ class StateMachine:
         if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
             if can_act():
                 events.extend(await self._execute_strict_transition(now, guard=guard))
-            self._last_check = now
+            if not any(isinstance(event, TransitionCompleted) for event in events):
+                self._last_check = now
             return events
 
         # Report the gate, once per hold. Only when the move is otherwise ready
@@ -633,7 +634,8 @@ class StateMachine:
                         StrictSnapshot("pending", intended, self._preset_height(intended),
                                        self._strict_generation), self.state)
                     events.extend(await self._execute_strict_transition(now, guard=guard))
-                    self._last_check = now
+                    if not any(isinstance(event, TransitionCompleted) for event in events):
+                        self._last_check = now
                     return events
                 if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
                     self._last_check = now
@@ -810,6 +812,10 @@ class StateMachine:
         self._enabled = config.automation.enabled
         self._strict_selection = config.automation.strict_mode
         self._cfg = config
+        if (self._strict_intent is not None and
+                (not config.automation.enabled or config.automation.strict_mode not in
+                 ("both", self._strict_intent.snapshot.posture.value))):
+            self._strict_intent = None
         if was_enabled != config.automation.enabled:
             self._begin_cycle(self.state)
             if not config.automation.enabled:
@@ -904,12 +910,19 @@ class StateMachine:
 
         async def admit() -> bool:
             current = await refresh()
-            return (current.valid and snapshot == self._admission_snapshot()
+            intent = self._strict_intent
+            pending = intent is not None and intent.snapshot.stage == "pending"
+            admitted = (current.valid and snapshot == self._admission_snapshot()
                     and not current.locked and not current.away and not current.seatless
                     and current.idle_ms < self._cfg.automation.recent_input_threshold * 1000
                     and not self._frozen(current.now) and not self.held and not self.unconfigured
                     and not self.skip_next and self.target_duration > Duration.from_seconds(0)
-                    and self.active_time >= self.target_duration)
+                    and (pending or self.active_time >= self.target_duration)
+                    and (not pending or self._cfg.automation.strict_mode in
+                         ("both", intent.snapshot.posture.value)))
+            if admitted:
+                self._strict_admitted_at = current.now
+            return admitted
 
         return admit
 
@@ -1033,21 +1046,21 @@ class StateMachine:
         max_minutes = math.ceil(variation / 60)
         return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
-    async def _read_height(self, now: WallInstant) -> Length | None:
+    async def _read_height(self, now: WallInstant, *, publish: bool = True) -> Length | None:
         generation = self._height_observation_generation
         desk = self._desk
         token = self._height_read_context.set((asyncio.current_task(), generation, desk))
         try:
             height = await desk.get_height()
         except Exception:
-            if generation == self._height_observation_generation and desk is self._desk:
+            if publish and generation == self._height_observation_generation and desk is self._desk:
                 self._report_height_observation(None)
             raise
         finally:
             self._height_read_context.reset(token)
-        if height is not None:
+        if publish and height is not None:
             self.last_height = height
-        if generation == self._height_observation_generation and desk is self._desk:
+        if publish and generation == self._height_observation_generation and desk is self._desk:
             self._report_height_observation(height)
         return height
 
@@ -1102,13 +1115,22 @@ class StateMachine:
                      else await desk.move_to(intent.snapshot.target_height, guard=guard))
             if moved is None or self._strict_intent is not intent or desk is not self._desk:
                 return []
-            height = await self._read_height(now)
+            if guard is not None and not await guard():
+                return []
+            height = await self._read_height(now, publish=False)
+            if guard is not None and not await guard():
+                return []
         finally:
             self._note_moving(False)
         if (self._strict_intent is not intent or desk is not self._desk
                 or generation != self._height_observation_generation or height is None):
             return []
-        return self._strict_arrival(height)
+        self.last_height = height
+        self._report_height_observation(height)
+        events = self._strict_arrival(height)
+        if events:
+            self._last_check = self._strict_admitted_at if guard is not None else now
+        return events
 
     def _strict_arrival(self, height: Length) -> list[Event]:
         intent = self._strict_intent

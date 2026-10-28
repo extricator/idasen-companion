@@ -923,23 +923,22 @@ class Daemon:
 
         state_before = self.machine.state
         held_before = self.machine.held
-        desk, config, move_id = self.desk, self.config, self._current_move_id
-
-        async def refresh_presence() -> FreshPresence:
-            # Idle is sampled last so the other bounded providers do not age
-            # the strict recent-input value before command admission.
-            current_locked = await self._lock.is_locked()
-            current_seat = await self._session.state()
-            current_idle = await self._idle.get_idle_ms()
-            return FreshPresence(
-                WallInstant(time.time()), current_idle, current_locked,
-                away=current_seat == SEAT_BACKGROUND, seatless=current_seat == SEAT_NONE,
-                valid=(self.desk is desk and self.config is config
-                       and self._current_move_id == move_id))
         # Held across the whole tick, not just the move: the machine's
         # transition captures state before its await and writes it back after,
         # so a manual move landing in between is what corrupted it.
         async with self._desk_lock:
+            desk, config, move_id = self.desk, self.config, self._current_move_id
+
+            async def refresh_presence() -> FreshPresence:
+                # Sample idle last, immediately before the admission decision.
+                current_locked = await self._lock.is_locked()
+                current_seat = await self._session.state()
+                current_idle = await self._idle.get_idle_ms()
+                return FreshPresence(
+                    WallInstant(time.time()), current_idle, current_locked,
+                    away=current_seat == SEAT_BACKGROUND, seatless=current_seat == SEAT_NONE,
+                    valid=(self.desk is desk and self.config is config
+                           and self._current_move_id == move_id))
             events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless,
                                              refresh_presence=refresh_presence)
 
@@ -1271,6 +1270,7 @@ class Daemon:
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
         self.machine.update_config(self.config)
+        self._retry_wake.set()
         self.activity_log.emit(logmsg.AUTOMATION_ENABLED if enabled
                        else logmsg.AUTOMATION_DISABLED)
         self._emit_automation_state()
