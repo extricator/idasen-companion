@@ -1680,7 +1680,7 @@ class Daemon:
         self._invalidate_position_observation()
         old_desk = self.desk
         self.desk = self._make_desk()
-        self.machine._desk = self.desk
+        self.machine.replace_desk(self.desk)
         # No hasattr guard: ``disconnect`` is on the DeskPort contract precisely
         # so the link this project treats most carefully is never released by a
         # duck-typed check that a new implementation could quietly fail.

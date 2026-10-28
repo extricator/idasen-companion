@@ -12,6 +12,7 @@ random draw from the configured durations, so recomputing it on a no-op Save
 silently re-randomizes the cycle the user is already in.
 """
 
+import asyncio
 import os
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -126,6 +127,39 @@ async def test_strict_intent_survives_noop_and_invalid_reload(daemon):
     daemon.reload_config()
     assert daemon.config is previous
     assert daemon.machine.strict_snapshot == snapshot
+
+
+async def test_reload_during_pending_retry_invalidates_its_result(daemon):
+    from idasen_companion.core.machine import StateMachine, TransitionCompleted
+    from idasen_companion.core.lengths import Length
+    from idasen_companion.desk.mock import MockDesk
+
+    path = daemon.config_file.path
+    path.write_text(CONFIG + '\nstrict_mode = "standing"\n')
+    daemon.config = load_config(path)
+    desk = MockDesk(Length(daemon.config.presets["sit"]))
+    daemon.machine = StateMachine(daemon.config, desk, now=WallInstant(1000))
+    await daemon.machine.start(WallInstant(1000))
+    desk.interrupt_next_move_at = Length(0.9)
+    daemon.machine.active_time = daemon.machine.target_duration
+    await daemon.machine.tick(WallInstant(1001), 0, False)
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_move = desk.move_to
+
+    async def blocked_move(height, **kwargs):
+        entered.set()
+        await release.wait()
+        return await original_move(height, **kwargs)
+
+    desk.move_to = blocked_move
+    task = asyncio.create_task(daemon.machine.tick(WallInstant(1002), 0, False))
+    await asyncio.wait_for(entered.wait(), 1)
+    path.write_text(CONFIG + '\nstrict_mode = "off"\n')
+    daemon.reload_config()
+    release.set()
+    events = await asyncio.wait_for(task, 1)
+    assert daemon.machine.strict_snapshot is None
+    assert not any(isinstance(event, TransitionCompleted) for event in events)
 
 
 def test_changing_a_duration_re_rolls_the_cycle_target(daemon):

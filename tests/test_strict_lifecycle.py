@@ -30,6 +30,83 @@ async def test_fresh_physical_departure_releases_arrived_intent():
     assert snapshot.stage == "arrived"
 
 
+async def test_pinned_arrival_survives_preset_edit_and_duration_reload():
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    snapshot = driver.m.strict_snapshot
+    driver.m.active_time = Duration(100)
+    driver.cfg.presets["stand"] = 1.2
+    driver.cfg.automation.stand_duration = 1800
+    driver.m.update_config(driver.cfg)
+    assert driver.m.active_time == Duration(100)
+    assert driver.m.target_duration == Duration(1800)
+    await driver.m.force_sync(driver.now)
+    assert driver.m.strict_snapshot == snapshot
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    assert driver.m.target_duration == Duration(1800)
+
+
+async def test_both_intervals_depart_at_boundary_and_capture_new_target():
+    driver = Driver(make_config(strict_mode="both"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    first = driver.m.strict_snapshot
+    driver.cfg.presets["sit"] = 0.7
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    driver.m.active_time = driver.m.target_duration
+    events = await driver.tick(dt=0)
+    assert driver.m.strict_snapshot.posture is DeskState.SITTING
+    assert driver.m.strict_snapshot.target_height == Length(0.7)
+    assert driver.m.strict_snapshot.generation != first.generation
+    assert len([e for e in events if isinstance(e, TransitionCompleted)]) == 1
+    assert driver.m.active_time == Duration(0)
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=0)
+    assert driver.m.strict_snapshot.posture is DeskState.STANDING
+    assert driver.desk.move_calls == [STAND_H, Length(0.7), STAND_H]
+
+
+async def test_reconciliation_requires_current_generation_and_fresh_height():
+    driver = Driver(make_config(strict_mode="both"))
+    await driver.start()
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    pending = driver.m.strict_snapshot
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation)
+    assert driver.m.strict_snapshot == pending
+    assert not driver.m.reconcile_strict_observation(None, generation=pending.generation)
+    driver.m.reconcile_strict_observation(STAND_H, generation=pending.generation)
+    arrived = driver.m.strict_snapshot
+    assert arrived.stage == "arrived"
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation + 1)
+    assert driver.m.strict_snapshot == arrived
+    driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation)
+    assert driver.m.strict_snapshot is None
+    assert not driver.m.reconcile_strict_observation(STAND_H, generation=arrived.generation)
+
+
+@pytest.mark.parametrize("mode,enabled", [("off", True), ("sitting", True), ("standing", False)])
+async def test_policy_removal_releases_and_old_observation_cannot_restore(mode, enabled):
+    driver = Driver(make_config(strict_mode="standing"))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+    old = driver.m.strict_snapshot
+    driver.cfg.automation.strict_mode = mode
+    driver.cfg.automation.enabled = enabled
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    assert driver.m.strict_snapshot is None
+    driver.cfg.automation.strict_mode = "standing"
+    driver.cfg.automation.enabled = True
+    driver.m.update_config(driver.cfg, reroll_target=False)
+    assert not driver.m.reconcile_strict_observation(STAND_H, generation=old.generation)
+    assert driver.m.strict_snapshot is None
+
+
 async def test_saved_policy_reaches_daemon_tick_and_event_handler(tmp_path, monkeypatch):
     from idasen_companion.daemon import main as daemon_module
     from idasen_companion.core.machine import StateMachine

@@ -26,7 +26,7 @@ Semantics preserved from that original script:
   whole minutes (N = ceil(variation/60)).
 - Every ``sync_interval`` the actual desk height is read; if it disagrees
   with the internal state, the state is synchronized and timers reset.
-- A transition is verified by comparing the resulting height to the
+- A normal transition is verified by comparing the resulting height to the
   intended preset target within ``movement_tolerance``; anything else is
   an interruption, handled per ``interruption_policy``. The reference
   script's behaviour is the "undo" default: return once to the *original*
@@ -46,6 +46,8 @@ Extensions (approved deviations):
   starts a fresh cycle in the current state.
 - ``reset_after_resume()`` lets the daemon apply the time-jump reset
   eagerly on logind's PrepareForSleep signal.
+- Selected strict transitions retain their original target until verified,
+  then protect the existing cycle until due or a fresh physical departure.
 
 The machine is pure with respect to time and randomness: callers supply
 ``now`` (epoch seconds) on every call and an ``rng`` at construction.
@@ -63,7 +65,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import NamedTuple
 
-from ..desk.port import MoveFailure
+from ..desk.port import DeskPort, MoveFailure
 from .config import AppConfig
 from .clocks import MonotonicInstant, WallInstant
 from .durations import Duration
@@ -658,6 +660,8 @@ class StateMachine:
 
         if can_act() and self.active_time >= self.target_duration:
             self.invalidate_height_observation()
+            if self._strict_intent is not None and self._strict_intent.snapshot.stage == "arrived":
+                self._release_strict()
             if self.skip_next:
                 self.skip_next = False
                 self._begin_cycle(self.state)
@@ -856,7 +860,7 @@ class StateMachine:
         if (self._strict_intent is not None and
                 (not config.automation.enabled or config.automation.strict_mode not in
                  ("both", self._strict_intent.snapshot.posture.value))):
-            self._strict_intent = None
+            self._release_strict()
         if was_enabled != config.automation.enabled:
             self._begin_cycle(self.state)
             if not config.automation.enabled:
@@ -872,6 +876,35 @@ class StateMachine:
     @property
     def strict_snapshot(self) -> StrictSnapshot | None:
         return self._strict_intent.snapshot if self._strict_intent else None
+
+    def _release_strict(self) -> None:
+        if self._strict_intent is not None:
+            self._strict_intent = None
+            self._strict_generation += 1
+
+    def replace_desk(self, desk: DeskPort) -> None:
+        """Invalidate observations and enforcement for the old desk."""
+        self.invalidate_height_observation()
+        self._release_strict()
+        self._desk = desk
+
+    def reconcile_strict_observation(self, height: Length | None, *,
+                                     generation: int) -> list[Event]:
+        """Reconcile a fresh read of the current desk against a snapshot.
+
+        Callers must acquire the height from that desk after taking the
+        snapshot and pass its generation. Stale or absent observations are inert.
+        """
+        intent = self._strict_intent
+        if intent is None or intent.snapshot.generation != generation or height is None:
+            return []
+        snapshot = intent.snapshot
+        if snapshot.stage == "pending":
+            return self._strict_arrival(height)
+        if abs(height - snapshot.target_height) <= Length(self._cfg.advanced.movement_tolerance):
+            return []
+        self._release_strict()
+        return self._reconcile(height)
 
     def status(self, now: WallInstant) -> Status:
         # Outranks everything: with no desk address there is nothing to pause,
@@ -1278,10 +1311,25 @@ class StateMachine:
         daemon's ``force_sync`` — did it immediately afterwards, and a sync is
         a sync however it came to be run."""
         self.invalidate_height_observation()
-        height = await self._read_height(now)
+        generation = self._height_observation_generation
+        desk = self._desk
+        snapshot = self.strict_snapshot
+        height = await self._read_height(now, publish=False)
+        if generation != self._height_observation_generation or desk is not self._desk:
+            return []
+        if snapshot != self.strict_snapshot:
+            return []
         self._last_sync = now
         if height is None:
+            self._report_height_observation(None)
             return [SyncFailed()]
+        self.last_height = height
+        self._report_height_observation(height)
+        if snapshot is not None:
+            events = self.reconcile_strict_observation(height, generation=snapshot.generation)
+            if any(isinstance(event, TransitionCompleted) for event in events):
+                self._last_check = now
+            return events
         return self._reconcile(height)
 
     def _reconcile(self, height: Length) -> list[Event]:
@@ -1298,12 +1346,6 @@ class StateMachine:
         (``ResumedOnCycle``). With automation disabled the off-cycle branch
         always classifies (never holds): a desk parked wherever the user likes
         is the normal case in manual use, not a condition to report."""
-        if self._strict_intent:
-            snapshot = self._strict_intent.snapshot
-            if snapshot.stage == "pending":
-                return self._strict_arrival(height)
-            if abs(height - snapshot.target_height) <= Length(self._cfg.advanced.movement_tolerance):
-                return []
         cycle_state = self._cycle_state_for_height(height)
         if cycle_state is not None:
             return self._adopt(cycle_state, height)

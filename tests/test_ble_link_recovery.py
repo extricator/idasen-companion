@@ -121,6 +121,7 @@ def _bare_daemon(monkeypatch):
     d.config_file.load_or_bootstrap.return_value = cfg
     d.accounting = MagicMock(spec=["start", "account", "flush"])
     d._stop_event = asyncio.Event()
+    d._retry_wake = asyncio.Event()
     d._initial_read = None
     d.config = cfg
     d.desk = MagicMock()
