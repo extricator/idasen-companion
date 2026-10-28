@@ -82,6 +82,8 @@ async def test_reconciliation_requires_current_generation_and_fresh_height():
     driver.m.reconcile_strict_observation(STAND_H, generation=pending.generation)
     arrived = driver.m.strict_snapshot
     assert arrived.stage == "arrived"
+    assert not driver.m.reconcile_strict_observation(Length(0.95), generation=pending.generation)
+    assert driver.m.strict_snapshot == arrived
     assert not driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation + 1)
     assert driver.m.strict_snapshot == arrived
     driver.m.reconcile_strict_observation(Length(0.95), generation=arrived.generation)
@@ -119,7 +121,8 @@ async def test_saved_policy_reaches_daemon_tick_and_event_handler(tmp_path, monk
     d.config = load_config(path)
     d.mock_mode = True
     d.desk = MockDesk(Length(d.config.presets["sit"]))
-    d.machine = StateMachine(d.config, d.desk, now=WallInstant(1000))
+    d.moving = False
+    d.machine = StateMachine(d.config, d.desk, now=WallInstant(1000), on_moving=d._set_moving)
     d._ifaces = {"automation": MagicMock()}
     d.reload_config()
     await d.machine.start(WallInstant(1000))

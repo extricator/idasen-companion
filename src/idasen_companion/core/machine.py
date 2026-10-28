@@ -1182,8 +1182,8 @@ class StateMachine:
         intent = self._strict_intent
         assert intent is not None
         desk = self._desk
-        generation = self._height_observation_generation
         self._note_moving(True)
+        generation = self._height_observation_generation
         try:
             moved = (await desk.move_to(intent.snapshot.target_height) if guard is None
                      else await desk.move_to(intent.snapshot.target_height, guard=guard))
@@ -1212,7 +1212,8 @@ class StateMachine:
                 or abs(height - intent.snapshot.target_height)
                 > Length(self._cfg.advanced.movement_tolerance)):
             return []
-        snapshot = replace(intent.snapshot, stage="arrived")
+        self._strict_generation += 1
+        snapshot = replace(intent.snapshot, stage="arrived", generation=self._strict_generation)
         self._strict_intent = replace(intent, snapshot=snapshot)
         self._begin_cycle(snapshot.posture)
         return [TransitionCompleted(intent.original, snapshot.posture, snapshot.posture,
