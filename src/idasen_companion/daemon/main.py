@@ -719,7 +719,8 @@ class Daemon:
         self.machine = StateMachine(self.config, self.desk, now=now,
                                     on_moving=self._set_moving,
                                     on_height_observed=self._observe_height,
-                                    on_observation_tick=self._check_observation_continuity)
+                                    on_observation_tick=self._check_observation_continuity,
+                                    observation_time=lambda: WallInstant(time.time()))
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return

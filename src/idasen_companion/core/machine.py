@@ -382,6 +382,7 @@ class StateMachine:
         on_moving: Callable[[bool], None] | None = None,
         on_height_observed: Callable[[Length | None], None] | None = None,
         on_observation_tick: Callable[[], None] | None = None,
+        observation_time: Callable[[], WallInstant] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -396,6 +397,7 @@ class StateMachine:
         self._on_moving = on_moving
         self._on_height_observed = on_height_observed
         self._on_observation_tick = on_observation_tick
+        self._observation_time = observation_time
         self._height_observation_generation = 0
         self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object, bool] | None] = (
             ContextVar("height_read", default=None))
@@ -1331,8 +1333,9 @@ class StateMachine:
         self.last_height = height
         self._report_height_observation(height)
         if snapshot is not None:
+            observed_at = self._observation_time() if self._observation_time else now
             return self.reconcile_strict_observation(height, generation=snapshot.generation,
-                                                     now=now)
+                                                     now=observed_at)
         return self._reconcile(height)
 
     def _reconcile(self, height: Length) -> list[Event]:

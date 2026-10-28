@@ -94,6 +94,29 @@ async def test_reconciliation_requires_current_generation_and_fresh_height():
     assert not driver.m.reconcile_strict_observation(STAND_H, generation=arrived.generation, now=observed)
 
 
+async def test_delayed_sync_arrival_does_not_credit_read_latency():
+    from idasen_companion.core.machine import StateMachine
+
+    driver = Driver(make_config(strict_mode="standing"))
+    clock = [driver.now]
+    driver.m = StateMachine(driver.cfg, driver.desk, now=driver.now,
+                            observation_time=lambda: clock[0])
+    await driver.start()
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    driver.m.active_time = driver.m.target_duration
+    await driver.tick(dt=1)
+
+    async def delayed_read():
+        clock[0] = driver.now + Duration(20)
+        return STAND_H
+
+    driver.desk.get_height = delayed_read
+    await driver.m.force_sync(driver.now)
+    await driver.m.tick(clock[0] + Duration(1), 0, False)
+    assert driver.m.strict_snapshot.stage == "arrived"
+    assert driver.m.active_time == Duration(1)
+
+
 @pytest.mark.parametrize("mode,enabled", [("off", True), ("sitting", True), ("standing", False)])
 async def test_policy_removal_releases_and_old_observation_cannot_restore(mode, enabled):
     driver = Driver(make_config(strict_mode="standing"))
