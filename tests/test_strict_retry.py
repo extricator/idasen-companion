@@ -133,6 +133,33 @@ async def test_return_from_away_reads_pending_target_before_retry():
     assert sum(isinstance(event, TransitionCompleted) for event in events) == 1
 
 
+async def test_return_read_rechecks_pause_and_keeps_off_target_pending(monkeypatch):
+    from idasen_companion.daemon import main as main_module
+
+    driver = Driver(make_config(strict_mode="standing", sync_interval=0))
+    await driver.start()
+    driver.m.active_time = driver.m.target_duration
+    driver.desk.interrupt_next_move_at = Length(0.9)
+    d = daemon_for_driver(driver)
+    monkeypatch.setattr(main_module.time, "time", lambda: 1_000_001)
+    await d._tick()
+    d._session.state.return_value = "background"
+    await d._tick()
+    d._session.state.return_value = "foreground"
+    original_read = d.desk.get_height
+
+    async def pause_during_read():
+        result = await original_read()
+        driver.m.pause()
+        return result
+
+    driver.desk.get_height = pause_during_read
+    await d._tick()
+    assert driver.m.strict_snapshot.stage == "pending"
+    assert driver.m.strict_snapshot.target_height == STAND_H
+    assert driver.desk.move_calls == [STAND_H]
+
+
 async def test_daemon_reports_failure_once_and_clears_on_verified_arrival(monkeypatch):
     from types import MethodType
     from idasen_companion.daemon import main as main_module
