@@ -213,6 +213,11 @@ def test_strict_layout_in_minimum_window(qapp, monkeypatch, tmp_path, language, 
             assert status.wordWrap() and status.accessibleName() == status.text()
             text_fits(status)
             assert window.overview.rect().contains(bounds_in(status, window.overview))
+            head = window.overview.status_head_lbl
+            strict_bounds = bounds_in(status, window.overview)
+            head_bounds = bounds_in(head, window.overview)
+            assert strict_bounds.left() > head_bounds.right()
+            assert abs(strict_bounds.center().y() - head_bounds.center().y()) <= 1
             from idasen_companion.gui.theme import theme
             assert contrast(theme().secondary, theme().card_bg) >= 4.5
 

@@ -209,12 +209,14 @@ class OverviewPage(Page):
         status_row.addWidget(self.status_dot, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addWidget(self.status_head_lbl, 0)
         status_row.addWidget(self.status_reason, 1)
-        auto.body.addLayout(status_row)
         self.strict_status = QLabel()
         self.strict_status.setWordWrap(True)
+        self.strict_status.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         restyle.register(self.strict_status, lambda: self.strict_status.setStyleSheet(
             f"color: {css(theme().secondary)}; border: none;"))
-        auto.body.addWidget(self.strict_status)
+        status_row.addWidget(self.strict_status, 0, Qt.AlignmentFlag.AlignVCenter)
+        auto.body.addLayout(status_row)
 
         # Countdown block, only visible while automation is active.
         self._countdown_widget = QWidget()
