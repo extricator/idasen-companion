@@ -403,8 +403,12 @@ class TrayIcon(QSystemTrayIcon):
     def _refresh_texts(self, stats: bool = True) -> None:
         state = getattr(self.client, "strict_state", None)
         capability = cast(StrictCapability, getattr(self.client, "strict_capability", "unknown"))
-        strict = self._fmt().strict_status(state, capability)
-        self._strict_action.setText(self._fmt().strict_status(state, capability, concise=True))
+        config = self.window.ctx.cfg
+        strict = self._fmt().strict_status(
+            state, capability,
+            configured_mode=config.automation.strict_mode if config else "off")
+        self._strict_action.setText(strict)
+        self._strict_action.setVisible(bool(strict))
         if not self.client.available:
             text = pgettext('tray', "Daemon not running")
             self._status_action.setText(text)
@@ -412,7 +416,7 @@ class TrayIcon(QSystemTrayIcon):
             if menu is not None:
                 menu.setAccessibleName(text)
                 menu.setAccessibleDescription("")
-            self._set_tooltip("\n".join((text, strict)))
+            self._set_tooltip("\n".join((text, strict)) if strict else text)
             return
         # `stats=False` on the ticker path, and not an optimization to taste:
         # `_today_summary` makes a blocking D-Bus call for the day's totals,
@@ -425,7 +429,8 @@ class TrayIcon(QSystemTrayIcon):
         # `_today` is an optional final member of the list, present only
         # when the daemon has totals to report.
         lines = self._tooltip_lines()
-        lines.append(strict)
+        if strict:
+            lines.append(strict)
         menu = self.contextMenu()
         if menu is not None:
             full = lines[0]

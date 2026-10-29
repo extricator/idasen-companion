@@ -162,7 +162,7 @@ def test_app_name_is_the_title_and_everything_else_the_detail(tray):
 
     title, description = icon._rich.last
     assert title == "Idasen Companion"
-    assert description == "Standing for 43m\nSitting down in 11m\nStrict mode status is currently unavailable."
+    assert description == "Standing for 43m\nSitting down in 11m"
 
 
 def test_today_summary_joins_the_detail_not_the_title(tray_with_stats):
@@ -177,7 +177,6 @@ def test_today_summary_joins_the_detail_not_the_title(tray_with_stats):
     assert title == "Idasen Companion"
     assert description == ("Standing for 43m\n"
                            "Sitting down in 11m\n"
-                           "Strict mode status is currently unavailable.\n"
                            "Today: 1h 58m sitting / 50m standing")
 
 
@@ -204,7 +203,7 @@ def test_detail_survives_having_only_one_line(tray):
 
     icon._run_action("toggle")
 
-    assert icon._rich.last == ("Idasen Companion", "Connecting…\nStrict mode status is currently unavailable.")
+    assert icon._rich.last == ("Idasen Companion", "Connecting…")
 
 
 def test_plain_tooltip_is_still_set_alongside(tray_with_stats):
@@ -219,7 +218,6 @@ def test_plain_tooltip_is_still_set_alongside(tray_with_stats):
         "Idasen Companion",
         "Standing for 43m",
         "Sitting down in 11m",
-        "Strict mode status is currently unavailable.",
         "Today: 1h 58m sitting / 50m standing"]
 
 

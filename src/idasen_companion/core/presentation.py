@@ -204,35 +204,28 @@ class Formatter:
         return status_label(self._context.translator, status)
 
     def strict_status(self, state: StrictState | None, capability: StrictCapability,
-                      *, concise: bool = False) -> str:
-        """Describe only a validated daemon snapshot or its availability."""
-        full = {
-            "pending-standing": P_('strict.status', "Strict mode: moving to standing. If stopped, the desk will retry promptly."),
-            "pending-sitting": P_('strict.status', "Strict mode: moving to sitting. If stopped, the desk will retry promptly."),
-            "arrived-standing": P_('strict.status', "Strict mode: standing interval enforced."),
-            "arrived-sitting": P_('strict.status', "Strict mode: sitting interval enforced."),
-            "released": P_('strict.status', "Strict mode: no interval enforced; ordinary controls are available."),
-            "unsupported": P_('strict.status', "Strict mode status is unavailable with this background service version."),
-            "unknown": P_('strict.status', "Strict mode status is currently unavailable."),
-        }
-        short = {
-            "pending-standing": P_('strict.status', "Strict mode: moving to standing."),
-            "pending-sitting": P_('strict.status', "Strict mode: moving to sitting."),
-            "arrived-standing": P_('strict.status', "Strict mode: standing interval enforced."),
-            "arrived-sitting": P_('strict.status', "Strict mode: sitting interval enforced."),
-            "released": P_('strict.status', "Strict mode: no interval enforced."),
+                      *, configured_mode: str = "off") -> str:
+        """Show the enabled selection, reserving no status space for Off.
+
+        Local configuration only gates an unavailable-status explanation;
+        a supported daemon snapshot owns the displayed selection.
+        """
+        if capability == "supported" and isinstance(state, StrictState):
+            mode = state.mode
+        elif configured_mode == "off":
+            return ""
+        else:
+            mode = "unsupported" if capability == "unsupported" else "unknown"
+        if mode == "off":
+            return ""
+        messages = {
+            "standing": P_('strict.status', "Strict mode: Standing"),
+            "sitting": P_('strict.status', "Strict mode: Sitting"),
+            "both": P_('strict.status', "Strict mode: Both"),
             "unsupported": P_('strict.status', "Strict mode: service version unsupported."),
             "unknown": P_('strict.status', "Strict mode: status unavailable."),
         }
-        if capability == "unsupported":
-            key = "unsupported"
-        elif capability != "supported" or not isinstance(state, StrictState):
-            key = "unknown"
-        elif state.stage == "released":
-            key = "released"
-        else:
-            key = f"{state.stage}-{state.posture}"
-        return self._context.translator.message((short if concise else full)[key])
+        return self._context.translator.message(messages[mode])
 
     def status_head(self, status: StatusValue) -> str:
         """The short Overview status head word for a status wire value."""

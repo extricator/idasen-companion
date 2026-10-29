@@ -75,7 +75,8 @@ async def test_status_has_the_three_settled_sections_and_shared_values():
     assert "1h 05m" in output
     assert "Sitting down in 17m" in output
     assert "2h 00m" in output
-    assert "Strict mode status is unavailable with this background service version." in output
+    assert "Strict mode" not in output
+    assert "\n  \n" not in output
 
 
 @pytest.mark.asyncio
@@ -89,15 +90,16 @@ async def test_status_renders_snapshot_and_unknown_without_guessing(qapp):
     active = replace(snapshot, strict_capability="supported",
                      strict_state=StrictState("standing", "pending", "standing", 1.1))
     output = cli._status_text(active, fmt, persistent_connection=True)
-    assert "  Strict mode: moving to standing. If stopped, the desk will retry promptly." in output
+    assert "  Strict mode: Standing" in output
     unknown = replace(active, strict_capability="unknown")
-    output = cli._status_text(unknown, fmt, persistent_connection=True)
-    assert "  Strict mode status is currently unavailable." in output
+    output = cli._status_text(unknown, fmt, persistent_connection=True,
+                              configured_strict_mode="standing")
+    assert "  Strict mode: status unavailable." in output
     assert "retry promptly" not in output
     with installed_language("es"):
         output = cli._status_text(active, cli._formatter(load_config()),
                                   persistent_connection=True)
-        assert "  Modo estricto: moviendo a la posición de pie. Si se detiene, el escritorio volverá a intentarlo pronto." in output
+        assert "  Modo estricto: De pie" in output
 
 
 @pytest.mark.asyncio

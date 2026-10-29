@@ -255,10 +255,11 @@ automation Off also releases it. Normal scheduled departure proceeds when the
 interval is due, including with Both selected. The service makes the final
 admission decision, so controls can remain available while it checks.
 
-Overview, the tray and `idasen-companion status` show localized pending,
-enforced or released status. An older background service reports that Strict
-status is unsupported; a temporarily unavailable or invalid status is shown as
-unknown. For a future real-desk check, see the unperformed procedure in
+Overview, the tray and `idasen-companion status` show a compact localized
+selection such as **Strict mode: Standing**, **Sitting** or **Both**. With Strict
+mode Off, its status line is hidden. If it is configured on but the background
+service cannot report its selection, a short unavailable or unsupported notice
+appears instead. For a future real-desk check, see the unperformed procedure in
 [`docs/MANUAL-TESTING.md`](docs/MANUAL-TESTING.md#strict-mode).
 
 A config written by a newer Idasen Companion may contain sections or options

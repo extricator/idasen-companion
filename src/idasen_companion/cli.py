@@ -168,7 +168,7 @@ def _json_rows(payload: object) -> list:
 
 
 def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
-                 persistent_connection: bool) -> str:
+                 persistent_connection: bool, configured_strict_mode: str = "off") -> str:
     position = fmt.position_or_custom(parse_position(snapshot.position))
     if snapshot.moving:
         position = i18n.pgettext("cli.status", "%(position)s (moving)") % {
@@ -209,6 +209,8 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
     for row in snapshot.daily:
         if row.state in totals:
             totals[row.state] += row.seconds
+    strict = fmt.strict_status(snapshot.strict_state, snapshot.strict_capability,
+                               configured_mode=configured_strict_mode)
     return "\n".join((
         i18n.pgettext("cli.status", "Desk"),
         i18n.pgettext("cli.status", "  Height: %(height)s") % desk_values,
@@ -218,7 +220,7 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
         i18n.pgettext("cli.status", "Automation"),
         i18n.pgettext("cli.status", "  Status: %(status)s") % {
             "status": status},
-        "  " + fmt.strict_status(snapshot.strict_state, snapshot.strict_capability),
+        *(("  " + strict,) if strict else ()),
         i18n.pgettext("cli.status", "  Elapsed: %(duration)s") % {
             "duration": elapsed},
         i18n.pgettext("cli.status", "  Next: %(next)s") % {
@@ -250,7 +252,8 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig,
     if args.command == "status":
         return _status_text(
             await _read_status(client), fmt,
-            persistent_connection=config.desk.connection == "persistent")
+            persistent_connection=config.desk.connection == "persistent",
+            configured_strict_mode=config.automation.strict_mode)
     if args.command == "log":
         rows = _json_rows(await client.call(IFACE_LOG, "GetRecent"))
         selected = rows[-args.limit:] if args.limit is not None else rows

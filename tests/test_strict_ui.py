@@ -57,8 +57,8 @@ async def test_arrived_click_refuses_then_fresh_departure_releases(qapp, monkeyp
     try:
         await settle(qapp, lambda: client.strict_capability == "supported")
         assert client.strict_state.stage == "arrived"
-        assert "standing interval enforced" in page.strict_status.text()
-        assert "standing interval enforced" in tray.toolTip()
+        assert page.strict_status.text() == "Strict mode: Standing"
+        assert "Strict mode: Standing" in tray.toolTip()
         sit = next(button for button in page.findChildren(QPushButton) if button.text() == "Sit")
         assert sit.isEnabled()
         before = (driver.m.strict_snapshot, driver.m.active_time, daemon._current_move_id,
@@ -73,12 +73,12 @@ async def test_arrived_click_refuses_then_fresh_departure_releases(qapp, monkeyp
         sit.click()
         await settle(qapp, lambda: client.strict_state.stage == "released" and bool(driver.desk.move_calls))
         assert driver.desk.move_calls == [SIT_H]
-        assert "ordinary controls are available" in page.strict_status.text()
-        assert "no interval enforced" in tray._strict_action.text()
+        assert page.strict_status.text() == "Strict mode: Standing"
+        assert tray._strict_action.text() == "Strict mode: Standing"
         await bus.release_name(DBUS_NAME)
         await settle(qapp, lambda: client.strict_capability == "unknown")
-        assert "currently unavailable" in page.strict_status.text()
-        assert "status unavailable" in tray._strict_action.text()
+        assert page.strict_status.text() == "Strict mode: status unavailable."
+        assert tray._strict_action.text() == "Strict mode: status unavailable."
     finally:
         next(tray_fixture, None)
         page.deleteLater()
@@ -110,9 +110,9 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
     tray, _ = next(tray_fixture)
     try:
         page._on_status("active")
-        assert "retry promptly" in page.strict_status.text()
+        assert page.strict_status.text() == "Strict mode: Standing"
         assert not tray._strict_action.isEnabled()
-        assert "moving to standing" in tray._strict_action.text()
+        assert tray._strict_action.text() == "Strict mode: Standing"
         page._on_moving(True)
         assert page.stop_btn.isEnabled()
         page.stop_btn.click()
@@ -132,16 +132,28 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
         tray.run_tray_action("tray_middle_click", "toggle")
         assert client.calls.count(("move_to_preset", ("stand",))) == 2
         assert ("gesture_move", ("toggle",)) in client.calls
-        assert page.strict_status.text().endswith("retry promptly.")
+        client.strict_state = StrictState("off", "released", None, None)
+        client.strictStateChanged.emit()
+        assert page.strict_status.isHidden()
+        assert not tray._strict_action.isVisible()
+        assert "Strict mode" not in tray.toolTip()
+        assert not tray.toolTip().endswith("\n")
+        client.strict_state = StrictState("both", "released", None, None)
+        client.strictStateChanged.emit()
+        assert not page.strict_status.isHidden()
+        assert page.strict_status.text() == "Strict mode: Both"
+        assert tray._strict_action.isVisible()
+        assert tray._strict_action.text() == "Strict mode: Both"
+        ctx.cfg.automation.strict_mode = "both"
         client.strict_capability = "unsupported"
         client.strictStateChanged.emit()
-        assert "background service version" in page.strict_status.text()
+        assert page.strict_status.text() == "Strict mode: service version unsupported."
         assert "unsupported" in tray._strict_action.text()
         client.strict_capability = "unknown"
         client.strict_state = None
         client.strictStateChanged.emit()
-        assert "currently unavailable" in page.strict_status.text()
-        assert "status unavailable" in tray._strict_action.text()
+        assert page.strict_status.text() == "Strict mode: status unavailable."
+        assert tray._strict_action.text() == "Strict mode: status unavailable."
         page._on_moving(False)
         assert not page.stop_btn.isEnabled()
     finally:
@@ -292,7 +304,11 @@ async def test_disable_controls_release_only_after_daemon_update(qapp, monkeypat
         assert client.strict_state.stage == "arrived"
         await settle(qapp, lambda: client.strict_state.stage == "released")
         assert driver.m.strict_snapshot is None
-        assert "ordinary controls are available" in page.strict_status.text()
+        if disable == "strict":
+            assert page.strict_status.isHidden()
+            assert page.strict_status.text() == ""
+        else:
+            assert page.strict_status.text() == "Strict mode: Standing"
         assert (not daemon.config.automation.enabled if disable == "automation"
                 else daemon.config.automation.strict_mode == "off")
     finally:

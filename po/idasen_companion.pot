@@ -1083,54 +1083,17 @@ msgstr ""
 
 #: src/idasen_companion/core/presentation.py
 msgctxt "strict.status"
-msgid ""
-"Strict mode: moving to standing. If stopped, the desk will retry promptly."
+msgid "Strict mode: Standing"
 msgstr ""
 
 #: src/idasen_companion/core/presentation.py
 msgctxt "strict.status"
-msgid ""
-"Strict mode: moving to sitting. If stopped, the desk will retry promptly."
+msgid "Strict mode: Sitting"
 msgstr ""
 
 #: src/idasen_companion/core/presentation.py
 msgctxt "strict.status"
-msgid "Strict mode: standing interval enforced."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode: sitting interval enforced."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode: no interval enforced; ordinary controls are available."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode status is unavailable with this background service version."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode status is currently unavailable."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode: moving to standing."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode: moving to sitting."
-msgstr ""
-
-#: src/idasen_companion/core/presentation.py
-msgctxt "strict.status"
-msgid "Strict mode: no interval enforced."
+msgid "Strict mode: Both"
 msgstr ""
 
 #: src/idasen_companion/core/presentation.py

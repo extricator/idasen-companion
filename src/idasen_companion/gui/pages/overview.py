@@ -497,9 +497,11 @@ class OverviewPage(Page):
     def _render_strict_status(self) -> None:
         text = self.ctx.fmt.strict_status(
             getattr(self.client, "strict_state", None),
-            getattr(self.client, "strict_capability", "unknown"))
+            getattr(self.client, "strict_capability", "unknown"),
+            configured_mode=self.ctx.cfg.automation.strict_mode if self.ctx.cfg else "off")
         self.strict_status.setText(text)
         self.strict_status.setAccessibleName(text)
+        self.strict_status.setVisible(bool(text))
 
     def _render_status(self) -> None:
         tokens = theme()
