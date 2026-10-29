@@ -181,7 +181,7 @@ def test_unavailable_paused_tray_survives_ticks_and_observation_clear(tray):
     client.observation = None
     client.positionObservationChanged.emit()
     icon._tick()
-    assert icon.toolTip() == "Idasen Companion\nDaemon not running"
+    assert icon.toolTip() == "Idasen Companion\nDaemon not running\nStrict mode status is currently unavailable."
     assert icon._status_action.text() == "Daemon not running"
     assert icon.contextMenu().accessibleName() == "Daemon not running"
     assert icon.contextMenu().accessibleDescription() == ""
@@ -190,7 +190,8 @@ def test_unavailable_paused_tray_survives_ticks_and_observation_clear(tray):
     client.observation = Duration(30)
     client.positionObservationChanged.emit()
     icon._tick()
-    assert icon.toolTip() == "Idasen Companion\nStanding for 30s\nPaused"
+    assert icon.toolTip() == ("Idasen Companion\nStanding for 30s\nPaused\n"
+                              "Strict mode status is currently unavailable.")
 
 
 def test_progress_receipt_ages_as_a_duration_before_formatting(tray, monkeypatch):
@@ -229,7 +230,7 @@ def test_position_signal_preserves_tray_labels_and_direction(tray):
         client.statusChanged.emit("active")
         client.progressChanged.emit(2580.0, 3240.0)
         held = label + " for 43m" if raw in ("sitting", "standing") else label
-        assert icon.toolTip().split("\n")[1:] == [held, direction]
+        assert icon.toolTip().split("\n")[1:] == [held, direction, "Strict mode status is currently unavailable."]
         assert icon._status_action.text() == label + " · 11m left"
 
 
@@ -344,7 +345,7 @@ def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
         client.set_snooze_until(datetime(2026, 8, 3, 14, 32).timestamp())
         client.presetsChanged.emit({"stand": 1.1})
         assert icon.toolTip().split("\n")[2:] == [
-            "Snoozed until 14:32", "Today: 1h 58m sitting / 0m standing"]
+            "Snoozed until 14:32", "Strict mode status is currently unavailable.", "Today: 1h 58m sitting / 0m standing"]
         assert icon._presets_menu.actions()[0].text() == "Stand (110.0 cm)"
         calls = client.stats_calls
         client.daily_rows = [DailyStatRow(today, "sitting", 7200.0)]
@@ -356,7 +357,7 @@ def test_a_rebuilt_formatter_reaches_the_next_tooltip_redraw(
         assert context.write_config(change_display) is None
 
         assert icon.toolTip().split("\n")[2:] == [
-            "Snoozed until 2:32 PM", "Today: 2h 00m sitting / 0m standing"]
+            "Snoozed until 2:32 PM", "Strict mode status is currently unavailable.", "Today: 2h 00m sitting / 0m standing"]
         assert icon._presets_menu.actions()[0].text() == "Stand (43.31 in)"
         assert client.stats_calls == calls + 1
         icon._tick()
@@ -470,6 +471,7 @@ def test_today_summary_is_still_the_last_line(tray_with_stats):
     assert icon.toolTip().split("\n") == ["Idasen Companion",
                                           "Standing for 43m",
                                           "Sitting down in 11m",
+                                          "Strict mode status is currently unavailable.",
                                           "Today: 1h 58m sitting / 50m standing"]
 
 
@@ -568,7 +570,7 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
     icon._tick()
 
     assert client.stats_calls == before
-    assert icon.toolTip().split("\n")[3] == (
+    assert icon.toolTip().split("\n")[-1] == (
         "Today: 1h 58m sitting / 50m standing")
 
 
@@ -601,7 +603,7 @@ def test_connecting_is_a_single_status_line(tray):
     icon._run_action("toggle")
 
     assert icon._status_action.text() == "Connecting…"
-    assert icon.toolTip() == "Idasen Companion\nConnecting…"
+    assert icon.toolTip() == "Idasen Companion\nConnecting…\nStrict mode status is currently unavailable."
 
 
 @pytest.mark.parametrize("language,expected", [
@@ -624,7 +626,7 @@ def test_long_observed_tooltip_keeps_one_plain_position_line_and_accessibility(
         client.observation = Duration((123 * 60 + 45) * 60)
         client.positionObservationChanged.emit()
         lines = icon.toolTip().splitlines()
-        assert len(lines) == 3
+        assert len(lines) == 4
         assert lines[1] == expected
         assert lines.count(expected) == 1
         assert "<" not in icon.toolTip()

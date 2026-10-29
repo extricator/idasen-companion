@@ -83,6 +83,9 @@ class OverviewPage(Page):
         client.connectedChanged.connect(self._on_connected)
         client.movingChanged.connect(self._on_moving)
         client.statusChanged.connect(self._on_status)
+        strict_changed = getattr(client, "strictStateChanged", None)
+        if hasattr(strict_changed, "connect"):
+            strict_changed.connect(self._render_strict_status)
         # The deadline arrives a round-trip after the status that implies it,
         # so the first snoozed render says "later" and this redraws it with
         # the time. See DaemonClient.snooze_until.
@@ -96,6 +99,7 @@ class OverviewPage(Page):
         self._ticker = QTimer(self)
         self._ticker.timeout.connect(self._tick_countdown)
         self._ticker.start(1000)
+        self._render_strict_status()
 
     def _build(self) -> None:
         layout = QVBoxLayout(self)
@@ -206,6 +210,11 @@ class OverviewPage(Page):
         status_row.addWidget(self.status_head_lbl, 0)
         status_row.addWidget(self.status_reason, 1)
         auto.body.addLayout(status_row)
+        self.strict_status = QLabel()
+        self.strict_status.setWordWrap(True)
+        restyle.register(self.strict_status, lambda: self.strict_status.setStyleSheet(
+            f"color: {css(theme().secondary)}; border: none;"))
+        auto.body.addWidget(self.strict_status)
 
         # Countdown block, only visible while automation is active.
         self._countdown_widget = QWidget()
@@ -415,6 +424,7 @@ class OverviewPage(Page):
     def _on_config_changed(self) -> None:
         self._update_connection_chip()
         self._render_status()
+        self._render_strict_status()
         # The height unit may have changed with it. Everything else on this
         # page repaints on its own next update; the spin box is configured
         # once at construction, so it needs telling.
@@ -483,6 +493,13 @@ class OverviewPage(Page):
         except ValueError:
             return stored
         return self.ctx.fmt.clock(moment)
+
+    def _render_strict_status(self) -> None:
+        text = self.ctx.fmt.strict_status(
+            getattr(self.client, "strict_state", None),
+            getattr(self.client, "strict_capability", "unknown"))
+        self.strict_status.setText(text)
+        self.strict_status.setAccessibleName(text)
 
     def _render_status(self) -> None:
         tokens = theme()

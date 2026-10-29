@@ -91,6 +91,8 @@ class TrayIcon(QSystemTrayIcon):
         menu = QMenu()
         self._status_action = menu.addAction(pgettext('tray', "Starting…"))
         self._status_action.setEnabled(False)
+        self._strict_action = menu.addAction("")
+        self._strict_action.setEnabled(False)
         menu.addSeparator()
 
         menu.addAction(pgettext('tray', "Toggle sit / stand"),
@@ -134,6 +136,9 @@ class TrayIcon(QSystemTrayIcon):
 
         self.activated.connect(self._on_activated)
         client.statusChanged.connect(self._on_status)
+        strict_changed = getattr(client, "strictStateChanged", None)
+        if hasattr(strict_changed, "connect"):
+            strict_changed.connect(lambda: self._refresh_texts(stats=False))
         client.positionChanged.connect(self._on_position)
         observation_changed = getattr(client, "positionObservationChanged", None)
         if observation_changed is not None and hasattr(observation_changed, "connect"):
@@ -394,6 +399,10 @@ class TrayIcon(QSystemTrayIcon):
         return snooze_line(self._fmt(), self.client.snooze_until())
 
     def _refresh_texts(self, stats: bool = True) -> None:
+        state = getattr(self.client, "strict_state", None)
+        capability = getattr(self.client, "strict_capability", "unknown")
+        strict = self._fmt().strict_status(state, capability)
+        self._strict_action.setText(self._fmt().strict_status(state, capability, concise=True))
         if not self.client.available:
             text = pgettext('tray', "Daemon not running")
             self._status_action.setText(text)
@@ -401,7 +410,7 @@ class TrayIcon(QSystemTrayIcon):
             if menu is not None:
                 menu.setAccessibleName(text)
                 menu.setAccessibleDescription("")
-            self._set_tooltip(text)
+            self._set_tooltip("\n".join((text, strict)))
             return
         # `stats=False` on the ticker path, and not an optimization to taste:
         # `_today_summary` makes a blocking D-Bus call for the day's totals,
@@ -414,6 +423,7 @@ class TrayIcon(QSystemTrayIcon):
         # `_today` is an optional final member of the list, present only
         # when the daemon has totals to report.
         lines = self._tooltip_lines()
+        lines.append(strict)
         menu = self.contextMenu()
         if menu is not None:
             full = lines[0]
