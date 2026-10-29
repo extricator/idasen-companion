@@ -19,6 +19,7 @@ from idasen_companion.gui.dbus_client import DaemonClient
 from idasen_companion.gui import restyle
 from idasen_companion.gui.pages.automation import AutomationPage
 from idasen_companion.gui.pages.overview import OverviewPage
+from idasen_companion.gui.pages.presets import PresetsPage
 from language_context import installed_language
 from machine_helpers import Driver, SIT_H, STAND_H, make_config
 from test_position_observation_dbus import settle
@@ -102,6 +103,7 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
     client = UIClient()
     ctx = make_app_context(client, make_config(), load_config=True, tray_available=True)
     page = OverviewPage(ctx)
+    presets = PresetsPage(ctx)
     tray_fixture = _make_tray(client, SimpleNamespace(ctx=ctx))
     tray, _ = next(tray_fixture)
     try:
@@ -120,6 +122,14 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
             "stop", "sit", "stand", "move_to_height", "pause", "skip_next", "snooze",
             "set_automation_enabled"}
         assert ("set_automation_enabled", (False,)) in client.calls
+        row = presets._make_preset_row("stand", STAND_H)
+        next(b for b in row.findChildren(QPushButton)
+             if b.toolTip().startswith("Drive desk to")).click()
+        tray._rebuild_presets({"stand": STAND_H.metres})
+        tray._presets_menu.actions()[0].trigger()
+        tray.run_tray_action("tray_middle_click", "toggle")
+        assert client.calls.count(("move_to_preset", ("stand",))) == 2
+        assert ("gesture_move", ("toggle",)) in client.calls
         assert page.strict_status.text().endswith("retry promptly.")
         client.strict_capability = "unsupported"
         client.strictStateChanged.emit()
@@ -135,6 +145,7 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
     finally:
         next(tray_fixture, None)
         page.deleteLater()
+        presets.deleteLater()
 
 
 def test_spanish_pending_text_and_enlarged_native_layout(qapp, make_app_context):
