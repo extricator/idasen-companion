@@ -29,6 +29,13 @@ become side effects (stats rows, ring-log lines, D-Bus signals). When changing
 automation behavior, prefer emitting or altering an event over reaching into
 the daemon.
 
+Strict intent belongs to the machine: selected scheduled transitions and an
+authorized fresh selected-preset startup observation can arm it. Its target
+height remains pinned until release, including retries and preset edits. The
+existing active-time interval and reload policy remain in charge of timing;
+there is no separately persisted strict timer. A pre-arrival interruption keeps
+intent pending, while an observed departure after arrival releases it.
+
 ## Two idle thresholds
 
 The central design point. A **lenient** threshold gates time *accounting* (how
@@ -125,6 +132,15 @@ D-Bus service; the control loop calls `machine.tick()` every `check_interval`.
 (logind, Mutter IdleMonitor, XScreenSaver, `org.freedesktop.ScreenSaver`).
 `ringlog.py` is the in-memory activity log the GUI reads; `stats.py` is the
 SQLite store.
+
+The daemon owns command admission and rechecks entitlement around asynchronous
+desk work. For an arrived strict interval it obtains a fresh height before the
+next applicable command, including when periodic sync is disabled. The optional
+`Automation1.StrictState` and `StrictStateChanged` transport carries a validated
+mode, stage, posture and pinned target; clients distinguish unsupported older
+services from unknown state and clear stale state on owner changes. A shared
+Qt-free formatter supplies localized status and refusal text to CLI and GUI;
+Overview and tray present snapshots without becoming enforcement authorities.
 
 ### Explicit owners, with orchestration retained in `Daemon`
 
