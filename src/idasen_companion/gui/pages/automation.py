@@ -100,6 +100,21 @@ class AutomationPage(SettingsFormPage):
         auto_details.addWidget(
             interval_row(preset_label("stand"), self.stand_dur, self.stand_var))
         auto_details.addWidget(separator())
+        self.strict_mode = self._themed_combo()
+        for label, value in (
+            (pgettext('automation-settings', "Off"), "off"),
+            (pgettext('automation-settings', "Standing"), "standing"),
+            (pgettext('automation-settings', "Sitting"), "sitting"),
+            (pgettext('automation-settings', "Both"), "both"),
+        ):
+            self.strict_mode.addItem(label, value)
+        strict_label = pgettext('automation-settings', "Strict mode")
+        strict_help = pgettext('automation-settings',
+            "Enforce selected scheduled postures until their interval ends.")
+        self.strict_mode.setAccessibleName(strict_label)
+        self.strict_mode.setAccessibleDescription(strict_help)
+        auto_details.addWidget(self._settings_row(strict_label, self.strict_mode, strict_help))
+        auto_details.addWidget(separator())
         self.idle_thresh = self._minutes_spin(1, 120)
         auto_details.addWidget(self._settings_row(
             pgettext('automation-settings', "Count as away after"), self.idle_thresh,
@@ -318,6 +333,7 @@ class AutomationPage(SettingsFormPage):
 
     def _load(self, cfg: AppConfig) -> None:
         self.auto_enabled.setChecked(cfg.automation.enabled)
+        self._select_data(self.strict_mode, cfg.automation.strict_mode)
         self.sit_dur.setValue(cfg.automation.sit_duration // 60)
         self.stand_dur.setValue(cfg.automation.stand_duration // 60)
         self._fill_intervals(self.sit_var, _VARIATION_CHOICES,
@@ -347,6 +363,7 @@ class AutomationPage(SettingsFormPage):
 
     def _apply(self, cfg: AppConfig) -> None:
         cfg.automation.enabled = self.auto_enabled.isChecked()
+        cfg.automation.strict_mode = self.strict_mode.currentData()
         cfg.automation.sit_duration = self.sit_dur.value() * 60
         cfg.automation.stand_duration = self.stand_dur.value() * 60
         cfg.automation.sit_variation = self.sit_var.currentData()

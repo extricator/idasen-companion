@@ -1435,6 +1435,36 @@ msgstr ""
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
+msgid "Off"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Standing"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Sitting"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Both"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Strict mode"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Enforce selected scheduled postures until their interval ends."
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
 msgid "Count as away after"
 msgstr ""
 
@@ -1591,11 +1621,6 @@ msgstr ""
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
 msgid "Schedule off — automation runs whenever you're active."
-msgstr ""
-
-#: src/idasen_companion/gui/pages/automation.py
-msgctxt "automation-settings"
-msgid "Off"
 msgstr ""
 
 #: src/idasen_companion/gui/pages/overview.py

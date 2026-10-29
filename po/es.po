@@ -470,7 +470,9 @@ msgctxt "shared.presentation"
 msgid ""
 "The scheduled Strict mode requirement blocks this action. Wait for the "
 "interval to finish or turn Strict mode off."
-msgstr "El requisito programado del modo estricto bloquea esta acción. Espera a que termine el intervalo o desactiva el modo estricto."
+msgstr ""
+"El requisito programado del modo estricto bloquea esta acción. Espera a que "
+"termine el intervalo o desactiva el modo estricto."
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
@@ -1557,6 +1559,36 @@ msgstr "%s durante"
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
+msgid "Off"
+msgstr "Desactivado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Standing"
+msgstr "De pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Sitting"
+msgstr "Sentado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Both"
+msgstr "Ambos"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Strict mode"
+msgstr "Modo estricto"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Enforce selected scheduled postures until their interval ends."
+msgstr "Mantiene las posturas programadas seleccionadas hasta que termine su intervalo."
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
 msgid "Count as away after"
 msgstr "Considerar ausente tras"
 
@@ -1719,11 +1751,6 @@ msgctxt "automation-settings"
 msgid "Schedule off — automation runs whenever you're active."
 msgstr ""
 "Horario desactivado — la automatización se ejecuta siempre que estés activo."
-
-#: src/idasen_companion/gui/pages/automation.py
-msgctxt "automation-settings"
-msgid "Off"
-msgstr "Desactivado"
 
 #: src/idasen_companion/gui/pages/overview.py
 msgctxt "overview"

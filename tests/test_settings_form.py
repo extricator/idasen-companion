@@ -322,6 +322,44 @@ def test_a_failed_save_keeps_the_page_dirty(page, ctx, monkeypatch,
     assert page._reset_btn.isEnabled()
 
 
+def test_strict_mode_round_trip_and_recovery(ctx, monkeypatch, silent_dialogs):
+    from idasen_companion.core.config import load_config
+
+    page = AutomationPage(ctx)
+    page.load()
+    combo = page.strict_mode
+    assert [combo.itemData(i) for i in range(combo.count())] == [
+        "off", "standing", "sitting", "both"]
+    assert combo.currentData() == "off"
+    assert combo.accessibleName() and combo.accessibleDescription()
+    calls = []
+    monkeypatch.setattr(ctx.client, "available", True)
+    monkeypatch.setattr(ctx.client, "reload_config", lambda: calls.append(True))
+    for value in ("standing", "sitting", "both", "off"):
+        page._select_data(combo, value)
+        assert page.is_dirty()
+        assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode != value
+        assert page.apply_edits()
+        page.load()
+        assert combo.currentData() == value
+        assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == value
+    assert len(calls) == 4
+    page._select_data(combo, "both")
+    page.load()
+    assert combo.currentData() == "off" and not page.is_dirty()
+    page._select_data(combo, "both")
+    assert page.apply_edits()
+    page._restore_defaults()
+    assert combo.currentData() == "off" and page.is_dirty()
+    page.load()
+    assert combo.currentData() == "both"
+    page._select_data(combo, "off")
+    monkeypatch.setattr(context_mod, "save_config", lambda *_args: (_ for _ in ()).throw(OSError("disk full")))
+    assert not page.apply_edits()
+    assert page.is_dirty() and combo.currentData() == "off"
+    assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == "both"
+
+
 # ---- the Clock format row ---------------------------------------------------
 #
 # Asserted on the combo's *data* values throughout, never its visible labels:
