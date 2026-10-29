@@ -16,6 +16,7 @@ from ..core.lengths import Length
 import time
 from datetime import date
 from functools import partial
+from typing import cast
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QIcon
@@ -26,6 +27,7 @@ from ..core.machine import (
 )
 from ..core.presentation import Formatter
 from ..core.state_values import PositionValue, StatusValue, parse_position, parse_status
+from ..core.strict_state import StrictCapability
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,
@@ -137,7 +139,7 @@ class TrayIcon(QSystemTrayIcon):
         self.activated.connect(self._on_activated)
         client.statusChanged.connect(self._on_status)
         strict_changed = getattr(client, "strictStateChanged", None)
-        if hasattr(strict_changed, "connect"):
+        if strict_changed is not None and hasattr(strict_changed, "connect"):
             strict_changed.connect(lambda: self._refresh_texts(stats=False))
         client.positionChanged.connect(self._on_position)
         observation_changed = getattr(client, "positionObservationChanged", None)
@@ -400,7 +402,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def _refresh_texts(self, stats: bool = True) -> None:
         state = getattr(self.client, "strict_state", None)
-        capability = getattr(self.client, "strict_capability", "unknown")
+        capability = cast(StrictCapability, getattr(self.client, "strict_capability", "unknown"))
         strict = self._fmt().strict_status(state, capability)
         self._strict_action.setText(self._fmt().strict_status(state, capability, concise=True))
         if not self.client.available:
