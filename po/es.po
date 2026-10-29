@@ -1173,6 +1173,68 @@ msgstr ""
 "sesión."
 
 #: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid ""
+"Strict mode: moving to standing. If stopped, the desk will retry promptly."
+msgstr "Modo estricto: moviendo a la posición de pie. Si se detiene, el escritorio volverá a intentarlo pronto."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid ""
+"Strict mode: moving to sitting. If stopped, the desk will retry promptly."
+msgstr "Modo estricto: moviendo a la posición sentado. Si se detiene, el escritorio volverá a intentarlo pronto."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: standing interval enforced."
+msgstr "Modo estricto: intervalo de pie obligatorio."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: sitting interval enforced."
+msgstr "Modo estricto: intervalo sentado obligatorio."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: no interval enforced; ordinary controls are available."
+msgstr "Modo estricto: ningún intervalo es obligatorio; los controles normales están disponibles."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode status is unavailable with this background service version."
+msgstr "El estado del modo estricto no está disponible con esta versión del servicio en segundo plano."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode status is currently unavailable."
+msgstr "El estado del modo estricto no está disponible en este momento."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: moving to standing."
+msgstr "Modo estricto: moviendo a la posición de pie."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: moving to sitting."
+msgstr "Modo estricto: moviendo a la posición sentado."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: no interval enforced."
+msgstr "Modo estricto: ningún intervalo es obligatorio."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: service version unsupported."
+msgstr "Modo estricto: versión del servicio no compatible."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: status unavailable."
+msgstr "Modo estricto: estado no disponible."
+
+#: src/idasen_companion/core/presentation.py
 #, python-format
 msgctxt "shared.presentation"
 msgid "%(position)s for about %(duration)s"
@@ -1585,7 +1647,9 @@ msgstr "Modo estricto"
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
 msgid "Enforce selected scheduled postures until their interval ends."
-msgstr "Mantiene las posturas programadas seleccionadas hasta que termine su intervalo."
+msgstr ""
+"Mantiene las posturas programadas seleccionadas hasta que termine su "
+"intervalo."
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"

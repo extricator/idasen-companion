@@ -360,6 +360,14 @@ def test_strict_mode_round_trip_and_recovery(ctx, monkeypatch, silent_dialogs):
     assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == "both"
 
 
+def test_strict_mode_spanish_labels(ctx):
+    with _language("es"):
+        page = AutomationPage(ctx)
+        assert [page.strict_mode.itemText(i) for i in range(4)] == [
+            "Desactivado", "De pie", "Sentado", "Ambos"]
+        assert page.strict_mode.accessibleName() == "Modo estricto"
+
+
 # ---- the Clock format row ---------------------------------------------------
 #
 # Asserted on the combo's *data* values throughout, never its visible labels:

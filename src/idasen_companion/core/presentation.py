@@ -65,6 +65,7 @@ from .i18n import (
     SECONDS_COMPACT, SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
 from .locale_profile import LocaleProfile, TimeStyle
+from .strict_state import StrictCapability, StrictState
 
 
 @dataclass(frozen=True)
@@ -201,6 +202,37 @@ class Formatter:
     def status_label(self, status: StatusValue) -> str:
         """The long automation-status sentence for a status wire value."""
         return status_label(self._context.translator, status)
+
+    def strict_status(self, state: StrictState | None, capability: StrictCapability,
+                      *, concise: bool = False) -> str:
+        """Describe only a validated daemon snapshot or its availability."""
+        full = {
+            "pending-standing": P_('strict.status', "Strict mode: moving to standing. If stopped, the desk will retry promptly."),
+            "pending-sitting": P_('strict.status', "Strict mode: moving to sitting. If stopped, the desk will retry promptly."),
+            "arrived-standing": P_('strict.status', "Strict mode: standing interval enforced."),
+            "arrived-sitting": P_('strict.status', "Strict mode: sitting interval enforced."),
+            "released": P_('strict.status', "Strict mode: no interval enforced; ordinary controls are available."),
+            "unsupported": P_('strict.status', "Strict mode status is unavailable with this background service version."),
+            "unknown": P_('strict.status', "Strict mode status is currently unavailable."),
+        }
+        short = {
+            "pending-standing": P_('strict.status', "Strict mode: moving to standing."),
+            "pending-sitting": P_('strict.status', "Strict mode: moving to sitting."),
+            "arrived-standing": P_('strict.status', "Strict mode: standing interval enforced."),
+            "arrived-sitting": P_('strict.status', "Strict mode: sitting interval enforced."),
+            "released": P_('strict.status', "Strict mode: no interval enforced."),
+            "unsupported": P_('strict.status', "Strict mode: service version unsupported."),
+            "unknown": P_('strict.status', "Strict mode: status unavailable."),
+        }
+        if capability == "unsupported":
+            key = "unsupported"
+        elif capability != "supported" or not isinstance(state, StrictState):
+            key = "unknown"
+        elif state.stage == "released":
+            key = "released"
+        else:
+            key = f"{state.stage}-{state.posture}"
+        return self._context.translator.message((short if concise else full)[key])
 
     def status_head(self, status: StatusValue) -> str:
         """The short Overview status head word for a status wire value."""

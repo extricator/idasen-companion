@@ -218,6 +218,7 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
         i18n.pgettext("cli.status", "Automation"),
         i18n.pgettext("cli.status", "  Status: %(status)s") % {
             "status": status},
+        "  " + fmt.strict_status(snapshot.strict_state, snapshot.strict_capability),
         i18n.pgettext("cli.status", "  Elapsed: %(duration)s") % {
             "duration": elapsed},
         i18n.pgettext("cli.status", "  Next: %(next)s") % {
