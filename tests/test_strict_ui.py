@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 from dbus_fast.aio import MessageBus
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPalette
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QLabel, QPushButton, QStyle, QStyleOptionComboBox
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
 from idasen_companion.core.config import load_config, save_config
@@ -25,6 +25,8 @@ from machine_helpers import Driver, SIT_H, STAND_H, make_config
 from test_position_observation_dbus import settle
 from test_strict_retry import daemon_for_driver
 from test_tray_tooltip import FakeClient, _make_tray
+from test_sidebar_width import FakeClient as WindowClient
+from test_control_contrast import contrast
 
 
 @pytest.mark.asyncio
@@ -148,52 +150,100 @@ def test_status_reset_and_callable_controls(qapp, make_app_context):
         presets.deleteLater()
 
 
-def test_spanish_pending_text_and_enlarged_native_layout(qapp, make_app_context):
-    client = UIClient()
-    with installed_language("es"):
-        config = make_config()
-        config.ui.language = "es"
-        ctx = make_app_context(client, config, load_config=True, tray_available=True)
-        overview = OverviewPage(ctx)
-        page = AutomationPage(ctx)
-        page.load()
-        font = QFont(page.font())
-        font.setPointSizeF(font.pointSizeF() * 1.5)
-        page.setFont(font)
-        overview.setFont(font)
-        page.resize(760, 600)
-        overview.resize(760, 600)
-        page.show()
-        overview.show()
-        page._scroll.ensureWidgetVisible(page.strict_mode)
-        qapp.processEvents()
-        assert overview.strict_status.wordWrap()
-        assert "volverá a intentarlo pronto" in overview.strict_status.text()
-        assert overview.strict_status.accessibleName() == overview.strict_status.text()
-        assert overview.strict_status.height() >= overview.strict_status.fontMetrics().height()
-        assert page.strict_mode.accessibleName() == "Modo estricto"
-        assert page.strict_mode.accessibleDescription()
-        assert page.strict_mode.isVisible() and page._apply_btn.isVisible()
-        assert page.strict_mode.focusPolicy() and page.strict_mode.width() >= page.strict_mode.sizeHint().width()
-        page.activateWindow()
-        page.strict_mode.setFocus(Qt.FocusReason.TabFocusReason)
-        qapp.processEvents()
-        assert page.strict_mode.hasFocus()
-        original_palette = QPalette(qapp.palette())
-        try:
-            dark = QPalette(original_palette)
-            dark.setColor(QPalette.ColorRole.Window, QColor("#202326"))
-            dark.setColor(QPalette.ColorRole.WindowText, QColor("#fcfcfc"))
-            qapp.setPalette(dark)
-            restyle.sweep()
+@pytest.mark.parametrize(("language", "scale"), [("en", 1.0), ("es", 1.5)])
+def test_strict_layout_in_minimum_window(qapp, monkeypatch, tmp_path, language, scale):
+    from idasen_companion.gui import context as context_mod, main_window, service_ctl
+
+    class StrictWindowClient(WindowClient):
+        strictStateChanged = Signal()
+        strict_state = StrictState("standing", "pending", "standing", 1.1)
+        strict_capability = "supported"
+
+    config = make_config()
+    config.ui.language = language
+    path = tmp_path / "config.toml"
+    save_config(config, path)
+    monkeypatch.setattr(context_mod, "DEFAULT_CONFIG_PATH", path)
+    monkeypatch.setattr(service_ctl, "autostart_state",
+                        lambda: service_ctl.AutostartState("enabled", True, ""))
+    original_font, original_palette = QFont(qapp.font()), QPalette(qapp.palette())
+    font = QFont(original_font)
+    font.setPointSizeF(font.pointSizeF() * scale)
+    qapp.setFont(font)
+
+    def bounds_in(widget, ancestor):
+        return QRect(widget.mapTo(ancestor, widget.rect().topLeft()), widget.size())
+
+    def text_fits(label):
+        rect = label.contentsRect()
+        needed = label.fontMetrics().boundingRect(
+            QRect(0, 0, rect.width(), 10000),
+            Qt.TextFlag.TextWordWrap, label.text())
+        assert needed.height() <= rect.height()
+        assert needed.width() <= rect.width()
+
+    try:
+        palette = QPalette(original_palette)
+        colors = ("#202326", "#141618", "#fcfcfc") if language == "es" else (
+            "#f0f0f0", "#ffffff", "#000000")
+        for role, color in zip((QPalette.ColorRole.Window, QPalette.ColorRole.Base,
+                                QPalette.ColorRole.WindowText), colors):
+            palette.setColor(role, QColor(color))
+        qapp.setPalette(palette)
+        with installed_language(language):
+            window = main_window.MainWindow(StrictWindowClient(), tray_available=True)
+            window.resize(window.minimumSize())
+            window.show()
             qapp.processEvents()
-            assert overview.strict_status.accessibleName() == overview.strict_status.text()
-            assert page._apply_btn.isVisible()
-        finally:
-            qapp.setPalette(original_palette)
-            restyle.sweep()
-        page.close()
-        overview.close()
+            assert window._sidebar.width() > 0
+            assert window._stack.width() < window.width()
+            status = window.overview.strict_status
+            assert status.wordWrap() and status.accessibleName() == status.text()
+            text_fits(status)
+            assert window.overview.rect().contains(bounds_in(status, window.overview))
+            from idasen_companion.gui.theme import theme
+            assert contrast(theme().secondary, theme().card_bg) >= 4.5
+
+            window._nav.setCurrentRow(1)
+            page = window.automation
+            row = page.strict_mode.parentWidget()
+            page._scroll.ensureWidgetVisible(row)
+            qapp.processEvents()
+            labels = row.findChildren(QLabel)
+            title = next(label for label in labels if label.text() == page.strict_mode.accessibleName())
+            help_label = next(label for label in labels if label.text() == page.strict_mode.accessibleDescription())
+            text_fits(title)
+            text_fits(help_label)
+            viewport = page._scroll.viewport()
+            for widget in (title, help_label, page.strict_mode):
+                assert viewport.rect().contains(bounds_in(widget, viewport))
+            assert not bounds_in(title, row).intersects(bounds_in(page.strict_mode, row))
+            assert not bounds_in(help_label, row).intersects(bounds_in(page.strict_mode, row))
+            assert page.strict_mode.width() >= page.strict_mode.sizeHint().width()
+            option = QStyleOptionComboBox()
+            page.strict_mode.initStyleOption(option)
+            text_rect = page.strict_mode.style().subControlRect(
+                QStyle.ComplexControl.CC_ComboBox, option,
+                QStyle.SubControl.SC_ComboBoxEditField, page.strict_mode)
+            for index in range(page.strict_mode.count()):
+                assert page.strict_mode.fontMetrics().horizontalAdvance(
+                    page.strict_mode.itemText(index)) <= text_rect.width()
+            for button in (page._apply_btn, page._reset_btn, page._defaults_btn):
+                assert page.rect().contains(bounds_in(button, page))
+                assert not bounds_in(page._scroll, page).intersects(bounds_in(button, page))
+            buttons = (page._apply_btn, page._reset_btn, page._defaults_btn)
+            for index, button in enumerate(buttons):
+                for other in buttons[index + 1:]:
+                    assert not bounds_in(button, page).intersects(bounds_in(other, page))
+            window.activateWindow()
+            page.strict_mode.setFocus(Qt.FocusReason.TabFocusReason)
+            qapp.processEvents()
+            assert page.strict_mode.hasFocus()
+            window.close()
+    finally:
+        qapp.setFont(original_font)
+        qapp.setPalette(original_palette)
+        restyle.sweep()
 
 
 @pytest.mark.asyncio
