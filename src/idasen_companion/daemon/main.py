@@ -150,6 +150,7 @@ class Daemon:
         # not because we told it to. That's how a software stop is told apart
         # from a paddle interruption.
         self._current_move_id = 0
+        self._command_observation_generation = 0
 
         # All set by `_setup_dbus`, which runs before the D-Bus interfaces
         # that would let anything call in. Declared, not None-initialized.
@@ -402,14 +403,20 @@ class Daemon:
         tracker = self._observation_tracker()
         position = self.machine._cycle_state_for_height(height)
         if position is None:
-            self._invalidate_position_observation()
+            self._invalidate_position_observation(from_height_sample=True)
             return
         tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
         self._emit_position_observation()
 
-    def _invalidate_position_observation(self) -> None:
+    def _invalidate_position_observation(self, *, from_height_sample: bool = False) -> None:
         tracker = getattr(self, "_position_observation", None)
         self._observation_generation = getattr(self, "_observation_generation", 0) + 1
+        # A live off-preset sample ends position-duration history, but is also
+        # valid departure evidence. It must not cancel the command reading it.
+        # Explicit invalidations still fence both commands and published reads.
+        if not from_height_sample:
+            self._command_observation_generation = getattr(
+                self, "_command_observation_generation", 0) + 1
         if isinstance(self.machine, StateMachine):
             self.machine.invalidate_height_observation()
         if tracker is not None:
@@ -1322,16 +1329,14 @@ class Daemon:
         if snapshot.stage == "arrived":
             desk, config = self.desk, self.config
             move_id = self._current_move_id
-            observation = getattr(self, "_observation_generation", 0)
-            height_generation = machine._height_observation_generation
+            observation = getattr(self, "_command_observation_generation", 0)
             config_revision = machine._startup_revision
 
             def current() -> bool:
                 return (self.machine is machine and self.desk is desk
                         and self.config is config and machine.strict_snapshot == snapshot
                         and self._current_move_id == move_id
-                        and getattr(self, "_observation_generation", 0) == observation
-                        and machine._height_observation_generation == height_generation
+                        and getattr(self, "_command_observation_generation", 0) == observation
                         and machine._startup_revision == config_revision)
 
             await self._require_manual_entitlement()
@@ -1682,8 +1687,8 @@ class Daemon:
     def _manual_identity(self) -> tuple:
         machine = self.machine
         return (machine, self.desk, self.config, self._current_move_id,
-                getattr(self, "_observation_generation", 0),
-                machine._height_observation_generation, machine._strict_generation,
+                getattr(self, "_command_observation_generation", 0),
+                machine._strict_generation,
                 machine._startup_revision)
 
     async def _manual_current(self, identity: tuple, *, admission: bool = False) -> bool:

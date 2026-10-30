@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from dbus_fast import DBusError
 
+from idasen_companion.core.clocks import MonotonicInstant
 from idasen_companion.core.lengths import Length
 from machine_helpers import Driver, STAND_H, SIT_H, make_config
 from test_ble_desk import make_desk
@@ -91,6 +92,38 @@ async def test_fresh_physical_departure_allows_following_move_with_sync_off():
     assert driver.m.strict_snapshot is None
     assert driver.desk.move_calls == [STAND_H]
     assert daemon._handle_event.call_count == 1
+
+
+async def test_off_preset_notifications_allow_fresh_departure_and_move():
+    from idasen_companion.daemon.main import Daemon
+    from test_strict_commands import arrived_daemon
+
+    driver, daemon = await arrived_daemon()
+    daemon._last_height_emit = MonotonicInstant(0)
+    daemon._record_transition = MagicMock()
+    daemon._set_moving = Daemon._set_moving.__get__(daemon)
+    driver.desk.height = Length(STAND_H.metres - 0.05)
+    read, move = driver.desk.get_height, driver.desk.move_to
+
+    async def notify():
+        daemon._on_live_height(driver.desk.height)
+
+    async def notifying_read():
+        # BLE notifications run outside the task holding the private read token.
+        await asyncio.create_task(notify())
+        return await read()
+
+    async def notifying_move(height, **kwargs):
+        # Connecting/preparing a move can also report the current off-preset height.
+        await asyncio.create_task(notify())
+        return await move(height, **kwargs)
+
+    driver.desk.get_height = notifying_read
+    driver.desk.move_to = notifying_move
+    await daemon.manual_move_to_preset("sit")
+    assert driver.m.strict_snapshot is None
+    assert driver.desk.move_calls == [SIT_H]
+    assert driver.desk.height == SIT_H
 
 
 async def test_strict_armed_during_undo_read_prevents_return():
