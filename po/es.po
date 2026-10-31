@@ -1589,12 +1589,12 @@ msgstr "Desactivado"
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
-msgid "Standing"
+msgid "Stand"
 msgstr "De pie"
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
-msgid "Sitting"
+msgid "Sit"
 msgstr "Sentado"
 
 #: src/idasen_companion/gui/pages/automation.py

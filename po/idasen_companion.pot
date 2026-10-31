@@ -1465,12 +1465,12 @@ msgstr ""
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
-msgid "Standing"
+msgid "Stand"
 msgstr ""
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
-msgid "Sitting"
+msgid "Sit"
 msgstr ""
 
 #: src/idasen_companion/gui/pages/automation.py

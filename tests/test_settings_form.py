@@ -23,6 +23,7 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtWidgets import QPushButton  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -327,43 +328,43 @@ def test_strict_mode_round_trip_and_recovery(ctx, monkeypatch, silent_dialogs):
 
     page = AutomationPage(ctx)
     page.load()
-    combo = page.strict_mode
-    assert [combo.itemData(i) for i in range(combo.count())] == [
-        "off", "standing", "sitting", "both"]
-    assert combo.currentData() == "off"
-    assert combo.accessibleName() and combo.accessibleDescription()
+    control = page.strict_mode
+    buttons = control.findChildren(QPushButton)
+    assert [button.text() for button in buttons] == ["Off", "Stand", "Sit", "Both"]
+    assert control.currentIndex() == 0
+    assert control.accessibleName() and control.accessibleDescription()
     calls = []
     monkeypatch.setattr(ctx.client, "available", True)
     monkeypatch.setattr(ctx.client, "reload_config", lambda: calls.append(True))
-    for value in ("standing", "sitting", "both", "off"):
-        page._select_data(combo, value)
+    for index, value in ((1, "standing"), (2, "sitting"), (3, "both"), (0, "off")):
+        buttons[index].click()
         assert page.is_dirty()
         assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode != value
         assert page.apply_edits()
         page.load()
-        assert combo.currentData() == value
+        assert control.currentIndex() == index
         assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == value
     assert len(calls) == 4
-    page._select_data(combo, "both")
+    control.setCurrentIndex(3)
     page.load()
-    assert combo.currentData() == "off" and not page.is_dirty()
-    page._select_data(combo, "both")
+    assert control.currentIndex() == 0 and not page.is_dirty()
+    control.setCurrentIndex(3)
     assert page.apply_edits()
     page._restore_defaults()
-    assert combo.currentData() == "off" and page.is_dirty()
+    assert control.currentIndex() == 0 and page.is_dirty()
     page.load()
-    assert combo.currentData() == "both"
-    page._select_data(combo, "off")
+    assert control.currentIndex() == 3
+    control.setCurrentIndex(0)
     monkeypatch.setattr(context_mod, "save_config", lambda *_args: (_ for _ in ()).throw(OSError("disk full")))
     assert not page.apply_edits()
-    assert page.is_dirty() and combo.currentData() == "off"
+    assert page.is_dirty() and control.currentIndex() == 0
     assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == "both"
 
 
 def test_strict_mode_spanish_labels(ctx):
     with _language("es"):
         page = AutomationPage(ctx)
-        assert [page.strict_mode.itemText(i) for i in range(4)] == [
+        assert [button.text() for button in page.strict_mode.findChildren(QPushButton)] == [
             "Desactivado", "De pie", "Sentado", "Ambos"]
         assert page.strict_mode.accessibleName() == "Modo estricto"
 

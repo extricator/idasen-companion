@@ -9,7 +9,7 @@ import pytest
 from dbus_fast.aio import MessageBus
 from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPalette
-from PySide6.QtWidgets import QLabel, QPushButton, QStyle, QStyleOptionComboBox
+from PySide6.QtWidgets import QLabel, QPushButton, QStyle, QStyleOptionButton
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
 from idasen_companion.core.config import load_config, save_config
@@ -237,14 +237,16 @@ def test_strict_layout_in_minimum_window(qapp, monkeypatch, tmp_path, language, 
             assert not bounds_in(title, row).intersects(bounds_in(page.strict_mode, row))
             assert not bounds_in(help_label, row).intersects(bounds_in(page.strict_mode, row))
             assert page.strict_mode.width() >= page.strict_mode.sizeHint().width()
-            option = QStyleOptionComboBox()
-            page.strict_mode.initStyleOption(option)
-            text_rect = page.strict_mode.style().subControlRect(
-                QStyle.ComplexControl.CC_ComboBox, option,
-                QStyle.SubControl.SC_ComboBoxEditField, page.strict_mode)
-            for index in range(page.strict_mode.count()):
-                assert page.strict_mode.fontMetrics().horizontalAdvance(
-                    page.strict_mode.itemText(index)) <= text_rect.width()
+            segments = page.strict_mode.findChildren(QPushButton)
+            for button in segments:
+                button.click()
+                qapp.processEvents()
+                assert page.strict_mode.rect().contains(bounds_in(button, page.strict_mode))
+                option = QStyleOptionButton()
+                button.initStyleOption(option)
+                text_rect = button.style().subElementRect(
+                    QStyle.SubElement.SE_PushButtonContents, option, button)
+                assert button.fontMetrics().horizontalAdvance(button.text()) <= text_rect.width()
             for button in (page._apply_btn, page._reset_btn, page._defaults_btn):
                 assert page.rect().contains(bounds_in(button, page))
                 assert not bounds_in(page._scroll, page).intersects(bounds_in(button, page))
@@ -253,9 +255,10 @@ def test_strict_layout_in_minimum_window(qapp, monkeypatch, tmp_path, language, 
                 for other in buttons[index + 1:]:
                     assert not bounds_in(button, page).intersects(bounds_in(other, page))
             window.activateWindow()
-            page.strict_mode.setFocus(Qt.FocusReason.TabFocusReason)
+            segments[0].setFocus(Qt.FocusReason.TabFocusReason)
             qapp.processEvents()
-            assert page.strict_mode.hasFocus()
+            assert segments[0].hasFocus()
+            page.discard_edits()
             window.close()
     finally:
         qapp.setFont(original_font)
@@ -298,7 +301,7 @@ async def test_disable_controls_release_only_after_daemon_update(qapp, monkeypat
         await settle(qapp, lambda: client.strict_capability == "supported")
         assert client.strict_state.stage == "arrived"
         if disable == "strict":
-            settings._select_data(settings.strict_mode, "off")
+            settings.strict_mode.setCurrentIndex(0)
             assert client.strict_state.stage == "arrived"
             assert settings.apply_edits()
         else:
