@@ -3,6 +3,8 @@
 
 import pytest
 
+pytest.importorskip("PySide6")
+
 from language_context import installed_language
 from idasen_companion import cli
 from idasen_companion.core.config import AppConfig

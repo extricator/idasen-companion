@@ -6,6 +6,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+
+pytest.importorskip("PySide6")
+
 from dbus_fast.aio import MessageBus
 from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPalette
