@@ -458,6 +458,13 @@ msgstr ""
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
+msgid ""
+"The scheduled Strict mode requirement blocks this action. Wait for the "
+"interval to finish or turn Strict mode off."
+msgstr ""
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
 msgid "later"
 msgstr ""
 
@@ -1075,6 +1082,31 @@ msgid "Autostart disabled: the daemon will not start at login."
 msgstr ""
 
 #: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Standing"
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Sitting"
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Both"
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: service version unsupported."
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: status unavailable."
+msgstr ""
+
+#: src/idasen_companion/core/presentation.py
 #, python-format
 msgctxt "shared.presentation"
 msgid "%(position)s for about %(duration)s"
@@ -1428,6 +1460,36 @@ msgstr ""
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
+msgid "Off"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Stand"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Sit"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Both"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Strict mode"
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Enforce selected scheduled postures until their interval ends."
+msgstr ""
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
 msgid "Count as away after"
 msgstr ""
 
@@ -1584,11 +1646,6 @@ msgstr ""
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
 msgid "Schedule off — automation runs whenever you're active."
-msgstr ""
-
-#: src/idasen_companion/gui/pages/automation.py
-msgctxt "automation-settings"
-msgid "Off"
 msgstr ""
 
 #: src/idasen_companion/gui/pages/overview.py

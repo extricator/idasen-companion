@@ -11,4 +11,5 @@ def make_daemon_shell() -> Daemon:
     daemon = Daemon.__new__(Daemon)
     daemon._tasks = set()
     daemon._desk_lock = asyncio.Lock()
+    daemon._retry_wake = asyncio.Event()
     return daemon

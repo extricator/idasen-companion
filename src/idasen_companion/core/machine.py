@@ -26,7 +26,7 @@ Semantics preserved from that original script:
   whole minutes (N = ceil(variation/60)).
 - Every ``sync_interval`` the actual desk height is read; if it disagrees
   with the internal state, the state is synchronized and timers reset.
-- A transition is verified by comparing the resulting height to the
+- A normal transition is verified by comparing the resulting height to the
   intended preset target within ``movement_tolerance``; anything else is
   an interruption, handled per ``interruption_policy``. The reference
   script's behaviour is the "undo" default: return once to the *original*
@@ -46,6 +46,8 @@ Extensions (approved deviations):
   starts a fresh cycle in the current state.
 - ``reset_after_resume()`` lets the daemon apply the time-jump reset
   eagerly on logind's PrepareForSleep signal.
+- Selected strict transitions retain their original target until verified,
+  then protect the existing cycle until due or a fresh physical departure.
 
 The machine is pure with respect to time and randomness: callers supply
 ``now`` (epoch seconds) on every call and an ``rng`` at construction.
@@ -63,7 +65,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import NamedTuple
 
-from ..desk.port import MoveFailure
+from ..desk.port import DeskPort, MoveFailure
 from .config import AppConfig
 from .clocks import MonotonicInstant, WallInstant
 from .durations import Duration
@@ -117,6 +119,20 @@ class DeskState(StrEnum):
 
 
 _PRESET_FOR_STATE = {DeskState.SITTING: "sit", DeskState.STANDING: "stand"}
+
+
+@dataclass(frozen=True)
+class StrictSnapshot:
+    stage: str
+    posture: DeskState
+    target_height: Length
+    generation: int
+
+
+@dataclass(frozen=True)
+class _StrictIntent:
+    snapshot: StrictSnapshot
+    original: DeskState
 
 
 @dataclass(frozen=True)
@@ -366,6 +382,8 @@ class StateMachine:
         on_moving: Callable[[bool], None] | None = None,
         on_height_observed: Callable[[Length | None], None] | None = None,
         on_observation_tick: Callable[[], None] | None = None,
+        observation_time: Callable[[], WallInstant] | None = None,
+        on_strict_changed: Callable[[], None] | None = None,
     ):
         self._cfg = config
         self._desk = desk
@@ -380,8 +398,10 @@ class StateMachine:
         self._on_moving = on_moving
         self._on_height_observed = on_height_observed
         self._on_observation_tick = on_observation_tick
+        self._observation_time = observation_time
+        self._on_strict_changed = on_strict_changed
         self._height_observation_generation = 0
-        self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object] | None] = (
+        self._height_read_context: ContextVar[tuple[asyncio.Task | None, int, object, bool] | None] = (
             ContextVar("height_read", default=None))
 
         self.state: DeskState = DeskState.SITTING
@@ -411,6 +431,11 @@ class StateMachine:
         self.last_height: Length | None = None
 
         self._enabled = config.automation.enabled
+        self._strict_selection = config.automation.strict_mode
+        self._strict_intent: _StrictIntent | None = None
+        self._strict_generation = 0
+        self._startup_available = True
+        self._startup_revision = 0
         self._last_check = now
         self._last_sync = now
         self._last_idle_ms = 0
@@ -450,7 +475,43 @@ class StateMachine:
             # reading a desk that isn't there and seeding a cycle against it.
             self._seed_cycle(now)
             return []
+        self._startup_available = False
         height = await self._read_height(now)
+        self._adopt_start_height(height, now)
+        return []
+
+    def startup_token(self) -> tuple[int, int, int, object] | None:
+        """Consume the one daemon-startup authority before any await."""
+        if not self._startup_available:
+            return None
+        self._startup_available = False
+        return (self._height_observation_generation, self._strict_generation,
+                self._startup_revision, self._desk)
+
+    def startup_token_current(self, token: tuple[int, int, int, object]) -> bool:
+        return (token == (self._height_observation_generation, self._strict_generation,
+                          self._startup_revision, self._desk)
+                and not self.unconfigured)
+
+    def adopt_startup_height(self, height: Length | None, now: WallInstant,
+                             token: tuple[int, int, int, object]) -> bool:
+        """Commit an entitled, freshly acquired startup height if still current."""
+        if not self.startup_token_current(token):
+            return False
+        self._adopt_start_height(height, now)
+        if height is not None:
+            self._report_height_observation(height)
+        state = self._cycle_state_for_height(height) if height is not None else None
+        if (height is not None and state is not None and self._cfg.automation.enabled
+                and self._cfg.automation.strict_mode in ("both", state.value)):
+            self._strict_generation += 1
+            self._strict_intent = _StrictIntent(
+                StrictSnapshot("arrived", state, height, self._strict_generation), state)
+            self._notify_strict_changed()
+            self.active_time = Duration.from_seconds(0)
+        return True
+
+    def _adopt_start_height(self, height: Length | None, now: WallInstant) -> None:
         if height is not None:
             self.last_height = height
             cycle_state = self._cycle_state_for_height(height)
@@ -466,7 +527,6 @@ class StateMachine:
                         and self._cfg.automation.external_move_policy != "adopt"):
                     self.held = True
         self._seed_cycle(now)
-        return []
 
     def start_without_desk_read(self, now: WallInstant) -> None:
         """Initialize without reading the desk — the same end state ``start``
@@ -570,6 +630,16 @@ class StateMachine:
             return (not frozen and not self.held and recently_active
                     and self.target_duration > Duration.from_seconds(0))
 
+        if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
+            events.extend(await self._periodic_sync(now, presence, refresh_presence))
+            frozen = self._frozen(self._observation_time() if self._observation_time else now)
+            if (self._strict_intent is not None
+                    and self._strict_intent.snapshot.stage == "pending" and can_act()):
+                events.extend(await self._execute_strict_transition(now, guard=guard))
+            if not any(isinstance(event, TransitionCompleted) for event in events):
+                self._last_check = now
+            return events
+
         # Report the gate, once per hold. Only when the move is otherwise ready
         # to go: a hold that nothing was waiting on isn't news, and frozen/held
         # already have their own lines saying why nothing is happening.
@@ -597,11 +667,29 @@ class StateMachine:
             frozen = self._frozen(now)
 
         if can_act() and self.active_time >= self.target_duration:
+            self.invalidate_height_observation()
+            if self._strict_intent is not None and self._strict_intent.snapshot.stage == "arrived":
+                self._release_strict()
             if self.skip_next:
                 self.skip_next = False
                 self._begin_cycle(self.state)
                 events.append(TransitionSkipped(self.state, self.target_duration))
             else:
+                intended = self.state.opposite
+                selected = config.strict_mode in ("both", intended.value)
+                if selected and self._strict_intent is None:
+                    self._strict_generation += 1
+                    self._strict_intent = _StrictIntent(
+                        StrictSnapshot("pending", intended, self._preset_height(intended),
+                                       self._strict_generation), self.state)
+                    self._notify_strict_changed()
+                    events.extend(await self._execute_strict_transition(now, guard=guard))
+                    if not any(isinstance(event, TransitionCompleted) for event in events):
+                        self._last_check = now
+                    return events
+                if self._strict_intent is not None and self._strict_intent.snapshot.stage == "pending":
+                    self._last_check = now
+                    return events
                 moved = (await self._execute_transition(now) if guard is None
                          else await self._execute_transition(now, guard=guard))
                 if moved is None:
@@ -693,7 +781,8 @@ class StateMachine:
 
         return _Presence(currently_idle, unentitled, unentitled_edge, events)
 
-    async def _periodic_sync(self, now: WallInstant, presence: _Presence) -> list[Event]:
+    async def _periodic_sync(self, now: WallInstant, presence: _Presence,
+                             refresh: RefreshPresence | None = None) -> list[Event]:
         """Poll the actual desk height on the sync interval (``sync_interval``
         0 disables it, but a held desk still polls at ``HELD_POLL_INTERVAL`` so
         it can notice a return to a preset and resume).
@@ -710,7 +799,7 @@ class StateMachine:
             self._last_sync = now  # no sync debt to discharge on return
             return []
         if presence.unentitled_edge:
-            return await self._sync(now)
+            return await self._sync(now, refresh=refresh)
 
         interval = self._cfg.automation.sync_interval
         if self.held and (interval <= 0 or interval > HELD_POLL_INTERVAL):
@@ -719,7 +808,7 @@ class StateMachine:
             # slower than HELD_POLL_INTERVAL.
             interval = HELD_POLL_INTERVAL
         if interval > 0 and now - self._last_sync >= Duration.from_seconds(interval):
-            return await self._sync(now)
+            return await self._sync(now, refresh=refresh)
         return []
 
     # ----- controls -----
@@ -771,8 +860,17 @@ class StateMachine:
         # callers may hand back the *same* AppConfig object mutated in place,
         # in which case the "previous" value is already the new one.
         was_enabled = self._enabled
+        self._startup_revision += 1
+        if (was_enabled != config.automation.enabled
+                or self._strict_selection != config.automation.strict_mode):
+            self.invalidate_height_observation()
         self._enabled = config.automation.enabled
+        self._strict_selection = config.automation.strict_mode
         self._cfg = config
+        if (self._strict_intent is not None and
+                (not config.automation.enabled or config.automation.strict_mode not in
+                 ("both", self._strict_intent.snapshot.posture.value))):
+            self._release_strict()
         if was_enabled != config.automation.enabled:
             self._begin_cycle(self.state)
             if not config.automation.enabled:
@@ -784,6 +882,48 @@ class StateMachine:
             self.target_duration = self._next_target_duration(self.state)
 
     # ----- introspection -----
+
+    @property
+    def strict_snapshot(self) -> StrictSnapshot | None:
+        return self._strict_intent.snapshot if self._strict_intent else None
+
+    def _release_strict(self) -> None:
+        if self._strict_intent is not None:
+            self._strict_intent = None
+            self._strict_generation += 1
+            self._notify_strict_changed()
+
+    def _notify_strict_changed(self) -> None:
+        if self._on_strict_changed is not None:
+            self._on_strict_changed()
+
+    def replace_desk(self, desk: DeskPort) -> None:
+        """Invalidate observations and enforcement for the old desk."""
+        self.invalidate_height_observation()
+        self._release_strict()
+        self._desk = desk
+
+    def reconcile_strict_observation(self, height: Length | None, *,
+                                     generation: int, now: WallInstant) -> list[Event]:
+        """Reconcile a fresh read of the current desk against a snapshot.
+
+        Callers must acquire the height from that desk after taking the
+        snapshot and pass its generation and observation time. Stale or absent
+        observations are inert. A verified arrival rebases the existing clock.
+        """
+        intent = self._strict_intent
+        if intent is None or intent.snapshot.generation != generation or height is None:
+            return []
+        snapshot = intent.snapshot
+        if snapshot.stage == "pending":
+            events = self._strict_arrival(height)
+            if events:
+                self._last_check = now
+            return events
+        if abs(height - snapshot.target_height) <= Length(self._cfg.advanced.movement_tolerance):
+            return []
+        self._release_strict()
+        return self._reconcile(height)
 
     def status(self, now: WallInstant) -> Status:
         # Outranks everything: with no desk address there is nothing to pause,
@@ -863,12 +1003,20 @@ class StateMachine:
 
         async def admit() -> bool:
             current = await refresh()
-            return (current.valid and snapshot == self._admission_snapshot()
+            intent = self._strict_intent
+            pending = intent is not None and intent.snapshot.stage == "pending"
+            admitted = (current.valid and snapshot == self._admission_snapshot()
                     and not current.locked and not current.away and not current.seatless
                     and current.idle_ms < self._cfg.automation.recent_input_threshold * 1000
                     and not self._frozen(current.now) and not self.held and not self.unconfigured
-                    and not self.skip_next and self.target_duration > Duration.from_seconds(0)
-                    and self.active_time >= self.target_duration)
+                    and (pending or not self.skip_next)
+                    and self.target_duration > Duration.from_seconds(0)
+                    and (pending or self.active_time >= self.target_duration)
+                    and (intent is None or not pending or self._cfg.automation.strict_mode in
+                         ("both", intent.snapshot.posture.value)))
+            if admitted:
+                self._strict_admitted_at = current.now
+            return admitted
 
         return admit
 
@@ -992,21 +1140,21 @@ class StateMachine:
         max_minutes = math.ceil(variation / 60)
         return Duration.from_seconds(base + self._rng.randint(0, max_minutes) * 60)
 
-    async def _read_height(self, now: WallInstant) -> Length | None:
+    async def _read_height(self, now: WallInstant, *, publish: bool = True) -> Length | None:
         generation = self._height_observation_generation
         desk = self._desk
-        token = self._height_read_context.set((asyncio.current_task(), generation, desk))
+        token = self._height_read_context.set((asyncio.current_task(), generation, desk, publish))
         try:
             height = await desk.get_height()
         except Exception:
-            if generation == self._height_observation_generation and desk is self._desk:
+            if publish and generation == self._height_observation_generation and desk is self._desk:
                 self._report_height_observation(None)
             raise
         finally:
             self._height_read_context.reset(token)
-        if height is not None:
+        if publish and height is not None and generation == self._height_observation_generation and desk is self._desk:
             self.last_height = height
-        if generation == self._height_observation_generation and desk is self._desk:
+        if publish and generation == self._height_observation_generation and desk is self._desk:
             self._report_height_observation(height)
         return height
 
@@ -1019,7 +1167,7 @@ class StateMachine:
         read = self._height_read_context.get()
         if read is None or read[0] is not asyncio.current_task():
             return True
-        return read[1] == self._height_observation_generation and read[2] is self._desk
+        return read[3] and read[1] == self._height_observation_generation and read[2] is self._desk
 
     def invalidate_height_observation(self) -> None:
         """Prevent a read already in flight from publishing after a hard boundary."""
@@ -1048,6 +1196,55 @@ class StateMachine:
             self._report_height_observation(
                 final.final_height if isinstance(final, TransitionCompleted) else None)
         return events
+
+    async def _execute_strict_transition(self, now: WallInstant, *,
+                                         guard: Callable[[], Awaitable[bool]] | None) -> list[Event]:
+        intent = self._strict_intent
+        assert intent is not None
+        desk = self._desk
+        self._note_moving(True)
+        generation = self._height_observation_generation
+        try:
+            moved = (await desk.move_to(intent.snapshot.target_height) if guard is None
+                     else await desk.move_to(intent.snapshot.target_height, guard=guard))
+            if moved is None or self._strict_intent is not intent or desk is not self._desk:
+                return []
+            if guard is not None and not await guard():
+                return []
+            height = await self._read_height(now, publish=False)
+            if guard is not None and not await guard():
+                return []
+        finally:
+            self._note_moving(False)
+        if (self._strict_intent is not intent or desk is not self._desk
+                or generation != self._height_observation_generation):
+            return []
+        if height is None:
+            if moved is not True and not self.move_failed:
+                self.move_failed = True
+                return [MoveFailed(intent.original, intent.snapshot.posture, self.target_duration)]
+            return []
+        self.last_height = height
+        self._report_height_observation(height)
+        events = self._strict_arrival(height)
+        if events:
+            self._last_check = self._strict_admitted_at if guard is not None else now
+        return events
+
+    def _strict_arrival(self, height: Length) -> list[Event]:
+        intent = self._strict_intent
+        if (intent is None or intent.snapshot.stage != "pending"
+                or abs(height - intent.snapshot.target_height)
+                > Length(self._cfg.advanced.movement_tolerance)):
+            return []
+        self._strict_generation += 1
+        snapshot = replace(intent.snapshot, stage="arrived", generation=self._strict_generation)
+        self._strict_intent = replace(intent, snapshot=snapshot)
+        self._notify_strict_changed()
+        self.move_failed = False
+        self._begin_cycle(snapshot.posture)
+        return [TransitionCompleted(intent.original, snapshot.posture, snapshot.posture,
+                                    False, "none", height, "automation", self.target_duration)]
 
     def _note_moving(self, moving: bool) -> None:
         if self._on_moving is not None:
@@ -1134,17 +1331,43 @@ class StateMachine:
         return completed(landed, interrupted=True, recovery=policy,
                          final_height=height)
 
-    async def _sync(self, now: WallInstant) -> list[Event]:
+    async def _sync(self, now: WallInstant, *,
+                    refresh: RefreshPresence | None = None) -> list[Event]:
         """Read the desk and reconcile against it, restarting the sync clock.
 
         The stamp lives here rather than at each call site: every caller —
         periodic, pre-decide, on the way back from another session, or the
         daemon's ``force_sync`` — did it immediately afterwards, and a sync is
         a sync however it came to be run."""
-        height = await self._read_height(now)
+        self.invalidate_height_observation()
+        generation = self._height_observation_generation
+        desk = self._desk
+        snapshot = self.strict_snapshot
+        if refresh is not None:
+            current = await refresh()
+            if (not current.valid or current.away or current.seatless
+                    or generation != self._height_observation_generation
+                    or desk is not self._desk or snapshot != self.strict_snapshot):
+                return []
+        height = await self._read_height(now, publish=False)
+        if refresh is not None:
+            current = await refresh()
+            if not current.valid or current.away or current.seatless:
+                return []
+        if generation != self._height_observation_generation or desk is not self._desk:
+            return []
+        if snapshot != self.strict_snapshot:
+            return []
         self._last_sync = now
         if height is None:
+            self._report_height_observation(None)
             return [SyncFailed()]
+        self.last_height = height
+        self._report_height_observation(height)
+        if snapshot is not None:
+            observed_at = self._observation_time() if self._observation_time else now
+            return self.reconcile_strict_observation(height, generation=snapshot.generation,
+                                                     now=observed_at)
         return self._reconcile(height)
 
     def _reconcile(self, height: Length) -> list[Event]:

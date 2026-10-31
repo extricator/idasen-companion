@@ -93,12 +93,12 @@ PYEOF
 
 echo ">> Checking the sdist stays under the size ceiling..."
 SDIST_SIZE=$("$PYTHON" -c "import os,sys;print(os.path.getsize(sys.argv[1]))" "$SDIST")
-# 850000 bytes: just above the ~821 kB sdist measured after the five-artifact
-# release scripts, generated Flatpak dependency lock and Debian flavor
-# manifests became required packaged-test inputs. Still far below either
+# 900000 bytes: just above the ~872 kB sdist measured with Strict mode's
+# implementation and regression tests, which ship for packaged test runs.
+# The tracked-member audit above still rejects unintended files. Far below either
 # accident this guards against -- an untracked design-tool export once added
 # ~1.1 MB, and the screenshot directory would add ~650 kB on its own.
-SDIST_SIZE_CEILING=850000
+SDIST_SIZE_CEILING=900000
 if [ "$SDIST_SIZE" -gt "$SDIST_SIZE_CEILING" ]; then
     echo "error: sdist is ${SDIST_SIZE} bytes, over the ${SDIST_SIZE_CEILING}-byte ceiling" >&2
     exit 1

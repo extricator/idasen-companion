@@ -44,6 +44,14 @@ def test_a_bare_name_works_too(qapp):
         f"{DBUS_NAME}.Error.MoveFailed")
 
 
+def test_strict_refusal_explains_the_available_choices(qapp):
+    message = daemon_error_message(f"{DBUS_NAME}.Error.StrictEnforced", "diagnostic")
+    assert "scheduled Strict mode requirement" in message
+    assert "Wait for the interval to finish" in message
+    assert "turn Strict mode off" in message
+    assert "diagnostic" not in message
+
+
 def test_an_unknown_error_falls_back_to_the_daemons_detail(qapp):
     # Untranslated, but a specific English reason beats a generic sentence.
     msg = daemon_error_message("org.freedesktop.DBus.Error.NoReply",

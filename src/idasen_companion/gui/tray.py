@@ -16,6 +16,7 @@ from ..core.lengths import Length
 import time
 from datetime import date
 from functools import partial
+from typing import cast
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QIcon
@@ -26,6 +27,7 @@ from ..core.machine import (
 )
 from ..core.presentation import Formatter
 from ..core.state_values import PositionValue, StatusValue, parse_position, parse_status
+from ..core.strict_state import StrictCapability
 from .dbus_client import DaemonClient
 from .sni import RichTooltip
 from .util import (due_now_label, position_or_custom, preset_label,
@@ -91,6 +93,8 @@ class TrayIcon(QSystemTrayIcon):
         menu = QMenu()
         self._status_action = menu.addAction(pgettext('tray', "Starting…"))
         self._status_action.setEnabled(False)
+        self._strict_action = menu.addAction("")
+        self._strict_action.setEnabled(False)
         menu.addSeparator()
 
         menu.addAction(pgettext('tray', "Toggle sit / stand"),
@@ -134,6 +138,9 @@ class TrayIcon(QSystemTrayIcon):
 
         self.activated.connect(self._on_activated)
         client.statusChanged.connect(self._on_status)
+        strict_changed = getattr(client, "strictStateChanged", None)
+        if strict_changed is not None and hasattr(strict_changed, "connect"):
+            strict_changed.connect(lambda: self._refresh_texts(stats=False))
         client.positionChanged.connect(self._on_position)
         observation_changed = getattr(client, "positionObservationChanged", None)
         if observation_changed is not None and hasattr(observation_changed, "connect"):
@@ -394,6 +401,14 @@ class TrayIcon(QSystemTrayIcon):
         return snooze_line(self._fmt(), self.client.snooze_until())
 
     def _refresh_texts(self, stats: bool = True) -> None:
+        state = getattr(self.client, "strict_state", None)
+        capability = cast(StrictCapability, getattr(self.client, "strict_capability", "unknown"))
+        config = self.window.ctx.cfg
+        strict = self._fmt().strict_status(
+            state, capability,
+            configured_mode=config.automation.strict_mode if config else "off")
+        self._strict_action.setText(strict)
+        self._strict_action.setVisible(bool(strict))
         if not self.client.available:
             text = pgettext('tray', "Daemon not running")
             self._status_action.setText(text)
@@ -401,7 +416,7 @@ class TrayIcon(QSystemTrayIcon):
             if menu is not None:
                 menu.setAccessibleName(text)
                 menu.setAccessibleDescription("")
-            self._set_tooltip(text)
+            self._set_tooltip("\n".join((text, strict)) if strict else text)
             return
         # `stats=False` on the ticker path, and not an optimization to taste:
         # `_today_summary` makes a blocking D-Bus call for the day's totals,
@@ -414,6 +429,8 @@ class TrayIcon(QSystemTrayIcon):
         # `_today` is an optional final member of the list, present only
         # when the daemon has totals to report.
         lines = self._tooltip_lines()
+        if strict:
+            lines.append(strict)
         menu = self.contextMenu()
         if menu is not None:
             full = lines[0]

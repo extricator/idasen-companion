@@ -31,6 +31,9 @@ from .core.presentation import (
 )
 from .core.i18n import GettextTranslator
 from .core.state_values import parse_position, parse_status
+from .core.strict_state import (OPTIONAL_MEMBER_ERRORS, OPTIONAL_TRANSPORT_ERRORS,
+                                STRICT_ERROR, StrictCapability, StrictState,
+                                decode_strict_state)
 from .core.display_prefs import UnitSetting, resolve_height_unit
 
 IFACE_DESK = f"{DBUS_NAME}.Desk1"
@@ -102,6 +105,8 @@ class StatusSnapshot:
     time_remaining: float
     snooze_until: float
     daily: tuple[DailyStatRow, ...]
+    strict_state: StrictState | None = None
+    strict_capability: StrictCapability = "unknown"
 
 
 def _formatter(config: AppConfig) -> Formatter:
@@ -127,13 +132,30 @@ async def _read_status(client: Client) -> StatusSnapshot:
     today = date.today().isoformat()
     rows = _json_rows(await client.call(IFACE_STATS, "GetDaily", today, today))
     daily = tuple(decode_daily_rows(rows))
+    strict_state = None
+    capability: StrictCapability = "unknown"
+    try:
+        strict = await client.properties(IFACE_AUTO, ("StrictState",))
+        strict_state = decode_strict_state(strict.get("StrictState"))
+        if strict_state is not None:
+            capability = "supported"
+    except AttributeError:
+        capability = "unsupported"
+    except DBusError as error:
+        if error.type in OPTIONAL_MEMBER_ERRORS:
+            capability = "unsupported"
+        elif error.type not in OPTIONAL_TRANSPORT_ERRORS:
+            raise
+    except (ConnectionError, OSError, TimeoutError):
+        pass
     return StatusSnapshot(
         connected=bool(desk["Connected"]), height=float(desk["Height"]),
         position=str(desk["Position"]), moving=bool(desk["Moving"]),
         status=str(automation["Status"]),
         active_time=float(automation["ActiveTime"]),
         time_remaining=float(automation["TimeRemaining"]),
-        snooze_until=float(automation["SnoozeUntil"]), daily=daily)
+        snooze_until=float(automation["SnoozeUntil"]), daily=daily,
+        strict_state=strict_state, strict_capability=capability)
 
 
 def _json_rows(payload: object) -> list:
@@ -146,7 +168,7 @@ def _json_rows(payload: object) -> list:
 
 
 def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
-                 persistent_connection: bool) -> str:
+                 persistent_connection: bool, configured_strict_mode: str = "off") -> str:
     position = fmt.position_or_custom(parse_position(snapshot.position))
     if snapshot.moving:
         position = i18n.pgettext("cli.status", "%(position)s (moving)") % {
@@ -187,6 +209,8 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
     for row in snapshot.daily:
         if row.state in totals:
             totals[row.state] += row.seconds
+    strict = fmt.strict_status(snapshot.strict_state, snapshot.strict_capability,
+                               configured_mode=configured_strict_mode)
     return "\n".join((
         i18n.pgettext("cli.status", "Desk"),
         i18n.pgettext("cli.status", "  Height: %(height)s") % desk_values,
@@ -196,6 +220,7 @@ def _status_text(snapshot: StatusSnapshot, fmt: Formatter, *,
         i18n.pgettext("cli.status", "Automation"),
         i18n.pgettext("cli.status", "  Status: %(status)s") % {
             "status": status},
+        *(("  " + strict,) if strict else ()),
         i18n.pgettext("cli.status", "  Elapsed: %(duration)s") % {
             "duration": elapsed},
         i18n.pgettext("cli.status", "  Next: %(next)s") % {
@@ -227,7 +252,8 @@ async def _dispatch(args: argparse.Namespace, config: AppConfig,
     if args.command == "status":
         return _status_text(
             await _read_status(client), fmt,
-            persistent_connection=config.desk.connection == "persistent")
+            persistent_connection=config.desk.connection == "persistent",
+            configured_strict_mode=config.automation.strict_mode)
     if args.command == "log":
         rows = _json_rows(await client.call(IFACE_LOG, "GetRecent"))
         selected = rows[-args.limit:] if args.limit is not None else rows
@@ -304,6 +330,9 @@ def main(argv: list[str] | None = None) -> int:
         if isinstance(error, DBusError):
             detail = daemon_error_message(
                 GettextTranslator(), name, detail)
+            if name == STRICT_ERROR:
+                print(detail, file=sys.stderr)
+                return 1
         message = i18n.pgettext(
             "cli.error",
             "Could not contact the Idasen Companion daemon: %(detail)s\n"

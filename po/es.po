@@ -467,6 +467,15 @@ msgstr "El servicio en segundo plano no pudo llevar a cabo esa solicitud."
 
 #: src/idasen_companion/core/i18n.py
 msgctxt "shared.presentation"
+msgid ""
+"The scheduled Strict mode requirement blocks this action. Wait for the "
+"interval to finish or turn Strict mode off."
+msgstr ""
+"El requisito programado del modo estricto bloquea esta acción. Espera a que "
+"termine el intervalo o desactiva el modo estricto."
+
+#: src/idasen_companion/core/i18n.py
+msgctxt "shared.presentation"
 msgid "later"
 msgstr "más tarde"
 
@@ -1164,6 +1173,31 @@ msgstr ""
 "sesión."
 
 #: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Standing"
+msgstr "Modo estricto: De pie"
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Sitting"
+msgstr "Modo estricto: Sentado"
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: Both"
+msgstr "Modo estricto: Ambos"
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: service version unsupported."
+msgstr "Modo estricto: versión del servicio no compatible."
+
+#: src/idasen_companion/core/presentation.py
+msgctxt "strict.status"
+msgid "Strict mode: status unavailable."
+msgstr "Modo estricto: estado no disponible."
+
+#: src/idasen_companion/core/presentation.py
 #, python-format
 msgctxt "shared.presentation"
 msgid "%(position)s for about %(duration)s"
@@ -1550,6 +1584,38 @@ msgstr "%s durante"
 
 #: src/idasen_companion/gui/pages/automation.py
 msgctxt "automation-settings"
+msgid "Off"
+msgstr "Desactivado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Stand"
+msgstr "De pie"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Sit"
+msgstr "Sentado"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Both"
+msgstr "Ambos"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Strict mode"
+msgstr "Modo estricto"
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
+msgid "Enforce selected scheduled postures until their interval ends."
+msgstr ""
+"Mantiene las posturas programadas seleccionadas hasta que termine su "
+"intervalo."
+
+#: src/idasen_companion/gui/pages/automation.py
+msgctxt "automation-settings"
 msgid "Count as away after"
 msgstr "Considerar ausente tras"
 
@@ -1712,11 +1778,6 @@ msgctxt "automation-settings"
 msgid "Schedule off — automation runs whenever you're active."
 msgstr ""
 "Horario desactivado — la automatización se ejecuta siempre que estés activo."
-
-#: src/idasen_companion/gui/pages/automation.py
-msgctxt "automation-settings"
-msgid "Off"
-msgstr "Desactivado"
 
 #: src/idasen_companion/gui/pages/overview.py
 msgctxt "overview"
@@ -2666,6 +2727,57 @@ msgstr "%(day)s: sentado %(sit)s, de pie %(stand)s"
 msgctxt "statistics.chart"
 msgid "%(day)s: no data"
 msgstr "%(day)s: sin datos"
+
+#~ msgctxt "strict.status"
+#~ msgid ""
+#~ "Strict mode: moving to standing. If stopped, the desk will retry promptly."
+#~ msgstr ""
+#~ "Modo estricto: moviendo a la posición de pie. Si se detiene, el "
+#~ "escritorio volverá a intentarlo pronto."
+
+#~ msgctxt "strict.status"
+#~ msgid ""
+#~ "Strict mode: moving to sitting. If stopped, the desk will retry promptly."
+#~ msgstr ""
+#~ "Modo estricto: moviendo a la posición sentado. Si se detiene, el "
+#~ "escritorio volverá a intentarlo pronto."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: standing interval enforced."
+#~ msgstr "Modo estricto: intervalo de pie obligatorio."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: sitting interval enforced."
+#~ msgstr "Modo estricto: intervalo sentado obligatorio."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: no interval enforced; ordinary controls are available."
+#~ msgstr ""
+#~ "Modo estricto: ningún intervalo es obligatorio; los controles normales "
+#~ "están disponibles."
+
+#~ msgctxt "strict.status"
+#~ msgid ""
+#~ "Strict mode status is unavailable with this background service version."
+#~ msgstr ""
+#~ "El estado del modo estricto no está disponible con esta versión del "
+#~ "servicio en segundo plano."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode status is currently unavailable."
+#~ msgstr "El estado del modo estricto no está disponible en este momento."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: moving to standing."
+#~ msgstr "Modo estricto: moviendo a la posición de pie."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: moving to sitting."
+#~ msgstr "Modo estricto: moviendo a la posición sentado."
+
+#~ msgctxt "strict.status"
+#~ msgid "Strict mode: no interval enforced."
+#~ msgstr "Modo estricto: ningún intervalo es obligatorio."
 
 #~ msgctxt "cli.status"
 #~ msgid "Paused"

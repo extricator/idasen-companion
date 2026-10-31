@@ -32,7 +32,7 @@ from ..core.config import (
 from ..core.i18n import set_language
 from ..core.locale_profile import LocaleProfile, resolve_app_locale
 from ..core.machine import (
-    AwayChanged, COUNTDOWN_STATUSES, DeskState, HeldOffCycle, IdleChanged,
+    AwayChanged, COUNTDOWN_STATUSES, DeskState, Event, HeldOffCycle, IdleChanged,
     FreshPresence, MoveFailed, PositionObservationTracker,
     HELD_POLL_INTERVAL, TIME_JUMP_THRESHOLD_SECONDS,
     ResumedOnCycle, SeatChanged, StateMachine, StateSynced, SyncFailed,
@@ -43,12 +43,13 @@ from ..core.display_prefs import ClockSetting, resolve_clock_style
 from ..core.clocks import MonotonicInstant, WallInstant
 from ..core.durations import Duration
 from ..core.lengths import Length
+from ..core.strict_state import StrictState
 from ..core.presentation import format_duration_human
 from ..core.presentation import Formatter, PresentationContext
 from ..core.i18n import GettextTranslator
 from ..core.display_prefs import UnitSetting, resolve_height_unit
 from ..desk.mock import MockDesk
-from ..desk.port import DeskPort
+from ..desk.port import DeskPort, MoveFailure
 
 from .accounting import ActiveTimeAccounting
 from .bluetooth import BluetoothSupport
@@ -149,6 +150,7 @@ class Daemon:
         # not because we told it to. That's how a software stop is told apart
         # from a paddle interruption.
         self._current_move_id = 0
+        self._command_observation_generation = 0
 
         # All set by `_setup_dbus`, which runs before the D-Bus interfaces
         # that would let anything call in. Declared, not None-initialized.
@@ -166,6 +168,7 @@ class Daemon:
         self._last_height_emit = MonotonicInstant(0.0)
         self._initial_read: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
+        self._retry_wake = asyncio.Event()
         # Whether this daemon's own link was up when the system last announced
         # a sleep. Recorded because after the resume there is no way left to
         # tell a leftover link of this daemon's from one belonging to another
@@ -363,8 +366,9 @@ class Daemon:
     def _on_live_height(self, height: Length) -> None:
         # BLE reads also invoke this notification seam. A read spanning a hard
         # boundary must not get a second chance to publish through its callback.
-        if self.machine.accepts_height_callback():
-            self._observe_height(height)
+        if not self.machine.accepts_height_callback():
+            return
+        self._observe_height(height)
         self.machine.last_height = height
         now = MonotonicInstant(time.monotonic())
         if now - self._last_height_emit >= HEIGHT_EMIT_INTERVAL:
@@ -399,14 +403,20 @@ class Daemon:
         tracker = self._observation_tracker()
         position = self.machine._cycle_state_for_height(height)
         if position is None:
-            self._invalidate_position_observation()
+            self._invalidate_position_observation(from_height_sample=True)
             return
         tracker.observe(position, WallInstant(time.time()), MonotonicInstant(time.monotonic()))
         self._emit_position_observation()
 
-    def _invalidate_position_observation(self) -> None:
+    def _invalidate_position_observation(self, *, from_height_sample: bool = False) -> None:
         tracker = getattr(self, "_position_observation", None)
         self._observation_generation = getattr(self, "_observation_generation", 0) + 1
+        # A live off-preset sample ends position-duration history, but is also
+        # valid departure evidence. It must not cancel the command reading it.
+        # Explicit invalidations still fence both commands and published reads.
+        if not from_height_sample:
+            self._command_observation_generation = getattr(
+                self, "_command_observation_generation", 0) + 1
         if isinstance(self.machine, StateMachine):
             self.machine.invalidate_height_observation()
         if tracker is not None:
@@ -718,7 +728,9 @@ class Daemon:
         self.machine = StateMachine(self.config, self.desk, now=now,
                                     on_moving=self._set_moving,
                                     on_height_observed=self._observe_height,
-                                    on_observation_tick=self._check_observation_continuity)
+                                    on_observation_tick=self._check_observation_continuity,
+                                    observation_time=lambda: WallInstant(time.time()),
+                                    on_strict_changed=self._emit_strict_state)
         self.machine.unconfigured = self._unconfigured()
         if not await self._setup_dbus():
             return
@@ -788,6 +800,7 @@ class Daemon:
             return
 
         while not self._stop_event.is_set():
+            self._retry_wake.clear()
             interval = self.config.automation.check_interval
             started = MonotonicInstant(time.monotonic())
             try:
@@ -816,8 +829,20 @@ class Daemon:
                     f"{format_duration_human(overrun.seconds)} (check interval is "
                     f"{format_duration_human(interval)}); automation was "
                     f"stalled for that long.")
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._stop_event.wait(), timeout=interval)
+            snapshot = self.machine.strict_snapshot
+            if snapshot is not None and snapshot.stage == "pending":
+                stop_wait = asyncio.ensure_future(self._stop_event.wait())
+                wake_wait = asyncio.ensure_future(self._retry_wake.wait())
+                try:
+                    await asyncio.wait((stop_wait, wake_wait), timeout=0.1,
+                                       return_when=asyncio.FIRST_COMPLETED)
+                finally:
+                    for task in (stop_wait, wake_wait):
+                        task.cancel()
+                    await asyncio.gather(stop_wait, wake_wait, return_exceptions=True)
+            else:
+                with contextlib.suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(self._stop_event.wait(), timeout=interval)
 
     async def _entitled_to_desk(self) -> bool:
         """Whether this session may touch the desk on its own initiative.
@@ -855,11 +880,24 @@ class Daemon:
         just to seed a cycle it is barred from acting on. The edge back to
         entitlement reconciles instead, which is the same read a tick later.
         """
+        machine = self.machine
+        token = machine.startup_token()
+        if token is None:
+            return
         if not await self._entitled_to_desk():
             self.activity_log.emit(logmsg.STARTUP_DESK_NOT_OURS)
             return
         try:
-            await self.machine.start(WallInstant(time.time()))
+            if self.machine is not machine or not machine.startup_token_current(token):
+                return
+            height = await machine._read_height(WallInstant(time.time()), publish=False)
+            if self.machine is not machine or not machine.startup_token_current(token):
+                return
+            if not await self._entitled_to_desk():
+                return
+            if self.machine is not machine or not machine.adopt_startup_height(
+                    height, WallInstant(time.time()), token):
+                return
         except asyncio.CancelledError:
             raise
         except Exception as error:
@@ -909,23 +947,22 @@ class Daemon:
 
         state_before = self.machine.state
         held_before = self.machine.held
-        desk, config, move_id = self.desk, self.config, self._current_move_id
-
-        async def refresh_presence() -> FreshPresence:
-            # Idle is sampled last so the other bounded providers do not age
-            # the strict recent-input value before command admission.
-            current_locked = await self._lock.is_locked()
-            current_seat = await self._session.state()
-            current_idle = await self._idle.get_idle_ms()
-            return FreshPresence(
-                WallInstant(time.time()), current_idle, current_locked,
-                away=current_seat == SEAT_BACKGROUND, seatless=current_seat == SEAT_NONE,
-                valid=(self.desk is desk and self.config is config
-                       and self._current_move_id == move_id))
         # Held across the whole tick, not just the move: the machine's
         # transition captures state before its await and writes it back after,
         # so a manual move landing in between is what corrupted it.
         async with self._desk_lock:
+            desk, config, move_id = self.desk, self.config, self._current_move_id
+
+            async def refresh_presence() -> FreshPresence:
+                # Sample idle last, immediately before the admission decision.
+                current_locked = await self._lock.is_locked()
+                current_seat = await self._session.state()
+                current_idle = await self._idle.get_idle_ms()
+                return FreshPresence(
+                    WallInstant(time.time()), current_idle, current_locked,
+                    away=current_seat == SEAT_BACKGROUND, seatless=current_seat == SEAT_NONE,
+                    valid=(self.desk is desk and self.config is config
+                           and self._current_move_id == move_id))
             events = await self.machine.tick(tick_time, idle_ms, locked, away, seatless,
                                              refresh_presence=refresh_presence)
 
@@ -978,8 +1015,10 @@ class Daemon:
             self.fmt.pre_move_body(),
             actions={
                 "snooze": (self.fmt.snooze_action_label(SNOOZE_MINUTES),
-                           lambda: self.snooze(SNOOZE_MINUTES)),
-                "skip": (self.fmt.skip_action_label(), self.skip_next),
+                           lambda: self._spawn(self._notification_control(
+                               self.snooze(SNOOZE_MINUTES)), "snoozing from notification")),
+                "skip": (self.fmt.skip_action_label(), lambda: self._spawn(
+                    self._notification_control(self.skip_next()), "skipping from notification")),
             },
         ), "showing the pre-move warning")
 
@@ -1187,6 +1226,25 @@ class Daemon:
         auto.StatusChanged(self.status_string())
         auto.ProgressChanged(self.machine.active_time.seconds,
                              self.machine.target_duration.seconds)
+        self._emit_strict_state()
+
+    def strict_state_payload(self) -> str:
+        snapshot = self.machine.strict_snapshot
+        return StrictState(self.config.automation.strict_mode,
+                           snapshot.stage if snapshot else "released",
+                           snapshot.posture.value if snapshot else None,
+                           snapshot.target_height.metres if snapshot else None).to_json()
+
+    def _emit_strict_state(self) -> None:
+        auto = self._ifaces.get("automation")
+        if auto is None:
+            return
+        payload = self.strict_state_payload()
+        if payload == getattr(self, "_last_strict_payload", None):
+            return
+        self._last_strict_payload = payload
+        auto.emit_properties_changed({"StrictState": payload})
+        auto.StrictStateChanged(payload)
 
     def _emit_periodic_properties(self) -> None:
         self._emit_automation_state()
@@ -1257,38 +1315,114 @@ class Daemon:
             raise DBusError(f"{DBUS_NAME}.Error.ConfigWriteFailed",
                             f"could not save the configuration: {error}") from error
         self.machine.update_config(self.config)
+        self._retry_wake.set()
         self.activity_log.emit(logmsg.AUTOMATION_ENABLED if enabled
                        else logmsg.AUTOMATION_DISABLED)
         self._emit_automation_state()
 
-    def pause(self) -> None:
-        self.machine.pause()
-        self.activity_log.emit(logmsg.AUTOMATION_PAUSED)
-        self._emit_automation_state()
+    async def _admit_strict_locked(self) -> None:
+        """Reconcile current arrived intent; caller owns the desk lock."""
+        machine = self.machine
+        snapshot = machine.strict_snapshot
+        if snapshot is None:
+            return
+        if snapshot.stage == "arrived":
+            desk, config = self.desk, self.config
+            move_id = self._current_move_id
+            observation = getattr(self, "_command_observation_generation", 0)
+            config_revision = machine._startup_revision
+
+            def current() -> bool:
+                return (self.machine is machine and self.desk is desk
+                        and self.config is config and machine.strict_snapshot == snapshot
+                        and self._current_move_id == move_id
+                        and getattr(self, "_command_observation_generation", 0) == observation
+                        and machine._startup_revision == config_revision)
+
+            await self._require_manual_entitlement()
+            if current():
+                try:
+                    height = await machine._read_height(WallInstant(time.time()), publish=False)
+                except Exception:  # A failed read is not evidence of departure.
+                    height = None
+                if current():
+                    await self._require_manual_entitlement()
+                    if current() and height is not None:
+                        now = WallInstant(time.time())
+                        events = machine.reconcile_strict_observation(
+                            height, generation=snapshot.generation, now=now)
+                        machine.last_height = height
+                        self._observe_height(height)
+                        for event in events:
+                            self._handle_event(event, "external")
+                        self._emit_periodic_properties()
+            # A released or replaced snapshot also invalidates the acquisition;
+            # it does not authorize continuing if the session changed meanwhile.
+            await self._require_manual_entitlement()
+        if self.machine.strict_snapshot is not None:
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
+
+    async def _cycle_control(self, action) -> None:
+        await self._require_manual_entitlement()
+        snapshot = self.machine.strict_snapshot
+        if snapshot is None:
+            action()
+            return
+        if snapshot.stage == "pending":
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
+        try:
+            await asyncio.wait_for(self._desk_lock.acquire(), timeout=MANUAL_LOCK_TIMEOUT)
+        except asyncio.TimeoutError as exc:
+            raise DBusError(f"{DBUS_NAME}.Error.DeskBusy",
+                            "desk command waited too long; please retry") from exc
+        try:
+            await self._require_manual_entitlement()
+            await self._admit_strict_locked()
+            action()
+        finally:
+            self._desk_lock.release()
+
+    async def _notification_control(self, control) -> None:
+        try:
+            await control
+        except DBusError as error:
+            self.activity_log.diag("warning", f"Notification action refused: {error}")
+
+    async def pause(self) -> None:
+        def apply() -> None:
+            self.machine.pause()
+            self.activity_log.emit(logmsg.AUTOMATION_PAUSED)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
     def resume(self) -> None:
         self.machine.resume()
         self.activity_log.emit(logmsg.AUTOMATION_RESUMED)
         self._emit_automation_state()
 
-    def skip_next(self) -> None:
-        self.machine.request_skip_next()
-        self.activity_log.emit(logmsg.AUTOMATION_SKIP_NEXT)
-        self._emit_automation_state()
+    async def skip_next(self) -> None:
+        def apply() -> None:
+            self.machine.request_skip_next()
+            self.activity_log.emit(logmsg.AUTOMATION_SKIP_NEXT)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
-    def snooze(self, minutes: int) -> None:
+    async def snooze(self, minutes: int) -> None:
         minutes = max(1, int(minutes))
-        self.machine.snooze(minutes, WallInstant(time.time()))
+        def apply() -> None:
+            self.machine.snooze(minutes, WallInstant(time.time()))
         # Param.DURATION is a seconds kind, so each side renders it with its
         # own formatter rather than the sentence spelling out "minutes" itself.
         # Keep the released ``minutes`` wire field for N-1 readers while the
         # contextual-catalog reader consumes the raw duration in seconds.
-        self.activity_log.emit(
-            logmsg.AUTOMATION_SNOOZED, minutes=minutes,
-            duration=minutes * 60)
-        self._emit_automation_state()
+            self.activity_log.emit(
+                logmsg.AUTOMATION_SNOOZED, minutes=minutes,
+                duration=minutes * 60)
+            self._emit_automation_state()
+        await self._cycle_control(apply)
 
     def reload_config(self) -> None:
+        self._retry_wake.set()
         try:
             new_config = self.config_file.load()
         except ConfigError as error:
@@ -1376,8 +1510,13 @@ class Daemon:
         # A preset/gesture move that's cut short by the physical paddle returns
         # to where the desk was (like the reference script and the automation
         # path), rather than parking off-cycle. Capture that position now.
-        await self._manual_move(Length(height), f"preset '{name}'",
-                                return_to=self.machine.last_height)
+        async def move() -> None:
+            current = self.config.presets.get(name)
+            if current is None:
+                raise DBusError(f"{DBUS_NAME}.Error.UnknownPreset", f"no preset named {name!r}")
+            await self._manual_move_locked(Length(current), f"preset '{name}'",
+                                           return_to=self.machine.last_height)
+        await self._movement_control(move)
 
     async def toggle_sit_stand(self, *, refresh: bool = True) -> None:
         """Move to whichever of sit/stand the desk is *not* at. Backs the tray
@@ -1386,10 +1525,13 @@ class Daemon:
         first (the manual pre-decide sync) so an external move — e.g. onto a
         preset — is reflected before the direction is chosen; ``refresh=False``
         skips that read when the caller (``gesture_move``) already did it."""
-        await self._require_manual_entitlement()
-        if refresh:
-            await self.machine.refresh_height(WallInstant(time.time()))
-        await self.manual_move_to_preset(self.machine.toggle_target_preset())
+        async def move() -> None:
+            if refresh and not await self._manual_refresh_locked():
+                return
+            name = self.machine.toggle_target_preset()
+            await self._manual_move_locked(Length(self.config.presets[name]), f"preset '{name}'",
+                                           return_to=self.machine.last_height)
+        await self._movement_control(move)
 
     async def gesture_move(self, action: str) -> None:
         """A tray/keyboard *gesture* move (``toggle``/``sit``/``stand``) with
@@ -1408,35 +1550,66 @@ class Daemon:
         await self._require_manual_entitlement()
         repeat = self.config.ui.tray_repeat_move
         if self.moving and action == self._gesture_action and repeat != "off":
+            # A move owns the desk lock throughout travel. Refuse any current
+            # strict intent before the lock-free repeat Stop, which must be able
+            # to interrupt that owner. No await separates this check and Stop's
+            # synchronous move-generation invalidation.
+            snapshot = self.machine.strict_snapshot
+            if snapshot is not None and snapshot.stage == "pending":
+                raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
             # Bound to a local so the "a successor is coming" decision and the
             # height that successor uses cannot drift apart, and so the None
             # check narrows for the call below.
             reverse_to = (self._gesture_start_height
                           if repeat == "reverse" else None)
-            self._gesture_action = None
-            await self.stop_movement(expect_successor=reverse_to is not None)
+            successor_owner: int | None = None
+            async def repeat_stop() -> None:
+                nonlocal successor_owner
+                self._gesture_action = None
+                successor_owner = self._current_move_id + 1
+                await self.stop_movement(expect_successor=reverse_to is not None)
+
             if reverse_to is not None:
-                self.activity_log.emit(logmsg.GESTURE_REVERSE)
-                await self.manual_move_to_height(reverse_to)
+                try:
+                    if snapshot is None:
+                        await repeat_stop()
+                    else:
+                        await self._movement_control(repeat_stop)
+                    if successor_owner is None or self._current_move_id != successor_owner:
+                        return
+                    if not (Length(MIN_HEIGHT) <= reverse_to <= Length(MAX_HEIGHT)):
+                        raise DBusError(f"{DBUS_NAME}.Error.OutOfRange",
+                                        f"height {reverse_to.metres:.3f}m outside "
+                                        f"{MIN_HEIGHT}-{MAX_HEIGHT}m")
+                    await self._movement_control(
+                        lambda: self._manual_move_locked(
+                            reverse_to, f"{reverse_to.metres:.3f}m",
+                            on_issue=lambda: self.activity_log.emit(logmsg.GESTURE_REVERSE)),
+                        expected_move_id=successor_owner)
+                finally:
+                    if successor_owner is not None and self._current_move_id == successor_owner:
+                        self._set_moving(False)
             else:
+                if snapshot is None:
+                    await repeat_stop()
+                else:
+                    await self._movement_control(repeat_stop)
                 self.activity_log.emit(logmsg.GESTURE_STOP)
             return
-        self._gesture_action = action
-        # A pre-move height read is a full BLE round-trip that delays the move,
-        # so only do it when something actually needs the fresh position:
-        #   - toggle must read to decide which way to go;
-        #   - an explicit sit/stand already knows its target, and only needs an
-        #     accurate reverse target when a repeat gesture will reverse to it.
-        # In every other case we skip the read and start moving a round-trip
-        # sooner, using the cached pre-move height as the (unused) start point.
-        needs_read = action == "toggle" or self.config.ui.tray_repeat_move == "reverse"
-        if needs_read:
-            await self.machine.refresh_height(WallInstant(time.time()))
-        self._gesture_start_height = self.machine.last_height
-        if action == "toggle":
-            await self.toggle_sit_stand(refresh=False)
-        else:
-            await self.manual_move_to_preset(action)
+        async def move() -> None:
+            if (action == "toggle" or self.config.ui.tray_repeat_move == "reverse"):
+                if not await self._manual_refresh_locked():
+                    return
+            name = self.machine.toggle_target_preset() if action == "toggle" else action
+            start = self.machine.last_height
+
+            def note_gesture() -> None:
+                self._gesture_action = action
+                self._gesture_start_height = start
+
+            await self._manual_move_locked(Length(self.config.presets[name]), f"preset '{name}'",
+                                           return_to=start, on_issue=note_gesture)
+        await self._movement_control(move)
 
     async def manual_move_to_height(self, height: Length) -> None:
         if not (Length(MIN_HEIGHT) <= height <= Length(MAX_HEIGHT)):
@@ -1464,32 +1637,136 @@ class Daemon:
         still the current one. Callers that must not bounce back (the slider's
         explicit target, the reverse gesture) also leave ``return_to`` as
         None."""
-        await self._require_manual_entitlement()
+        await self._movement_control(lambda: self._manual_move_locked(height, label,
+                                                                       return_to=return_to))
+
+    async def _movement_control(self, action, *, expected_move_id: int | None = None) -> None:
+        """Admit a whole manual operation under one desk lock."""
+        def current() -> bool:
+            return expected_move_id is None or self._current_move_id == expected_move_id
+
+        if not current():
+            return
+        try:
+            await self._require_manual_entitlement()
+        except DBusError:
+            if not current():
+                return
+            raise
+        if not current():
+            return
+        snapshot = self.machine.strict_snapshot
+        if snapshot is not None and snapshot.stage == "pending":
+            raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
         try:
             await asyncio.wait_for(self._desk_lock.acquire(),
                                    timeout=MANUAL_LOCK_TIMEOUT)
         except asyncio.TimeoutError as exc:
+            if not current():
+                return
             raise DBusError(f"{DBUS_NAME}.Error.DeskBusy",
                             "desk command waited too long; please retry") from exc
         try:
-            await self._require_manual_entitlement()
-            await self._manual_move_locked(height, label, return_to=return_to)
+            if not current():
+                return
+            try:
+                await self._require_manual_entitlement()
+                if not current():
+                    return
+                await self._admit_strict_locked()
+            except DBusError:
+                if not current():
+                    return
+                raise
+            if not current():
+                return
+            await action()
         finally:
             self._desk_lock.release()
 
-    async def _manual_move_locked(self, height: Length, label: str,
-                                  *, return_to: Length | None = None) -> None:
-        self._current_move_id += 1
-        move_id = self._current_move_id
-        self.activity_log.emit(logmsg.MANUAL_MOVE, target=label)
-        self._set_moving(True)
+    def _manual_identity(self) -> tuple:
+        machine = self.machine
+        return (machine, self.desk, self.config, self._current_move_id,
+                getattr(self, "_command_observation_generation", 0),
+                machine._strict_generation,
+                machine._startup_revision)
+
+    async def _manual_current(self, identity: tuple, *, admission: bool = False) -> bool:
+        def current() -> bool:
+            if self._current_move_id != identity[3]:
+                return False
+            if self.machine.strict_snapshot is not None:
+                if admission:
+                    raise DBusError(f"{DBUS_NAME}.Error.StrictEnforced", "strict mode is active")
+                return False
+            return self._manual_identity() == identity
+
+        if not current():
+            return False
         try:
-            move_accepted = await self.desk.move_to(height)
-            if not move_accepted:
+            await self._require_manual_entitlement()
+        except DBusError:
+            if admission and self._current_move_id == identity[3]:
+                raise
+            return False
+        return current()
+
+    async def _manual_refresh_locked(self) -> bool:
+        identity = self._manual_identity()
+        if not await self._manual_current(identity, admission=True):
+            return False
+        height = await self.machine._read_height(WallInstant(time.time()), publish=False)
+        if not await self._manual_current(identity, admission=True):
+            return False
+        if height is not None:
+            self.machine.last_height = height
+        self.machine._report_height_observation(height)
+        return True
+
+    async def _manual_move_locked(self, height: Length, label: str,
+                                  *, return_to: Length | None = None,
+                                  on_issue=None) -> None:
+        if not await self._manual_current(self._manual_identity(), admission=True):
+            return
+        desk, machine = self.desk, self.machine
+        issued = False
+        move_id = self._current_move_id
+        identity = self._manual_identity()
+        admission_error: DBusError | None = None
+
+        async def guard() -> bool:
+            nonlocal issued, move_id, identity, admission_error
+            try:
+                if not await self._manual_current(identity, admission=not issued):
+                    return False
+            except DBusError as error:
+                admission_error = error
+                return False
+            if not issued:
+                self._current_move_id += 1
+                self._invalidate_position_observation()
+                move_id = self._current_move_id
+                self._set_moving(True)
+                identity = self._manual_identity()
+                if on_issue is not None:
+                    on_issue()
+                self.activity_log.emit(logmsg.MANUAL_MOVE, target=label)
+                issued = True
+            return True
+
+        try:
+            if not await self._manual_current(identity, admission=True):
+                return
+            move_accepted = await desk.move_to(height, guard=guard)
+            if admission_error is not None:
+                raise admission_error
+            if move_accepted is None:
+                return
+            if move_accepted is MoveFailure.NOT_ISSUED or not move_accepted:
                 # The D-Bus error reaches whoever asked, but a tray gesture or
                 # a CLI call can leave no one looking — log it too, at a level
                 # that actually reaches journald.
-                reason = self.desk.last_error
+                reason = desk.last_error
                 if reason:
                     self.activity_log.emit(logmsg.MANUAL_MOVE_FAILED_REASON,
                                    target=label, reason=str(reason))
@@ -1501,8 +1778,10 @@ class Daemon:
             # The desk accepted this move, so it's demonstrably reachable —
             # clear a stale move-failed status now rather than waiting for the
             # next periodic tick, and announce the change immediately.
-            if self.machine.move_failed:
-                self.machine.move_failed = False
+            if not await self._manual_current(identity):
+                return
+            if machine.move_failed:
+                machine.move_failed = False
                 self._emit_automation_state()
             # move_to returning True doesn't mean the target was reached; read
             # the height back to detect a *physical* interruption and, if
@@ -1512,13 +1791,15 @@ class Daemon:
             if (return_to is not None
                     and self.config.automation.interruption_policy == "undo"
                     and move_id == self._current_move_id):
-                actual = await self.desk.get_height()
+                actual = await machine._read_height(WallInstant(time.time()), publish=False)
+                if not await self._manual_current(identity):
+                    return
                 tolerance = Length(self.config.advanced.movement_tolerance)
                 if actual is not None and abs(actual - height) > tolerance:
                     self.activity_log.emit(
                         logmsg.MANUAL_INTERRUPTED, target=label,
                         actual=actual.metres, return_to=return_to.metres)
-                    await self.desk.move_to(return_to)
+                    await desk.move_to(return_to, guard=guard)
         finally:
             # Only the current move owns the shared "moving" flag. If a newer
             # move superseded this one (a preempt/redirect, or the reverse that
@@ -1526,16 +1807,29 @@ class Daemon:
             # clear — otherwise this move's exit would report the desk stopped
             # while it's still travelling, flickering the tray and letting the
             # next repeat gesture start a fresh move instead of cancelling.
-            if move_id == self._current_move_id:
+            if issued and move_id == self._current_move_id:
                 self._set_moving(False)
-        if move_id != self._current_move_id:
+        if not await self._manual_current(identity):
             # Superseded mid-move (preempt/redirect/reverse): skip our own
             # reconciliation. Reading the height now would catch the desk still
             # travelling under the newer move and could briefly flag it
             # off-cycle ("automation paused"); the move that replaced us reads
             # the real final position and reports it.
             return
-        for event in await self.machine.force_sync(WallInstant(time.time())):
+        now = WallInstant(time.time())
+        actual = await machine._read_height(now, publish=False)
+        if not await self._manual_current(identity):
+            return
+        machine._last_sync = now
+        events: list[Event]
+        if actual is None:
+            machine._report_height_observation(None)
+            events = [SyncFailed()]
+        else:
+            machine.last_height = actual
+            machine._report_height_observation(actual)
+            events = machine._reconcile(actual)
+        for event in events:
             # A manual move that changes the classified position (adopting a
             # new state, or resuming from a hold) is an intentional transition,
             # not an "external" one — record it as such. ResumedOnCycle may
@@ -1575,6 +1869,8 @@ class Daemon:
         # Deliberate stop: invalidate any in-flight move's return-to-start so a
         # software stop stays put rather than bouncing back like an interruption.
         self._current_move_id += 1
+        self._invalidate_position_observation()
+        self._retry_wake.set()
         await self.desk.stop()
         self.activity_log.emit(logmsg.MANUAL_STOPPED)
         if expect_successor:
@@ -1649,7 +1945,7 @@ class Daemon:
         self._invalidate_position_observation()
         old_desk = self.desk
         self.desk = self._make_desk()
-        self.machine._desk = self.desk
+        self.machine.replace_desk(self.desk)
         # No hasattr guard: ``disconnect`` is on the DeskPort contract precisely
         # so the link this project treats most carefully is never released by a
         # duck-typed check that a new implementation could quietly fail.

@@ -23,6 +23,7 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import QObject, Signal  # noqa: E402
+from PySide6.QtWidgets import QPushButton  # noqa: E402
 
 from language_context import installed_language as _language  # noqa: E402
 from idasen_companion.core.config import AppConfig, save_config  # noqa: E402
@@ -320,6 +321,52 @@ def test_a_failed_save_keeps_the_page_dirty(page, ctx, monkeypatch,
     assert page.is_dirty()
     assert page._apply_btn.isEnabled()
     assert page._reset_btn.isEnabled()
+
+
+def test_strict_mode_round_trip_and_recovery(ctx, monkeypatch, silent_dialogs):
+    from idasen_companion.core.config import load_config
+
+    page = AutomationPage(ctx)
+    page.load()
+    control = page.strict_mode
+    buttons = control.findChildren(QPushButton)
+    assert [button.text() for button in buttons] == ["Off", "Stand", "Sit", "Both"]
+    assert control.currentIndex() == 0
+    assert control.accessibleName() and control.accessibleDescription()
+    calls = []
+    monkeypatch.setattr(ctx.client, "available", True)
+    monkeypatch.setattr(ctx.client, "reload_config", lambda: calls.append(True))
+    for index, value in ((1, "standing"), (2, "sitting"), (3, "both"), (0, "off")):
+        buttons[index].click()
+        assert page.is_dirty()
+        assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode != value
+        assert page.apply_edits()
+        page.load()
+        assert control.currentIndex() == index
+        assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == value
+    assert len(calls) == 4
+    control.setCurrentIndex(3)
+    page.load()
+    assert control.currentIndex() == 0 and not page.is_dirty()
+    control.setCurrentIndex(3)
+    assert page.apply_edits()
+    page._restore_defaults()
+    assert control.currentIndex() == 0 and page.is_dirty()
+    page.load()
+    assert control.currentIndex() == 3
+    control.setCurrentIndex(0)
+    monkeypatch.setattr(context_mod, "save_config", lambda *_args: (_ for _ in ()).throw(OSError("disk full")))
+    assert not page.apply_edits()
+    assert page.is_dirty() and control.currentIndex() == 0
+    assert load_config(context_mod.DEFAULT_CONFIG_PATH).automation.strict_mode == "both"
+
+
+def test_strict_mode_spanish_labels(ctx):
+    with _language("es"):
+        page = AutomationPage(ctx)
+        assert [button.text() for button in page.strict_mode.findChildren(QPushButton)] == [
+            "Desactivado", "De pie", "Sentado", "Ambos"]
+        assert page.strict_mode.accessibleName() == "Modo estricto"
 
 
 # ---- the Clock format row ---------------------------------------------------
