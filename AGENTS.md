@@ -1,5 +1,11 @@
 # Repository agent instructions
 
+## Preserve the running application
+
+Never exit, stop, kill, or restart the user's main desktop application without asking for and receiving explicit permission first. This applies to all work, including tests, builds, debugging, releases, and GSD workflows. Authorization to work on code or run tests does not authorize interrupting the running app.
+
+Before any approved interruption, record whether the app is running and how it was launched. Always restore it afterward using the same installation and launch mode, and verify that it is running again before reporting completion. Keep test instances isolated from the user's live application and session bus. Do not stop or restart the daemon without separate explicit authorization.
+
 ## Resuming unfinished work
 
 Treat a brief continuation request, such as "keep working," "continue," "pick up where we left off," or "do the next phase," as a request to resume the most recently active unfinished task. Do not require an exact phrase. Read the current branch and git status, recent commits, and the relevant handoff or task document to find the next step. Carry forward the user's existing constraints and approvals. If several unfinished tasks are equally plausible, ask which one the user means after inspecting the available context. Verify completed work, commit when the task calls for it, update its handoff, and report the result before starting another phase.
