@@ -6,6 +6,30 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-10-31
+
+### Added
+
+- Optional Strict mode in Automation: Off, Stand, Sit or Both. Selected automatic
+  moves retry after interruption. Once the desk arrives, app controls and hotkeys
+  cannot leave the posture before its interval ends; moving away with the desk's
+  own physical controls releases enforcement.
+- Compact English and Spanish Strict mode status in the window, tray and
+  command-line output, hidden when Strict mode is Off.
+
+### Changed
+
+- Document Strict mode startup and preset behavior: restarting at a selected
+  posture begins a fresh interval, and preset edits apply to later intervals
+  without changing the current target.
+
+### Fixed
+
+- Recognize physical departure from a strict posture even with periodic position
+  checks Off and concurrent height updates.
+- Exclude PySide6 6.12.0 on Python 3.11 to avoid its native signal-handling crashes.
+- Keep Strict mode GUI tests optional in headless RPM builds.
+
 ## [1.4.0] - 2026-10-27
 
 ### Added

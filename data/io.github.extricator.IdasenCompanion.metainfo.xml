@@ -96,6 +96,21 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.4.5" date="2026-10-31">
+      <description>
+        <p>
+          Optional Strict mode helps you complete selected sitting or standing
+          periods. Interrupted automatic moves retry, and app controls cannot end
+          an enforced period early. Moving the desk with its own physical controls
+          releases enforcement.
+        </p>
+        <p>
+          Choose Off, Stand, Sit or Both in Automation. Compact status appears
+          only when enabled, with English and Spanish feedback. This release also
+          avoids a Qt crash on Python 3.11.
+        </p>
+      </description>
+    </release>
     <release version="1.4.0" date="2026-10-27">
       <description>
         <p>

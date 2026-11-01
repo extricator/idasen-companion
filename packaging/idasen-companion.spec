@@ -1,5 +1,5 @@
 Name:           idasen-companion
-Version:        1.4.0
+Version:        1.4.5
 Release:        1%{?dist}
 Summary:        Automatic sit/stand companion for the IKEA Idåsen desk
 # bleak/idasen are separate RPMs here (see python-*.spec), so this is the
@@ -139,6 +139,11 @@ desktop-file-validate \
 %{_datadir}/metainfo/io.github.extricator.IdasenCompanion.metainfo.xml
 
 %changelog
+* Sat Oct 31 2026 extricator <extricator@users.noreply.github.com> - 1.4.5-1
+- Add optional Strict mode with movement retries and enforced intervals.
+- Show compact translated status and preserve physical-control escape.
+- Avoid Qt 6.12.0 crashes on Python 3.11 and fix headless test collection.
+
 * Tue Oct 27 2026 extricator <extricator@users.noreply.github.com> - 1.4.0-1
 - Add observed position timing and a safe example configuration.
 - Preserve statistics and recheck movement eligibility after Bluetooth

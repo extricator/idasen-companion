@@ -1,3 +1,11 @@
+idasen-companion (1.4.5-1) unstable; urgency=medium
+
+  * Add optional Strict mode with movement retries and enforced intervals.
+  * Show compact translated status and preserve physical-control escape.
+  * Avoid Qt 6.12.0 crashes on Python 3.11 and fix headless test collection.
+
+ -- extricator <extricator@users.noreply.github.com>  Sat, 31 Oct 2026 00:00:00 +0000
+
 idasen-companion (1.4.0-1) unstable; urgency=medium
 
   * Add observed position timing and a safe example configuration.
