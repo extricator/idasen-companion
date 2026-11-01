@@ -26,8 +26,12 @@ def source_fixture():
            "run_attempt": 1, "path": ".github/workflows/release.yml"}
     jobs = {"jobs": [{"name": name, "conclusion": "success"} for name in required] +
             [{"name": "Publish the release", "conclusion": "skipped"}]}
+    assembly = next(job for job in jobs["jobs"] if
+                    job["name"] == "Assemble and checksum the release assets")
+    assembly.update(started_at="2026-11-01T04:00:00Z", completed_at="2026-11-01T04:05:00Z")
     artifacts = {"artifacts": [{"id": 7, "name": "release-assets", "expired": False,
-                               "size_in_bytes": 100, "workflow_run": {"id": 123, "head_sha": "a" * 40}}]}
+                               "size_in_bytes": 100, "created_at": "2026-11-01T04:04:00Z",
+                               "workflow_run": {"id": 123, "head_sha": "a" * 40}}]}
     return run, jobs, artifacts
 
 
@@ -37,7 +41,7 @@ def test_provenance_requires_successful_exact_main_dry_run(monkeypatch):
                         else jobs if "/jobs?" in path else artifacts)
     assert release_assets.run_provenance("123", "a" * 40, "1.2.0") == 7
     for mutation, value in [("head_sha", "b" * 40), ("head_branch", "feature"),
-                            ("conclusion", "failure"), ("run_attempt", 2)]:
+                            ("conclusion", "failure"), ("run_attempt", 0)]:
         old = run[mutation]
         run[mutation] = value
         with pytest.raises(ValueError):
@@ -45,6 +49,52 @@ def test_provenance_requires_successful_exact_main_dry_run(monkeypatch):
         run[mutation] = old
     jobs["jobs"][0]["conclusion"] = "skipped"
     with pytest.raises(ValueError, match="required source job"):
+        release_assets.run_provenance("123", "a" * 40, "1.2.0")
+
+
+def test_retry_accepts_successful_jobs_and_assembly_carried_forward(monkeypatch):
+    run, jobs, artifacts = source_fixture()
+    run["run_attempt"] = 3
+    # A later cleanup retry retains earlier proof times and the existing bundle.
+    jobs["jobs"][0].update(started_at="2026-10-31T23:00:00Z",
+                           completed_at="2026-10-31T23:01:00Z")
+
+    def fake_api(path):
+        if path == "actions/runs/123":
+            return run
+        if "/jobs?" in path:
+            assert path == "actions/runs/123/jobs?filter=latest&per_page=100"
+            return jobs
+        return artifacts
+
+    monkeypatch.setattr(release_assets, "api", fake_api)
+    assert release_assets.run_provenance("123", "a" * 40, "1.2.0") == 7
+
+
+@pytest.mark.parametrize("created_at", ["2026-11-01T03:59:59Z", "2026-11-01T04:05:01Z"])
+def test_candidate_must_come_from_successful_assembly_window(monkeypatch, created_at):
+    run, jobs, artifacts = source_fixture()
+    run["run_attempt"] = 2
+    artifacts["artifacts"][0]["created_at"] = created_at
+    monkeypatch.setattr(release_assets, "api", lambda path: run if path == "actions/runs/123"
+                        else jobs if "/jobs?" in path else artifacts)
+    with pytest.raises(ValueError, match="successful assembly job"):
+        release_assets.run_provenance("123", "a" * 40, "1.2.0")
+
+
+def test_source_rerun_started_during_validation_is_rejected(monkeypatch):
+    run, jobs, artifacts = source_fixture()
+    reads = 0
+
+    def fake_api(path):
+        nonlocal reads
+        if path == "actions/runs/123":
+            reads += 1
+            return run if reads == 1 else run | {"run_attempt": 2, "status": "in_progress"}
+        return jobs if "/jobs?" in path else artifacts
+
+    monkeypatch.setattr(release_assets, "api", fake_api)
+    with pytest.raises(ValueError, match="source run changed"):
         release_assets.run_provenance("123", "a" * 40, "1.2.0")
 
 

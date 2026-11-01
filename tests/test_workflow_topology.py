@@ -138,6 +138,14 @@ def test_release_modes_are_explicit_and_publishing_requires_proofs():
     assert release["jobs"]["promote"]["permissions"] == {
         "contents": "read", "actions": "read"}
     assert release["jobs"]["cleanup"]["permissions"]["actions"] == "write"
+    promote = release["jobs"]["promote"]
+    source = next(step for step in promote["steps"] if step.get("id") == "source")
+    assert '"artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"' in source["run"]
+    download = next(step for step in promote["steps"] if
+                    "artifact-ids" in step.get("with", {}))
+    assert download["with"]["artifact-ids"] == "${{ steps.source.outputs.artifact_id }}"
+    assert download["with"]["run-id"] == "${{ inputs.promotion_run_id }}"
+    assert "name" not in download["with"]
 
 
 def test_main_ci_assembles_candidate_before_retiring_package_artifacts():

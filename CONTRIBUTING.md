@@ -384,6 +384,10 @@ always remains a separate, explicitly authorized action.
    and provenance, and retains one `release-assets` bundle for one day. It
    removes the three intermediate package artifacts after assembly. Save the
    successful `main` CI run ID and confirm it names the current `main` SHA.
+   Successful retries are eligible too: validation checks the complete latest
+   job results, including successful jobs retained from earlier attempts. The
+   candidate must have been uploaded during that execution's successful
+   assembly job, and promotion downloads its exact validated artifact ID.
    A release dry run remains available to test release-workflow changes, but
    is not required for an ordinary release.
 5. **Publish that verified set.** After explicit publication authorization,
