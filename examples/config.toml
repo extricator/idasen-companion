@@ -10,6 +10,7 @@ connection = "on-demand" # "on-demand" or "persistent"
 linger = "15s" # Stay connected this long after the last operation.
 
 [automation]
+strict_mode = "off" # "off", "standing", "sitting" or "both".
 # Enable automation only after configuring and checking your desk.
 # The runtime default is true; false here keeps this example a manual remote.
 enabled = false

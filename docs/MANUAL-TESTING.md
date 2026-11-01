@@ -156,6 +156,25 @@ design has never met a GNOME session.
       clear error in the log, automation keeps ticking, and the daemon
       recovers when the desk returns.
 
+## Strict mode
+
+The following real-desk procedure is **unperformed** for this feature. Use an
+authorized test session and safe clearance around the desk; restore the original
+settings afterward.
+
+- [ ] Select Standing and allow a scheduled stand. Stop or interrupt it before
+      arrival and observe a prompt retry when movement remains eligible. After
+      arrival, check that Pause, Snooze, Skip and a move away are refused.
+- [ ] Edit the standing preset during the period and verify the original height
+      remains the target. Move away with the physical paddle after arrival, then
+      issue a command with periodic position polling Off: it should be admitted
+      after the fresh observation releases enforcement.
+- [ ] Check Strict Off and automation Off each release enforcement. Check an
+      ordinary sitting interval under Standing and a manual arrival remain
+      ordinary, and that a due scheduled departure works with Both selected.
+- [ ] Start automation at a selected preset and observe a fresh full interval;
+      inspect window, tray and CLI status, including the selected language.
+
 ## Policy matrices
 
 Ordinary use only ever exercises whichever value is configured, so these need

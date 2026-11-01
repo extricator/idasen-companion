@@ -29,6 +29,7 @@
   "daemon_error.OutOfRange": "That height is outside the desk's range.",
   "daemon_error.SetupFailed": "Could not connect to the desk. Make sure it is powered, nearby, and in pairing mode.",
   "daemon_error.SessionInactive": "Switch back to this session before moving the desk.",
+  "daemon_error.StrictEnforced": "The scheduled Strict mode requirement blocks this action. Wait for the interval to finish or turn Strict mode off.",
   "daemon_error.UnknownPreset": "There is no preset by that name.",
   "daemon_error.generic_fallback": "The background service could not carry out that request.",
   "daemon_error.unknown_with_detail": "Message recipient disconnected",

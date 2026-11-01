@@ -568,7 +568,7 @@ def test_ticking_does_not_re_ask_the_daemon_for_the_day_totals(tray_with_stats):
     icon._tick()
 
     assert client.stats_calls == before
-    assert icon.toolTip().split("\n")[3] == (
+    assert icon.toolTip().split("\n")[-1] == (
         "Today: 1h 58m sitting / 50m standing")
 
 

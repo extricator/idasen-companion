@@ -265,8 +265,8 @@ async def test_the_warning_names_the_direction_the_desk_will_go():
 
 async def test_snooze_and_skip_are_offered_and_wired_to_the_daemon():
     d = warn_daemon(remaining=45)
-    d.snooze = MagicMock()
-    d.skip_next = MagicMock()
+    d.snooze = AsyncMock()
+    d.skip_next = AsyncMock()
     await d._maybe_warn(0.0)
     await drain()
 
@@ -274,6 +274,7 @@ async def test_snooze_and_skip_are_offered_and_wired_to_the_daemon():
     assert set(actions) == {"snooze", "skip"}
 
     actions["snooze"][1]()
-    d.snooze.assert_called_once()
     actions["skip"][1]()
-    d.skip_next.assert_called_once()
+    await asyncio.gather(*list(d._tasks))
+    d.snooze.assert_awaited_once()
+    d.skip_next.assert_awaited_once()

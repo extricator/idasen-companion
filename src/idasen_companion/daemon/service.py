@@ -156,6 +156,14 @@ class Automation1(ServiceInterface):
         self.d = daemon
 
     @dbus_property(access=PropertyAccess.READ)
+    def StrictState(self) -> DBusStr:  # pylint: disable=invalid-name
+        return self.d.strict_state_payload()
+
+    @dbus_signal()
+    def StrictStateChanged(self, state: DBusStr) -> DBusStr:  # pylint: disable=invalid-name
+        return state
+
+    @dbus_property(access=PropertyAccess.READ)
     def Enabled(self) -> DBusBool:  # pylint: disable=invalid-name
         return self.d.config.automation.enabled
 
@@ -195,20 +203,20 @@ class Automation1(ServiceInterface):
         self.d.set_automation_enabled(enabled)
 
     @dbus_method()
-    def Pause(self) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.pause()
+    async def Pause(self) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.pause()
 
     @dbus_method()
     def Resume(self) -> EmptyResult:  # pylint: disable=invalid-name
         self.d.resume()
 
     @dbus_method()
-    def SkipNext(self) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.skip_next()
+    async def SkipNext(self) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.skip_next()
 
     @dbus_method()
-    def Snooze(self, minutes: DBusInt32) -> EmptyResult:  # pylint: disable=invalid-name
-        self.d.snooze(minutes)
+    async def Snooze(self, minutes: DBusInt32) -> EmptyResult:  # pylint: disable=invalid-name
+        await self.d.snooze(minutes)
 
     @dbus_method()
     def ReloadConfig(self) -> EmptyResult:  # pylint: disable=invalid-name

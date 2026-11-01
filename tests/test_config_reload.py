@@ -12,6 +12,7 @@ random draw from the configured durations, so recomputing it on a no-op Save
 silently re-randomizes the cycle the user is already in.
 """
 
+import asyncio
 import os
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -45,7 +46,7 @@ def daemon(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=False, held=False,
+    d.machine = MagicMock(unconfigured=False, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
     return d
@@ -99,6 +100,66 @@ def test_an_unknown_option_loads_and_is_reported_once(daemon):
 def test_a_no_op_reload_does_not_re_roll_the_cycle_target(daemon):
     daemon.reload_config()
     assert daemon.machine.update_config.call_args.kwargs["reroll_target"] is False
+
+
+async def test_strict_intent_survives_noop_and_invalid_reload(daemon):
+    from idasen_companion.core.machine import StateMachine
+    from idasen_companion.desk.mock import MockDesk
+    from idasen_companion.core.lengths import Length
+
+    path = daemon.config_file.path
+    path.write_text(CONFIG + '\nstrict_mode = "standing"\n')
+    daemon.config = load_config(path)
+    desk = MockDesk(Length(daemon.config.presets["sit"]))
+    daemon.machine = StateMachine(daemon.config, desk, now=WallInstant(1000))
+    await daemon.machine.start(WallInstant(1000))
+    desk.interrupt_next_move_at = Length(0.9)
+    daemon.machine.active_time = daemon.machine.target_duration
+    await daemon.machine.tick(WallInstant(1001), 0, False)
+    snapshot = daemon.machine.strict_snapshot
+    elapsed, target = daemon.machine.active_time, daemon.machine.target_duration
+    daemon.config_file.save(daemon.config)
+    daemon.reload_config()
+    assert daemon.machine.strict_snapshot == snapshot
+    assert (daemon.machine.active_time, daemon.machine.target_duration) == (elapsed, target)
+    previous = daemon.config
+    path.write_text('[automation]\nstrict_mode = "invalid"\n')
+    daemon.reload_config()
+    assert daemon.config is previous
+    assert daemon.machine.strict_snapshot == snapshot
+
+
+async def test_reload_during_pending_retry_invalidates_its_result(daemon):
+    from idasen_companion.core.machine import StateMachine, TransitionCompleted
+    from idasen_companion.core.lengths import Length
+    from idasen_companion.desk.mock import MockDesk
+
+    path = daemon.config_file.path
+    path.write_text(CONFIG + '\nstrict_mode = "standing"\n')
+    daemon.config = load_config(path)
+    desk = MockDesk(Length(daemon.config.presets["sit"]))
+    daemon.machine = StateMachine(daemon.config, desk, now=WallInstant(1000))
+    await daemon.machine.start(WallInstant(1000))
+    desk.interrupt_next_move_at = Length(0.9)
+    daemon.machine.active_time = daemon.machine.target_duration
+    await daemon.machine.tick(WallInstant(1001), 0, False)
+    entered, release = asyncio.Event(), asyncio.Event()
+    original_move = desk.move_to
+
+    async def blocked_move(height, **kwargs):
+        entered.set()
+        await release.wait()
+        return await original_move(height, **kwargs)
+
+    desk.move_to = blocked_move
+    task = asyncio.create_task(daemon.machine.tick(WallInstant(1002), 0, False))
+    await asyncio.wait_for(entered.wait(), 1)
+    path.write_text(CONFIG + '\nstrict_mode = "off"\n')
+    daemon.reload_config()
+    release.set()
+    events = await asyncio.wait_for(task, 1)
+    assert daemon.machine.strict_snapshot is None
+    assert not any(isinstance(event, TransitionCompleted) for event in events)
 
 
 def test_changing_a_duration_re_rolls_the_cycle_target(daemon):
@@ -179,7 +240,7 @@ async def test_a_config_appearing_after_startup_starts_being_watched(tmp_path: P
     d.config = load_config(path)          # defaults; no file on disk
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=True, held=False,
+    d.machine = MagicMock(unconfigured=True, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
@@ -200,7 +261,7 @@ async def test_later_edits_are_picked_up_too(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=True, held=False,
+    d.machine = MagicMock(unconfigured=True, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(0))
     d._ifaces = {"automation": MagicMock()}
     d._start_after_setup = AsyncMock()
@@ -226,7 +287,7 @@ def test_an_unchanged_file_is_not_reloaded_every_tick(tmp_path: Path):
     d.config = load_config(path)
     d.activity_log = MagicMock()
     d.config_file = ConfigFileStore(path, d.activity_log)
-    d.machine = MagicMock(unconfigured=False, held=False,
+    d.machine = MagicMock(unconfigured=False, held=False, strict_snapshot=None,
                           target_duration=Duration.from_seconds(1500))
     d._ifaces = {"automation": MagicMock()}
     d.config_file.note_mtime()

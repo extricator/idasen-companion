@@ -229,6 +229,39 @@ selects translated text, number symbols and date/time language. Explicit
 `"system"` follows the operating system's measurement and time locales, not
 the selected app language.
 
+### Strict mode
+
+Automation offers **Strict mode** choices **Off** (the default), **Standing**,
+**Sitting**, and **Both**. A selected scheduled move starts an enforced period:
+while the move is pending, interruption or Stop ends the current attempt and
+the service promptly retries after checking that the session, schedule, presence
+and desk still permit movement. After arrival, movement and cycle commands such
+as Pause, Snooze and Skip are refused until the interval ends or enforcement is
+released. Standing leaves ordinary sitting controls and interruption policies
+available, and vice versa. A manual or physical arrival during normal operation
+does not start a strict period.
+
+When automation starts with a fresh authorized height already at a selected
+preset, Strict mode starts a full new interval without recording a fabricated
+move or statistics transition. The original target height stays pinned for the
+whole period, even if that preset is edited; future moves use the new preset.
+The existing active-time accounting and duration-edit behavior still apply.
+Elapsed progress is not persisted across service restarts.
+
+A physical interruption before arrival keeps the target pending. Physical
+departure after arrival releases enforcement; the next command checks a fresh
+height even when periodic position polling is Off. Turning Strict mode or
+automation Off also releases it. Normal scheduled departure proceeds when the
+interval is due, including with Both selected. The service makes the final
+admission decision, so controls can remain available while it checks.
+
+Overview, the tray and `idasen-companion status` show a compact localized
+selection such as **Strict mode: Standing**, **Sitting** or **Both**. With Strict
+mode Off, its status line is hidden. If it is configured on but the background
+service cannot report its selection, a short unavailable or unsupported notice
+appears instead. For a future real-desk check, see the unperformed procedure in
+[`docs/MANUAL-TESTING.md`](docs/MANUAL-TESTING.md#strict-mode).
+
 A config written by a newer Idasen Companion may contain sections or options
 this version does not know. They produce a visible warning but do not prevent
 the GUI or daemon from starting, and they remain in the file through later

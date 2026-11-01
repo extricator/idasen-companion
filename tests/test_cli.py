@@ -24,6 +24,8 @@ class FakeClient:
 
     async def properties(self, interface: str,
                          names: tuple[str, ...]) -> dict[str, object]:
+        if names == ("StrictState",):
+            raise AttributeError("older daemon")
         values = {
             "Connected": True,
             "Height": 1.10,
@@ -73,6 +75,31 @@ async def test_status_has_the_three_settled_sections_and_shared_values():
     assert "1h 05m" in output
     assert "Sitting down in 17m" in output
     assert "2h 00m" in output
+    assert "Strict mode" not in output
+    assert "\n  \n" not in output
+
+
+@pytest.mark.asyncio
+async def test_status_renders_snapshot_and_unknown_without_guessing(qapp):
+    from dataclasses import replace
+    from idasen_companion.core.strict_state import StrictState
+    from language_context import installed_language
+
+    snapshot = await cli._read_status(FakeClient())
+    fmt = cli._formatter(load_config())
+    active = replace(snapshot, strict_capability="supported",
+                     strict_state=StrictState("standing", "pending", "standing", 1.1))
+    output = cli._status_text(active, fmt, persistent_connection=True)
+    assert "  Strict mode: Standing" in output
+    unknown = replace(active, strict_capability="unknown")
+    output = cli._status_text(unknown, fmt, persistent_connection=True,
+                              configured_strict_mode="standing")
+    assert "  Strict mode: status unavailable." in output
+    assert "retry promptly" not in output
+    with installed_language("es"):
+        output = cli._status_text(active, cli._formatter(load_config()),
+                                  persistent_connection=True)
+        assert "  Modo estricto: De pie" in output
 
 
 @pytest.mark.asyncio
@@ -260,3 +287,39 @@ def test_daemon_absence_is_exit_one_without_traceback(monkeypatch, capsys):
     assert "no session bus owner" in captured.err
     assert "systemctl --user start" in captured.err
     assert "Traceback" not in captured.err
+
+
+@pytest.mark.asyncio
+async def test_optional_strict_status_and_old_or_unavailable_peer(monkeypatch):
+    from dbus_fast.errors import DBusError
+    client = FakeClient()
+    original = client.properties
+    async def properties(interface, names):
+        if names == ("StrictState",):
+            return {"StrictState": '{"mode":"standing","stage":"pending",'
+                    '"posture":"standing","target_height":1.1}'}
+        return await original(interface, names)
+    monkeypatch.setattr(client, "properties", properties)
+    snapshot = await cli._read_status(client)
+    assert snapshot.strict_capability == "supported"
+    assert snapshot.strict_state.stage == "pending"
+    monkeypatch.setattr(client, "properties", original)
+    assert (await cli._read_status(client)).strict_capability == "unsupported"
+    async def unavailable(interface, names):
+        if names == ("StrictState",):
+            raise DBusError("org.freedesktop.DBus.Error.NoReply", "timeout")
+        return await original(interface, names)
+    monkeypatch.setattr(client, "properties", unavailable)
+    assert (await cli._read_status(client)).strict_capability == "unknown"
+
+
+def test_strict_refusal_is_not_reported_as_transport_failure(monkeypatch, capsys):
+    from dbus_fast.errors import DBusError
+    from idasen_companion.core.strict_state import STRICT_ERROR
+    async def run(*_args):
+        raise DBusError(STRICT_ERROR, "internal diagnostic")
+    monkeypatch.setattr(cli, "_run", run)
+    assert cli.main(["sit"]) == 1
+    error = capsys.readouterr().err
+    assert "internal diagnostic" not in error
+    assert "systemctl" not in error

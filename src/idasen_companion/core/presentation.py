@@ -65,6 +65,7 @@ from .i18n import (
     SECONDS_COMPACT, SKIP_ACTION, SNOOZE_ACTION, TRY_NOW_ACTION,
 )
 from .locale_profile import LocaleProfile, TimeStyle
+from .strict_state import StrictCapability, StrictState
 
 
 @dataclass(frozen=True)
@@ -201,6 +202,30 @@ class Formatter:
     def status_label(self, status: StatusValue) -> str:
         """The long automation-status sentence for a status wire value."""
         return status_label(self._context.translator, status)
+
+    def strict_status(self, state: StrictState | None, capability: StrictCapability,
+                      *, configured_mode: str = "off") -> str:
+        """Show the enabled selection, reserving no status space for Off.
+
+        Local configuration only gates an unavailable-status explanation;
+        a supported daemon snapshot owns the displayed selection.
+        """
+        if capability == "supported" and isinstance(state, StrictState):
+            mode = state.mode
+        elif configured_mode == "off":
+            return ""
+        else:
+            mode = "unsupported" if capability == "unsupported" else "unknown"
+        if mode == "off":
+            return ""
+        messages = {
+            "standing": P_('strict.status', "Strict mode: Standing"),
+            "sitting": P_('strict.status', "Strict mode: Sitting"),
+            "both": P_('strict.status', "Strict mode: Both"),
+            "unsupported": P_('strict.status', "Strict mode: service version unsupported."),
+            "unknown": P_('strict.status', "Strict mode: status unavailable."),
+        }
+        return self._context.translator.message(messages[mode])
 
     def status_head(self, status: StatusValue) -> str:
         """The short Overview status head word for a status wire value."""

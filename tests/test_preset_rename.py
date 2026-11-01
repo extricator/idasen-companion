@@ -50,6 +50,7 @@ def daemon(tmp_path):
     # the point of test_saving_a_preset_does_not_revert_a_concurrent_hand_edit.
     d.mock_mode = True
     d.machine = MagicMock(unconfigured=False)
+    d.machine.strict_snapshot = None
     return d
 
 

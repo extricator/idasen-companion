@@ -32,6 +32,7 @@ from .settings_form import SettingsFormPage
 # Config values behind the interruption-policy segments, in segment order
 # (see VALID_INTERRUPTION_POLICIES).
 _INTERRUPTION_POLICIES = ("undo", "leave", "retry")
+_STRICT_MODES = ("off", "standing", "sitting", "both")
 
 # Offered position-check intervals, in **seconds**, ascending; 0 is "Off".
 #
@@ -99,6 +100,19 @@ class AutomationPage(SettingsFormPage):
             interval_row(preset_label("sit"), self.sit_dur, self.sit_var))
         auto_details.addWidget(
             interval_row(preset_label("stand"), self.stand_dur, self.stand_var))
+        auto_details.addWidget(separator())
+        self.strict_mode = SegmentedControl([
+            pgettext('automation-settings', "Off"),
+            pgettext('automation-settings', "Stand"),
+            pgettext('automation-settings', "Sit"),
+            pgettext('automation-settings', "Both"),
+        ])
+        strict_label = pgettext('automation-settings', "Strict mode")
+        strict_help = pgettext('automation-settings',
+            "Enforce selected scheduled postures until their interval ends.")
+        self.strict_mode.setAccessibleName(strict_label)
+        self.strict_mode.setAccessibleDescription(strict_help)
+        auto_details.addWidget(self._settings_row(strict_label, self.strict_mode, strict_help))
         auto_details.addWidget(separator())
         self.idle_thresh = self._minutes_spin(1, 120)
         auto_details.addWidget(self._settings_row(
@@ -318,6 +332,7 @@ class AutomationPage(SettingsFormPage):
 
     def _load(self, cfg: AppConfig) -> None:
         self.auto_enabled.setChecked(cfg.automation.enabled)
+        self.strict_mode.setCurrentIndex(_STRICT_MODES.index(cfg.automation.strict_mode))
         self.sit_dur.setValue(cfg.automation.sit_duration // 60)
         self.stand_dur.setValue(cfg.automation.stand_duration // 60)
         self._fill_intervals(self.sit_var, _VARIATION_CHOICES,
@@ -347,6 +362,7 @@ class AutomationPage(SettingsFormPage):
 
     def _apply(self, cfg: AppConfig) -> None:
         cfg.automation.enabled = self.auto_enabled.isChecked()
+        cfg.automation.strict_mode = _STRICT_MODES[max(0, self.strict_mode.currentIndex())]
         cfg.automation.sit_duration = self.sit_dur.value() * 60
         cfg.automation.stand_duration = self.stand_dur.value() * 60
         cfg.automation.sit_variation = self.sit_var.currentData()
