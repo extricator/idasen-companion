@@ -3,6 +3,7 @@
 """Validate and retire GitHub Actions release artifacts by exact run and ID."""
 
 import argparse
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -30,12 +31,15 @@ def run_provenance(run_id, sha, version, main_branch="main"):
     require(run["head_branch"] == main_branch, "source must be on main")
     require(run["head_sha"] == sha and run["status"] == "completed" and
             run["conclusion"] == "success", "source run must succeed at the release SHA")
-    require(run.get("run_attempt") == 1, "rerun attempts cannot be promoted")
+    attempt = run.get("run_attempt")
+    require(type(attempt) is int and attempt > 0, "source run attempt is invalid")
     main_ci = run["event"] == "push" and run.get("path") == ".github/workflows/ci.yml"
     dry_run = (run["event"] == "workflow_dispatch" and
                run.get("path") == ".github/workflows/release.yml")
     require(main_ci or dry_run, "source is not trusted main CI or a release dry run")
-    jobs = api(f"actions/runs/{run_id}/jobs?per_page=100")["jobs"]
+    # GitHub carries successful jobs forward when only failed jobs are retried.
+    # Inspect that complete latest execution, rather than historical failures.
+    jobs = api(f"actions/runs/{run_id}/jobs?filter=latest&per_page=100")["jobs"]
     require(len(jobs) < 100, "source has too many jobs for one-page proof")
     required = {"Tests / Python " + v for v in ("3.11", "3.12", "3.13", "3.14")}
     required |= {"Quality / Code", "Quality / Distribution and supply chain",
@@ -59,6 +63,17 @@ def run_provenance(run_id, sha, version, main_branch="main"):
     require(matches[0]["workflow_run"]["id"] == int(run_id) and
             matches[0]["workflow_run"]["head_sha"] == sha,
             "artifact provenance differs from the selected run")
+    assembly = next(job for job in jobs if
+                    job["name"].endswith("Assemble and checksum the release assets"))
+    created = datetime.fromisoformat(matches[0]["created_at"])
+    require(datetime.fromisoformat(assembly["started_at"]) <= created <=
+            datetime.fromisoformat(assembly["completed_at"]),
+            "artifact was not uploaded by the successful assembly job")
+    # Refuse a rerun started while we were inspecting its jobs and artifacts.
+    current = api(f"actions/runs/{run_id}")
+    require(current["run_attempt"] == attempt and current["status"] == "completed" and
+            current["conclusion"] == "success" and current["head_sha"] == sha,
+            "source run changed during validation")
     return matches[0]["id"]
 
 
