@@ -3524,7 +3524,7 @@
         "qt_source_url": "https://github.com/qt/qtbase/archive/refs/tags/v6.12.0.tar.gz",
         "status": "publisher-attribution-reconciled",
         "native_snapshot": "packaging/attribution/rpm-qt.json",
-        "snapshot_sha256": "fbd2541db6bbbdcc918c0eb34c970388ad8681e2165426579ca48e5f89feb947",
+        "snapshot_sha256": "e3d65e1209c65039e46732c14980a3d80f7e1dfd0133f4dd772221c81487b996",
         "publisher_targets": 25,
         "retained_files": 70,
         "source_catalog_records": 90,
@@ -7790,10 +7790,10 @@
   "inventories": {
     "rpm-qt": {
       "path": "packaging/attribution/rpm-qt.json",
-      "sha256": "fbd2541db6bbbdcc918c0eb34c970388ad8681e2165426579ca48e5f89feb947",
+      "sha256": "e3d65e1209c65039e46732c14980a3d80f7e1dfd0133f4dd772221c81487b996",
       "owner": "wheels",
       "decision": "update",
-      "coverage": "25 byte-identical publisher targets, 70 trimmed members, complete 90-record qtbase source-notice superset, Wayland and matching-version binding rights",
+      "coverage": "25 byte-identical publisher targets, 70 trimmed members, exact RPM strip transformations and three source-checked caches, complete 90-record qtbase source-notice superset, Wayland and matching-version binding rights",
       "scope": "Confirmed retained targets and publisher/source-declared potential attribution are separate; potential coverage does not assert compilation."
     },
     "flatpak-native": {

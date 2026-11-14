@@ -7268,5 +7268,43 @@
         ]
       }
     ]
+  },
+  "packaged_payload": {
+    "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
+    "native_transform": {
+      "reviewed_at": "2026-11-14",
+      "script": "scripts/strip-bundled-tree.sh",
+      "command": "strip <member>",
+      "build_tool": "GNU strip (GNU Binutils) 2.45.1-5.fc43",
+      "derivation": "Each original ICU member was independently extracted from the pinned PySide6 Essentials wheel, matched against retained_payload, and stripped with the packaging command. Every resulting byte matched the independently extracted RPM member. Original publisher and notice anchors remain pre-packaging evidence; a different strip output requires a new review.",
+      "members": [
+        {
+          "member": "PySide6/Qt/lib/libicudata.so.73",
+          "original_sha256": "4d24b3a908dd838bea23414e16aa830d05a2a306c475246ab11ef0a00c3037e9",
+          "sha256": "84200eb495cee76028356c31349f950c1d998b5d186b1e42e06ded5a2fe4e9ec"
+        },
+        {
+          "member": "PySide6/Qt/lib/libicui18n.so.73",
+          "original_sha256": "ad5410f3e4eb4f01f91d10ddb3780cdbcbeb902ed04a3bc4d3f562b956578d52",
+          "sha256": "0ad8894a6778a94cf7d17a86012aca7abb251529a2a9a34c1da91da6b4ba03c0"
+        },
+        {
+          "member": "PySide6/Qt/lib/libicuuc.so.73",
+          "original_sha256": "8ce3427af0d2bf566bb422ce80a12014137d12ed452fe2dd9ed481ee46181168",
+          "sha256": "d73329160fb28c1475449158eb534f29c687ae2e43fedb5cf471634f17db9e08"
+        }
+      ]
+    },
+    "bytecode": {
+      "cache_tag": "cpython-314",
+      "magic_hex": "2b0e0d0a",
+      "installed_site": "/usr/lib/idasen-companion/python/lib/python3.14/site-packages",
+      "sources": [
+        "PySide6/__init__.py",
+        "PySide6/_config.py",
+        "PySide6/_git_pyside_version.py"
+      ],
+      "derivation": "The RPM compiles every retained Python source with its carried CPython and checked-hash invalidation. RPM normalization may change marshal encoding; verify header, source hash, compiled code and all installed filenames using that interpreter without executing the packaged code."
+    }
   }
 }
