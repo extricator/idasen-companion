@@ -1346,7 +1346,11 @@ def test_every_vendored_licence_text_ships_and_installs():
         f"carries have drifted apart: on disk only {sorted(vendored - named)}, "
         f"named only {sorted(named - vendored)}")
 
-    missing = sorted(vendored - installed_licence_files())
+    # Kept as source evidence for the previously bundled OpenSSL 1.x; the
+    # current interpreter ships its exact OpenSSL 3 notice separately.
+    legacy_only = {"LICENSE.OpenSSL.txt"}
+    assert not legacy_only & installed_licence_files()
+    missing = sorted(vendored - legacy_only - installed_licence_files())
     assert not missing, (
         f"a licence text is vendored here and installed by nothing: {missing}")
 

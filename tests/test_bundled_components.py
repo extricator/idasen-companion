@@ -51,7 +51,7 @@ def test_pins_and_uninspected_parent_tiers_are_explicit():
     fetcher = (ROOT / 'scripts/fetch-bundled-runtime.sh').read_text()
     pins = dict(re.findall(r'"([\w-]+)==([\d.]+)"', fetcher))
     for name, version in pins.items():
-        assert rows['wheel:' + name.lower()]['current_version'] == version
+        assert rows['wheel:' + name.lower()]['selected_version'] == version
     manifest = (ROOT / 'packaging/flatpak/io.github.extricator.IdasenCompanion.yaml').read_text()
     assert "runtime-version: '" + rows['platform']['current_version'] + "'" in manifest
     assert "base-version: '" + rows['baseapp']['current_version'] + "'" in manifest

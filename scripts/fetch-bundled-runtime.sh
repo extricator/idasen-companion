@@ -42,13 +42,13 @@ INTERPRETER_SHA256="c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506
 # released. Bump a line here and the spec's matching line together.
 # ---------------------------------------------------------------------------
 PINS=(
-    "PySide6-Essentials==6.11.1"
-    "shiboken6==6.11.1"
+    "PySide6-Essentials==6.12.0"
+    "shiboken6==6.12.0"
     "bleak==3.1.0"
-    "idasen==0.13.1"
-    "dbus-fast==5.0.22"
+    "idasen==0.14.0"
+    "dbus-fast==5.2.0"
     "PyYAML==6.0.3"
-    "tomlkit==0.15.1"
+    "tomlkit==0.15.2"
     "Babel==2.18.0"
     "voluptuous==0.16.0"
     # Imported by bleak on any interpreter below 3.12, and declared by it
@@ -72,7 +72,7 @@ PINS=(
 # names, and is discarded with the rest of that tree when the build ends.
 # ---------------------------------------------------------------------------
 BUILD_BACKEND=(
-    "setuptools==84.1.0"
+    "setuptools==84.2.1"
 )
 
 if [ $# -ne 1 ]; then
