@@ -3,7 +3,6 @@ import json
 import hashlib
 from pathlib import Path
 import re
-import copy
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -81,21 +80,27 @@ def test_pcre2_source_binary_and_notice_association():
     rows = {row['id']: row for row in load('packaging/bundled-components.json')['components']}
     pcre = snapshot['pcre2']
 
-    def consistent(data, entries):
-        row = entries.get(data['register_id'], {})
-        evidence = row.get('evidence', {})
-        return (evidence.get('parent_sha256') == snapshot['wheel']['sha256']
-                and evidence.get('member_sha256') == data['binary_sha256']
-                and evidence.get('notice_section') == data['notice']
-                and row.get('selected_version') == '10.48')
+    row = rows[pcre['register_id']]
+    evidence = row['evidence']
+    wheel = snapshot['wheel']
+    assert wheel['sha256'] == load('packaging/bundled-wheel-hashes.json')['runtime'][wheel['filename']]
+    assert evidence['parent_wheel'] == wheel['filename']
+    assert evidence['parent_sha256'] == wheel['sha256']
+    assert 'PySide6/' + evidence['member'] == pcre['binary_member']
+    assert evidence['member_sha256'] == pcre['binary_sha256']
 
-    assert consistent(pcre, rows)
-    missing = dict(rows)
-    del missing[pcre['register_id']]
-    assert not consistent(pcre, missing)
-    substituted = copy.deepcopy(rows)
-    substituted[pcre['register_id']]['evidence']['notice_section']['sha256'] = '0' * 64
-    assert not consistent(pcre, substituted)
+    source = next(item for item in snapshot['source_documents']
+                  if item['member'] == pcre['source_member'])
+    attribution = next(item for item in source['records'] if item['Id'] == 'pcre2')
+    assert evidence['source_attribution'] == source['member'] + '#' + attribution['Id']
+    assert row['selected_version'] == attribution['Version']
+    assert pcre['source_notice_member'] == str(Path(source['member']).parent / attribution['LicenseFile'])
+    assert row['notice'] == pcre['installed_notice']
+    assert evidence['notice_section'] == pcre['notice']
+    notice = evidence['notice_section']
+    text = (ROOT / notice['file']).read_bytes()[notice['offset']:notice['offset'] + notice['size']]
+    assert len(text) == notice['size']
+    assert hashlib.sha256(text).hexdigest() == notice['sha256']
 
 
 def test_confirmed_qt_units_link_to_their_individual_notices():
