@@ -23,6 +23,19 @@ def workflow(name):
     return yaml.load((WORKFLOWS / name).read_text(), Loader=yaml.BaseLoader)
 
 
+def test_flatpak_job_provisions_manifest_parents_before_build():
+    manifest = yaml.load((ROOT / "packaging/flatpak/io.github.extricator.IdasenCompanion.yaml").read_text(), Loader=yaml.BaseLoader)
+    steps = workflow("packages.yml")["jobs"]["flatpak"]["steps"]
+    install = next(i for i, step in enumerate(steps) if "flatpak install " in step.get("run", ""))
+    build = next(i for i, step in enumerate(steps) if "build-release-variants.sh --flatpak" in step.get("run", ""))
+    command = steps[install]["run"].split()
+    assert install < build
+    assert "flathub" in command
+    assert {f'{manifest["runtime"]}//{manifest["runtime-version"]}',
+            f'{manifest["sdk"]}//{manifest["runtime-version"]}',
+            f'{manifest["base"]}//{manifest["base-version"]}'} <= set(command)
+
+
 def plan_for(tmp_path, paths, *, event="pull_request",
              draft="false", mode="", prior_paths=(), base_override=None):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
