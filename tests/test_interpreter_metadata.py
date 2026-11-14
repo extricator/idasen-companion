@@ -64,6 +64,13 @@ def test_component_notice_requires_exact_source_bytes(tool, package_tree, state)
         tool["verify_package_variants"](package_tree)
 
 
+def test_cpython_source_notice_is_required_and_digest_checked(tool, package_tree):
+    path = package_tree / "packaging/licenses/interpreter/LICENSE.cpython.txt"
+    path.write_bytes(b"substituted source notice")
+    with pytest.raises(tool["MetadataError"], match="cpython"):
+        tool["verify_package_variants"](package_tree)
+
+
 @pytest.mark.parametrize("old,new,error", [
     ("License:", "Missing-License:", "exactly one License"),
     (" AND bzip2-1.0.6", "", "headless.*terms"),
@@ -351,7 +358,10 @@ def test_fetcher_checks_metadata_before_curl_or_output_creation(package_tree, tm
     assert called.read_text() == "reached"
     called.unlink()
     text = fetcher.read_text()
-    fetcher.write_text(text.replace('INTERPRETER_SHA256="cefba', 'INTERPRETER_SHA256="0efba'))
+    expected_hash = json.loads((tree / "packaging/interpreter/PROVENANCE.json").read_text())["identity"]["sha256"]
+    replacement = ("0" if expected_hash[0] != "0" else "1") + expected_hash[1:]
+    assert f'INTERPRETER_SHA256="{expected_hash}"' in text
+    fetcher.write_text(text.replace(f'INTERPRETER_SHA256="{expected_hash}"', f'INTERPRETER_SHA256="{replacement}"'))
     stale_output = tmp_path / "stale-output"
     stale = run_process(["bash", str(fetcher), str(stale_output)],
                         capture_output=True, text=True, check=False, env=env, timeout=15)

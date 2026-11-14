@@ -328,7 +328,7 @@ def verify_package_variants(root=ROOT):
     root = Path(root)
     inventory, provenance = verify_metadata(root)
     cpython_path = inventory["cpython"]["license_path"]
-    notices = {path: entry for path, entry in provenance["notices"].items() if path != cpython_path}
+    notices = provenance["notices"]
     directory = root / "packaging/licenses/interpreter"
     actual = {path.name for path in directory.iterdir()} if directory.is_dir() else set()
     expected = {PurePosixPath(entry["file"]).name for entry in notices.values()}

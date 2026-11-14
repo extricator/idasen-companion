@@ -414,8 +414,8 @@ for text in packaging/licenses/*.txt; do
 done
 
 # Exact interpreter component notices, independently associated with the
-# reviewed optimized build. Zstandard's absent full-archive notice comes from
-# its checksum-pinned source archive; all other bytes come from the full build.
+# reviewed optimized build. All bytes come from the full build; Zstandard's
+# notice also matches its checksum-pinned source archive.
 # Basenames are distinct from the generic term/wheel texts above.
 for text in packaging/licenses/interpreter/*.txt; do
     cp "$text" "$(basename "$text")"
