@@ -56,7 +56,13 @@ def test_pins_and_inspected_parent_tiers_are_explicit():
     manifest = (ROOT / 'packaging/flatpak/io.github.extricator.IdasenCompanion.yaml').read_text()
     assert "runtime-version: '" + rows['platform']['selected_version'] + "'" in manifest
     assert "base-version: '" + rows['baseapp']['selected_version'] + "'" in manifest
-    assert rows['qt-native']['decision'] == 'compatibility-hold'
+    register = load('packaging/bundled-components.json')
+    assert rows['qt-native']['evidence']['status'] == 'publisher-attribution-reconciled'
+    for inventory in register['inventories'].values():
+        assert hashlib.sha256((ROOT / inventory['path']).read_bytes()).hexdigest() == inventory['sha256']
+    assert rows['qt-native']['evidence']['snapshot_sha256'] == register['inventories']['rpm-qt']['sha256']
+    for parent in ('baseapp', 'platform'):
+        assert rows[parent]['evidence']['snapshot_sha256'] == register['inventories']['flatpak-native']['sha256']
     for name in ('baseapp', 'platform', 'flatpak-app'):
         assert rows[name]['evidence']['status'] == 'observed'
     assert 'include packaging/bundled-components.json' in (ROOT / 'MANIFEST.in').read_text().splitlines()

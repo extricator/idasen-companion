@@ -3448,8 +3448,8 @@
       "selected_version": "84.2.1"
     },
     {
-      "current_version": "unknown: not yet inspected; plan 46-03 or 46-04",
-      "decision": "compatibility-hold",
+      "current_version": "unknown: prior wheel binary inventory was not retained",
+      "decision": "update",
       "evidence": {
         "confirmed_notices": [
           {
@@ -3517,12 +3517,18 @@
             "source": "https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE"
           }
         ],
-        "method": "retained ELF dependency walk, matching Qt source attribution and binary version strings",
+        "method": "actual trimmed wheel closure and byte-identical official SDK targets with publisher SPDX and selected feature configuration",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
         "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
         "qt_source_sha256": "dff6570582c272cbe744d2e460700318262af505460f4215276459970ae31b46",
         "qt_source_url": "https://github.com/qt/qtbase/archive/refs/tags/v6.12.0.tar.gz",
-        "status": "reviewed gap: static translation units without identifying symbols remain unconfirmed; Phase 47 attribution review"
+        "status": "publisher-attribution-reconciled",
+        "native_snapshot": "packaging/attribution/rpm-qt.json",
+        "snapshot_sha256": "fbd2541db6bbbdcc918c0eb34c970388ad8681e2165426579ca48e5f89feb947",
+        "publisher_targets": 25,
+        "retained_files": 70,
+        "source_catalog_records": 90,
+        "source_coverage": "Conservative original source and publisher target attribution; not every source record is claimed compiled."
       },
       "id": "qt-native",
       "name": "Qt native libraries",
@@ -3532,7 +3538,7 @@
         "wheels"
       ],
       "presence": {
-        "flatpak": "unknown",
+        "flatpak": "not-owned",
         "rpm-full": "present",
         "rpm-headless": "not-owned"
       },
@@ -3546,12 +3552,14 @@
         "commit": "25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572",
         "status": "observed",
         "native_snapshot": "packaging/attribution/flatpak-native.json",
-        "attribution_status": "partial-unresolved",
-        "pyside_source_commit": "d03d006d7b1db58074ca9cae26356376788a769e"
+        "attribution_status": "publisher-attribution-reconciled",
+        "pyside_source_commit": "d03d006d7b1db58074ca9cae26356376788a769e",
+        "snapshot_sha256": "dc93bb5ec6b8b204ec1c2d1f74b2f5540add77d9ce209d06fd0897577d6800f7",
+        "inventory_policy": "inventories.flatpak-native"
       },
       "id": "baseapp",
       "name": "io.qt.PySide.BaseApp",
-      "notice": "Supplemental binding license texts installed at /app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; full attribution review remains open",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "ownership": "BaseApp",
       "parents": [
         "baseapp"
@@ -3571,11 +3579,13 @@
         "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415",
         "status": "observed",
         "native_snapshot": "packaging/attribution/flatpak-native.json",
-        "attribution_status": "partial-unresolved"
+        "attribution_status": "publisher-attribution-reconciled",
+        "snapshot_sha256": "dc93bb5ec6b8b204ec1c2d1f74b2f5540add77d9ce209d06fd0897577d6800f7",
+        "inventory_policy": "inventories.flatpak-native"
       },
       "id": "platform",
       "name": "org.kde.Platform",
-      "notice": "inherited parent share/licenses; attribution review remains open",
+      "notice": "Per-component installed share/licenses and lib/sbom rights paths indexed in packaging/attribution/flatpak-native.json",
       "ownership": "Platform",
       "parents": [
         "platform"
@@ -6102,7 +6112,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "c7ca81e89df69d717436968ab1f870c1c96d72d5c12bacc2ab9fd2a8e3ef6477",
@@ -6113,7 +6123,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtBluetooth.abi3.so",
+        "binding_member_sha256": "c7ca81e89df69d717436968ab1f870c1c96d72d5c12bacc2ab9fd2a8e3ef6477"
       }
     },
     {
@@ -6131,7 +6144,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "32f6141eb18a30c17eebd36b0eba65681a798c6b539ba7ee6aaa665f0a176162",
@@ -6141,7 +6154,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtConcurrent.abi3.so",
+        "binding_member_sha256": "32f6141eb18a30c17eebd36b0eba65681a798c6b539ba7ee6aaa665f0a176162"
       }
     },
     {
@@ -6159,7 +6175,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "b20bd37ae4b55cdf36cc0b45f5eb86b1878088df7f81772f95b81206c1a4d712",
@@ -6169,7 +6185,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtCore.abi3.so",
+        "binding_member_sha256": "b20bd37ae4b55cdf36cc0b45f5eb86b1878088df7f81772f95b81206c1a4d712"
       }
     },
     {
@@ -6187,7 +6206,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "23c376a1b45c1f570ad44331745c59aa16b760e65a24dc96dd7f21fa41a71451",
@@ -6198,7 +6217,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtDBus.abi3.so",
+        "binding_member_sha256": "23c376a1b45c1f570ad44331745c59aa16b760e65a24dc96dd7f21fa41a71451"
       }
     },
     {
@@ -6216,7 +6238,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "c0328db5943dfc84cd8eb97df5f73f570a34c2e6238a991bccbbdb9ace186849",
@@ -6231,7 +6253,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtGraphs.abi3.so",
+        "binding_member_sha256": "c0328db5943dfc84cd8eb97df5f73f570a34c2e6238a991bccbbdb9ace186849"
       }
     },
     {
@@ -6249,7 +6274,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "206e9509311a3a0668939b5c60664a2299badf879a668aaad746ea34a90125ea",
@@ -6260,7 +6285,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtGraphsWidgets.abi3.so",
+        "binding_member_sha256": "206e9509311a3a0668939b5c60664a2299badf879a668aaad746ea34a90125ea"
       }
     },
     {
@@ -6278,7 +6306,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "9e5f4ed9ac6fd0ab6d11703ad43d4ee388c63dcf65c2b67fb1eb19b513a1bb52",
@@ -6291,7 +6319,10 @@
           "libstdc++.so.6",
           "libm.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtGui.abi3.so",
+        "binding_member_sha256": "9e5f4ed9ac6fd0ab6d11703ad43d4ee388c63dcf65c2b67fb1eb19b513a1bb52"
       }
     },
     {
@@ -6309,7 +6340,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "e82c7161f31537884bad5329f995e7e333c4b7a25d1def846b07a43b739ce29f",
@@ -6323,7 +6354,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtHelp.abi3.so",
+        "binding_member_sha256": "e82c7161f31537884bad5329f995e7e333c4b7a25d1def846b07a43b739ce29f"
       }
     },
     {
@@ -6341,7 +6375,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "954d99b9535b65c9e2dec229a44f2f8fc2b8cf130f508512c0772b9eb2044ac3",
@@ -6353,7 +6387,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtHttpServer.abi3.so",
+        "binding_member_sha256": "954d99b9535b65c9e2dec229a44f2f8fc2b8cf130f508512c0772b9eb2044ac3"
       }
     },
     {
@@ -6371,7 +6408,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "9e85e964832322e85dad9079a77e7dd763b00249b815e0d70b76bb6983e0b711",
@@ -6382,7 +6419,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtNetwork.abi3.so",
+        "binding_member_sha256": "9e85e964832322e85dad9079a77e7dd763b00249b815e0d70b76bb6983e0b711"
       }
     },
     {
@@ -6400,7 +6440,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "78c58496256ef0f0803009b085c40028086dcb86d018979d2fbddaafa8a3c48f",
@@ -6412,7 +6452,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtNetworkAuth.abi3.so",
+        "binding_member_sha256": "78c58496256ef0f0803009b085c40028086dcb86d018979d2fbddaafa8a3c48f"
       }
     },
     {
@@ -6430,7 +6473,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "757da5f87991f55eceea3ba35d0b1bb1dc00584c754216bd15a525c6fc35d872",
@@ -6441,7 +6484,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtNfc.abi3.so",
+        "binding_member_sha256": "757da5f87991f55eceea3ba35d0b1bb1dc00584c754216bd15a525c6fc35d872"
       }
     },
     {
@@ -6459,7 +6505,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "cdc91ae87f5d59d9817bfdb9523585571ddef92c736328061593d7c681c1f23d",
@@ -6473,7 +6519,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtPrintSupport.abi3.so",
+        "binding_member_sha256": "cdc91ae87f5d59d9817bfdb9523585571ddef92c736328061593d7c681c1f23d"
       }
     },
     {
@@ -6491,7 +6540,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "e69446f9d610dc0187a332ee9df50193eea8cbb93efba11bcf59483f5b4d2c94",
@@ -6503,7 +6552,10 @@
           "libstdc++.so.6",
           "libgcc_s.so.1",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtRemoteObjects.abi3.so",
+        "binding_member_sha256": "e69446f9d610dc0187a332ee9df50193eea8cbb93efba11bcf59483f5b4d2c94"
       }
     },
     {
@@ -6521,7 +6573,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "a4fef86a246ccdc801567eb8b5ba05c133b78220ab32cb66f39bfce99c7534b5",
@@ -6532,7 +6584,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtScxml.abi3.so",
+        "binding_member_sha256": "a4fef86a246ccdc801567eb8b5ba05c133b78220ab32cb66f39bfce99c7534b5"
       }
     },
     {
@@ -6550,7 +6605,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "70789795dfe390e567238877ce6a3559c5172b399885ef9b2f2265151ef2bebe",
@@ -6561,7 +6616,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtSensors.abi3.so",
+        "binding_member_sha256": "70789795dfe390e567238877ce6a3559c5172b399885ef9b2f2265151ef2bebe"
       }
     },
     {
@@ -6579,7 +6637,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "8ecaaca6ad123069a4050d13bb19113db3eb9075b5b794c27762e5b40d10cd5c",
@@ -6590,7 +6648,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtSerialPort.abi3.so",
+        "binding_member_sha256": "8ecaaca6ad123069a4050d13bb19113db3eb9075b5b794c27762e5b40d10cd5c"
       }
     },
     {
@@ -6608,7 +6669,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "935f8788eb4166ddb1ae7e93be81cc95d6cb1141d4c308c9a376ce5ec4667b89",
@@ -6622,7 +6683,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtSql.abi3.so",
+        "binding_member_sha256": "935f8788eb4166ddb1ae7e93be81cc95d6cb1141d4c308c9a376ce5ec4667b89"
       }
     },
     {
@@ -6640,7 +6704,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "2018f4a9374dd69d3866d63f6f358317fdcc963638b8a1111c9c80cfb9346c1d",
@@ -6653,7 +6717,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtStateMachine.abi3.so",
+        "binding_member_sha256": "2018f4a9374dd69d3866d63f6f358317fdcc963638b8a1111c9c80cfb9346c1d"
       }
     },
     {
@@ -6671,7 +6738,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "02b324cbc62336a7e77e8068ae7912e7819ec27ee229a174d4011ecb93acb511",
@@ -6684,7 +6751,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtSvg.abi3.so",
+        "binding_member_sha256": "02b324cbc62336a7e77e8068ae7912e7819ec27ee229a174d4011ecb93acb511"
       }
     },
     {
@@ -6702,7 +6772,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "ebbdfcec1d38e7fb7e0b22d58a15d84ccc7059d7bde6cd5ebe42e14f2357f6bd",
@@ -6716,7 +6786,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtSvgWidgets.abi3.so",
+        "binding_member_sha256": "ebbdfcec1d38e7fb7e0b22d58a15d84ccc7059d7bde6cd5ebe42e14f2357f6bd"
       }
     },
     {
@@ -6734,7 +6807,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "95661127c5423bd47565ad9b0e37746158c179f578c7c6088c487e455eece48a",
@@ -6748,7 +6821,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtTest.abi3.so",
+        "binding_member_sha256": "95661127c5423bd47565ad9b0e37746158c179f578c7c6088c487e455eece48a"
       }
     },
     {
@@ -6766,7 +6842,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "6d50f90dd04e33876ee48835ee24598894071348e0f823a2d3fe54ebcfe5b55a",
@@ -6777,7 +6853,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtTextToSpeech.abi3.so",
+        "binding_member_sha256": "6d50f90dd04e33876ee48835ee24598894071348e0f823a2d3fe54ebcfe5b55a"
       }
     },
     {
@@ -6795,7 +6874,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "e871843b8de0c43c3a062ece101fd720dcd3cc74402063a05fe2643f59ee1739",
@@ -6809,7 +6888,10 @@
           "libstdc++.so.6",
           "libgcc_s.so.1",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtUiTools.abi3.so",
+        "binding_member_sha256": "e871843b8de0c43c3a062ece101fd720dcd3cc74402063a05fe2643f59ee1739"
       }
     },
     {
@@ -6827,7 +6909,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "e621592c117d45ed8ccb27f03e62cdce4ec4bd84ac7b023e965579627084b508",
@@ -6838,7 +6920,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtWebChannel.abi3.so",
+        "binding_member_sha256": "e621592c117d45ed8ccb27f03e62cdce4ec4bd84ac7b023e965579627084b508"
       }
     },
     {
@@ -6856,7 +6941,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "3dd5a25ee9475fd49fc3c0357c0c62ee3db4fce13776bc74b261db27e61b48e7",
@@ -6868,7 +6953,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtWebSockets.abi3.so",
+        "binding_member_sha256": "3dd5a25ee9475fd49fc3c0357c0c62ee3db4fce13776bc74b261db27e61b48e7"
       }
     },
     {
@@ -6886,7 +6974,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "6d107e375221dc7298152d46b3ad45389eb77d2def3f39b02a62f8ebd10391e6",
@@ -6899,7 +6987,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtWidgets.abi3.so",
+        "binding_member_sha256": "6d107e375221dc7298152d46b3ad45389eb77d2def3f39b02a62f8ebd10391e6"
       }
     },
     {
@@ -6917,7 +7008,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "fb13084572b342d72b0b018413f38c603c94562e3b1de4daa9ddce7cfa9d43d1",
@@ -6928,7 +7019,10 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "PySide6/QtXml.abi3.so",
+        "binding_member_sha256": "fb13084572b342d72b0b018413f38c603c94562e3b1de4daa9ddce7cfa9d43d1"
       }
     },
     {
@@ -6946,7 +7040,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "BaseApp Shiboken licensing association requires review",
+      "notice": "/app/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt; exact-source rights for all retained bindings and Python-derived notices",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "a1ab4d3455bea6dfcfb08a923ad66928f5b03edb0daed13e9b41581593478fb9",
@@ -6955,7 +7049,10 @@
           "libstdc++.so.6",
           "libgcc_s.so.1",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#binding_source_attribution_superset",
+        "binding_member": "shiboken6/Shiboken.abi3.so",
+        "binding_member_sha256": "a1ab4d3455bea6dfcfb08a923ad66928f5b03edb0daed13e9b41581593478fb9"
       }
     },
     {
@@ -7123,7 +7220,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "d51151a1b8a9e465b267ba8bd10da52bb773885ae4b68ab88436866e4901362b",
@@ -7139,7 +7236,9 @@
           "libgcc_s.so.1",
           "libc.so.6",
           "ld-linux-x86-64.so.2"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7157,7 +7256,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "7a5236fe3f62c8ea18a71d1e8bb13064d91e0cb506c6208e64810929ee3d318a",
@@ -7179,7 +7278,9 @@
           "libm.so.6",
           "libgcc_s.so.1",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7197,7 +7298,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "a9ae96e3175a3723a5a70d870d25604767ee510e084a811ab356f1d69368fd5e",
@@ -7207,7 +7308,9 @@
           "libstdc++.so.6",
           "libm.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7225,7 +7328,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "08f70d3a64a4b13d92aea73e85a21a374113ad6b71c7c3bc3ab7f858d9fb7d57",
@@ -7234,7 +7337,9 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7252,7 +7357,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "e47d431c26947bfd359f4803728a18c0826d53ad0fa95975bb9346eff432c22c",
@@ -7263,7 +7368,9 @@
           "libstdc++.so.6",
           "libm.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7281,7 +7388,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "6bec46862ef615bae826ced80a7ebe64cfb78d82f25fe2ec5b0b6eeb9858c088",
@@ -7291,7 +7398,9 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7309,7 +7418,7 @@
         "rpm-headless": "not-owned",
         "flatpak": "present"
       },
-      "notice": "Platform share/licenses/kde/qtsvg; embedded attribution requires review",
+      "notice": "Installed per-package source license and publisher SPDX copyright paths in packaging/attribution/flatpak-native.json#publisher_component_attestations",
       "evidence": {
         "method": "actual retained ELF and DT_NEEDED",
         "sha256": "65de9dda98cd672c3a10e7e077876665cf989d1febde7555afc46a0c5ffd9ce7",
@@ -7319,7 +7428,9 @@
           "libQt6Core.so.6",
           "libstdc++.so.6",
           "libc.so.6"
-        ]
+        ],
+        "source_attribution_inventory": "packaging/attribution/flatpak-native.json#publisher_component_attestations",
+        "decision_reason": "Follow the selected compatible Platform publisher build; component-level attribution is reconciled."
       }
     },
     {
@@ -7623,7 +7734,8 @@
       "selected_version": "6.11",
       "source_url": "https://github.com/flathub/io.qt.PySide.BaseApp",
       "status": "selected deployed commit inspected; see component evidence",
-      "commit": "25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572"
+      "commit": "25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572",
+      "inventory": "packaging/attribution/flatpak-native.json"
     },
     "flatpak-app": {
       "artifact": "packaging/flatpak/python3-deps.json",
@@ -7655,7 +7767,8 @@
       "source_url": "https://invent.kde.org/packaging/flatpak-kde-runtime",
       "status": "selected deployed commit inspected; see component evidence",
       "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415",
-      "attribution_limit": "Embedded third-party and stripped native units not exhaustively identified; source candidates alone are not shipped evidence."
+      "checksum_provenance_limit": "QtCore SPDX SHA-1 differs from deployed Platform/SDK; exact postprocessing and matching pre-deployment bytes are unknown.",
+      "inventory": "packaging/attribution/flatpak-native.json"
     },
     "wheels": {
       "artifact": "packaging/bundled-wheel-hashes.json",
@@ -7673,5 +7786,29 @@
       "status": "isolated build-only SDK"
     }
   },
-  "schema": 1
+  "schema": 1,
+  "inventories": {
+    "rpm-qt": {
+      "path": "packaging/attribution/rpm-qt.json",
+      "sha256": "fbd2541db6bbbdcc918c0eb34c970388ad8681e2165426579ca48e5f89feb947",
+      "owner": "wheels",
+      "decision": "update",
+      "coverage": "25 byte-identical publisher targets, 70 trimmed members, complete 90-record qtbase source-notice superset, Wayland and matching-version binding rights",
+      "scope": "Confirmed retained targets and publisher/source-declared potential attribution are separate; potential coverage does not assert compilation."
+    },
+    "flatpak-native": {
+      "path": "packaging/attribution/flatpak-native.json",
+      "sha256": "dc93bb5ec6b8b204ec1c2d1f74b2f5540add77d9ce209d06fd0897577d6800f7",
+      "owners": [
+        "platform",
+        "baseapp",
+        "sdk"
+      ],
+      "decision": "update",
+      "inherited_component_decision": "compatibility-hold",
+      "inherited_component_reason": "Components follow the selected current compatible Platform/BaseApp; update them through their owning published parent, not independently. Source/build-only inventory is distinguished from deployed code.",
+      "coverage": "34 publisher documents / 802 scoped package records; 473 installed publisher notice groups; 32 retained binding members and conservative source rights",
+      "scope": "Publisher source and dependency attestations include potential and build-only items and do not prove every source compiled. QtCore document and deployed file checksums differ; the transform is unknown and no byte equivalence is asserted."
+    }
+  }
 }

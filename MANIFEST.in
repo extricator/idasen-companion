@@ -173,3 +173,7 @@ include packaging/attribution/rpm-qt.json
 include packaging/attribution/flatpak-native.json
 include packaging/licenses/flatpak/THIRD-PARTY-NOTICES.txt
 include packaging/licenses/qt/THIRD-PARTY-NOTICES.txt
+include scripts/verify-rpm-attribution.py
+include scripts/verify-flatpak-attribution.py
+include tests/test_rpm_attribution.py
+include tests/test_flatpak_attribution.py

@@ -1587,6 +1587,11 @@ def test_no_shipped_file_carries_a_developer_home_path():
     the sdist. It is gone now, and the test below keeps it gone; this one
     stops an equivalent path reappearing anywhere else."""
     offenders = []
+    home_path = re.compile(r"(?<![\w./-])(?:file://)?/home/[a-z]")
+    assert home_path.search("ExecStart=/home/example/bin/command")
+    assert home_path.search("file:///home/example/config")
+    assert not home_path.search("upstream/docs/home/license.md")
+    assert not home_path.search("https://example.org/home/project")
     for d in ("src", "data", "packaging", "scripts"):
         for f in sorted((ROOT / d).rglob("*")):
             if not f.is_file() or f.suffix in {".qm", ".mo", ".svg"}:
@@ -1596,7 +1601,7 @@ def test_no_shipped_file_carries_a_developer_home_path():
             except (UnicodeDecodeError, OSError):
                 continue
             for n, line in enumerate(text.splitlines(), 1):
-                if re.search(r"/home/[a-z]", line):
+                if home_path.search(line):
                     offenders.append(f"{f.relative_to(ROOT)}:{n}: {line.strip()}")
     assert not offenders, offenders
 
