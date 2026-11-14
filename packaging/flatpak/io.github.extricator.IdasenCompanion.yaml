@@ -90,6 +90,8 @@ modules:
       # already provided by python3-deps, so --no-deps keeps this offline.
       - pip3 install --no-index --no-build-isolation --no-deps
         --prefix=${FLATPAK_DEST} .
+      - install -Dm644 packaging/licenses/flatpak/THIRD-PARTY-NOTICES.txt
+        ${FLATPAK_DEST}/share/licenses/io.github.extricator.IdasenCompanion/THIRD-PARTY-NOTICES.txt
       # Data files pip doesn't install (they aren't package data).
       - install -Dm644 data/io.github.extricator.IdasenCompanion.desktop
         ${FLATPAK_DEST}/share/applications/io.github.extricator.IdasenCompanion.desktop

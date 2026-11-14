@@ -170,4 +170,6 @@ recursive-include src/idasen_companion/locale *.mo
 
 include packaging/bundled-components.json
 include packaging/attribution/rpm-qt.json
+include packaging/attribution/flatpak-native.json
+include packaging/licenses/flatpak/THIRD-PARTY-NOTICES.txt
 include packaging/licenses/qt/THIRD-PARTY-NOTICES.txt
