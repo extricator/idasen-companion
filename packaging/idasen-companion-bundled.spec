@@ -113,10 +113,10 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # entry which fails the build if it ever stops resolving, so the omission is
 # guarded rather than assumed.
 %if %{with_gui}
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
 Conflicts:      idasen-companion-headless
 %else
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
 Conflicts:      idasen-companion
 %endif
 URL:            https://github.com/extricator/idasen-companion
@@ -128,7 +128,7 @@ Source0:        idasen_companion-%{version}.tar.gz
 Source1:        idasen-companion-wheels-%{version}.tar.gz
 # The other half of the same arrangement: the interpreter the package carries,
 # written by that same script under the name and at the checksum it pins.
-Source2:        cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+Source2:        cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
 
 BuildRequires:  python3-devel
 # Both trimmers run under the build host's interpreter and shell out to these
@@ -177,7 +177,7 @@ Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
 # the package carries, and it is here for the same reason as the nine below:
 # this section is what a security scanner reads, and the largest bundled
 # component in the package would otherwise be the one thing it cannot see.
-Provides:       bundled(python3) = 3.14.7
+Provides:       bundled(python3) = 3.14.10
 %if %{with_gui}
 Provides:       bundled(python3dist(pyside6-essentials)) = 6.11.1
 Provides:       bundled(python3dist(shiboken6)) = 6.11.1

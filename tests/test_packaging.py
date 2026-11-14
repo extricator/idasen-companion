@@ -1034,7 +1034,7 @@ def test_the_licence_is_installed(spec):
 # reviewed, and a bump that moves one without the other stops rather than
 # ships.
 BUNDLED_INTERPRETER_SHA256 = (
-    "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533")
+    "c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30")
 
 # A checksum literal anywhere in the fetcher: 64 hex digits with no hex digit
 # on either side, so a longer run of them is not read as one.
