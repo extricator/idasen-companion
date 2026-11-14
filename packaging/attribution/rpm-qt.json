@@ -2215,7 +2215,7 @@
     {
       "key": "qtbase-6.12.0/src/3rdparty/harfbuzz-ng/qt_attribution.json#0",
       "id": "harfbuzz-ng",
-      "disposition": "unresolved"
+      "disposition": "retained"
     },
     {
       "key": "qtbase-6.12.0/src/3rdparty/icc/qt_attribution.json#0",
@@ -2225,12 +2225,12 @@
     {
       "key": "qtbase-6.12.0/src/3rdparty/libjpeg/qt_attribution.json#0",
       "id": "libjpeg",
-      "disposition": "unresolved"
+      "disposition": "retained"
     },
     {
       "key": "qtbase-6.12.0/src/3rdparty/libpng/qt_attribution.json#0",
       "id": "libpng",
-      "disposition": "unresolved"
+      "disposition": "retained"
     },
     {
       "key": "qtbase-6.12.0/src/3rdparty/libpsl/qt_attribution.json#0",

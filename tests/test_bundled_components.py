@@ -96,3 +96,19 @@ def test_pcre2_source_binary_and_notice_association():
     substituted = copy.deepcopy(rows)
     substituted[pcre['register_id']]['evidence']['notice_section']['sha256'] = '0' * 64
     assert not consistent(pcre, substituted)
+
+
+def test_confirmed_qt_units_link_to_their_individual_notices():
+    rows = {row['id']: row for row in load('packaging/bundled-components.json')['components']}
+    for component, expected in {
+        'libpng': {'libpng 1.6.58'},
+        'harfbuzz': {'HarfBuzz 14.5.0'},
+        'libjpeg-turbo': {'libjpeg-turbo 3.2.0', 'IJG', 'libjpeg copyright'},
+        'icu': {'ICU 73.2'},
+    }.items():
+        sections = rows['qt-embedded:' + component]['evidence']['notice_sections']
+        assert {section['component'] for section in sections} == expected
+        for section in sections:
+            data = (ROOT / section['file']).read_bytes()
+            data = data[section['offset']:section['offset'] + section['size']]
+            assert hashlib.sha256(data).hexdigest() == section['sha256']

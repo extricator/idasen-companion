@@ -5629,7 +5629,18 @@
         "member_sha256": "392cf5a2fed77ca7b861484ae0f25a2f7f54789024e79518c6c28e1ddf5b4b1a",
         "method": "binary version and libpng diagnostic strings",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
-        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl"
+        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+        "source_attribution": "qtbase-6.12.0/src/3rdparty/libpng/qt_attribution.json#libpng",
+        "notice_sections": [
+          {
+            "component": "libpng 1.6.58",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 5933,
+            "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526",
+            "size": 5345,
+            "source": "libpng/LICENSE"
+          }
+        ]
       },
       "id": "qt-embedded:libpng",
       "name": "libpng",
@@ -5653,7 +5664,18 @@
         "member_sha256": "392cf5a2fed77ca7b861484ae0f25a2f7f54789024e79518c6c28e1ddf5b4b1a",
         "method": "binary version and shaping-engine strings, no external harfbuzz NEEDED",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
-        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl"
+        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+        "source_attribution": "qtbase-6.12.0/src/3rdparty/harfbuzz-ng/qt_attribution.json#harfbuzz-ng",
+        "notice_sections": [
+          {
+            "component": "HarfBuzz 14.5.0",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 11417,
+            "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
+            "size": 1971,
+            "source": "harfbuzz-ng/COPYING"
+          }
+        ]
       },
       "id": "qt-embedded:harfbuzz",
       "name": "harfbuzz",
@@ -5677,7 +5699,34 @@
         "member_sha256": "aedd3e4f7a233365dcef9f016bd64f05575dd49aba69ce923fc99f214f5384ee",
         "method": "binary version string, no external jpeg NEEDED",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
-        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl"
+        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+        "source_attribution": "qtbase-6.12.0/src/3rdparty/libjpeg/qt_attribution.json#libjpeg",
+        "notice_sections": [
+          {
+            "component": "libjpeg-turbo 3.2.0",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 13527,
+            "sha256": "ba6bceebcba0fdd35488477c2cca8c4632ce82c74dbfbc87d886ce6fc4433579",
+            "size": 6077,
+            "source": "libjpeg/LICENSE"
+          },
+          {
+            "component": "IJG",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 19735,
+            "sha256": "1cb448f5e2e6d3aca60943f4eee1a04675628dc0266a074a42bc1560ebc28d61",
+            "size": 1815,
+            "source": "libjpeg/ijg-license.txt"
+          },
+          {
+            "component": "libjpeg copyright",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 21692,
+            "sha256": "e5b349c6a98d997a8d0f5fcfe5cc900b1f76bbc32743674c52a70981498748c0",
+            "size": 606,
+            "source": "libjpeg/COPYRIGHT.txt"
+          }
+        ]
       },
       "id": "qt-embedded:libjpeg-turbo",
       "name": "libjpeg-turbo",
@@ -5701,7 +5750,17 @@
         "member_sha256": "8ce3427af0d2bf566bb422ce80a12014137d12ed452fe2dd9ed481ee46181168",
         "method": "retained ICU libraries and u_getVersion_73 return 73.2",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
-        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl"
+        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+        "notice_sections": [
+          {
+            "component": "ICU 73.2",
+            "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+            "offset": 22488,
+            "sha256": "f3005e195ff74d8812cc1f182a1c446fab678d70a10e3dada497585befee5416",
+            "size": 25505,
+            "source": "https://raw.githubusercontent.com/unicode-org/icu/release-73-2/icu4c/LICENSE"
+          }
+        ]
       },
       "id": "qt-embedded:icu",
       "name": "icu",
