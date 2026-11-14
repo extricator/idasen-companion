@@ -19,7 +19,7 @@ ANCHORS = {
     "retained_payload": "f838f2c251d008805104cc46269f89788f8952f864c1a7bf247db9f9fc8a17b3",
     "candidates": "a87616720038c605c13be7863559dbffdc1ab34152875ae2a96186f950e67d22",
     "wayland_ivi": "010806f7c1da1387cbfc398e72cf4021e78fa6a75df7874ba0571ee0b40ae751",
-    "binding_source": "42000cb05c49a5a1c37db5dd3e00a7e6c2e30720a4bbf8067d30cda9276d8dc4",
+    "binding_source": "c4f4f2e4aa95f4c29d6f3b515df2b633e180b0927345d20b5d929d7b70240deb",
 }
 WHEEL = "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9"
 
@@ -46,9 +46,18 @@ def verify(snapshot, notice, payload_root=None):
     targets = snapshot["publisher"]["targets"]
     if len(targets) != 25 or any(not t["byte_identical"] or t["sdk_sha256"] != t["retained_sha256"] for t in targets):
         raise ValueError("publisher target identity differs")
+    members = {item["member"]: item["sha256"] for item in snapshot["retained_payload"]}
+    if any(members.get("PySide6/Qt/" + target["retained"]) != target["retained_sha256"] for target in targets):
+        raise ValueError("publisher target is not in the retained payload")
     for candidate in candidates:
         if candidate["parent_sha256"] != WHEEL or not candidate["source_notices"]:
             raise ValueError("missing parent or source notice")
+        header = ("=== " + candidate["key"] + " (" + candidate["id"] + ") ===\nCopyright: "
+                  + json.dumps(candidate["copyright"], ensure_ascii=False) + "\nLicense: "
+                  + str(candidate["license"]) + "\n").encode()
+        first_offset = candidate["source_notices"][0]["offset"]
+        if header not in notice[max(0, first_offset - len(header) - 1024):first_offset]:
+            raise ValueError(f"copyright association differs: {candidate['key']}")
         for source in candidate["source_notices"]:
             part = notice[source["offset"]:source["offset"] + source["size"]]
             if len(part) != source["size"] or digest(part) != source["sha256"]:
@@ -59,6 +68,9 @@ def verify(snapshot, notice, payload_root=None):
     for source in snapshot["binding_source"]["source_notices"]:
         if digest(notice[source["offset"]:source["offset"] + source["size"]]) != source["sha256"]:
             raise ValueError(f"binding notice differs: {source['source']}")
+    for source in snapshot["binding_source"]["first_party_copyright"]:
+        if digest(notice[source["offset"]:source["offset"] + source["size"]]) != source["sha256"]:
+            raise ValueError("binding copyright differs")
     if payload_root is not None:
         root = Path(payload_root)
         observed = {str(p.relative_to(root)) for p in (root / "PySide6").rglob("*") if p.is_file()}

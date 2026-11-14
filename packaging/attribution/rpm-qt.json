@@ -6208,6 +6208,876 @@
           "Copyright": "© Copyright 2001-2018, Python Software Foundation."
         }
       }
+    ],
+    "first_party_copyright": [
+      {
+        "line": "# Copyright (C) 2022 The Qt Company Ltd.",
+        "offset": 451397,
+        "size": 40,
+        "sha256": "c3eb995c9ed1bd4bc414ca02bb67a1758725b66b2bbe8e0d5e9032dc7c321cf1",
+        "sources": [
+          {
+            "source": "sources/shiboken6/libshiboken/embed/embedding_generator.py",
+            "sha256": "06f74f712d7d46ee06e126a0b926db3114c8968fa1bfac9ccdba2d2a5ff66f88"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/embed/signature_bootstrap.py",
+            "sha256": "b971d5e5ace98e55376dd24fd2cbaadb2e9c3d6a1417bed4eca85a51fbdaf598"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/Shiboken.pyi",
+            "sha256": "1c3418dd786ca346cfd9b58cc797437f500efb0d27cd24ba300bdae86de3625c"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/__init__.py",
+            "sha256": "c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/feature.py",
+            "sha256": "1224398b2741f395830737e9a71f84a5d42e7e898afcf920a89c946e95601aed"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.py",
+            "sha256": "7b464ae11ae2f78744a1715120302bf8d0c5b241779e6bf3a13ddacacb96954e"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/errorhandler.py",
+            "sha256": "1ef7e39fa45989bac9128cbf076cddaa17c10193fdebe9be307d0d1b415d180e"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/importhandler.py",
+            "sha256": "c14ed6fe2a2d36ebe664f65bc0f827ef2033ac3d3f90b25dfcb3745573e71b8c"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py",
+            "sha256": "af463187ceab40409cbdaa52e7855e8133997e81cdd5bd0600f76a5ab3e30d63"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/__init__.py",
+            "sha256": "c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/enum_sig.py",
+            "sha256": "0bbf4290db6d20450280a5aff4e2687285c1088761da78d50a3cf796f47403df"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py",
+            "sha256": "554ba919188000cc37c46c9f2f2f9ded35be85f3ddd9ea9f66373d144d6211a4"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/tool.py",
+            "sha256": "da2b488406b3f45024f3bb06fc3243a486e44c578bafec8aa60a2a227a587c18"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/loader.py",
+            "sha256": "e93111f218e6a16e24751f1b6684fa7b78599a4fc709d7a7f6a7bafa9fb8f209"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/mapping.py",
+            "sha256": "ccde09ce28af582a98df3fdd472492fae325ec98d11a1516d3add06c6608f67f"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py",
+            "sha256": "16e436c1d75f112949d7ea3c7c177bb7d87a24f408d8a265d8973d9d8ae6f230"
+          }
+        ]
+      },
+      {
+        "line": "# Copyright (C) 2023 The Qt Company Ltd.",
+        "offset": 451438,
+        "size": 40,
+        "sha256": "7d8dc361745f66efb5340b0a354efa49716550955be70c1d90ff900a7946e59a",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/CMakeLists.txt",
+            "sha256": "c8d8e790416a348f6a040f867a3cf1a3138bceb5bcb6be8094f74348f8f79c74"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/CMakeLists.txt",
+            "sha256": "a0d66b518d370422ce12116895a01da2d5fddfd3f3493f7b01df7b29534d1da0"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtDBus/CMakeLists.txt",
+            "sha256": "02e35c3dae330ae52abc5ebc8f356fe58f2b009227ba136e7745e7c687fa6c74"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/CMakeLists.txt",
+            "sha256": "7321cfd7c703a9c23d36b13a20806da89d8a01e1f16c62ba26489e19a7bcc5f5"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtWidgets/CMakeLists.txt",
+            "sha256": "2719e3008596727e6d90e134432d66aaf3f5325c96b7ee787c1bade2ea594331"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtSvg/CMakeLists.txt",
+            "sha256": "0bdfda879b97e938f3f85ca286f440f26cac3dad4f0e287e615289daf093ebd8"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/CMakeLists.txt",
+            "sha256": "05b3cf7384dbf3784f6e1420ddb1b64c3b679124f18752fb09bbc11b976f02a5"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/CMakeLists.txt",
+            "sha256": "8275a03427d4703117978559cd19238e63ad4c07ea97de379dfdf9cd8f8776e7"
+          }
+        ]
+      },
+      {
+        "line": "# Copyright (C) 2026 The Qt Company Ltd.",
+        "offset": 451479,
+        "size": 40,
+        "sha256": "0b723ff0f0e3eb71c71f9d71685aff68dfddf9a8206d72206aec746a5abf50dd",
+        "sources": [
+          {
+            "source": "sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.pyi",
+            "sha256": "e602216209c1dc6e929a12410b08588cba85f32403a38db4c7a90eb5a6397fdb"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2016 The Qt Company Ltd.",
+        "offset": 451520,
+        "size": 41,
+        "sha256": "93f7ad5a1306803203b86cb4988c46286ea857340fb03dbc15b114b5bf8c8272",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/dynamicqmetaobject.h",
+            "sha256": "e57bc67682782a92b01ec6c677e35fdb2c92d6d99e5ff40ce49b2c062a05fb6d"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pyside.cpp",
+            "sha256": "1f21ca591de01501649196aba5a471f30ecfb8ad4ea54a634881477d093b586b"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pyside.h",
+            "sha256": "d01b36b37492b773096576076e31e2c18e57ad197e00848b3c4a49446f02778a"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideclassinfo.cpp",
+            "sha256": "7de866e98639a110ede4128687e72c2bc3b2fc9a164e2491fc458251f7e8b14d"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideclassinfo.h",
+            "sha256": "64ee9e80875aaf59f528bc65e5c0f844cc84c6f9428b64634d8ccd003b4da2d4"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideclassinfo_p.h",
+            "sha256": "3891e88758b4eb98fe9f26b6bfddfd5e7e8a688d8f48855a8b62bee7e4aa5c4b"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidemetafunction.cpp",
+            "sha256": "4d2e4f5ca5c0f511bda180e93480cf4a688074d8b60e1680ecf50bb2ff0c1918"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidemetafunction.h",
+            "sha256": "53577d7fe0d59e5f1c3cbd96b8fd8aafa80426e425b3c167d7689948bd8da2d0"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidemetafunction_p.h",
+            "sha256": "20df313fec928b04160dfe8f472f003ab3193ae81ded05c044dcf2e8482d9b4d"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideproperty.h",
+            "sha256": "b89a78da306a5401a6d9c2715e2efb0ff5fcd9a5017e162141bfbd500bfac0ea"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideproperty_p.h",
+            "sha256": "1385d8366cfd4db4a867635ea52d4c273f64c7e1a541019adbe9812507bb0aa8"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidesignal_p.h",
+            "sha256": "50f862d42e4c73b97a067a65b9bb4d2cfc7e45bf86b3b5412d3cc04626596864"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideslot.cpp",
+            "sha256": "fc95cccbbbad03eb01f9e36a7664c20f2db0e68246c093cb74427f77665cdeca"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideslot_p.h",
+            "sha256": "73df2c2dbab9d64c92737278126f4272f267d95c80cc5f4db1526a12b127fbc6"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideweakref.cpp",
+            "sha256": "637b28ff28405a94cfeecb0b49c6c611e76dc03c0aa85cf00460f190feeaa071"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideweakref.h",
+            "sha256": "17d6c9495717d1f7fbb02c6f0d29c31992b3785c95a28bf629ff8a05702ce83a"
+          },
+          {
+            "source": "sources/pyside6/libpyside/signalmanager.cpp",
+            "sha256": "0f5c4f250a5e0af65b16dac359bbaf48749b97327a77e9f6b6e27a1b1b2b05db"
+          },
+          {
+            "source": "sources/pyside6/libpyside/signalmanager.h",
+            "sha256": "aea959d4b8984e7bf0df5581eac06b66b4b9f12401c4e371b49bb3458931e0ba"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.cpp",
+            "sha256": "05a63d0167881c811a33e8357644f9f0a2795164d840008380fc4191f1c66c07"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.h",
+            "sha256": "de6eeb26196448970c606135780e702350f66b995dd41286790d1e124eb60461"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/typesystem_core.xml",
+            "sha256": "0d9bd0a77fd637a550c773c3f29128702c0fb3de0314e27799c43169385bb107"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/typesystem_core_common.xml",
+            "sha256": "4ec968a0c7e48289f5736ffa189a8ec915aaf796d90bee3296ad189fbdf5b559"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/typesystem_core_win.xml",
+            "sha256": "9bb22aeb33e2d359f1a0f9d82e8688247581e9d8061f05cd3ed4027c627960f6"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui.xml",
+            "sha256": "8c85656fac86395864354d94d411e556e30bcbd65a2687cd58140be23750203e"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml",
+            "sha256": "e7048715263d76fa5757ce7acd4c89b2f84da7523645b5d26d838a74e3599b24"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_mac.xml",
+            "sha256": "54afe14bf453f24e56d1973ed0b1c7e99a0acbc8064a8a03ff82957c13d0c554"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_win.xml",
+            "sha256": "07c82d17d59dc4b6a71ffa77e178390e8b94a7a5efca7f0265a2535d9c17b968"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_x11.xml",
+            "sha256": "2bb7a235942352d354383db70ed567663f7d6a415eb4a657d8f3a09c28da47dd"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtWidgets/typesystem_widgets.xml",
+            "sha256": "da135e92fc2b0f6b14c1558ed5d90607d018c34c7ed7223fab7ef60a1da8b094"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml",
+            "sha256": "1980eeb8fba10bdf0f68717aa9fa0e86dae64ab631690e756863ba4799c63bc1"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/autodecref.h",
+            "sha256": "33334ec1eed1bee7b03c4a6d9fd28d9cc8c0b77cfac6c520701b8985e2b998a5"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/basewrapper_p.h",
+            "sha256": "1e4acc948ba7738c0947dac3c38ccde332b4012e4efb38c5ede1a445f83fede2"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/bindingmanager.cpp",
+            "sha256": "6ca12999d0016303b39c893172447dcb865f0dd78672b8f476076d1a40e2b7d4"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/bindingmanager.h",
+            "sha256": "8e5b59b2597e98f2bfb1088bef7b902ea500a4ec4b8d93609ec414d9f548314d"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/debugfreehook.cpp",
+            "sha256": "497676d8d53630bcbc89bc43da1623a47eaf872ae0bade5c0a7a8e017a7514db"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/debugfreehook.h",
+            "sha256": "b6c8fe9766400490839f4a9cb4d01198bff701e70edd5c33f3dd4dda526ba80d"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/gilstate.cpp",
+            "sha256": "a7378abd586d463a8d3353afcbc1e4c337a6e1374bdf39ebc78e3d0d14b5701f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/gilstate.h",
+            "sha256": "54b56f3f95811977a7b02a860cac61354381ce58fec4cc344ae4adbecc25abf3"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/helper.h",
+            "sha256": "f9a50887c09b4962174a84c2e39c12a73638bb84bbd5463fa69fc582e14f222f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkconverter.cpp",
+            "sha256": "f305264cc208b70711689cde149b45aced7ac513cf77328c4a129f08aaa1335f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkconverter.h",
+            "sha256": "39f6362643022bfd4bf0b5221e88b41f89fe46eac41e9b788f070661dba581b7"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkconverter_p.h",
+            "sha256": "fcc9df66ebee1515b5b8018a7d4cc8fb4b18e63666e858c0d7cb68f3fae886f8"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkenum.h",
+            "sha256": "af1c4f52b3611d8dc4a6e9c6ab8aa52d9b5efa0c10ee1e0e074c9365eefe6b6d"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkfeature_base.cpp",
+            "sha256": "078120efc83ea5e97c81659dc046eea56aa580d0bd3841f8462c15f2f073e3e2"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkfeature_base.h",
+            "sha256": "03c2b6c3206c559a09778fecf10e91433350882b8aaa41859886c7addf246b18"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkmodule.cpp",
+            "sha256": "0d73a8cfcf8871fa29f07d4b353fb3aa7f85da104db8a06cab99d6d1392650ae"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkmodule.h",
+            "sha256": "5ebb3f0df9faffe538961e4c6e05e70a1282966290689c6ad2fa96986ee04aac"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkversion.h.in",
+            "sha256": "d9f07d7147c9e41a70713bab1137fd6ff42a5905547c9849fa5ff021cbfc3c6a"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/shiboken.h",
+            "sha256": "d89447d3839b2179d3839f994965110f0889d95425c71540bc352e0836714c74"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/shibokenbuffer.cpp",
+            "sha256": "7c0859f196588bb6a1945f0dddc29fd34411df6e3450dde1648e3e6cc375c84a"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/shibokenbuffer.h",
+            "sha256": "bbf20bff20c649885e8ce5e69ceb5cf9de0a818e4e9cf3b27496775e001be561"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/threadstatesaver.cpp",
+            "sha256": "6e30e9fdbd856b3f6272fb0130be54909c040e11eb2ed998786c540f8a1a25c6"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/threadstatesaver.h",
+            "sha256": "3ad333e096a43e99a44ea226db5cab4cd70df64828c46d347c1e9146f0b55797"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2017 The Qt Company Ltd.",
+        "offset": 451562,
+        "size": 41,
+        "sha256": "8acf3f50092636fa3ffa545e3ff2753cb864340e2efd6ed0524fa7a3728b03f4",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/dynamicqmetaobject.cpp",
+            "sha256": "224a989306a16e4d451842a35c2f31ef22a40e19493d52f2e19d540fce69c92d"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkarrayconverter.cpp",
+            "sha256": "dee1120f1bf28d3a9145e90ae093e84f2fc1262dd49e203c2235e8b701397844"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkarrayconverter.h",
+            "sha256": "604517314f7d2c4e87b2aa4ed867628833e3532625bd6845cca716bb517386b0"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkarrayconverter_p.h",
+            "sha256": "61de1da8e3f4d4bae83839516d6a8c130a6e8e488884044ae80b1c763651fb2a"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbknumpyarrayconverter.cpp",
+            "sha256": "5f5ac1820c2b399663af15f4c73f20467661ecfb4f221c78374e3ad39c03e4bb"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/voidptr.cpp",
+            "sha256": "d0e7e9c24a980625c67015a1729c37c5dfbe4cea324a2483c04c9be382a706b0"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/voidptr.h",
+            "sha256": "aebffc152d966a90eeef694e8342dbe8638a3c7f67562a59f8ddec5d69808e3f"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2018 The Qt Company Ltd.",
+        "offset": 451604,
+        "size": 41,
+        "sha256": "83f5965ef8569562be0e81e6b01fd41560ceff921172b9575faff093d8d6cf3e",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pyside_p.h",
+            "sha256": "9575604f871afb950419227bc19025e0193b395ccd3990c9153c6d6c9e72257a"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/bufferprocs_py37.cpp",
+            "sha256": "0efa349300e3e9bc3ab10789968095083ba26e2f5e4830a1981ddcfba7777d77"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/bufferprocs_py37.h",
+            "sha256": "7717a874ab6a950ca55f6144efb934a086d16a7c9935d137eeb46afe96bd03fd"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pep384impl.h",
+            "sha256": "7214f1e11309ca277b1690350c6f056a28857189538dd4b37e693466b79f0169"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkenum.cpp",
+            "sha256": "1ef9a388f385306e0cf23792145b0972680f64d417c2280c4c8c36246e941145"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkpython.h",
+            "sha256": "0f0c81313ad5d590c2edf9904638399ee4b4969dba907c0d8af098a1bc6ada31"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature.h",
+            "sha256": "00e1eae73f36b259f5e00147cd0dca91c3a8c3dd6355a7567df0dce99b032784"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2019 The Qt Company Ltd.",
+        "offset": 451646,
+        "size": 41,
+        "sha256": "fa7931bc3a0b0767615cb6f7172bc09c45834e13a0bd69d7b7b5568a7c762b33",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pysidestaticstrings.cpp",
+            "sha256": "116ba4685d178889a58f91523da32a1816d0a1d1871868f927a6ab3c071f8a7b"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidestaticstrings.h",
+            "sha256": "ab52a85e4d02fedcb94d220895779440f517ce56f4b5fddb1bf06fbb092c2c81"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/basewrapper.cpp",
+            "sha256": "199a86e6daf4447ff77b364e1dd3da9fcbc8bbf4299bcf6bf4ee95eaaa9c15af"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/basewrapper.h",
+            "sha256": "e363e11643e0c790c835c852c7145335e2f4a0178e469d1bdddaadf9e96a954f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkstaticstrings.cpp",
+            "sha256": "bee2fb5fb5ce0a3e694f8094cc291344eccd8e4e493fcc5f02c99cf41071b863"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkstaticstrings.h",
+            "sha256": "8a2784c62771c30e52459826c8d31cb5e29e024ed54324122c17f0cb40a9f029"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkstaticstrings_p.h",
+            "sha256": "b9ea1ea3bae157d016a08aa8b875ce7a27d26e7e16827ec58c6b5e7ca3a6c6db"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkstring.cpp",
+            "sha256": "ac2ac88ff1058816df213dfa5ab0203aa951562170275dcb8f7fb14176d80e30"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkstring.h",
+            "sha256": "da6d2f9acb2a273353933a9587c4ed9356718053ec30a3b9ba1478528e4db5cd"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2020 The Qt Company Ltd.",
+        "offset": 451688,
+        "size": 41,
+        "sha256": "fda8ea2e166a5486d50bb1be5c59372b8e47889286b738b47ab7ee0be2dc2cd8",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/class_property.cpp",
+            "sha256": "50088b0a041bc73f701b5d104dd2379ebede3ebdc6fa8cd167857af9a790137e"
+          },
+          {
+            "source": "sources/pyside6/libpyside/class_property.h",
+            "sha256": "0ba742ad246b5e45e6bf24f8883fd56d83155f342b522931ccb210882176029a"
+          },
+          {
+            "source": "sources/pyside6/libpyside/feature_select.cpp",
+            "sha256": "4beecbbd54c1cb75b3904c6ea868f715614f72e408338dc50c6b8a4ff66674a4"
+          },
+          {
+            "source": "sources/pyside6/libpyside/feature_select.h",
+            "sha256": "a9406eafd267c667f127610f06970a9ca6641bf6a2cb9ab8e72deaa2cd716c5c"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidemacros.h",
+            "sha256": "779c08c0d4848f3cdc0b26a567588fc1989e973571fe3407877e7548e33879c1"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideproperty.cpp",
+            "sha256": "477363bb046ed4eae0ee7cf8a329bddf3504fa8d1f60212174c733af30130074"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqenum.cpp",
+            "sha256": "6527d9f97f8b3ab0cb86fb52a6c70672950538324c1eb01e5f743494ea7e9553"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqenum.h",
+            "sha256": "06e737d62a89ad506f4101a51a62529f3b06c952dc1aa8c57811d92f44f5c900"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidesignal.cpp",
+            "sha256": "ca3f7d9061a4962b0598610496c365c6bf189c1838b4bf39b893b90fe2dfd129"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidesignal.h",
+            "sha256": "0527c6c9aa4b8bbc8dda7933f18c5d644aa2545a2361a646ceb763f46b9005f6"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtSvg/typesystem_svg.xml",
+            "sha256": "2f974c1e0de9c7d09c3a1f02ea38118a91d904a91f147ce1240cc2129c67b39e"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/helper.cpp",
+            "sha256": "f378d5c39517d4e08e3c2eae7785b98503adb17346ff8d8def2f78215d465e14"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/shibokenmacros.h",
+            "sha256": "77b48b8367f9f055fa44133ca5c34e95853a0d6a5c065571a7244dff67142c56"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature/signature.cpp",
+            "sha256": "1a5d62c5b46852c35cf7c325bfe6964cf3886a61b59df0bea15ef6e93bde65ec"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature/signature_extend.cpp",
+            "sha256": "c713fdbb7117255219fa6bac7141d1c4b1b1cd7b806ceb4ddffae3edfe3520a6"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature/signature_globals.cpp",
+            "sha256": "da1e81f42421199ba691d7f9c83d00da8e4d1fed5b8907d363681b02b8a3a000"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature/signature_helper.cpp",
+            "sha256": "4b0fd431cec0798955efb5d080277c27181ecf156231c92ed456df4623defefc"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/signature_p.h",
+            "sha256": "405cbc610f03197739f198c612f64915b262d692d751a8ffb5a50f76344383a0"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2021 The Qt Company Ltd.",
+        "offset": 451730,
+        "size": 41,
+        "sha256": "2e29eb8f4d99374f82ad6e22c43360143df4cc5941e4b4f47b4700f11a787f10",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pyside_numpy.cpp",
+            "sha256": "27044100ea78517e94f9c2fd7fb7c0c98c3b3eb9db83c18b348efce6492f28cc"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pyside_numpy.h",
+            "sha256": "494aab6347d5104bbb3d7722a29d922de2e7eb00c6be2eea4f39b60596c1f2ac"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidecleanup.h",
+            "sha256": "2a22eea3043261a03b00e28ee097eae495668437b268fea4a3e601a3aef59c2e"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideinit.h",
+            "sha256": "252f3a3cb0eb0a602215151e4a17ea0f5ac356e58bcacc83a6215f9bcbb47d58"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqapp.h",
+            "sha256": "db8e2a930211f544cf054962cf8401a33be85fe3124184c6e415a2fed24b41c9"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqhash.h",
+            "sha256": "db3da7fb0aabe173523f74e4fb40958dc0325dc0950ac26951873bc241c94cce"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqobject.h",
+            "sha256": "a3ff5709a5b6844492efd60e511b379da3920859cc3f1bde61e304e6b02a6207"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideutils.h",
+            "sha256": "448fcdceb0239c51274197a8a12ab5e8d308667791161d0387390d793d09515e"
+          },
+          {
+            "source": "sources/pyside6/libpyside/qobjectconnect.cpp",
+            "sha256": "13f3a99590ca51a1d53bf6c6e0669f03cab0067a250f87231b0d8c1e44d25023"
+          },
+          {
+            "source": "sources/pyside6/libpyside/qobjectconnect.h",
+            "sha256": "75339f64eba30ffc09c34e8fa4c6cbec79628d409441f942c472a960bb9c427c"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/core_snippets.cpp",
+            "sha256": "3fe549e9e836456c692161bdfe061f817dd44de87bd3642a6da18c9f71410b3a"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/core_snippets_p.h",
+            "sha256": "a2257dc05d303b71f2610157e62f7c7c620ea3395d9afa782531d3e41e1f8c20"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtDBus/typesystem_dbus.xml",
+            "sha256": "d81a1302fc4d9afc374ef01c7bb5e09d519cf3c0e02e809bf6277b8496b71d7c"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcontainer.cpp",
+            "sha256": "a88e4f051716ff80495879df1a0f31106e3ff17bcdcb7bc5ed10bc0b8dfcfa0b"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcontainer.h",
+            "sha256": "a874cd737b893230be80a3d55c4fa1c9288ee77754a587f20a1c67a3756b83f1"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcppstring.cpp",
+            "sha256": "8635904a8e8f86262245ebc13286fda631374240e20556b6e115360c8f2c6601"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcppstring.h",
+            "sha256": "42b72105a7bdd67e3242658c5a30ca5119d3846c08e970e871f5394c5c5dc65f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbknumpy.cpp",
+            "sha256": "abb258a8563d262d3a9e2d2d304c4eebac2cd415b1fcf88955365cf9e7dc0f0e"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbknumpycheck.h",
+            "sha256": "b916f9b9e441defa4ac0c567a89a46868deb2be408664835aa3b2069cba30d67"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbknumpyview.cpp",
+            "sha256": "9c284ad736d59325624af995475038abd2310b6f6d8079f20edfeaa01fd3e4e4"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbktypefactory.cpp",
+            "sha256": "3cba8a52f7101bdff8e9ad84566bc816d14af715b27860ba91a191251978e6ca"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbktypefactory.h",
+            "sha256": "b80da841d3b152ff89a2cd7c82d6c4086f60dbc439d61ed00a059a707af2370e"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2022 The Qt Company Ltd.",
+        "offset": 451772,
+        "size": 41,
+        "sha256": "90445a60a461e792882b5eca2af2f776aae2ec9b9abb435143481d5be9a971e9",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pysideclassdecorator.cpp",
+            "sha256": "df0b27809fbce774cb5e7ac5814f276cbef6db2ce2cc66f8d927d9b338932fc4"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideclassdecorator_p.h",
+            "sha256": "3bc6e7b6dde8570225e3cac219edbdb4646c64c011b6dd970e51e0b92a9e3318"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidelogging_p.h",
+            "sha256": "27fe16e18b9c285cd7c4d81e82e517a3a3c4fea39980b453171ac955813b8658"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidemetatype.h",
+            "sha256": "6faa33a84d99585c9f35280daa0099b02c9d0f05051f15f5a85be660cd9baad3"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/qtcorehelper.cpp",
+            "sha256": "409677cc91c2813b4e3f13c02d5375673d7baeaf94b0a034e983a0b6c00bce2b"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcpptonumpy.cpp",
+            "sha256": "d3a58bcab7d1c8fdfe05ec7db19ed130c6f312c2807dee9a2a8124a3602dc50e"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkcpptonumpy.h",
+            "sha256": "6fa1c097df231d6146671c0ea7767fc12545389d487e407a249a51116d4a73bd"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkerrors.cpp",
+            "sha256": "cbee1d541535f07c883ea65503a9be996c753b10e2d433ce00dd10a941e69961"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkerrors.h",
+            "sha256": "70ac8388b8a78946b84e5b558e2c8f58cc3d4dec4fbcb67eafb074e334777fb8"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbknumpyview.h",
+            "sha256": "bd506d307db01e47c078a6d7428860c711b7b5ef1a432edd3b82c62a8be5acfe"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkwindows.h",
+            "sha256": "7a6cf0585b8665f40894c7af54b46841b892765a26e572aec8350bb694e6cd76"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2023 The Qt Company Ltd.",
+        "offset": 451814,
+        "size": 41,
+        "sha256": "02ec537f50551556705fa3e269a476e188a1fbaccd20f60c8a27c26307d2aa7f",
+        "sources": [
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_rhi.xml",
+            "sha256": "1460b4b7c3336b4ae07417dd46271728be9070e63eb9f800e8e47909cd29d0cb"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pep384impl.cpp",
+            "sha256": "8bb0583db2a16c158915bf9b145ef1fb310400686e893a03dfbeb74fa2fe85c8"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbksmartpointer.cpp",
+            "sha256": "7ad209a5b5b99646e503973dc3f906bdde14539cd4342fbb6f1f20a310effc99"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbksmartpointer.h",
+            "sha256": "82bd4afa941cf093c80cfe668c070dfb07a6ae8c965d32cbd4fd07540cf019d8"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2024 The Qt Company Ltd.",
+        "offset": 451856,
+        "size": 41,
+        "sha256": "84d9022074312c9035b1d92bed20bede9c2889712928d4c18f355eb3cdcc075d",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/dynamicslot.cpp",
+            "sha256": "8858a10ea61faacfafdc410be1afc5bf20ee0fb3d26929a0eb848477fcbe5799"
+          },
+          {
+            "source": "sources/pyside6/libpyside/dynamicslot_p.h",
+            "sha256": "adc8e71f19cc448666ddc69aa998fc5425afa7c3d24a6dd886414958f3cf9b20"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqslotobject_p.cpp",
+            "sha256": "e6fe5f703454988acef3f7c9c7c080528a9118b81a0e99d09e14091ca4be398d"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqslotobject_p.h",
+            "sha256": "4b82136988f216fe91d7d6223f52bdb004d26c73d40ef8aaa198e9c1fb71f2b0"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtCore/glue/qiopipe.cpp",
+            "sha256": "f8092bcb44a537fd6035176bee71f9ceaa0225116c9d17a78f5a33a95544780f"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pep384ext.h",
+            "sha256": "1ad1e6b07b1c3dd31d14d5ffc6ac68211b35612684d24c1055db4db88f58959b"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pyobjectholder.h",
+            "sha256": "fe52d0358880d632969173e440fff542800ea2385847638d8cc85e9e4f8a2c08"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/shibokenmodule.cpp",
+            "sha256": "469986c6bd1ff2f9bdf9ac62cf422272290b43230702da000b262e6e6f2da572"
+          },
+          {
+            "source": "sources/shiboken6/shibokenmodule/typesystem_shiboken.xml",
+            "sha256": "7f5f19830504a6dd78a53717af6b8d7e1767c9a90313dcf389d9334300766bf5"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2025 The Qt Company Ltd.",
+        "offset": 451898,
+        "size": 41,
+        "sha256": "4d3832c964ceba5f29b2fa798348bf203ae3f32442fba0510cf366318038ca8b",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pysideglobals.cpp",
+            "sha256": "8b6cbf2e3f4269209e9e95b3fb04408b2e674b65bbf6b0a7f6c7a7d73bea0fa5"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideglobals_p.h",
+            "sha256": "f0f850f91b87a2bd0763c558f68f293b07e51c18948fb29fa76902873dc4f0b8"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidepropertybase_p.h",
+            "sha256": "3d6cf718f492db51a2cf26da998c7c1963dd74cfc2596e9671de230babc96558"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidevariantutils.cpp",
+            "sha256": "4c5a0c39eacc05f8d2ca5131271246fea31e85d6f6e80a90b983d9dab46c8a0f"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysidevariantutils.h",
+            "sha256": "acf7aba44e2f61961cad68d446c659ecbc3db6293aac6729880c98f7436831a4"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_nativeinterface.xml",
+            "sha256": "5cec0d2d2b1afcd6167b722732762369b94a453c55697da592f45f5599cc7994"
+          },
+          {
+            "source": "sources/pyside6/PySide6/QtGui/typesystem_gui_wayland.xml",
+            "sha256": "04a913acb953ea59f82a3f7af580999757c6f5206bc3638975c3446055639766"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkbindingutils.cpp",
+            "sha256": "3caca48d1dd0e566ea43398ab8f7549f6875bbb74a88166450d1165a4fa7b109"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkbindingutils.h",
+            "sha256": "41f8ce7a1e8ba777892b8cb804478eb878d9619dde608280b5d113bce59f6fe0"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkmodule_p.h",
+            "sha256": "80b797e5113b39d599ed5a6722ef07571b07c7a316712ac7df5891eca32e3f96"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkpep.h",
+            "sha256": "95efcf2bce8d44e3c2f060f6a6c62a116a597da134153efabca666cbfa372bd3"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkpepbuffer.h",
+            "sha256": "1757eb67ba82e6dcb730f72b0d8b0eb9163b9d5648be8100eb21700bb196b4da"
+          }
+        ]
+      },
+      {
+        "line": "// Copyright (C) 2026 The Qt Company Ltd.",
+        "offset": 451940,
+        "size": 41,
+        "sha256": "f29cf9feb3ee4ab98551e2ebfefa54bd15ea0bcd0250b20860a5d7d9ac059e5d",
+        "sources": [
+          {
+            "source": "sources/pyside6/libpyside/pyobjectwrapper.cpp",
+            "sha256": "3481189aee906d0f19fd94e3f2bbdbb99bcc4737cd718fedb896d95df72aa506"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pyobjectwrapper.h",
+            "sha256": "5f727c5da9b0e435f85f7d5a3fcbc5cf90da7ab7a17fd48ff3c320109883a836"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideqobject_p.h",
+            "sha256": "e04a707315bf832b05323754c283a57788f115eeccca49dd527df81e33b03e1c"
+          },
+          {
+            "source": "sources/pyside6/libpyside/pysideutils.cpp",
+            "sha256": "1a83659435ee21b8f6250e6c96fdaf584e2cb8eadad164043c4bc1b817fd7918"
+          },
+          {
+            "source": "sources/pyside6/libpyside/signalmanager_p.h",
+            "sha256": "6cac19c375bae75d90a054a1ad726ed7961735f81821e54bf2041005b28599b5"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/basewrapper_info.cpp",
+            "sha256": "12bb344eb79ecb03387d1642cdaf358e000bf1a2234683eedc4bd4d68a895976"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pep384ext.cpp",
+            "sha256": "48c1023f41e3c662b68678a1ea101aa19475dfdd96b5513cb9c9b4a07b57ef48"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/pep384impl_p.h",
+            "sha256": "49c99fc75f688718c171804f0cdd023d71605c65b036ef3b095201b895fa1907"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkarrayspan_p.h",
+            "sha256": "ed8d3f706d3962e9095bf0012b745246d11a7f37a2dff3266e2ad38e5191dd84"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkdestructorentry.h",
+            "sha256": "5518d31b5382ccb396a8caec749e68954ba36c4745826973132deb35ddfe4bdf"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/sbkenum_p.h",
+            "sha256": "e9504c0d3827630b0fa68dd8493a1976cb797eae45e94405001b4e76031a70c3"
+          },
+          {
+            "source": "sources/shiboken6/libshiboken/shibokenclasshelpermacros.h",
+            "sha256": "418d5b57ddefae804a6cd52c3f820429907f16ba4a15874448719d72e8def8d0"
+          }
+        ]
+      }
     ]
   }
 }
