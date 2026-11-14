@@ -351,8 +351,9 @@ class BleDesk:
                 # Cancellation stops the Python request, but a connect may
                 # already have reached BlueZ. Try to drop our handle before a
                 # later read can build another client for the same desk.
-                await self._disconnect_locked()
-                self.forget_handle()
+                if self._desk is not None:
+                    await self._disconnect_locked()
+                    self.forget_handle()
                 return None
             except Exception as exc:
                 self._report_error("get_height", exc)
@@ -426,6 +427,13 @@ class BleDesk:
                 finally:
                     self._move_in_flight = False
                 return True
+            except asyncio.CancelledError:
+                # Older supported idasen versions can retain a cancelled move
+                # internally. Release this client and create a fresh handle for
+                # the next command instead of reusing that stale state.
+                await self._disconnect_locked()
+                self.forget_handle()
+                raise
             except Exception as exc:
                 self._report_error(f"move_to {height.metres:.4f}m", exc)
                 if guard is not None and not command_issued:

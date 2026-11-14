@@ -27,8 +27,8 @@ There is no systemd user service in the sandbox. The daemon starts two ways:
 ## Prerequisites
 
 ```bash
-flatpak install --user flathub org.kde.Platform//6.10 org.kde.Sdk//6.10 \
-    io.qt.PySide.BaseApp//6.10
+flatpak install --user flathub org.kde.Platform//6.11 org.kde.Sdk//6.11 \
+    io.qt.PySide.BaseApp//6.11
 ```
 
 ## Build & install (local)
@@ -84,10 +84,10 @@ leaves those heavy runtime modules in place.
 
 The manifest's `cleanup-commands:` `rm -rf` the unused modules explicitly
 (precise for nested paths in a way `cleanup:` globs aren't). A real local
-build against this manifest installed at ~49 MB and produced an ~11 MB
-single-file bundle — `flatpak info` and `du -h` on the bundle file are the
-way to reproduce that measurement yourself; it will drift as dependencies do,
-so treat it as a sanity check rather than a number to keep in sync here.
+build against the selected 6.11 parents retained approximately 396 MB in the
+unexported `/app` tree. Sizes vary with parent commits and locale processing.
+These removals apply to `/app`; the shared Platform remains independently
+installed and may contain other Qt modules.
 
 Biggest things removed and why they're safe (nothing here is imported or
 `dlopen`ed by the app): **QtWebEngine** + its `libLLVM`/`libclang-cpp`,
@@ -129,6 +129,19 @@ the packages this project's own dependency list names — downloaded with
 never exercises doesn't ride along uninvited — and pins each wheel by
 pythonhosted URL + sha256. PySide6 is excluded on purpose — it comes from the
 BaseApp.
+
+The inspected x86_64 6.11 parents are Platform commit
+`fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415`,
+SDK commit `f77a65229fcb9dc1468944cd6a2b5aa327d1877725d681467805dae6ed68aebe`,
+and BaseApp commit `25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572`.
+The actual Platform provides Python 3.13.16 and Qt 6.11.3; the BaseApp
+provides matching PySide6 and Shiboken 6.11.3. Branches are mutable, so inspect
+new commits and rerun the build, cleanup and runtime probes when they change.
+The generator requires exactly six reviewed wheels and checks their complete
+bytes against official PyPI metadata. The selected builds were verified with
+task-local XDG data and a private D-Bus session; a clean rebuild with
+`flatpak-builder --disable-download --disable-cache` passed. The probe imported
+QtCore, QtGui, QtWidgets, QtDBus and QtSvg, rendered an SVG, and exited cleanly.
 
 ## Toward Flathub
 

@@ -1034,7 +1034,7 @@ def test_the_licence_is_installed(spec):
 # reviewed, and a bump that moves one without the other stops rather than
 # ships.
 BUNDLED_INTERPRETER_SHA256 = (
-    "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533")
+    "c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30")
 
 # A checksum literal anywhere in the fetcher: 64 hex digits with no hex digit
 # on either side, so a longer run of them is not read as one.
@@ -1262,6 +1262,13 @@ LICENCE_TEXT_FOR_TERM = {
     "CNRI-Python": "LICENSE.cpython",
     "Apache-2.0": "LICENSE.Apache-2.0.txt",
     "OpenSSL": "LICENSE.OpenSSL.txt",
+    "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception": "LICENSE.qt-third-party.txt",
+    "Libpng": "LICENSE.qt-third-party.txt",
+    "libpng-2.0": "LICENSE.qt-third-party.txt",
+    "IJG": "LICENSE.qt-third-party.txt",
+    "Unicode-DFS-2016": "LICENSE.qt-third-party.txt",
+    "Unicode-3.0": "LICENSE.qt-third-party.txt",
+    "CC0-1.0": "LICENSE.qt-third-party.txt",
     "X11": "LICENSE.X11.txt",
     "Sleepycat": "LICENSE.Sleepycat.txt",
     "BSD-2-Clause": "LICENSE.BSD-2-Clause.txt",
@@ -1312,9 +1319,8 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
     # term-to-text map. Delegate only the exact inventory-verified notices.
     verifier = runpy.run_path(str(ROOT / "scripts/verify-interpreter-metadata.py"))
     verifier["verify_package_variants"]()
-    inventory, provenance = verifier["verify_metadata"]()
-    components = {Path(notice["file"]).name for path, notice in provenance["notices"].items()
-                  if path != inventory["cpython"]["license_path"]}
+    _, provenance = verifier["verify_metadata"]()
+    components = {Path(notice["file"]).name for notice in provenance["notices"].values()}
     orphaned = sorted(installed_licence_files() - covered - per_distribution - components)
     assert not orphaned, (
         f"the package installs a licence text answering no term the licence "
@@ -1325,7 +1331,7 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
 # sdist. Anchored at the start of a line, so the paragraph explaining the
 # directory cannot stand in for an entry in it.
 MANIFEST_VENDORED_LICENCE = re.compile(
-    r"^include packaging/licenses/(\S+)\s*$", re.M)
+    r"^include packaging/licenses/([^/\s]+)\s*$", re.M)
 
 
 def test_every_vendored_licence_text_ships_and_installs():
@@ -1346,7 +1352,11 @@ def test_every_vendored_licence_text_ships_and_installs():
         f"carries have drifted apart: on disk only {sorted(vendored - named)}, "
         f"named only {sorted(named - vendored)}")
 
-    missing = sorted(vendored - installed_licence_files())
+    # Kept as source evidence for the previously bundled OpenSSL 1.x; the
+    # current interpreter ships its exact OpenSSL 3 notice separately.
+    legacy_only = {"LICENSE.OpenSSL.txt"}
+    assert not legacy_only & installed_licence_files()
+    missing = sorted(vendored - legacy_only - installed_licence_files())
     assert not missing, (
         f"a licence text is vendored here and installed by nothing: {missing}")
 
@@ -1577,6 +1587,11 @@ def test_no_shipped_file_carries_a_developer_home_path():
     the sdist. It is gone now, and the test below keeps it gone; this one
     stops an equivalent path reappearing anywhere else."""
     offenders = []
+    home_path = re.compile(r"(?<![\w./-])(?:file://)?/home/[a-z]")
+    assert home_path.search("ExecStart=/home/example/bin/command")
+    assert home_path.search("file:///home/example/config")
+    assert not home_path.search("upstream/docs/home/license.md")
+    assert not home_path.search("https://example.org/home/project")
     for d in ("src", "data", "packaging", "scripts"):
         for f in sorted((ROOT / d).rglob("*")):
             if not f.is_file() or f.suffix in {".qm", ".mo", ".svg"}:
@@ -1586,7 +1601,7 @@ def test_no_shipped_file_carries_a_developer_home_path():
             except (UnicodeDecodeError, OSError):
                 continue
             for n, line in enumerate(text.splitlines(), 1):
-                if re.search(r"/home/[a-z]", line):
+                if home_path.search(line):
                     offenders.append(f"{f.relative_to(ROOT)}:{n}: {line.strip()}")
     assert not offenders, offenders
 
@@ -1993,6 +2008,33 @@ def test_the_trimmed_qt_keeps_an_input_method_plugin():
     seeds = load_trimmer().SEED_PLUGINS
     assert "libcomposeplatforminputcontextplugin.so" in \
         seeds.get("platforminputcontexts", ())
+
+
+def test_the_trim_stops_when_a_required_qt_module_is_missing(tmp_path):
+    trimmer = load_trimmer()
+    plugins = plant_qt_plugins(tmp_path, trimmer.SEED_PLUGINS)
+    root = tmp_path / "PySide6"
+    for module in trimmer.SEED_MODULES:
+        if module != "QtSvg":
+            (root / f"{module}.abi3.so").touch()
+    with pytest.raises(SystemExit, match="QtSvg"):
+        trimmer._seed_paths(str(root), str(plugins))
+
+
+def test_the_trim_rejects_a_required_module_linked_outside_the_package(tmp_path):
+    trimmer = load_trimmer()
+    plugins = plant_qt_plugins(tmp_path, trimmer.SEED_PLUGINS)
+    root = tmp_path / "PySide6"
+    for module in trimmer.SEED_MODULES:
+        (root / f"{module}.abi3.so").touch()
+    # A sibling sharing the package's prefix must still be outside it.
+    outside = tmp_path / "PySide6-other"
+    outside.mkdir()
+    (outside / "QtSvg.abi3.so").touch()
+    (root / "QtSvg.abi3.so").unlink()
+    (root / "QtSvg.abi3.so").symlink_to(outside / "QtSvg.abi3.so")
+    with pytest.raises(SystemExit, match="Qt module escapes package"):
+        trimmer._seed_paths(str(root), str(plugins))
 
 
 def test_the_trim_stops_on_a_plugin_it_can_no_longer_find(tmp_path):

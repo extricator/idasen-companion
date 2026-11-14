@@ -113,10 +113,10 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # entry which fails the build if it ever stops resolving, so the omission is
 # guarded rather than assumed.
 %if %{with_gui}
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only) AND LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016 AND Unicode-3.0 AND CC0-1.0
 Conflicts:      idasen-companion-headless
 %else
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND OpenSSL AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
 Conflicts:      idasen-companion
 %endif
 URL:            https://github.com/extricator/idasen-companion
@@ -128,7 +128,7 @@ Source0:        idasen_companion-%{version}.tar.gz
 Source1:        idasen-companion-wheels-%{version}.tar.gz
 # The other half of the same arrangement: the interpreter the package carries,
 # written by that same script under the name and at the checksum it pins.
-Source2:        cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+Source2:        cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
 
 BuildRequires:  python3-devel
 # Both trimmers run under the build host's interpreter and shell out to these
@@ -177,16 +177,16 @@ Recommends:     (gnome-shell-extension-appindicator if gnome-shell)
 # the package carries, and it is here for the same reason as the nine below:
 # this section is what a security scanner reads, and the largest bundled
 # component in the package would otherwise be the one thing it cannot see.
-Provides:       bundled(python3) = 3.14.7
+Provides:       bundled(python3) = 3.14.10
 %if %{with_gui}
-Provides:       bundled(python3dist(pyside6-essentials)) = 6.11.1
-Provides:       bundled(python3dist(shiboken6)) = 6.11.1
+Provides:       bundled(python3dist(pyside6-essentials)) = 6.12.0
+Provides:       bundled(python3dist(shiboken6)) = 6.12.0
 %endif
-Provides:       bundled(python3dist(bleak)) = 3.0.2
-Provides:       bundled(python3dist(idasen)) = 0.13.1
-Provides:       bundled(python3dist(dbus-fast)) = 5.0.22
+Provides:       bundled(python3dist(bleak)) = 3.1.0
+Provides:       bundled(python3dist(idasen)) = 0.14.0
+Provides:       bundled(python3dist(dbus-fast)) = 5.2.0
 Provides:       bundled(python3dist(pyyaml)) = 6.0.3
-Provides:       bundled(python3dist(tomlkit)) = 0.15.1
+Provides:       bundled(python3dist(tomlkit)) = 0.15.2
 Provides:       bundled(python3dist(babel)) = 2.18.0
 Provides:       bundled(python3dist(voluptuous)) = 0.16.0
 Provides:       bundled(python3dist(typing-extensions)) = 4.16.0
@@ -410,12 +410,20 @@ done
 # text that stops being vendored fails the build there instead of quietly
 # leaving a declared term with nothing behind it.
 for text in packaging/licenses/*.txt; do
+    # The selected interpreter carries OpenSSL 3 and its exact notice below;
+    # retained Qt has no QtNetwork/TLS plugin or OpenSSL shared dependency.
+    # Keep the legacy OpenSSL 1.x text in source, not in this payload.
+    [ "$(basename "$text")" = LICENSE.OpenSSL.txt ] && continue
     cp "$text" "$(basename "$text")"
 done
 
+%if %{with_gui}
+cp packaging/licenses/qt/THIRD-PARTY-NOTICES.txt LICENSE.qt-third-party.txt
+%endif
+
 # Exact interpreter component notices, independently associated with the
-# reviewed optimized build. Zstandard's absent full-archive notice comes from
-# its checksum-pinned source archive; all other bytes come from the full build.
+# reviewed optimized build. All bytes come from the full build; Zstandard's
+# notice also matches its checksum-pinned source archive.
 # Basenames are distinct from the generic term/wheel texts above.
 for text in packaging/licenses/interpreter/*.txt; do
     cp "$text" "$(basename "$text")"
@@ -624,14 +632,14 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 # Named one by one rather than globbed: a wheel that stops shipping its
 # license text fails the build here instead of quietly dropping it.
 %if %{with_gui}
-%license LICENSE LICENSE.LGPL-3.0.txt LICENSE.bleak LICENSE.dbus_fast
+%license LICENSE LICENSE.LGPL-3.0.txt LICENSE.qt-third-party.txt LICENSE.bleak LICENSE.dbus_fast
 %else
 %license LICENSE LICENSE.bleak LICENSE.dbus_fast
 %endif
 %license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.babel
 %license LICENSE.voluptuous
-%license LICENSE.typing_extensions LICENSE.cpython
-%license LICENSE.Apache-2.0.txt LICENSE.OpenSSL.txt LICENSE.X11.txt
+%license LICENSE.typing_extensions LICENSE.cpython LICENSE.cpython.txt
+%license LICENSE.Apache-2.0.txt LICENSE.X11.txt
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt
 %license LICENSE.bdb.txt LICENSE.bzip2.txt LICENSE.expat.txt LICENSE.libedit.txt

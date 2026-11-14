@@ -47,9 +47,10 @@ def package_tree(tree):
 
 def test_complete_package_verification_and_effective_variants(tool):
     variants = tool["verify_package_variants"]()
-    assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt"}
+    assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"}
     assert "LICENSE.sqlite.txt" in variants["headless"]["licenses"]
     assert "LICENSE.cpython" in variants["headless"]["licenses"]
+    assert "LICENSE.cpython.txt" in variants["headless"]["licenses"]
     assert tool["main"](["verify"]) == 0
 
 
@@ -61,6 +62,22 @@ def test_component_notice_requires_exact_source_bytes(tool, package_tree, state)
     else:
         path.write_bytes(b"" if state == "empty" else b"substitute public-domain text")
     with pytest.raises(tool["MetadataError"], match="sqlite"):
+        tool["verify_package_variants"](package_tree)
+
+
+def test_cpython_source_notice_is_required_and_digest_checked(tool, package_tree):
+    path = package_tree / "packaging/licenses/interpreter/LICENSE.cpython.txt"
+    path.write_bytes(b"substituted source notice")
+    with pytest.raises(tool["MetadataError"], match="cpython"):
+        tool["verify_package_variants"](package_tree)
+
+
+def test_cpython_mersenne_twister_notice_must_be_installed(tool, package_tree):
+    notice = package_tree / "packaging/licenses/interpreter/LICENSE.cpython.txt"
+    assert "Mersenne Twister" in notice.read_text()
+    spec = package_tree / "packaging/idasen-companion-bundled.spec"
+    spec.write_text(spec.read_text().replace(" LICENSE.cpython.txt", ""))
+    with pytest.raises(tool["MetadataError"], match="cpython missing installed notice LICENSE.cpython.txt"):
         tool["verify_package_variants"](package_tree)
 
 
@@ -124,7 +141,7 @@ def test_current_snapshot_verifies(capsys):
     assert tool["main"](["verify-metadata"]) == 0
     output = capsys.readouterr().out
     assert "16 retained extensions" in output
-    assert "12 terms" in output
+    assert "11 terms" in output
 
 
 def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
@@ -138,9 +155,9 @@ def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
     assert set(inventory["excluded"]) == {"_tkinter"}
     assert inventory["build_only"] == ["setuptools"]
     assert "TCL" not in inventory["terms"]
-    assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "zstd"
+    assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "full"
     assert "licenses/LICENSE.zlib-ng.txt" not in provenance["notices"]
-    assert "licenses/LICENSE.openssl-1.1.txt" in inventory["components"]["_ssl"]["license_paths"]
+    assert "licenses/LICENSE.openssl-1.1.txt" not in inventory["components"]["_ssl"]["license_paths"]
     assert "licenses/LICENSE.openssl-1.1.txt" not in provenance["notices"]
     assert "licenses/LICENSE.openssl-3.txt" in provenance["notices"]
 
@@ -264,11 +281,11 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     raw = (ROOT / "packaging/interpreter/PYTHON.json").read_bytes()
     install = archive_bytes([(name, b"not executable", tarfile.REGTYPE)
                              for name in provenance["install_members"]])
+    source_notice = b"exact reviewed source bytes"
     full = archive_bytes([("python/PYTHON.json", raw, tarfile.REGTYPE)] + [
-        (notice["member"], path.encode(), tarfile.REGTYPE)
+        (notice["member"], source_notice if path == "licenses/LICENSE.zstd.txt" else path.encode(), tarfile.REGTYPE)
         for path, notice in provenance["notices"].items() if notice["archive"] == "full"
     ])
-    source_notice = b"exact reviewed source bytes"
     source = archive_bytes([(tool["ZSTD_MEMBER"], source_notice, tarfile.REGTYPE)])
     argv = ["--root", str(tree), "refresh"]
     for name, contents in (("install", install), ("full", full), ("zstd", source)):
@@ -280,7 +297,7 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     fetcher.write_text(fetcher.read_text().replace(provenance["identity"]["sha256"], tool["digest"](install)))
     output = tree / "packaging/interpreter"
     argv += ["--metadata-sha256", tool["digest"](raw), "--metadata-size", str(len(raw)),
-             "--zstd-license-sha256", tool["digest"](source_notice), "--release", "20260814",
+             "--zstd-license-sha256", tool["digest"](source_notice), "--release", provenance["identity"]["release"],
              "--source-commit", provenance["source_commit"], "--output", str(output)]
     assert tool["main"](argv) == 0
     before = {path.name: path.read_bytes() for path in output.iterdir()}
@@ -289,6 +306,10 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     assert inventory == provenance["inventory"]
     assert tool["main"](argv) == 0
     assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+    argv[argv.index("--zstd-license-sha256") + 1] = "0" * 64
+    assert tool["main"](argv) == 1
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+    argv[argv.index("--zstd-license-sha256") + 1] = tool["digest"](source_notice)
     argv[argv.index("--metadata-sha256") + 1] = "0" * 64
     assert tool["main"](argv) == 1
     assert {path.name: path.read_bytes() for path in output.iterdir()} == before
@@ -347,7 +368,10 @@ def test_fetcher_checks_metadata_before_curl_or_output_creation(package_tree, tm
     assert called.read_text() == "reached"
     called.unlink()
     text = fetcher.read_text()
-    fetcher.write_text(text.replace('INTERPRETER_SHA256="cefba', 'INTERPRETER_SHA256="0efba'))
+    expected_hash = json.loads((tree / "packaging/interpreter/PROVENANCE.json").read_text())["identity"]["sha256"]
+    replacement = ("0" if expected_hash[0] != "0" else "1") + expected_hash[1:]
+    assert f'INTERPRETER_SHA256="{expected_hash}"' in text
+    fetcher.write_text(text.replace(f'INTERPRETER_SHA256="{expected_hash}"', f'INTERPRETER_SHA256="{replacement}"'))
     stale_output = tmp_path / "stale-output"
     stale = run_process(["bash", str(fetcher), str(stale_output)],
                         capture_output=True, text=True, check=False, env=env, timeout=15)

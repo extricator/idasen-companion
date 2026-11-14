@@ -1,14 +1,14 @@
 {
   "archives": {
     "full": {
-      "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
-      "sha256": "e7118e0773e047a9d732146216d1d162ba80673a13db434520cd4a9be49c912c",
-      "size": 126591133
+      "asset": "cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+      "sha256": "4730c0dc79e7eecbe54a323d587fdeaab621094fe09b5827167d69045115fcbc",
+      "size": 114879558
     },
     "install": {
-      "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
-      "sha256": "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533",
-      "size": 35857286
+      "asset": "cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30",
+      "size": 36875876
     },
     "zstd": {
       "asset": "zstd-1.5.7.tar.gz",
@@ -17,14 +17,14 @@
     }
   },
   "identity": {
-    "asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+    "asset": "cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
     "build_options": "pgo+lto",
-    "full_asset": "cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
-    "python_version": "3.14.7",
-    "release": "20260814",
-    "sha256": "cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533",
+    "full_asset": "cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-pgo+lto-full.tar.zst",
+    "python_version": "3.14.10",
+    "release": "20261110",
+    "sha256": "c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30",
     "target_triple": "x86_64-unknown-linux-gnu",
-    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.14.7%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261110/cpython-3.14.10%2B20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
   },
   "install_members": [
     "python/bin/python3.14",
@@ -115,31 +115,16 @@
         ],
         "shared_lib": null
       },
-      "_elementtree": {
-        "dependencies": [
-          "expat"
-        ],
-        "license_paths": [
-          "licenses/LICENSE.expat.txt"
-        ],
-        "license_public_domain": false,
-        "licenses": [
-          "MIT"
-        ],
-        "shared_lib": null
-      },
       "_hashlib": {
         "dependencies": [
           "crypto"
         ],
         "license_paths": [
-          "licenses/LICENSE.openssl-1.1.txt",
           "licenses/LICENSE.openssl-3.txt"
         ],
         "license_public_domain": false,
         "licenses": [
-          "Apache-2.0",
-          "OpenSSL"
+          "Apache-2.0"
         ],
         "shared_lib": null
       },
@@ -173,13 +158,11 @@
           "ssl"
         ],
         "license_paths": [
-          "licenses/LICENSE.openssl-1.1.txt",
           "licenses/LICENSE.openssl-3.txt"
         ],
         "license_public_domain": false,
         "licenses": [
-          "Apache-2.0",
-          "OpenSSL"
+          "Apache-2.0"
         ],
         "shared_lib": null
       },
@@ -206,6 +189,20 @@
         "license_public_domain": false,
         "licenses": [
           "BSD-3-Clause"
+        ],
+        "shared_lib": null
+      },
+      "binascii": {
+        "dependencies": [
+          "z"
+        ],
+        "license_paths": [
+          "licenses/LICENSE.zlib-ng.txt",
+          "licenses/LICENSE.zlib.txt"
+        ],
+        "license_public_domain": false,
+        "licenses": [
+          "Zlib"
         ],
         "shared_lib": null
       },
@@ -265,19 +262,25 @@
         "dependencies": [
           "X11",
           "Xau",
-          "xcb"
+          "tclstub",
+          "tkstub",
+          "xcb",
+          "z"
         ],
         "license_paths": [
           "licenses/LICENSE.libX11.txt",
           "licenses/LICENSE.libXau.txt",
           "licenses/LICENSE.libxcb.txt",
-          "licenses/LICENSE.tcl.txt"
+          "licenses/LICENSE.tcl.txt",
+          "licenses/LICENSE.zlib-ng.txt",
+          "licenses/LICENSE.zlib.txt"
         ],
         "license_public_domain": false,
         "licenses": [
           "MIT",
           "TCL",
-          "X11"
+          "X11",
+          "Zlib"
         ],
         "shared_lib": "install/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so",
         "trim_patterns": [
@@ -292,7 +295,6 @@
       "BSD-3-Clause",
       "CNRI-Python",
       "MIT",
-      "OpenSSL",
       "Python-2.0",
       "Sleepycat",
       "X11",
@@ -302,15 +304,15 @@
   },
   "limitations": [
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
-    "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
-    "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
-    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.7 and selects LICENSE.openssl-3.txt only.",
+    "licenses/LICENSE.zstd.txt in the full archive matches the digest-bound source LICENSE.",
+    "licenses/LICENSE.zlib-ng.txt is present as an upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "OpenSSL metadata names LICENSE.openssl-3.txt only; this reviewed build uses OpenSSL 3.5.9.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding."
   ],
   "metadata": {
     "member": "python/PYTHON.json",
-    "sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
-    "size": 128283
+    "sha256": "41a252f6b1aa1399768a31575aa42f6fe3190acaddc72eb1baf067fa01f30737",
+    "size": 139908
   },
   "notices": {
     "licenses/LICENSE.bdb.txt": {
@@ -401,28 +403,28 @@
       "archive": "full",
       "file": "packaging/licenses/interpreter/LICENSE.zlib.txt",
       "member": "python/licenses/LICENSE.zlib.txt",
-      "sha256": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
-      "size": 995
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+      "size": 1002
     },
     "licenses/LICENSE.zstd.txt": {
-      "archive": "zstd",
+      "archive": "full",
       "file": "packaging/licenses/interpreter/LICENSE.zstd.txt",
-      "member": "cpython-source-deps-zstd-1.5.7/LICENSE",
+      "member": "python/licenses/LICENSE.zstd.txt",
       "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
       "size": 1549
     }
   },
   "openssl_notice_selection": {
-    "evidence": "pythonbuild/downloads.py:267-274 and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
+    "evidence": "pythonbuild/downloads.json and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
     "metadata_alternate": "licenses/LICENSE.openssl-1.1.txt",
-    "metadata_sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
+    "metadata_sha256": "41a252f6b1aa1399768a31575aa42f6fe3190acaddc72eb1baf067fa01f30737",
     "selected": "licenses/LICENSE.openssl-3.txt",
-    "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
-    "version": "3.5.7"
+    "source_commit": "9244801782b78e4c4afc5c82a4524aa2101d3298",
+    "version": "3.5.9"
   },
   "schema": 1,
-  "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
-  "source_url": "https://github.com/astral-sh/python-build-standalone/tree/38d35dcf0e212ca02eed8ebc11d0c92906387d56",
+  "source_commit": "9244801782b78e4c4afc5c82a4524aa2101d3298",
+  "source_url": "https://github.com/astral-sh/python-build-standalone/tree/9244801782b78e4c4afc5c82a4524aa2101d3298",
   "trim_patterns": [
     "lib/libpython3*.so*",
     "lib/libtcl*.so",

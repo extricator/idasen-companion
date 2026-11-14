@@ -30,9 +30,9 @@ PYTHON=${PYTHON:-python3}
 # reviewed -- and it is the whole of the integrity gate available, since
 # upstream signs no individual asset.
 # ---------------------------------------------------------------------------
-INTERPRETER_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.14.7%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
-INTERPRETER_ASSET="cpython-3.14.7+20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
-INTERPRETER_SHA256="cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c457533"
+INTERPRETER_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20261110/cpython-3.14.10%2B20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+INTERPRETER_ASSET="cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+INTERPRETER_SHA256="c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30"
 
 # ---------------------------------------------------------------------------
 # The bundled distributions, pinned exactly. Nothing here floats: the tarball
@@ -42,13 +42,13 @@ INTERPRETER_SHA256="cefba034445d2875408d1fd4d5700ae6731563aeb54dcb39fd8164ab5c45
 # released. Bump a line here and the spec's matching line together.
 # ---------------------------------------------------------------------------
 PINS=(
-    "PySide6-Essentials==6.11.1"
-    "shiboken6==6.11.1"
-    "bleak==3.0.2"
-    "idasen==0.13.1"
-    "dbus-fast==5.0.22"
+    "PySide6-Essentials==6.12.0"
+    "shiboken6==6.12.0"
+    "bleak==3.1.0"
+    "idasen==0.14.0"
+    "dbus-fast==5.2.0"
     "PyYAML==6.0.3"
-    "tomlkit==0.15.1"
+    "tomlkit==0.15.2"
     "Babel==2.18.0"
     "voluptuous==0.16.0"
     # Imported by bleak on any interpreter below 3.12, and declared by it
@@ -72,7 +72,7 @@ PINS=(
 # names, and is discarded with the rest of that tree when the build ends.
 # ---------------------------------------------------------------------------
 BUILD_BACKEND=(
-    "setuptools==84.1.0"
+    "setuptools==84.2.1"
 )
 
 if [ $# -ne 1 ]; then

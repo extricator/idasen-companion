@@ -32,18 +32,18 @@ ZSTD_MEMBER = "cpython-source-deps-zstd-1.5.7/LICENSE"
 ZSTD_ASSET = "zstd-1.5.7.tar.gz"
 ZSTD_URL = "https://github.com/python/cpython-source-deps/archive/refs/tags/zstd-1.5.7.tar.gz"
 OPENSSL_NOTICE_SELECTION = {
-    "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
-    "metadata_sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
-    "version": "3.5.7",
+    "source_commit": "9244801782b78e4c4afc5c82a4524aa2101d3298",
+    "metadata_sha256": "41a252f6b1aa1399768a31575aa42f6fe3190acaddc72eb1baf067fa01f30737",
+    "version": "3.5.9",
     "selected": "licenses/LICENSE.openssl-3.txt",
     "metadata_alternate": "licenses/LICENSE.openssl-1.1.txt",
-    "evidence": "pythonbuild/downloads.py:267-274 and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
+    "evidence": "pythonbuild/downloads.json and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
 }
 LIMITATIONS = [
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
-    "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
-    "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
-    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.7 and selects LICENSE.openssl-3.txt only.",
+    "licenses/LICENSE.zstd.txt in the full archive matches the digest-bound source LICENSE.",
+    "licenses/LICENSE.zlib-ng.txt is present as an upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "OpenSSL metadata names LICENSE.openssl-3.txt only; this reviewed build uses OpenSSL 3.5.9.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding.",
 ]
 
@@ -240,9 +240,8 @@ def verify_metadata(root=ROOT):
     notices = provenance.get("notices", {})
     require(isinstance(notices, dict) and set(notices) == expected_paths, "missing/unexpected source notice associations")
     for path, notice in notices.items():
-        fallback = path == "licenses/LICENSE.zstd.txt"
-        require(isinstance(notice, dict) and notice.get("archive") == ("zstd" if fallback else "full")
-                and notice.get("member") == (ZSTD_MEMBER if fallback else f"python/{path}")
+        require(isinstance(notice, dict) and notice.get("archive") == "full"
+                and notice.get("member") == f"python/{path}"
                 and notice.get("file") == f"packaging/licenses/interpreter/{PurePosixPath(path).name}"
                 and type(notice.get("size")) is int and 0 < notice["size"] <= MAX_TEXT
                 and re.fullmatch(r"[0-9a-f]{64}", notice.get("sha256", "")), f"invalid notice association: {path}")
@@ -267,6 +266,7 @@ def verify_notice_sources(root=ROOT, components=()):
 
 
 QT_EXPRESSION = "(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)"
+QT_NATIVE_EXPRESSION = "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016 AND Unicode-3.0 AND CC0-1.0"
 FLAVOR_SELECTOR = '''%global release_flavor %{?release_flavor}%{!?release_flavor:full}
 %if "%{release_flavor}" == "headless"
 %global package_name idasen-companion-headless
@@ -328,8 +328,7 @@ def verify_package_variants(root=ROOT):
     """Reconcile independent terms and component texts in both current variants."""
     root = Path(root)
     inventory, provenance = verify_metadata(root)
-    cpython_path = inventory["cpython"]["license_path"]
-    notices = {path: entry for path, entry in provenance["notices"].items() if path != cpython_path}
+    notices = provenance["notices"]
     directory = root / "packaging/licenses/interpreter"
     actual = {path.name for path in directory.iterdir()} if directory.is_dir() else set()
     expected = {PurePosixPath(entry["file"]).name for entry in notices.values()}
@@ -348,6 +347,9 @@ def verify_package_variants(root=ROOT):
         sections = re.findall(r"^%install\n(.*?)^%check\n", effective, re.M | re.S)
         require(len(sections) == 1, f"{flavor}: expected one install/check staging section")
         staging = sections[0]
+        qt_copy = "cp packaging/licenses/qt/THIRD-PARTY-NOTICES.txt LICENSE.qt-third-party.txt"
+        require(staging.splitlines().count(qt_copy) == (1 if flavor == "full" else 0),
+                f"{flavor}: Qt native notice staging changed")
         require(staging.count(NOTICE_STAGING) == 1, f"{flavor}: component notice staging changed")
         require(staging.splitlines().count(CPYTHON_COPY) == 1, f"{flavor}: cpython source copy changed")
         for component, record in dict(inventory["components"], cpython=inventory["cpython"]).items():
@@ -355,7 +357,7 @@ def verify_package_variants(root=ROOT):
             paths = selected_notice_paths(paths, provenance["metadata"]["sha256"], provenance["source_commit"])
             paths.discard("licenses/LICENSE.zlib-ng.txt")
             for path in paths:
-                name = "LICENSE.cpython" if path == cpython_path else PurePosixPath(notices[path]["file"]).name
+                name = PurePosixPath(notices[path]["file"]).name
                 require(name in observed["licenses"], f"{flavor}: {component} missing installed notice {name}")
         variants[flavor] = observed
     full, headless = variants["full"], variants["headless"]
@@ -363,10 +365,10 @@ def verify_package_variants(root=ROOT):
     require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.+-]*(?: AND [A-Za-z0-9][A-Za-z0-9.+-]*)*", headless["expression"])
             and headless["terms"] == set(inventory["terms"]) | {"GPL-3.0-or-later", "PSF-2.0"},
             "headless: package terms disagree with interpreter plus app/wheel terms")
-    require(full["expression"] == headless["expression"] + " AND " + QT_EXPRESSION,
+    require(full["expression"] == headless["expression"] + " AND " + QT_EXPRESSION + " AND " + QT_NATIVE_EXPRESSION,
             "full: expected exact Qt expression delta from headless")
-    require(full["licenses"] == headless["licenses"] | {"LICENSE.LGPL-3.0.txt"}
-            and "LICENSE.LGPL-3.0.txt" not in headless["licenses"],
+    require(full["licenses"] == headless["licenses"] | {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"}
+            and not {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"} & headless["licenses"],
             "full/headless: expected exact Qt notice delta")
     return variants
 
@@ -470,16 +472,15 @@ def refresh(args):
     # Exact upstream alternate-path gap; Unix build uses ordinary zlib.
     paths.discard("licenses/LICENSE.zlib-ng.txt")
     paths = selected_notice_paths(paths, digest(raw), args.source_commit)
-    paths.discard("licenses/LICENSE.zstd.txt")
     full_notices, _ = read_archive(args.full_archive, {f"python/{path}": MAX_TEXT for path in paths})
     source, _ = read_archive(args.zstd_archive, {ZSTD_MEMBER: MAX_TEXT})
     require(digest(source[ZSTD_MEMBER]) == args.zstd_license_sha256, "reviewed Zstandard LICENSE hash disagrees")
+    require(full_notices["python/licenses/LICENSE.zstd.txt"] == source[ZSTD_MEMBER], "full and source Zstandard LICENSE disagree")
     notices = {}
-    for path in sorted(paths | {"licenses/LICENSE.zstd.txt"}):
-        fallback = path == "licenses/LICENSE.zstd.txt"
-        member = ZSTD_MEMBER if fallback else f"python/{path}"
-        data = source[member] if fallback else full_notices[member]
-        notices[path] = {"archive": "zstd" if fallback else "full", "member": member,
+    for path in sorted(paths):
+        member = f"python/{path}"
+        data = full_notices[member]
+        notices[path] = {"archive": "full", "member": member,
                          "sha256": digest(data), "size": len(data),
                          "file": f"packaging/licenses/interpreter/{PurePosixPath(path).name}"}
     provenance = {"schema": 1, "identity": identity, "source_commit": args.source_commit,

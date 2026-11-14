@@ -90,6 +90,7 @@ include packaging/flatpak/io.github.extricator.IdasenCompanion.yaml
 # The packaging suite audits the generated offline dependency lock from an
 # unpacked sdist during the bundled RPM build.
 include packaging/flatpak/python3-deps.json
+include packaging/flatpak/gen-python-deps.py
 # A packaging test reads three of the new .deb build-metadata files as text
 # after the sdist is unpacked, so they must ship the same way the two app
 # spec files above do — named individually, not swept in with everything
@@ -167,3 +168,13 @@ include scripts/verify-bundled-bytecode.sh
 include scripts/verify-rpm-portability.sh
 recursive-include po *.po *.pot
 recursive-include src/idasen_companion/locale *.mo
+
+include packaging/bundled-components.json
+include packaging/attribution/rpm-qt.json
+include packaging/attribution/flatpak-native.json
+include packaging/licenses/flatpak/THIRD-PARTY-NOTICES.txt
+include packaging/licenses/qt/THIRD-PARTY-NOTICES.txt
+include scripts/verify-rpm-attribution.py
+include scripts/verify-flatpak-attribution.py
+include tests/test_rpm_attribution.py
+include tests/test_flatpak_attribution.py

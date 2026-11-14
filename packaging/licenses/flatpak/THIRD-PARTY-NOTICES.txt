@@ -1,0 +1,2834 @@
+PySide6 and Shiboken6: license texts from pyside-setup commit d03d006d7b1db58074ca9cae26356376788a769e.
+
+Source examples: sources/pyside6/libpyside/pyside.cpp
+Copyright (C) 2016 The Qt Company Ltd.
+
+sources/shiboken6/libshiboken/basewrapper.cpp
+Copyright (C) 2019 The Qt Company Ltd.
+
+----- upstream LICENSES/LGPL-3.0-only.txt -----
+                   GNU LESSER GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+
+  This version of the GNU Lesser General Public License incorporates
+the terms and conditions of version 3 of the GNU General Public
+License, supplemented by the additional permissions listed below.
+
+  0. Additional Definitions.
+
+  As used herein, "this License" refers to version 3 of the GNU Lesser
+General Public License, and the "GNU GPL" refers to version 3 of the GNU
+General Public License.
+
+  "The Library" refers to a covered work governed by this License,
+other than an Application or a Combined Work as defined below.
+
+  An "Application" is any work that makes use of an interface provided
+by the Library, but which is not otherwise based on the Library.
+Defining a subclass of a class defined by the Library is deemed a mode
+of using an interface provided by the Library.
+
+  A "Combined Work" is a work produced by combining or linking an
+Application with the Library.  The particular version of the Library
+with which the Combined Work was made is also called the "Linked
+Version".
+
+  The "Minimal Corresponding Source" for a Combined Work means the
+Corresponding Source for the Combined Work, excluding any source code
+for portions of the Combined Work that, considered in isolation, are
+based on the Application, and not on the Linked Version.
+
+  The "Corresponding Application Code" for a Combined Work means the
+object code and/or source code for the Application, including any data
+and utility programs needed for reproducing the Combined Work from the
+Application, but excluding the System Libraries of the Combined Work.
+
+  1. Exception to Section 3 of the GNU GPL.
+
+  You may convey a covered work under sections 3 and 4 of this License
+without being bound by section 3 of the GNU GPL.
+
+  2. Conveying Modified Versions.
+
+  If you modify a copy of the Library, and, in your modifications, a
+facility refers to a function or data to be supplied by an Application
+that uses the facility (other than as an argument passed when the
+facility is invoked), then you may convey a copy of the modified
+version:
+
+   a) under this License, provided that you make a good faith effort to
+   ensure that, in the event an Application does not supply the
+   function or data, the facility still operates, and performs
+   whatever part of its purpose remains meaningful, or
+
+   b) under the GNU GPL, with none of the additional permissions of
+   this License applicable to that copy.
+
+  3. Object Code Incorporating Material from Library Header Files.
+
+  The object code form of an Application may incorporate material from
+a header file that is part of the Library.  You may convey such object
+code under terms of your choice, provided that, if the incorporated
+material is not limited to numerical parameters, data structure
+layouts and accessors, or small macros, inline functions and templates
+(ten or fewer lines in length), you do both of the following:
+
+   a) Give prominent notice with each copy of the object code that the
+   Library is used in it and that the Library and its use are
+   covered by this License.
+
+   b) Accompany the object code with a copy of the GNU GPL and this license
+   document.
+
+  4. Combined Works.
+
+  You may convey a Combined Work under terms of your choice that,
+taken together, effectively do not restrict modification of the
+portions of the Library contained in the Combined Work and reverse
+engineering for debugging such modifications, if you also do each of
+the following:
+
+   a) Give prominent notice with each copy of the Combined Work that
+   the Library is used in it and that the Library and its use are
+   covered by this License.
+
+   b) Accompany the Combined Work with a copy of the GNU GPL and this license
+   document.
+
+   c) For a Combined Work that displays copyright notices during
+   execution, include the copyright notice for the Library among
+   these notices, as well as a reference directing the user to the
+   copies of the GNU GPL and this license document.
+
+   d) Do one of the following:
+
+       0) Convey the Minimal Corresponding Source under the terms of this
+       License, and the Corresponding Application Code in a form
+       suitable for, and under terms that permit, the user to
+       recombine or relink the Application with a modified version of
+       the Linked Version to produce a modified Combined Work, in the
+       manner specified by section 6 of the GNU GPL for conveying
+       Corresponding Source.
+
+       1) Use a suitable shared library mechanism for linking with the
+       Library.  A suitable mechanism is one that (a) uses at run time
+       a copy of the Library already present on the user's computer
+       system, and (b) will operate properly with a modified version
+       of the Library that is interface-compatible with the Linked
+       Version.
+
+   e) Provide Installation Information, but only if you would otherwise
+   be required to provide such information under section 6 of the
+   GNU GPL, and only to the extent that such information is
+   necessary to install and execute a modified version of the
+   Combined Work produced by recombining or relinking the
+   Application with a modified version of the Linked Version. (If
+   you use option 4d0, the Installation Information must accompany
+   the Minimal Corresponding Source and Corresponding Application
+   Code. If you use option 4d1, you must provide the Installation
+   Information in the manner specified by section 6 of the GNU GPL
+   for conveying Corresponding Source.)
+
+  5. Combined Libraries.
+
+  You may place library facilities that are a work based on the
+Library side by side in a single library together with other library
+facilities that are not Applications and are not covered by this
+License, and convey such a combined library under terms of your
+choice, if you do both of the following:
+
+   a) Accompany the combined library with a copy of the same work based
+   on the Library, uncombined with any other library facilities,
+   conveyed under the terms of this License.
+
+   b) Give prominent notice with the combined library that part of it
+   is a work based on the Library, and explaining where to find the
+   accompanying uncombined form of the same work.
+
+  6. Revised Versions of the GNU Lesser General Public License.
+
+  The Free Software Foundation may publish revised and/or new versions
+of the GNU Lesser General Public License from time to time. Such new
+versions will be similar in spirit to the present version, but may
+differ in detail to address new problems or concerns.
+
+  Each version is given a distinguishing version number. If the
+Library as you received it specifies that a certain numbered version
+of the GNU Lesser General Public License "or any later version"
+applies to it, you have the option of following the terms and
+conditions either of that published version or of any later version
+published by the Free Software Foundation. If the Library as you
+received it does not specify a version number of the GNU Lesser
+General Public License, you may choose any version of the GNU Lesser
+General Public License ever published by the Free Software Foundation.
+
+  If the Library as you received it specifies that a proxy can decide
+whether future versions of the GNU Lesser General Public License shall
+apply, that proxy's public statement of acceptance of any version is
+permanent authorization for you to choose that version for the
+Library.
+
+----- upstream LICENSES/GPL-2.0-only.txt -----
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 2, June 1991
+
+ Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The licenses for most software are designed to take away your
+freedom to share and change it.  By contrast, the GNU General Public
+License is intended to guarantee your freedom to share and change free
+software--to make sure the software is free for all its users.  This
+General Public License applies to most of the Free Software
+Foundation's software and to any other program whose authors commit to
+using it.  (Some other Free Software Foundation software is covered by
+the GNU Lesser General Public License instead.)  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+this service if you wish), that you receive source code or can get it
+if you want it, that you can change the software or use pieces of it
+in new free programs; and that you know you can do these things.
+
+  To protect your rights, we need to make restrictions that forbid
+anyone to deny you these rights or to ask you to surrender the rights.
+These restrictions translate to certain responsibilities for you if you
+distribute copies of the software, or if you modify it.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must give the recipients all the rights that
+you have.  You must make sure that they, too, receive or can get the
+source code.  And you must show them these terms so they know their
+rights.
+
+  We protect your rights with two steps: (1) copyright the software, and
+(2) offer you this license which gives you legal permission to copy,
+distribute and/or modify the software.
+
+  Also, for each author's protection and ours, we want to make certain
+that everyone understands that there is no warranty for this free
+software.  If the software is modified by someone else and passed on, we
+want its recipients to know that what they have is not the original, so
+that any problems introduced by others will not reflect on the original
+authors' reputations.
+
+  Finally, any free program is threatened constantly by software
+patents.  We wish to avoid the danger that redistributors of a free
+program will individually obtain patent licenses, in effect making the
+program proprietary.  To prevent this, we have made it clear that any
+patent must be licensed for everyone's free use or not licensed at all.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                    GNU GENERAL PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. This License applies to any program or other work which contains
+a notice placed by the copyright holder saying it may be distributed
+under the terms of this General Public License.  The "Program", below,
+refers to any such program or work, and a "work based on the Program"
+means either the Program or any derivative work under copyright law:
+that is to say, a work containing the Program or a portion of it,
+either verbatim or with modifications and/or translated into another
+language.  (Hereinafter, translation is included without limitation in
+the term "modification".)  Each licensee is addressed as "you".
+
+Activities other than copying, distribution and modification are not
+covered by this License; they are outside its scope.  The act of
+running the Program is not restricted, and the output from the Program
+is covered only if its contents constitute a work based on the
+Program (independent of having been made by running the Program).
+Whether that is true depends on what the Program does.
+
+  1. You may copy and distribute verbatim copies of the Program's
+source code as you receive it, in any medium, provided that you
+conspicuously and appropriately publish on each copy an appropriate
+copyright notice and disclaimer of warranty; keep intact all the
+notices that refer to this License and to the absence of any warranty;
+and give any other recipients of the Program a copy of this License
+along with the Program.
+
+You may charge a fee for the physical act of transferring a copy, and
+you may at your option offer warranty protection in exchange for a fee.
+
+  2. You may modify your copy or copies of the Program or any portion
+of it, thus forming a work based on the Program, and copy and
+distribute such modifications or work under the terms of Section 1
+above, provided that you also meet all of these conditions:
+
+    a) You must cause the modified files to carry prominent notices
+    stating that you changed the files and the date of any change.
+
+    b) You must cause any work that you distribute or publish, that in
+    whole or in part contains or is derived from the Program or any
+    part thereof, to be licensed as a whole at no charge to all third
+    parties under the terms of this License.
+
+    c) If the modified program normally reads commands interactively
+    when run, you must cause it, when started running for such
+    interactive use in the most ordinary way, to print or display an
+    announcement including an appropriate copyright notice and a
+    notice that there is no warranty (or else, saying that you provide
+    a warranty) and that users may redistribute the program under
+    these conditions, and telling the user how to view a copy of this
+    License.  (Exception: if the Program itself is interactive but
+    does not normally print such an announcement, your work based on
+    the Program is not required to print an announcement.)
+
+These requirements apply to the modified work as a whole.  If
+identifiable sections of that work are not derived from the Program,
+and can be reasonably considered independent and separate works in
+themselves, then this License, and its terms, do not apply to those
+sections when you distribute them as separate works.  But when you
+distribute the same sections as part of a whole which is a work based
+on the Program, the distribution of the whole must be on the terms of
+this License, whose permissions for other licensees extend to the
+entire whole, and thus to each and every part regardless of who wrote it.
+
+Thus, it is not the intent of this section to claim rights or contest
+your rights to work written entirely by you; rather, the intent is to
+exercise the right to control the distribution of derivative or
+collective works based on the Program.
+
+In addition, mere aggregation of another work not based on the Program
+with the Program (or with a work based on the Program) on a volume of
+a storage or distribution medium does not bring the other work under
+the scope of this License.
+
+  3. You may copy and distribute the Program (or a work based on it,
+under Section 2) in object code or executable form under the terms of
+Sections 1 and 2 above provided that you also do one of the following:
+
+    a) Accompany it with the complete corresponding machine-readable
+    source code, which must be distributed under the terms of Sections
+    1 and 2 above on a medium customarily used for software interchange; or,
+
+    b) Accompany it with a written offer, valid for at least three
+    years, to give any third party, for a charge no more than your
+    cost of physically performing source distribution, a complete
+    machine-readable copy of the corresponding source code, to be
+    distributed under the terms of Sections 1 and 2 above on a medium
+    customarily used for software interchange; or,
+
+    c) Accompany it with the information you received as to the offer
+    to distribute corresponding source code.  (This alternative is
+    allowed only for noncommercial distribution and only if you
+    received the program in object code or executable form with such
+    an offer, in accord with Subsection b above.)
+
+The source code for a work means the preferred form of the work for
+making modifications to it.  For an executable work, complete source
+code means all the source code for all modules it contains, plus any
+associated interface definition files, plus the scripts used to
+control compilation and installation of the executable.  However, as a
+special exception, the source code distributed need not include
+anything that is normally distributed (in either source or binary
+form) with the major components (compiler, kernel, and so on) of the
+operating system on which the executable runs, unless that component
+itself accompanies the executable.
+
+If distribution of executable or object code is made by offering
+access to copy from a designated place, then offering equivalent
+access to copy the source code from the same place counts as
+distribution of the source code, even though third parties are not
+compelled to copy the source along with the object code.
+
+  4. You may not copy, modify, sublicense, or distribute the Program
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense or distribute the Program is
+void, and will automatically terminate your rights under this License.
+However, parties who have received copies, or rights, from you under
+this License will not have their licenses terminated so long as such
+parties remain in full compliance.
+
+  5. You are not required to accept this License, since you have not
+signed it.  However, nothing else grants you permission to modify or
+distribute the Program or its derivative works.  These actions are
+prohibited by law if you do not accept this License.  Therefore, by
+modifying or distributing the Program (or any work based on the
+Program), you indicate your acceptance of this License to do so, and
+all its terms and conditions for copying, distributing or modifying
+the Program or works based on it.
+
+  6. Each time you redistribute the Program (or any work based on the
+Program), the recipient automatically receives a license from the
+original licensor to copy, distribute or modify the Program subject to
+these terms and conditions.  You may not impose any further
+restrictions on the recipients' exercise of the rights granted herein.
+You are not responsible for enforcing compliance by third parties to
+this License.
+
+  7. If, as a consequence of a court judgment or allegation of patent
+infringement or for any other reason (not limited to patent issues),
+conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot
+distribute so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you
+may not distribute the Program at all.  For example, if a patent
+license would not permit royalty-free redistribution of the Program by
+all those who receive copies directly or indirectly through you, then
+the only way you could satisfy both it and this License would be to
+refrain entirely from distribution of the Program.
+
+If any portion of this section is held invalid or unenforceable under
+any particular circumstance, the balance of the section is intended to
+apply and the section as a whole is intended to apply in other
+circumstances.
+
+It is not the purpose of this section to induce you to infringe any
+patents or other property right claims or to contest validity of any
+such claims; this section has the sole purpose of protecting the
+integrity of the free software distribution system, which is
+implemented by public license practices.  Many people have made
+generous contributions to the wide range of software distributed
+through that system in reliance on consistent application of that
+system; it is up to the author/donor to decide if he or she is willing
+to distribute software through any other system and a licensee cannot
+impose that choice.
+
+This section is intended to make thoroughly clear what is believed to
+be a consequence of the rest of this License.
+
+  8. If the distribution and/or use of the Program is restricted in
+certain countries either by patents or by copyrighted interfaces, the
+original copyright holder who places the Program under this License
+may add an explicit geographical distribution limitation excluding
+those countries, so that distribution is permitted only in or among
+countries not thus excluded.  In such case, this License incorporates
+the limitation as if written in the body of this License.
+
+  9. The Free Software Foundation may publish revised and/or new versions
+of the General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+Each version is given a distinguishing version number.  If the Program
+specifies a version number of this License which applies to it and "any
+later version", you have the option of following the terms and conditions
+either of that version or of any later version published by the Free
+Software Foundation.  If the Program does not specify a version number of
+this License, you may choose any version ever published by the Free Software
+Foundation.
+
+  10. If you wish to incorporate parts of the Program into other free
+programs whose distribution conditions are different, write to the author
+to ask for permission.  For software which is copyrighted by the Free
+Software Foundation, write to the Free Software Foundation; we sometimes
+make exceptions for this.  Our decision will be guided by the two goals
+of preserving the free status of all derivatives of our free software and
+of promoting the sharing and reuse of software generally.
+
+                            NO WARRANTY
+
+  11. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
+TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
+PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+  12. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+convey the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+Also add information on how to contact you by electronic and paper mail.
+
+If the program is interactive, make it output a short notice like this
+when it starts in an interactive mode:
+
+    Gnomovision version 69, Copyright (C) year name of author
+    Gnomovision comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.
+
+The hypothetical commands `show w' and `show c' should show the appropriate
+parts of the General Public License.  Of course, the commands you use may
+be called something other than `show w' and `show c'; they could even be
+mouse-clicks or menu items--whatever suits your program.
+
+You should also get your employer (if you work as a programmer) or your
+school, if any, to sign a "copyright disclaimer" for the program, if
+necessary.  Here is a sample; alter the names:
+
+  Yoyodyne, Inc., hereby disclaims all copyright interest in the program
+  `Gnomovision' (which makes passes at compilers) written by James Hacker.
+
+  <signature of Ty Coon>, 1 April 1989
+  Ty Coon, President of Vice
+
+This General Public License does not permit incorporating your program into
+proprietary programs.  If your program is a subroutine library, you may
+consider it more useful to permit linking proprietary applications with the
+library.  If this is what you want to do, use the GNU Lesser General
+Public License instead of this License.
+
+----- upstream LICENSES/GPL-3.0-only.txt -----
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+  For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+  Some devices are designed to deny users access to install or run
+modified versions of the software inside them, although the manufacturer
+can do so.  This is fundamentally incompatible with the aim of
+protecting users' freedom to change the software.  The systematic
+pattern of such abuse occurs in the area of products for individuals to
+use, which is precisely where it is most unacceptable.  Therefore, we
+have designed this version of the GPL to prohibit the practice for those
+products.  If such problems arise substantially in other domains, we
+stand ready to extend this provision to those domains in future versions
+of the GPL, as needed to protect the freedom of users.
+
+  Finally, every program is threatened constantly by software patents.
+States should not allow patents to restrict development and use of
+software on general-purpose computers, but in those that do, we wish to
+avoid the special danger that patents applied to a free program could
+make it effectively proprietary.  To prevent this, the GPL assures that
+patents cannot be used to render the program non-free.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU General Public License.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+License.  Each licensee is addressed as "you".  "Licensees" and
+"recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work
+in a fashion requiring copyright permission, other than the making of an
+exact copy.  The resulting work is called a "modified version" of the
+earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based
+on the Program.
+
+  To "propagate" a work means to do anything with it that, without
+permission, would make you directly or secondarily liable for
+infringement under applicable copyright law, except executing it on a
+computer or modifying a private copy.  Propagation includes copying,
+distribution (with or without modification), making available to the
+public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+parties to make or receive copies.  Mere interaction with a user through
+a computer network, with no transfer of a copy, is not conveying.
+
+  An interactive user interface displays "Appropriate Legal Notices"
+to the extent that it includes a convenient and prominently visible
+feature that (1) displays an appropriate copyright notice, and (2)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+content, constitutes a covered work.  This License acknowledges your
+rights of fair use or other equivalent, as provided by copyright law.
+
+  You may make, run and propagate covered works that you do not
+convey, without conditions so long as your license otherwise remains
+in force.  You may convey covered works to others for the sole purpose
+of having them make modifications exclusively for you, or provide you
+with facilities for running those works, provided that you comply with
+the terms of this License in conveying all material for which you do
+not control copyright.  Those thus making or running the covered works
+for you must do so exclusively on your behalf, under your direction
+and control, on terms that prohibit them from making any copies of
+your copyrighted material outside their relationship with you.
+
+  Conveying under any other circumstances is permitted solely under
+the conditions stated below.  Sublicensing is not allowed; section 10
+makes it unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+  No covered work shall be deemed part of an effective technological
+measure under any applicable law fulfilling obligations under article
+11 of the WIPO copyright treaty adopted on 20 December 1996, or
+similar laws prohibiting or restricting circumvention of such
+measures.
+
+  When you convey a covered work, you waive any legal power to forbid
+circumvention of technological measures to the extent such circumvention
+is effected by exercising rights under this License with respect to
+the covered work, and you disclaim any intention to limit operation or
+modification of the work as a means of enforcing, against the work's
+users, your or third parties' legal rights to forbid circumvention of
+technological measures.
+
+  4. Conveying Verbatim Copies.
+
+  You may convey verbatim copies of the Program's source code as you
+receive it, in any medium, provided that you conspicuously and
+appropriately publish on each copy an appropriate copyright notice;
+keep intact all notices stating that this License and any
+non-permissive terms added in accord with section 7 apply to the code;
+keep intact all notices of the absence of any warranty; and give all
+recipients a copy of this License along with the Program.
+
+  You may charge any price or no price for each copy that you convey,
+and you may offer support or warranty protection for a fee.
+
+  5. Conveying Modified Source Versions.
+
+  You may convey a work based on the Program, or the modifications to
+produce it from the Program, in the form of source code under the
+terms of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified
+    it, and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is
+    released under this License and any conditions added under section
+    7.  This requirement modifies the requirement in section 4 to
+    "keep intact all notices".
+
+    c) You must license the entire work, as a whole, under this
+    License to anyone who comes into possession of a copy.  This
+    License will therefore apply, along with any applicable section 7
+    additional terms, to the whole of the work, and all its parts,
+    regardless of how they are packaged.  This License gives no
+    permission to license the work in any other way, but it does not
+    invalidate such permission if you have separately received it.
+
+    d) If the work has interactive user interfaces, each must display
+    Appropriate Legal Notices; however, if the Program has interactive
+    interfaces that do not display Appropriate Legal Notices, your
+    work need not make them do so.
+
+  A compilation of a covered work with other separate and independent
+works, which are not by their nature extensions of the covered work,
+and which are not combined with it such as to form a larger program,
+in or on a volume of a storage or distribution medium, is called an
+"aggregate" if the compilation and its resulting copyright are not
+used to limit the access or legal rights of the compilation's users
+beyond what the individual works permit.  Inclusion of a covered work
+in an aggregate does not cause this License to apply to the other
+parts of the aggregate.
+
+  6. Conveying Non-Source Forms.
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, provided that you also convey the
+machine-readable Corresponding Source under the terms of this License,
+in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium
+    customarily used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a
+    written offer, valid for at least three years and valid for as
+    long as you offer spare parts or customer support for that product
+    model, to give anyone who possesses the object code either (1) a
+    copy of the Corresponding Source for all the software in the
+    product that is covered by this License, on a durable physical
+    medium customarily used for software interchange, for a price no
+    more than your reasonable cost of physically performing this
+    conveying of source, or (2) access to copy the
+    Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source.  This
+    alternative is allowed only occasionally and noncommercially, and
+    only if you received the object code with such an offer, in accord
+    with subsection 6b.
+
+    d) Convey the object code by offering access from a designated
+    place (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge.  You need not require recipients to copy the
+    Corresponding Source along with the object code.  If the place to
+    copy the object code is a network server, the Corresponding Source
+    may be on a different server (operated by you or a third party)
+    that supports equivalent copying facilities, provided you maintain
+    clear directions next to the object code saying where to find the
+    Corresponding Source.  Regardless of what server hosts the
+    Corresponding Source, you remain obligated to ensure that it is
+    available for as long as needed to satisfy these requirements.
+
+    e) Convey the object code using peer-to-peer transmission, provided
+    you inform other peers where the object code and Corresponding
+    Source of the work are being offered to the general public at no
+    charge under subsection 6d.
+
+  A separable portion of the object code, whose source code is excluded
+from the Corresponding Source as a System Library, need not be
+included in conveying the object code work.
+
+  A "User Product" is either (1) a "consumer product", which means any
+tangible personal property which is normally used for personal, family,
+or household purposes, or (2) anything designed or sold for incorporation
+into a dwelling.  In determining whether a product is a consumer product,
+doubtful cases shall be resolved in favor of coverage.  For a particular
+product received by a particular user, "normally used" refers to a
+typical or common use of that class of product, regardless of the status
+of the particular user or of the way in which the particular user
+actually uses, or expects or is expected to use, the product.  A product
+is a consumer product regardless of whether the product has substantial
+commercial, industrial or non-consumer uses, unless such uses represent
+the only significant mode of use of the product.
+
+  "Installation Information" for a User Product means any methods,
+procedures, authorization keys, or other information required to install
+and execute modified versions of a covered work in that User Product from
+a modified version of its Corresponding Source.  The information must
+suffice to ensure that the continued functioning of the modified object
+code is in no case prevented or interfered with solely because
+modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+specifically for use in, a User Product, and the conveying occurs as
+part of a transaction in which the right of possession and use of the
+User Product is transferred to the recipient in perpetuity or for a
+fixed term (regardless of how the transaction is characterized), the
+Corresponding Source conveyed under this section must be accompanied
+by the Installation Information.  But this requirement does not apply
+if neither you nor any third party retains the ability to install
+modified object code on the User Product (for example, the work has
+been installed in ROM).
+
+  The requirement to provide Installation Information does not include a
+requirement to continue to provide support service, warranty, or updates
+for a work that has been modified or installed by the recipient, or for
+the User Product in which it has been modified or installed.  Access to a
+network may be denied when the modification itself materially and
+adversely affects the operation of the network or violates the rules and
+protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided,
+in accord with this section must be in a format that is publicly
+documented (and with an implementation available to the public in
+source code form), and must require no special password or key for
+unpacking, reading or copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+Additional permissions that are applicable to the entire Program shall
+be treated as though they were included in this License, to the extent
+that they are valid under applicable law.  If additional permissions
+apply only to part of the Program, that part may be used separately
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+it.  (Additional permissions may be written to require their own
+removal in certain cases when you modify the work.)  You may place
+additional permissions on material, added by you to a covered work,
+for which you have or can give appropriate copyright permission.
+
+  Notwithstanding any other provision of this License, for material you
+add to a covered work, you may (if authorized by the copyright holders of
+that material) supplement the terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the
+    terms of sections 15 and 16 of this License; or
+
+    b) Requiring preservation of specified reasonable legal notices or
+    author attributions in that material or in the Appropriate Legal
+    Notices displayed by works containing it; or
+
+    c) Prohibiting misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version; or
+
+    d) Limiting the use for publicity purposes of names of licensors or
+    authors of the material; or
+
+    e) Declining to grant rights under trademark law for use of some
+    trade names, trademarks, or service marks; or
+
+    f) Requiring indemnification of licensors and authors of that
+    material by anyone who conveys the material (or modified versions of
+    it) with contractual assumptions of liability to the recipient, for
+    any liability that these contractual assumptions directly impose on
+    those licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+restrictions" within the meaning of section 10.  If the Program as you
+received it, or any part of it, contains a notice stating that it is
+governed by this License along with a term that is a further
+restriction, you may remove that term.  If a license document contains
+a further restriction but permits relicensing or conveying under this
+License, you may add to a covered work material governed by the terms
+of that license document, provided that the further restriction does
+not survive such relicensing or conveying.
+
+  If you add terms to a covered work in accord with this section, you
+must place, in the relevant source files, a statement of the
+additional terms that apply to those files, or a notice indicating
+where to find the applicable terms.
+
+  Additional terms, permissive or non-permissive, may be stated in the
+form of a separately written license, or stated as exceptions;
+the above requirements apply either way.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+provided under this License.  Any attempt otherwise to propagate or
+modify it is void, and will automatically terminate your rights under
+this License (including any patent licenses granted under the third
+paragraph of section 11).
+
+  However, if you cease all violation of this License, then your
+license from a particular copyright holder is reinstated (a)
+provisionally, unless and until the copyright holder explicitly and
+finally terminates your license, and (b) permanently, if the copyright
+holder fails to notify you of the violation by some reasonable means
+prior to 60 days after the cessation.
+
+  Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+copyright holder, and you cure the violation prior to 30 days after
+your receipt of the notice.
+
+  Termination of your rights under this section does not terminate the
+licenses of parties who have received copies or rights from you under
+this License.  If your rights have been terminated and not permanently
+reinstated, you do not qualify to receive new licenses for the same
+material under section 10.
+
+  9. Acceptance Not Required for Having Copies.
+
+  You are not required to accept this License in order to receive or
+run a copy of the Program.  Ancillary propagation of a covered work
+occurring solely as a consequence of using peer-to-peer transmission
+to receive a copy likewise does not require acceptance.  However,
+nothing other than this License grants you permission to propagate or
+modify any covered work.  These actions infringe copyright if you do
+not accept this License.  Therefore, by modifying or propagating a
+covered work, you indicate your acceptance of this License to do so.
+
+  10. Automatic Licensing of Downstream Recipients.
+
+  Each time you convey a covered work, the recipient automatically
+receives a license from the original licensors, to run, modify and
+propagate that work, subject to this License.  You are not responsible
+for enforcing compliance by third parties with this License.
+
+  An "entity transaction" is a transaction transferring control of an
+organization, or substantially all assets of one, or subdividing an
+organization, or merging organizations.  If propagation of a covered
+work results from an entity transaction, each party to that
+transaction who receives a copy of the work also receives whatever
+licenses to the work the party's predecessor in interest had or could
+give under the previous paragraph, plus a right to possession of the
+Corresponding Source of the work from the predecessor in interest, if
+the predecessor has it or can get it with reasonable efforts.
+
+  You may not impose any further restrictions on the exercise of the
+rights granted or affirmed under this License.  For example, you may
+not impose a license fee, royalty, or other charge for exercise of
+rights granted under this License, and you may not initiate litigation
+(including a cross-claim or counterclaim in a lawsuit) alleging that
+any patent claim is infringed by making, using, selling, offering for
+sale, or importing the Program or any portion of it.
+
+  11. Patents.
+
+  A "contributor" is a copyright holder who authorizes use under this
+License of the Program or a work on which the Program is based.  The
+work thus licensed is called the contributor's "contributor version".
+
+  A contributor's "essential patent claims" are all patent claims
+owned or controlled by the contributor, whether already acquired or
+hereafter acquired, that would be infringed by some manner, permitted
+by this License, of making, using, or selling its contributor version,
+but do not include claims that would be infringed only as a
+consequence of further modification of the contributor version.  For
+purposes of this definition, "control" includes the right to grant
+patent sublicenses in a manner consistent with the requirements of
+this License.
+
+  Each contributor grants you a non-exclusive, worldwide, royalty-free
+patent license under the contributor's essential patent claims, to
+make, use, sell, offer for sale, import and otherwise run, modify and
+propagate the contents of its contributor version.
+
+  In the following three paragraphs, a "patent license" is any express
+agreement or commitment, however denominated, not to enforce a patent
+(such as an express permission to practice a patent or covenant not to
+sue for patent infringement).  To "grant" such a patent license to a
+party means to make such an agreement or commitment not to enforce a
+patent against the party.
+
+  If you convey a covered work, knowingly relying on a patent license,
+and the Corresponding Source of the work is not available for anyone
+to copy, free of charge and under the terms of this License, through a
+publicly available network server or other readily accessible means,
+then you must either (1) cause the Corresponding Source to be so
+available, or (2) arrange to deprive yourself of the benefit of the
+patent license for this particular work, or (3) arrange, in a manner
+consistent with the requirements of this License, to extend the patent
+license to downstream recipients.  "Knowingly relying" means you have
+actual knowledge that, but for the patent license, your conveying the
+covered work in a country, or your recipient's use of the covered work
+in a country, would infringe one or more identifiable patents in that
+country that you have reason to believe are valid.
+
+  If, pursuant to or in connection with a single transaction or
+arrangement, you convey, or propagate by procuring conveyance of, a
+covered work, and grant a patent license to some of the parties
+receiving the covered work authorizing them to use, propagate, modify
+or convey a specific copy of the covered work, then the patent license
+you grant is automatically extended to all recipients of the covered
+work and works based on it.
+
+  A patent license is "discriminatory" if it does not include within
+the scope of its coverage, prohibits the exercise of, or is
+conditioned on the non-exercise of one or more of the rights that are
+specifically granted under this License.  You may not convey a covered
+work if you are a party to an arrangement with a third party that is
+in the business of distributing software, under which you make payment
+to the third party based on the extent of your activity of conveying
+the work, and under which the third party grants, to any of the
+parties who would receive the covered work from you, a discriminatory
+patent license (a) in connection with copies of the covered work
+conveyed by you (or copies made from those copies), or (b) primarily
+for and in connection with specific products or compilations that
+contain the covered work, unless you entered into that arrangement,
+or that patent license was granted, prior to 28 March 2007.
+
+  Nothing in this License shall be construed as excluding or limiting
+any implied license or other defenses to infringement that may
+otherwise be available to you under applicable patent law.
+
+  12. No Surrender of Others' Freedom.
+
+  If conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot convey a
+covered work so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you may
+not convey it at all.  For example, if you agree to terms that obligate you
+to collect a royalty for further conveying from those to whom you convey
+the Program, the only way you could satisfy both those terms and this
+License would be to refrain entirely from conveying the Program.
+
+  13. Use with the GNU Affero General Public License.
+
+  Notwithstanding any other provision of this License, you have
+permission to link or combine any covered work with a work licensed
+under version 3 of the GNU Affero General Public License into a single
+combined work, and to convey the resulting work.  The terms of this
+License will continue to apply to the part which is the covered work,
+but the special requirements of the GNU Affero General Public License,
+section 13, concerning interaction through a network will apply to the
+combination as such.
+
+  14. Revised Versions of this License.
+
+  The Free Software Foundation may publish revised and/or new versions of
+the GNU General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+  Each version is given a distinguishing version number.  If the
+Program specifies that a certain numbered version of the GNU General
+Public License "or any later version" applies to it, you have the
+option of following the terms and conditions either of that numbered
+version or of any later version published by the Free Software
+Foundation.  If the Program does not specify a version number of the
+GNU General Public License, you may choose any version ever published
+by the Free Software Foundation.
+
+  If the Program specifies that a proxy can decide which future
+versions of the GNU General Public License can be used, that proxy's
+public statement of acceptance of a version permanently authorizes you
+to choose that version for the Program.
+
+  Later license versions may give you additional or different
+permissions.  However, no additional obligations are imposed on any
+author or copyright holder as a result of your choosing to follow a
+later version.
+
+  15. Disclaimer of Warranty.
+
+  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF
+DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
+PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS),
+EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+  17. Interpretation of Sections 15 and 16.
+
+  If the disclaimer of warranty and limitation of liability provided
+above cannot be given local legal effect according to their terms,
+reviewing courts shall apply local law that most closely approximates
+an absolute waiver of all civil liability in connection with the
+Program, unless a warranty or assumption of liability accompanies a
+copy of the Program in return for a fee.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+state the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Also add information on how to contact you by electronic and paper mail.
+
+  If the program does terminal interaction, make it output a short
+notice like this when it starts in an interactive mode:
+
+    <program>  Copyright (C) <year>  <name of author>
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.
+
+The hypothetical commands `show w' and `show c' should show the appropriate
+parts of the General Public License.  Of course, your program's commands
+might be different; for a GUI interface, you would use an "about box".
+
+  You should also get your employer (if you work as a programmer) or school,
+if any, to sign a "copyright disclaimer" for the program, if necessary.
+For more information on this, and how to apply and follow the GNU GPL, see
+<http://www.gnu.org/licenses/>.
+
+  The GNU General Public License does not permit incorporating your program
+into proprietary programs.  If your program is a subroutine library, you
+may consider it more useful to permit linking proprietary applications with
+the library.  If this is what you want to do, use the GNU Lesser General
+Public License instead of this License.  But first, please read
+<http://www.gnu.org/philosophy/why-not-lgpl.html>.
+
+
+
+Exact-source binding declarations (potential source coverage)
+Source commit: d03d006d7b1db58074ca9cae26356376788a769e
+Source file presence does not establish compiled membership.
+
+Source: sources/pyside6/libpyside/CMakeLists.txt
+SHA-256: b2cf844c2d6785a5a8f6649772903eecc0644aa2447d96a59229e7f3bd88f484
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpyside/class_property.cpp
+SHA-256: 50088b0a041bc73f701b5d104dd2379ebede3ebdc6fa8cd167857af9a790137e
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/class_property.h
+SHA-256: 0ba742ad246b5e45e6bf24f8883fd56d83155f342b522931ccb210882176029a
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicqmetaobject.cpp
+SHA-256: f0dff462359c92daedc32aea24163f4be913a74770096fbff514af1827f61932
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicqmetaobject.h
+SHA-256: f3a91ab3de32a0d95b88a3cd34862ae5b6f49d8f93f1a48f63060f4f66e9ed81
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicslot.cpp
+SHA-256: 9b11c9e90ae328e651b0ee888de16056edd1a592a83935bd27dab297ea25d1ec
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicslot_p.h
+SHA-256: adc8e71f19cc448666ddc69aa998fc5425afa7c3d24a6dd886414958f3cf9b20
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/feature_select.cpp
+SHA-256: d10a7c0123971f7e6acf8f36d6c7cf5ea79d0605052ad1c9f902b6b860bf0058
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/feature_select.h
+SHA-256: a9406eafd267c667f127610f06970a9ca6641bf6a2cb9ab8e72deaa2cd716c5c
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside.cpp
+SHA-256: 84ae034abf8d9e335b55b2319c05bd9b57781364485e4cc293722cb975a55757
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside.h
+SHA-256: d01b36b37492b773096576076e31e2c18e57ad197e00848b3c4a49446f02778a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_numpy.cpp
+SHA-256: 27044100ea78517e94f9c2fd7fb7c0c98c3b3eb9db83c18b348efce6492f28cc
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_numpy.h
+SHA-256: 494aab6347d5104bbb3d7722a29d922de2e7eb00c6be2eea4f39b60596c1f2ac
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_p.h
+SHA-256: cf969871d0ef807da2d568750ffc25dd76bd1ecf916ac08809ad6b5386c09b6e
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassdecorator.cpp
+SHA-256: df0b27809fbce774cb5e7ac5814f276cbef6db2ce2cc66f8d927d9b338932fc4
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassdecorator_p.h
+SHA-256: 3bc6e7b6dde8570225e3cac219edbdb4646c64c011b6dd970e51e0b92a9e3318
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo.cpp
+SHA-256: 7de866e98639a110ede4128687e72c2bc3b2fc9a164e2491fc458251f7e8b14d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo.h
+SHA-256: 64ee9e80875aaf59f528bc65e5c0f844cc84c6f9428b64634d8ccd003b4da2d4
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo_p.h
+SHA-256: 3891e88758b4eb98fe9f26b6bfddfd5e7e8a688d8f48855a8b62bee7e4aa5c4b
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidecleanup.h
+SHA-256: 2a22eea3043261a03b00e28ee097eae495668437b268fea4a3e601a3aef59c2e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideglobals.cpp
+SHA-256: 8b6cbf2e3f4269209e9e95b3fb04408b2e674b65bbf6b0a7f6c7a7d73bea0fa5
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideglobals_p.h
+SHA-256: e8e170d9641e98e7db968ecb38f9d440ffc10e34f1e81ffccafa223bd3df4206
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideinit.h
+SHA-256: 252f3a3cb0eb0a602215151e4a17ea0f5ac356e58bcacc83a6215f9bcbb47d58
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidelogging_p.h
+SHA-256: 27fe16e18b9c285cd7c4d81e82e517a3a3c4fea39980b453171ac955813b8658
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemacros.h
+SHA-256: 779c08c0d4848f3cdc0b26a567588fc1989e973571fe3407877e7548e33879c1
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction.cpp
+SHA-256: 27514b3a25fd3b9e75bee7cda2ae2e35ad0e033d514ca8a7d8b0b65c5fe4560a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction.h
+SHA-256: 53577d7fe0d59e5f1c3cbd96b8fd8aafa80426e425b3c167d7689948bd8da2d0
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction_p.h
+SHA-256: 20df313fec928b04160dfe8f472f003ab3193ae81ded05c044dcf2e8482d9b4d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetatype.h
+SHA-256: 3cee52d7a13612e8769216de264dcbfadc9b67dfc02b78a99540853b22009a3a
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty.cpp
+SHA-256: 894b2812032b1802a11e516936201c289da50cef6084934af196e2f39772a037
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty.h
+SHA-256: b89a78da306a5401a6d9c2715e2efb0ff5fcd9a5017e162141bfbd500bfac0ea
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty_p.h
+SHA-256: 1385d8366cfd4db4a867635ea52d4c273f64c7e1a541019adbe9812507bb0aa8
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidepropertybase_p.h
+SHA-256: 3d6cf718f492db51a2cf26da998c7c1963dd74cfc2596e9671de230babc96558
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqapp.h
+SHA-256: db8e2a930211f544cf054962cf8401a33be85fe3124184c6e415a2fed24b41c9
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqenum.cpp
+SHA-256: 5b5da647ecd698ebd8a81408ee4f62a9cba91fc58aaf48f5461bfa749db7dc85
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqenum.h
+SHA-256: 06e737d62a89ad506f4101a51a62529f3b06c952dc1aa8c57811d92f44f5c900
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqhash.h
+SHA-256: db3da7fb0aabe173523f74e4fb40958dc0325dc0950ac26951873bc241c94cce
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqobject.h
+SHA-256: a3ff5709a5b6844492efd60e511b379da3920859cc3f1bde61e304e6b02a6207
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqobject_p.h
+SHA-256: e04a707315bf832b05323754c283a57788f115eeccca49dd527df81e33b03e1c
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqslotobject_p.cpp
+SHA-256: e6fe5f703454988acef3f7c9c7c080528a9118b81a0e99d09e14091ca4be398d
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqslotobject_p.h
+SHA-256: 4b82136988f216fe91d7d6223f52bdb004d26c73d40ef8aaa198e9c1fb71f2b0
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal.cpp
+SHA-256: c3c70abf5a5620c63814aee28fc9c0ede01918e40e60fe222de6ae73487389ac
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal.h
+SHA-256: 0527c6c9aa4b8bbc8dda7933f18c5d644aa2545a2361a646ceb763f46b9005f6
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal_p.h
+SHA-256: 6dd0c9a7669033885f51e5cf163397f9ad3e606025c2f999fd59a6adb010dd92
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideslot.cpp
+SHA-256: fc95cccbbbad03eb01f9e36a7664c20f2db0e68246c093cb74427f77665cdeca
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideslot_p.h
+SHA-256: 73df2c2dbab9d64c92737278126f4272f267d95c80cc5f4db1526a12b127fbc6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidestaticstrings.cpp
+SHA-256: 116ba4685d178889a58f91523da32a1816d0a1d1871868f927a6ab3c071f8a7b
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidestaticstrings.h
+SHA-256: ab52a85e4d02fedcb94d220895779440f517ce56f4b5fddb1bf06fbb092c2c81
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideutils.h
+SHA-256: 11bf8dfb3a598840d93886eb0e344ed35e1abbaca34d1e9464220bd5de7bae4b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidevariantutils.cpp
+SHA-256: 4c5a0c39eacc05f8d2ca5131271246fea31e85d6f6e80a90b983d9dab46c8a0f
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidevariantutils.h
+SHA-256: acf7aba44e2f61961cad68d446c659ecbc3db6293aac6729880c98f7436831a4
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideweakref.cpp
+SHA-256: 3d721eaff0e1f7fbbd9d7294297716fb66909ca974f5c5663d310bb330f90deb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideweakref.h
+SHA-256: b75a926cf02cecd53871a68013b77e2d50486b0de050940f9b368720db0761e7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/qobjectconnect.cpp
+SHA-256: 9baeb1e7f07c5b5ff295fcb6182656e11efce3f5e07010a70576b348b43cd320
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/qobjectconnect.h
+SHA-256: 75339f64eba30ffc09c34e8fa4c6cbec79628d409441f942c472a960bb9c427c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/signalmanager.cpp
+SHA-256: f26c70527d8bbe3f8abfa7277a0a1d17a6348727e2f66bd317acf85c4884fbf3
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/signalmanager.h
+SHA-256: a1ac214342d4934bb33f5f49ad5ece173e5829d40f839ecf8a0046999fae0b95
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/CMakeLists.txt
+SHA-256: b1d2563ac74ccfcde229848cd0e594bc510362730e4a1c34a7675f66f68d67ed
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpysideqml/pysideqml.cpp
+SHA-256: 35006346f09f169f64a458a121d59579862c494e3d3ba298c9edf5a354c92eff
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqml.h
+SHA-256: 3d79f1e4ee59f41cc7227e8d2371ca530b05662b8a52c1e06f3a1db668383b6c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached.cpp
+SHA-256: e2cdf30b7a0fb57dfc07016502f176622275b9396a253d36925318b07ea47648
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached.h
+SHA-256: dbb026ad75c6bb7646e069fe601932b21b80298d74a52eb00661f66d365ae72c
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached_p.h
+SHA-256: 78f8f27290a6ebc8ec5334d735e46e0a86d8c3e573257accc040e733f9b70538
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlextended.cpp
+SHA-256: 56f1707cc4429c0506eb1bd648ef55293578f2304691fd35d7184dbc6482d758
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlextended_p.h
+SHA-256: 7372b549bf2a2ceca893c06ddd1ff12e7925bf806a842e3a033a5bfb680bf2e3
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlforeign.cpp
+SHA-256: 80a63cc2778d6d5fc059f0cfb0256ae4d6495724fa7daf0a93824dc86faab9f9
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlforeign_p.h
+SHA-256: d98b269cf19a1dc760b407608134eb2435e4a7c96601776a9856fc37d512a0ec
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistproperty.cpp
+SHA-256: 7634454aed0d4a517a0d0443462be28c151f8c9bcd5d1dc5757b54dbf517910f
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistproperty_p.h
+SHA-256: 9694eb8923d560fc680fe597090cdaecda4540abc33e5c0be2fbb216677d41ff
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistpropertymixin.cpp
+SHA-256: e31e169bc0b481a7f43c1d30da140b41b1601db929323d19b64b1905cc84253e
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistpropertymixin.h
+SHA-256: 1e6bb3860dd3a7aab1fc53b31944453df4da8931b3b917fb74b8ba14aa302283
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmacros.h
+SHA-256: 5a20deb805b88e686c54eac324294ec256af7696bb80b06e0f2382502751d70c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmetacallerror.cpp
+SHA-256: 79222cc2dae92a2d5ec99ba6fb29fbb7afed8b183ce5be52df671eea5661f919
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmetacallerror_p.h
+SHA-256: e0fa90e8c0e0ea6f49e2e8e0c1d0b6476486a7a65b371b838ae651e72b5e1543
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlnamedelement.cpp
+SHA-256: db4db4b00fdf04cfb8d9d14644b85851e35dd6c660151ac0813d325bded46321
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlnamedelement_p.h
+SHA-256: ed5becc45cabf1156ce498df6aa53bf7d8364b601c9baf774e23fae0f61f0dc9
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype.cpp
+SHA-256: 236db225247425e992eb49bf6199130a39d9110216c3fa3c72405ab61a52c04b
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype.h
+SHA-256: b6c43d53635429464979fb1f2e30116a972db83297c6eafe4a0c54ab98c06662
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype_p.h
+SHA-256: 504c0e9e4cd1c43ac30f6e9d966429e67249b6c34c2975ac3ddec674a0b81887
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmltypeinfo.cpp
+SHA-256: 4a3214daf171d194c3022040cdccdfbf6810a0c384db86618ce12a739302f9eb
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmltypeinfo_p.h
+SHA-256: 1ea588b74c6bf15c317cf1a8af017e660f2d8778814ee20b4034837e824b19fc
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmluncreatable.cpp
+SHA-256: 1471b5ab6b25990b564eec03ecc78dccb66199ab410a90c878ec9390ff85ac1d
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmluncreatable.h
+SHA-256: 59b01bc6fae1703ed4da845225bc12e37bd0539a68a3281264b903bd7d5ca64b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/CMakeLists.txt
+SHA-256: afbe2f13738582e23cd6652aca9efe7bba2b7d48608c2a9a8e5d3da4ac0b5548
+# Copyright (C) 2025 Ford Motor Company
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpysideremoteobjects/pysidecapsulemethod.cpp
+SHA-256: 705c37569c8ec7fa56a14607d92a683935598ba00decd5e7aafbb4875ce8dd75
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidecapsulemethod_p.h
+SHA-256: aef7317471b20caa93d6231d9cbb2037da5f421e9713b53daf911244f78afa20
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicclass.cpp
+SHA-256: 2c9bef7c4e8bc260fb2e052b934bd37c1f03999d91f44fafb109e051e42c2431
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicclass_p.h
+SHA-256: f0928db0d273b12fea16d4bb95d176dbef300d958ea3c32cf78bc59abbb251dd
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamiccommon.cpp
+SHA-256: e00d175998001a690969a5a80e01536e9b01b0f0c71f3b10d9614dc531a985fc
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamiccommon_p.h
+SHA-256: d29be84718e10ca8ab8e3b310ce28552ff7ca251a680e9e4738bee99c62bc771
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicenum.cpp
+SHA-256: a7939293144e3361c0066592aa981b67dcc6300ab127845b72344318a2bd30e1
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicenum_p.h
+SHA-256: cfd03c5235a56f485917c8ddbbe504debe2a88a1d4fc7f941e5585de1bbfde7b
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicpod.cpp
+SHA-256: eb8c9c67143336e06066a857c6c28dd2b8749b7047962acc2a0e6d2b11f6a36c
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicpod_p.h
+SHA-256: ee4647d7b410b42763061196248cedb3f6b4896a381a18bb2fdce67ec745946e
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysideremoteobjects.h
+SHA-256: d44e3da443f216ddbeabc66678ddbbd4a4e0f75f02691f83488c1e6ae6f7ca01
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysiderephandler.cpp
+SHA-256: c82fcfab4440badba8102583eea86f2b327770c0c56c0cacad7d119ba3cf985f
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysiderephandler_p.h
+SHA-256: 7d502df17aea9289f6612aa7f80cfc5c9844224ed3a97a6840940224ab4f022a
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qhttpserver.cpp
+SHA-256: e774aad3499162e9b0240b3cba3b63c755caba0d85fac381aa57a9e65afab06c
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcanvaspainter.cpp
+SHA-256: 1b7053fc07626693f92e8f26996061f754af4622f2bdad3d3749ec9b57e5107e
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcharts.cpp
+SHA-256: 0e9f87adea93d477a28b68558a28ac51ebc66808c8cc64010dd3241fd2e12056
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcore.cpp
+SHA-256: 3b2f6e0e009524606d3a2df3ab1db1012af2dd2ae295212412c9f2f6d2e18c81
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtdatavisualization.cpp
+SHA-256: c988561afcc304eea523e522f2122bfea74cfde8363510ce58a2dc28a92b8f95
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtdesigner.cpp
+SHA-256: 2f667c4ffbbb770f2c7a82fe3f0e8b6d088520dd9769491b4382e04c0d76d685
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtgraphs.cpp
+SHA-256: 395e8a8639933397a58802fcb9854223fafe50d7ade1fdc76859f6f3f12c6ca7
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtgui.cpp
+SHA-256: 82354d707ad0edc2459f11e0d8a0b223f18b12cd2a83ea1369f52251facbe6ae
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtmultimedia.cpp
+SHA-256: 17eb1e2ba0a1ec1ca4967ee53ea1670884cf0e03183a7da8c3f5437f38216f27
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtnetwork.cpp
+SHA-256: 73f835001bbe2b533e1df444d224c927d0ddbe86a2cf2e1477725d39dcbfaffc
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtnetworkauth.cpp
+SHA-256: 2f7b4b8b7a6203d82265d7603095bc2a929d0cbbfe89c36f9a0466803cc77d5e
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtopengl.cpp
+SHA-256: 1de12ef5d6bf924ede6d3bbffe551a0fd6e4ee4b9084456d8f27051dd0c00159
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtpositioning.cpp
+SHA-256: 03b6e82507e748c6b870c05dfa5c202e1a5fe5654dcefc538600bf3e51cf75bd
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtprintsupport.cpp
+SHA-256: 337b107eac41afd234909384aa451c24eaf0307dd50a81d26183c03ab4f10b89
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtqml.cpp
+SHA-256: 557befcdee2219020f1b2bffa89a6b2bbe5f0bd087dfe21da12baccf7c39f801
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquick.cpp
+SHA-256: d5900bd2ca4f193a9a7a0785afbbc7990ec6e1bf64117b75dff187aa7746b88d
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquick3d.cpp
+SHA-256: 54378bfef5bba2c40086b706302f7a5208b04b344b0815e1a8b4a6e1ed8f58bd
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquicktest.cpp
+SHA-256: 179bcb5aa5b4ca0e87b67e4c692455425b7b75f1ce70c173d8906eac32c2f728
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtremoteobjects.cpp
+SHA-256: 6df55ec7be1c51af02c44dde646f3ace5d3753998cbdd14be7f264bba8d8efc3
+// Copyright (C) 2024 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtserialbus.cpp
+SHA-256: b24ae721504e6f0816e9d65cdd1c18d570cfc412e9e2d922195a77e5f51a883f
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtsql.cpp
+SHA-256: 7f6dd82c133cfbfd6a3af7226866d554291241396c3cbcb5d8d1affee6c03e82
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtstatemachine.cpp
+SHA-256: 8eff2fbfab3715f1f8257ce26654d501a2a8517f78f55892a3fdc542cf7cad28
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qttest.cpp
+SHA-256: 5bf0abac2a9fc12285e03de95f848ee164796ca55caffbc2a4981b6fa8c1b837
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtuitools.cpp
+SHA-256: 7c471a8055cbe13d92eaee87e9f3d47049069dd33e10f2858a6ce016716e931e
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwebenginecore.cpp
+SHA-256: f0e881755a94a47818e058ee8be37c3b306b6843f4a9eda0928a775912093508
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwebview.cpp
+SHA-256: d2f83f8596c942c630cfdf3b2be1eae19dd22bcc6eb72587ab34cbfbc8f7669b
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwidgets.cpp
+SHA-256: 63b37f0f7204c763518af84cc0d1c94c44dbf218fa3bf7ef00fd048113293a57
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtxml.cpp
+SHA-256: 210da5e0bc15840b8ce2129ce833e1c88bca119ee808a2dff2ad07b4f815ac24
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/__init__.py
+SHA-256: 544cd819bb55076c22ad952087d0dcef414dc64f6f09a4ac65ad1ee0216b5695
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/deprecated.py
+SHA-256: 95431e9fc9d51387f56f2b1a75f38be22794a4addcd7c416f09b515ac0c35506
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/generate_pyi.py
+SHA-256: 46a9f593f19fbe389cf3e3863f24665641f89b7dca2a6ef719285787ec3c945c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/common.xml
+SHA-256: 81b8a36caf7305c9ff818e4d9db0817d9f8db74fb709e4338430c8ac66f71116
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/core_common.xml
+SHA-256: 97d276911c8bca50aeb7bd75e5bb3641d3324ddf229cd8011aa79b9b04dec4bb
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/datavisualization_common.xml
+SHA-256: 46d28faf91b8c6921d6dd07e4e6c4d282b23cc070ee2e1833e9e879a5ccede1b
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/gui_common.xml
+SHA-256: b88debb2fba25a02bb5d40eedddc93976b130cd0cef09615158069547d6e9003
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/widgets_common.xml
+SHA-256: d7e3f35beeec12a13101fd07b6f1849a1e77a06fbeffb8a4d0210617ffaa3748
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/CMakeLists.txt
+SHA-256: 09288d581d7ca39dc9bcd8bf21c5b9ca3cc12017b6cf79828c2c3ca6b45e3b0f
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/shiboken6/libshiboken/autodecref.h
+SHA-256: a5d35b2b1a6c4ec995a96ee095804115b2f9a89cfa518c73dcdd7ec2323095dd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper.cpp
+SHA-256: 395b90be5d59c4e39de13f44f501e3e9edde6ab29c0c060c471da524e22da75d
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper.h
+SHA-256: fe4f8517dba26ddf6a7ccef2afa4cf48c73d4539d505490d2525ef0fa89491e7
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper_p.h
+SHA-256: bfc54bb73b31276ea5f4651d811e36312e4a546a149f2974988cf7b2bec7f4a9
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bindingmanager.cpp
+SHA-256: 0b31dfa2c11f4b943cc448cb40f830d5060a1ab0b0f721c47dac9e61c3dcc0f7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bindingmanager.h
+SHA-256: 524cda8f08df6c5329538a38d5690ec6b829f3b7c70f14c52bf6f2c49a2f8ccf
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bufferprocs_py37.cpp
+SHA-256: 0efa349300e3e9bc3ab10789968095083ba26e2f5e4830a1981ddcfba7777d77
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bufferprocs_py37.h
+SHA-256: 7717a874ab6a950ca55f6144efb934a086d16a7c9935d137eeb46afe96bd03fd
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+
+Source: sources/shiboken6/libshiboken/debugfreehook.cpp
+SHA-256: 4594bf4c69510c3bd7512425e40a452a65f8df192028e54a53de09fcfab268c7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/debugfreehook.h
+SHA-256: b6c8fe9766400490839f4a9cb4d01198bff701e70edd5c33f3dd4dda526ba80d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/embed/embedding_generator.py
+SHA-256: 06f74f712d7d46ee06e126a0b926db3114c8968fa1bfac9ccdba2d2a5ff66f88
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/embed/signature_bootstrap.py
+SHA-256: b971d5e5ace98e55376dd24fd2cbaadb2e9c3d6a1417bed4eca85a51fbdaf598
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/gilstate.cpp
+SHA-256: a7378abd586d463a8d3353afcbc1e4c337a6e1374bdf39ebc78e3d0d14b5701f
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/gilstate.h
+SHA-256: 5ec31fe8402c3dc526c41476896b6837c3929b97b22c2b0528ad45082eac0e46
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/helper.cpp
+SHA-256: 487d0100ff1c484038e4ceb4e9112234306bb402b3c1cb23a07acf9fb5aee1fd
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/helper.h
+SHA-256: a4d244cea48c9214c3267fb1eb8d3483562043d8e539adf63472e6193159cfbb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384ext.cpp
+SHA-256: f59f4305951bc81227a207223594ba5ebb6e0fb57442143d2d49e0bcea3fa7c0
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384ext.h
+SHA-256: 80076da490479c10aa4baf4c7a77ee81bf318408d1b6ce15a0f48110a955b1a7
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384impl.cpp
+SHA-256: 3e186d12ed0abe1e4d5994d7bf23256cd70131a6454abb29871ecd095edae3da
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384impl.h
+SHA-256: de4e10f75edc20879cb74e2379cf97ee58fc2d2a01475500c119710b3c3e2c91
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pyobjectholder.h
+SHA-256: fe52d0358880d632969173e440fff542800ea2385847638d8cc85e9e4f8a2c08
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/qt_attribution.json
+SHA-256: 1b643e281a9ccb592cfb5df7fc457b9b466f35de6e91ccce76589e85e047573c
+"Copyright": "© Copyright 2001-2018, Python Software Foundation."
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter.cpp
+SHA-256: dee1120f1bf28d3a9145e90ae093e84f2fc1262dd49e203c2235e8b701397844
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter.h
+SHA-256: 13cf19a716e771e62e312be59f0021edcbff1c900703e0501b5e38601651a1c2
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter_p.h
+SHA-256: 61de1da8e3f4d4bae83839516d6a8c130a6e8e488884044ae80b1c763651fb2a
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkbindingutils.cpp
+SHA-256: 3caca48d1dd0e566ea43398ab8f7549f6875bbb74a88166450d1165a4fa7b109
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkbindingutils.h
+SHA-256: 41f8ce7a1e8ba777892b8cb804478eb878d9619dde608280b5d113bce59f6fe0
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcontainer.cpp
+SHA-256: a88e4f051716ff80495879df1a0f31106e3ff17bcdcb7bc5ed10bc0b8dfcfa0b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcontainer.h
+SHA-256: a874cd737b893230be80a3d55c4fa1c9288ee77754a587f20a1c67a3756b83f1
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter.cpp
+SHA-256: 3e9f4488b402abc8bac080124c2ccab054bf59e1adce82327c7e36dfe90188c1
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter.h
+SHA-256: 39f6362643022bfd4bf0b5221e88b41f89fe46eac41e9b788f070661dba581b7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter_p.h
+SHA-256: a8f28bd522026b47e1d591500b6bba7b30c9942227fe0d5aefb668efaa8d7be6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcppstring.cpp
+SHA-256: 8635904a8e8f86262245ebc13286fda631374240e20556b6e115360c8f2c6601
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcppstring.h
+SHA-256: 42b72105a7bdd67e3242658c5a30ca5119d3846c08e970e871f5394c5c5dc65f
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcpptonumpy.cpp
+SHA-256: 9d75f46ac1f1373ab124a580a045637ae7b0e87ecb0da889b6b0f38ec9c326da
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcpptonumpy.h
+SHA-256: 6fa1c097df231d6146671c0ea7767fc12545389d487e407a249a51116d4a73bd
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkdestructorentry.h
+SHA-256: 5518d31b5382ccb396a8caec749e68954ba36c4745826973132deb35ddfe4bdf
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum.cpp
+SHA-256: dc095e0b2ff6431d945c56b46b49518c6cdfda27e1ea03c7d59b19df5ba09629
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum.h
+SHA-256: af1c4f52b3611d8dc4a6e9c6ab8aa52d9b5efa0c10ee1e0e074c9365eefe6b6d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum_p.h
+SHA-256: e9504c0d3827630b0fa68dd8493a1976cb797eae45e94405001b4e76031a70c3
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkerrors.cpp
+SHA-256: cbee1d541535f07c883ea65503a9be996c753b10e2d433ce00dd10a941e69961
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkerrors.h
+SHA-256: 6904c1ebac08f0269d77cc2bd2ef797b5f24c7ab551a8a984e0d8b0614aea73b
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkfeature_base.cpp
+SHA-256: 02cf82636717902d730653c8eddfa2a5f425c8ecf50ca524db1bc467948b95f8
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkfeature_base.h
+SHA-256: e32e91f4642401349da91268989fc0c35ac33c81cc7f21ca787b271c7ce969e1
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule.cpp
+SHA-256: e855b66d2b0e933cea15fdeea891aa0fda7e24ab534f01bfaeef27da8078ea6d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule.h
+SHA-256: 5ebb3f0df9faffe538961e4c6e05e70a1282966290689c6ad2fa96986ee04aac
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule_p.h
+SHA-256: 80b797e5113b39d599ed5a6722ef07571b07c7a316712ac7df5891eca32e3f96
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpy.cpp
+SHA-256: abb258a8563d262d3a9e2d2d304c4eebac2cd415b1fcf88955365cf9e7dc0f0e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyarrayconverter.cpp
+SHA-256: 5f5ac1820c2b399663af15f4c73f20467661ecfb4f221c78374e3ad39c03e4bb
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpycheck.h
+SHA-256: b916f9b9e441defa4ac0c567a89a46868deb2be408664835aa3b2069cba30d67
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyview.cpp
+SHA-256: 19db409bcbaf8a6b9a5b113b7ed050d49e20ed49dbe77ac51b64f5bd61bf3ce7
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyview.h
+SHA-256: bd506d307db01e47c078a6d7428860c711b7b5ef1a432edd3b82c62a8be5acfe
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpep.h
+SHA-256: 95efcf2bce8d44e3c2f060f6a6c62a116a597da134153efabca666cbfa372bd3
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpepbuffer.h
+SHA-256: 1757eb67ba82e6dcb730f72b0d8b0eb9163b9d5648be8100eb21700bb196b4da
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpython.h
+SHA-256: 0f0c81313ad5d590c2edf9904638399ee4b4969dba907c0d8af098a1bc6ada31
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbksmartpointer.cpp
+SHA-256: 7ad209a5b5b99646e503973dc3f906bdde14539cd4342fbb6f1f20a310effc99
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbksmartpointer.h
+SHA-256: 82bd4afa941cf093c80cfe668c070dfb07a6ae8c965d32cbd4fd07540cf019d8
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings.cpp
+SHA-256: bee2fb5fb5ce0a3e694f8094cc291344eccd8e4e493fcc5f02c99cf41071b863
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings.h
+SHA-256: 8a2784c62771c30e52459826c8d31cb5e29e024ed54324122c17f0cb40a9f029
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings_p.h
+SHA-256: b9ea1ea3bae157d016a08aa8b875ce7a27d26e7e16827ec58c6b5e7ca3a6c6db
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstring.cpp
+SHA-256: ac2ac88ff1058816df213dfa5ab0203aa951562170275dcb8f7fb14176d80e30
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstring.h
+SHA-256: da6d2f9acb2a273353933a9587c4ed9356718053ec30a3b9ba1478528e4db5cd
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbktypefactory.cpp
+SHA-256: 3cba8a52f7101bdff8e9ad84566bc816d14af715b27860ba91a191251978e6ca
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbktypefactory.h
+SHA-256: b80da841d3b152ff89a2cd7c82d6c4086f60dbc439d61ed00a059a707af2370e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkversion.h.in
+SHA-256: d9f07d7147c9e41a70713bab1137fd6ff42a5905547c9849fa5ff021cbfc3c6a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkwindows.h
+SHA-256: 7a6cf0585b8665f40894c7af54b46841b892765a26e572aec8350bb694e6cd76
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shiboken.h
+SHA-256: d89447d3839b2179d3839f994965110f0889d95425c71540bc352e0836714c74
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenbuffer.cpp
+SHA-256: 7c0859f196588bb6a1945f0dddc29fd34411df6e3450dde1648e3e6cc375c84a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenbuffer.h
+SHA-256: bbf20bff20c649885e8ce5e69ceb5cf9de0a818e4e9cf3b27496775e001be561
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenmacros.h
+SHA-256: 77b48b8367f9f055fa44133ca5c34e95853a0d6a5c065571a7244dff67142c56
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature.cpp
+SHA-256: 67d7cb0219c718fa6f270bbe5633fce757d73df6b138cd295c044dcb4334e3c0
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_extend.cpp
+SHA-256: 0aafa6107f0ef47896cf75a08dfaa0427dbbca5f376a60577f12839e05199191
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_globals.cpp
+SHA-256: da1e81f42421199ba691d7f9c83d00da8e4d1fed5b8907d363681b02b8a3a000
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_helper.cpp
+SHA-256: 4b0fd431cec0798955efb5d080277c27181ecf156231c92ed456df4623defefc
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature.h
+SHA-256: 2d175a78cd38fc60650b2178d546c00857e1c7b5c4760ddbbc521360340e3f2d
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature_p.h
+SHA-256: 405cbc610f03197739f198c612f64915b262d692d751a8ffb5a50f76344383a0
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/threadstatesaver.cpp
+SHA-256: 6e30e9fdbd856b3f6272fb0130be54909c040e11eb2ed998786c540f8a1a25c6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/threadstatesaver.h
+SHA-256: 977931ba8c1c33af1d32ef6ed69ddcf546b60f2f883afe6ca8864ae45e0c726d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/voidptr.cpp
+SHA-256: ef72ad84ebc0805bb7f8f9086b9e9a64ac6cbe6426a64b55968ff57e8cdf3587
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/voidptr.h
+SHA-256: aebffc152d966a90eeef694e8342dbe8638a3c7f67562a59f8ddec5d69808e3f
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/CMakeLists.txt
+SHA-256: 1b82c197fa4d72f1b813ec94190d3020b9aece35e3c3f10043607ae510aa4b72
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/shiboken6/shibokenmodule/Shiboken.pyi
+SHA-256: 1c3418dd786ca346cfd9b58cc797437f500efb0d27cd24ba300bdae86de3625c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/__init__.py
+SHA-256: c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/feature.py
+SHA-256: 1224398b2741f395830737e9a71f84a5d42e7e898afcf920a89c946e95601aed
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/PSF-3.7.0.txt
+SHA-256: e5bdc4b568f0016df16652c4769bafde76641b61409149100ee53b708c8f1219
+copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.py
+SHA-256: 7b464ae11ae2f78744a1715120302bf8d0c5b241779e6bf3a13ddacacb96954e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.pyi
+SHA-256: e602216209c1dc6e929a12410b08588cba85f32403a38db4c7a90eb5a6397fdb
+# Copyright (C) 2026 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/errorhandler.py
+SHA-256: 1ef7e39fa45989bac9128cbf076cddaa17c10193fdebe9be307d0d1b415d180e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/importhandler.py
+SHA-256: c14ed6fe2a2d36ebe664f65bc0f827ef2033ac3d3f90b25dfcb3745573e71b8c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py
+SHA-256: af463187ceab40409cbdaa52e7855e8133997e81cdd5bd0600f76a5ab3e30d63
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/__init__.py
+SHA-256: c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/enum_sig.py
+SHA-256: 0bbf4290db6d20450280a5aff4e2687285c1088761da78d50a3cf796f47403df
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+SHA-256: fdefae42db8d49f00e4b129821972ed7a93fa3f42a2978172e66b2948e2ece82
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/tool.py
+SHA-256: da2b488406b3f45024f3bb06fc3243a486e44c578bafec8aa60a2a227a587c18
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/loader.py
+SHA-256: e93111f218e6a16e24751f1b6684fa7b78599a4fc709d7a7f6a7bafa9fb8f209
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/mapping.py
+SHA-256: 27e60caf280eb11b30ab18061c31f35721e0481bae5a72046422975cdbafe00e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py
+SHA-256: 670320116c434fb399bdb6bdfa60bbb202134ebbc5c1a92f1be207388f449b38
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/qt_attribution.json
+SHA-256: 6197e61575b0f1a65fc4a32647e48c6a4897aa104ad9e5e397cec8fecdcc2f59
+"Copyright": "© Copyright 2001-2018, Python Software Foundation."
+
+Source: sources/shiboken6/shibokenmodule/shibokenmodule.cpp
+SHA-256: ef1d1d4618f19724e5be2a87f346670c559ecf82f4d5495f7ad41e38aec88c89
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/typesystem_shiboken.xml
+SHA-256: a6dbcd0ee3113afc2586fd41b57f1810d9eab249d12311776dd0ca0edc90a71b
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtBluetooth/CMakeLists.txt
+SHA-256: 800a5859d871f98425cd6995d1d4ac61676adfb3a8b24ea3295303b47f2427a4
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtBluetooth/typesystem_bluetooth.xml
+SHA-256: fc6d3b23c285a1bc643a53181ffa40ed65857e6810e75a6c8962ecb55e106889
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtConcurrent/CMakeLists.txt
+SHA-256: b529da5ec7a20c9229b32ddd208091048a22f246b6b0a113b93e4d16897245e2
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtConcurrent/typesystem_concurrent.xml
+SHA-256: 4e3e226d306305765a69f6294a84e3bb4acf0317efbe63668280dc994d255a98
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/CMakeLists.txt
+SHA-256: dbe94ad724d91b856de577bc2888391f872240e98d70fbc929f050a56dac56e0
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtCore/glue/core_snippets.cpp
+SHA-256: 3fe549e9e836456c692161bdfe061f817dd44de87bd3642a6da18c9f71410b3a
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/core_snippets_p.h
+SHA-256: a2257dc05d303b71f2610157e62f7c7c620ea3395d9afa782531d3e41e1f8c20
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.cpp
+SHA-256: 05a63d0167881c811a33e8357644f9f0a2795164d840008380fc4191f1c66c07
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.h
+SHA-256: de6eeb26196448970c606135780e702350f66b995dd41286790d1e124eb60461
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qiopipe.cpp
+SHA-256: f8092bcb44a537fd6035176bee71f9ceaa0225116c9d17a78f5a33a95544780f
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qtcorehelper.cpp
+SHA-256: 409677cc91c2813b4e3f13c02d5375673d7baeaf94b0a034e983a0b6c00bce2b
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core.xml
+SHA-256: 0d9bd0a77fd637a550c773c3f29128702c0fb3de0314e27799c43169385bb107
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core_common.xml
+SHA-256: 799477b6b47f9efc9b9a0fbd4ad2c7daa54c1b1022a81b548f8c43a3509b6984
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core_win.xml
+SHA-256: 9bb22aeb33e2d359f1a0f9d82e8688247581e9d8061f05cd3ed4027c627960f6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtDBus/CMakeLists.txt
+SHA-256: 1dc7f9bb7aaf8eddf443e4dc963bd1c73e8af75307e54199277c1bb222a0444c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtDBus/typesystem_dbus.xml
+SHA-256: d81a1302fc4d9afc374ef01c7bb5e09d519cf3c0e02e809bf6277b8496b71d7c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphs/CMakeLists.txt
+SHA-256: 860accef7f9c950eefcd4488cc280fafb8106489bd3caef1ba03b4f4256516e7
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGraphs/qtgraphs_helper.cpp
+SHA-256: 44093bde5ea5f70a41491b36c5c1875992d855548007cb708901efe4382c7515
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphs/typesystem_graphs.xml
+SHA-256: 12a067328314ec54d13da893b38f256aab51ff78d180a86e9920be4c82dd0aaa
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphsWidgets/CMakeLists.txt
+SHA-256: 17626168f6fca00f45c9ebfe523fbebce6c0c0ed3b0f46e07c50df649fcdcf6b
+# Copyright (C) 2024 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGraphsWidgets/typesystem_graphswidgets.xml
+SHA-256: 4ff4c3aa8efd489253d333e20fa15a20d97f46df0932f5f003b48226856ba443
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/CMakeLists.txt
+SHA-256: 9465e800d63f60c6e720aab5f29a892963342d84c9c1867992c91a1d10f97f9d
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui.xml
+SHA-256: 8c85656fac86395864354d94d411e556e30bcbd65a2687cd58140be23750203e
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml
+SHA-256: 696615893bc374c87892687b89c7a27c97dcc8c0aead2436e56bc344eba35790
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_mac.xml
+SHA-256: 54afe14bf453f24e56d1973ed0b1c7e99a0acbc8064a8a03ff82957c13d0c554
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_nativeinterface.xml
+SHA-256: 5cec0d2d2b1afcd6167b722732762369b94a453c55697da592f45f5599cc7994
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_rhi.xml
+SHA-256: 1460b4b7c3336b4ae07417dd46271728be9070e63eb9f800e8e47909cd29d0cb
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_wayland.xml
+SHA-256: 04a913acb953ea59f82a3f7af580999757c6f5206bc3638975c3446055639766
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_win.xml
+SHA-256: 07c82d17d59dc4b6a71ffa77e178390e8b94a7a5efca7f0265a2535d9c17b968
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_x11.xml
+SHA-256: 2bb7a235942352d354383db70ed567663f7d6a415eb4a657d8f3a09c28da47dd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtHelp/CMakeLists.txt
+SHA-256: b24d3eaf863a10f1e6def5410a38a50d2cb3917afbddd0eb99b1f11f5cc729b2
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtHelp/typesystem_help.xml
+SHA-256: 0d51b9de23f210d6d5810f487632f8f592a1bbfcaae01421c5895d3c88c7cd5c
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtHttpServer/CMakeLists.txt
+SHA-256: 7da494a172518c07dfddaf2c7f4e2309126dbf074e008715635f8335f018e7ae
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtHttpServer/typesystem_httpserver.xml
+SHA-256: cdc2bd4fbd59a87b025eda6ba6b7d6c0fe2196a1d8760aeb47b1449ec3f74afc
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNetwork/CMakeLists.txt
+SHA-256: 518fbfe49fbd33995f2c18c4e394a673b7d66f4fb3555d3f631760975863151c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNetwork/typesystem_network.xml
+SHA-256: 0921191b25ca635c3bff30a3d528e978f6e5ed3fbd2071146d6391c7ae2c232d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNetworkAuth/CMakeLists.txt
+SHA-256: 1c4fe7305be9dd6d6c982b602a4c68b9ef098b25907bf4cc52745c7a018b562a
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNetworkAuth/typesystem_networkauth.xml
+SHA-256: 02347f7242b4eb262865ee208d6a124a602c6c60e15d854c9d80e9029e071ca8
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNfc/CMakeLists.txt
+SHA-256: ec2744a908134a6d3144a13f044df24d3117457d276c79fb9c936c2539763c86
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNfc/typesystem_nfc.xml
+SHA-256: 61d49fc10a2caa04978b0d92c584ecf0054bb33d74eef5ab78d40e1bef5d6553
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtPrintSupport/CMakeLists.txt
+SHA-256: 4022f74ed3938304376e0a154c7a5f0eacaceb0f7bb3dee253d533774a80333b
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtPrintSupport/typesystem_printsupport.xml
+SHA-256: 59f2555e26c6fa5ef98dbd99ba7682e0b3cab27a76b45159b4290a2258a948d9
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtPrintSupport/typesystem_printsupport_common.xml
+SHA-256: 9d983bf55670e0ab0a7e21f8c4ffdda3beb3f41de00a9cefc71a90022704b072
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtRemoteObjects/CMakeLists.txt
+SHA-256: 0cda52a815e461a6e1d595a78394cc54555fa07eab7a2673063fa0897b707e3e
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtRemoteObjects/typesystem_remoteobjects.xml
+SHA-256: 49cfbede0a30778bf0087b45ffff070d59192bc07709fa33dc69b9d2ba38b58c
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtScxml/CMakeLists.txt
+SHA-256: ed4d05dcdf0e78cb5bd8df06f5a66babcc0b5e8935f46c60ad3b21972c6be01c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtScxml/typesystem_scxml.xml
+SHA-256: 789493ea9f6aa98fcbd0955d80dcc76b997ca663c486847c3135d100aa48fc9f
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSensors/CMakeLists.txt
+SHA-256: 65514dec4f2a66c0794c232c47492050642a71abbc06b595a34662c3dc690161
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSensors/typesystem_sensors.xml
+SHA-256: 3f1fe5763e4508ff2eba3608c3556f88ff71ae698a9b8323fcddf92d1491c710
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSerialPort/CMakeLists.txt
+SHA-256: ab2f5b87ecf3ea743a22bd862b8f56b97728b73bbc93939a925960c7ec20c699
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSerialPort/typesystem_serialport.xml
+SHA-256: 57272052b3f3dd69bc74ac1be604a80370389ee765c3f48040429bc4feebcdd2
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSql/CMakeLists.txt
+SHA-256: d6806f0fa02f487b085e6fac4447d0ce214d6de31b57f001aa3bad54b0ed88b9
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSql/typesystem_sql.xml
+SHA-256: ca836b54b3dcac9ce30c90db6ecb1484b4882766bb97cc498cf6fb446cf703aa
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtStateMachine/CMakeLists.txt
+SHA-256: 1c358c62476fd7ab4dcac65832513c3974be255030b9de0085eaffdd06eb2a27
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtStateMachine/typesystem_statemachine.xml
+SHA-256: 364e0f74c76c0fd8ba2266565956328832292edd50a65b092ea76b1cbfd6e61e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSvg/CMakeLists.txt
+SHA-256: 9336dbc71d17419c3eda96b7170925aead0594c1f0a6332452c9397bb4d0e6ec
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSvg/typesystem_svg.xml
+SHA-256: 2f974c1e0de9c7d09c3a1f02ea38118a91d904a91f147ce1240cc2129c67b39e
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSvgWidgets/CMakeLists.txt
+SHA-256: fa00d2b9be61fedf8cd82141069126e04c5230171e7bd61505b621146c928951
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSvgWidgets/typesystem_svgwidgets.xml
+SHA-256: 4016f498346e02f435c7a1f316b6737719bc295f9eb17c45ef8a5efeb73067bb
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtTest/CMakeLists.txt
+SHA-256: a71d1f6c611eb6d4ea2fec299f5a2ec0e7149781efcaceac064e26a0e7500535
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtTest/typesystem_test.xml
+SHA-256: 8cdc0d6fe91930108c29bce1cdbc8da686631918ad19690bb5ef9d55f1a097fd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtTextToSpeech/CMakeLists.txt
+SHA-256: 1e391d6b5cad5c4702a5d1eea5f4cf49a370d20c1c2ee30df9e72f4c063b36ec
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtTextToSpeech/typesystem_texttospeech.xml
+SHA-256: 66f390cdb166f9263b0a17c245067c50fbef5067a339bacfa35e7a36a43f1c64
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtUiTools/CMakeLists.txt
+SHA-256: 187bd3346f0b401223a0eedc92e0711850752610c5c106e7915d1a1b09ebbb03
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtUiTools/glue/plugins.h
+SHA-256: b90d098121ed7430b4458d4f216fc935750fdd54858e54298257a8f52f0c9d83
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtUiTools/typesystem_uitools.xml
+SHA-256: fb2e017b3aef21a056a61cde600a8b926200d5bebd154b3c2da6a5b8e9f6a7cb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWebChannel/CMakeLists.txt
+SHA-256: 5e757d0dadb5e3d71b19ec116858833a1ab5543b296b90c8817fb70178440ca9
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWebChannel/typesystem_webchannel.xml
+SHA-256: ff82bbb95a144220b6d5f1c681cd1861d8708b7c89e72674e670be2d3ef01477
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWebSockets/CMakeLists.txt
+SHA-256: 2d1bfbef022817bfcc5218c3d393e074da07518b8bf6b24b3b2edd8f951d6d25
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWebSockets/typesystem_websockets.xml
+SHA-256: 387fef63f36eb501b3a0ec157b92bcd26591a20b4599c748a5ed4a94a97b96de
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+SHA-256: 52a404569c972f2b69877d55661b00e58d0a1a2aaef2d77819bcc7f7e1ff0d23
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWidgets/typesystem_widgets.xml
+SHA-256: da135e92fc2b0f6b14c1558ed5d90607d018c34c7ed7223fab7ef60a1da8b094
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml
+SHA-256: d2872203b373bab52b51637a3a3efa1323373dc3d596c9b69b388773f5b47d50
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtXml/CMakeLists.txt
+SHA-256: 14d21237239b70ae4bc7e1a253f0624e9567c6754ae98f622129d56d0e631a81
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtXml/typesystem_xml.xml
+SHA-256: 88c56e24ae21239de5069f9c3b5bd85970c8cb61960dc36b0b601e384e14c2ba
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Python 3.7.0 source notice: sources/shiboken6/libshiboken/bufferprocs_py37.h
+Source SHA-256: 7717a874ab6a950ca55f6144efb934a086d16a7c9935d137eeb46afe96bd03fd
+Copyright © 2001-2018, Python Software Foundation.
+PSF LICENSE AGREEMENT FOR PYTHON 3.7.0
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+   the Individual or Organization ("Licensee") accessing and otherwise using Python
+   3.7.0 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+   analyze, test, perform and/or display publicly, prepare derivative works,
+   distribute, and otherwise use Python 3.7.0 alone or in any derivative
+   version, provided, however, that PSF's License Agreement and PSF's notice of
+   copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+   Reserved" are retained in Python 3.7.0 alone or in any derivative version
+   prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python 3.7.0 or any part thereof, and wants to make the
+   derivative work available to others as provided herein, then Licensee hereby
+   agrees to include in any such work a brief summary of the changes made to Python
+   3.7.0.
+
+4. PSF is making Python 3.7.0 available to Licensee on an "AS IS" basis.
+   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+   USE OF PYTHON 3.7.0 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.7.0
+   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.7.0, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+   its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+   of agency, partnership, or joint venture between PSF and Licensee.  This License
+   Agreement does not grant permission to use PSF trademarks or trade name in a
+   trademark sense to endorse or promote products or services of Licensee, or any
+   third party.
+
+8. By copying, installing or otherwise using Python 3.7.0, Licensee agrees
+   to be bound by the terms and conditions of this License Agreement.
+
+Python 3.7.0 source notice: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/PSF-3.7.0.txt
+Source SHA-256: e5bdc4b568f0016df16652c4769bafde76641b61409149100ee53b708c8f1219
+Copyright © 2001-2018, Python Software Foundation.
+PSF LICENSE AGREEMENT FOR PYTHON 3.7.0
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+   the Individual or Organization ("Licensee") accessing and otherwise using Python
+   3.7.0 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+   analyze, test, perform and/or display publicly, prepare derivative works,
+   distribute, and otherwise use Python 3.7.0 alone or in any derivative
+   version, provided, however, that PSF's License Agreement and PSF's notice of
+   copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+   Reserved" are retained in Python 3.7.0 alone or in any derivative version
+   prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python 3.7.0 or any part thereof, and wants to make the
+   derivative work available to others as provided herein, then Licensee hereby
+   agrees to include in any such work a brief summary of the changes made to Python
+   3.7.0.
+
+4. PSF is making Python 3.7.0 available to Licensee on an "AS IS" basis.
+   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+   USE OF PYTHON 3.7.0 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.7.0
+   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.7.0, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+   its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+   of agency, partnership, or joint venture between PSF and Licensee.  This License
+   Agreement does not grant permission to use PSF trademarks or trade name in a
+   trademark sense to endorse or promote products or services of Licensee, or any
+   third party.
+
+8. By copying, installing or otherwise using Python 3.7.0, Licensee agrees
+   to be bound by the terms and conditions of this License Agreement.

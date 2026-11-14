@@ -205,10 +205,11 @@ jobs:
       - name: Ensure the Python build tooling is available
         run: python3 -m pip install --quiet build
 
-      - name: Install the PySide BaseApp used by the manifest
+      - name: Install the Flatpak SDK, runtime and BaseApp used by the manifest
         run: >-
           flatpak install --noninteractive --assumeyes flathub
-          io.qt.PySide.BaseApp//6.10
+          org.kde.Platform//6.11 org.kde.Sdk//6.11
+          io.qt.PySide.BaseApp//6.11
 
       - name: Build the full Flatpak release bundle
         run: bash scripts/build-release-variants.sh --flatpak --output dist-flatpak
