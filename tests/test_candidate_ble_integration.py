@@ -14,10 +14,12 @@ from bleak.backends.client import BaseBleakClient
 from bleak.backends.service import BleakGATTService, BleakGATTServiceCollection
 from dbus_fast import Message
 from dbus_fast.aio import MessageBus
-from dbus_fast.constants import MessageType
+from dbus_fast.constants import BusType, MessageType, PropertyAccess
+from dbus_fast.service import ServiceInterface, dbus_property
 from idasen import IdasenDesk
 
 from idasen_companion import DBUS_NAME, DBUS_PATH
+from idasen_companion.core.lengths import Length
 from idasen_companion.daemon.service import Desk1
 from idasen_companion.desk.ble import BleDesk
 from machine_helpers import Driver, make_config
@@ -102,7 +104,16 @@ class GattBackend(BaseBleakClient):
 def isolated_transport(monkeypatch):
     if "client" not in inspect.signature(IdasenDesk).parameters:
         pytest.skip("installed idasen does not support injected clients")
-    assert os.environ.get("DBUS_SESSION_BUS_ADDRESS", "").startswith("unix:")
+    if "/tmp/dbus-" not in os.environ.get("DBUS_SESSION_BUS_ADDRESS", ""):
+        pytest.skip("requires a private dbus-run-session bus")
+
+    original_init = MessageBus.__init__
+
+    def session_only(self, bus_address=None, bus_type=BusType.SESSION, **kwargs):
+        assert bus_type == BusType.SESSION and bus_address is None, "system bus forbidden"
+        original_init(self, bus_address=bus_address, bus_type=bus_type, **kwargs)
+
+    monkeypatch.setattr(MessageBus, "__init__", session_only)
     async def forbidden(*_args, **_kwargs):
         raise AssertionError("unexpected Bluetooth discovery")
     monkeypatch.setattr(BleakScanner, "discover", forbidden)
@@ -149,3 +160,125 @@ async def test_connect_move_disconnect(isolated_transport):
         server.disconnect()
         await asyncio.sleep(0)
     assert not backend.connected
+
+
+async def test_cancelled_inflight_read_allows_later_move(isolated_transport):
+    desk = isolated_transport
+    assert await desk.get_height() is not None
+    backend = GattBackend.instances[0]
+    backend.block_read = True
+    move = asyncio.create_task(desk.move_to(Length(1.0)))
+    try:
+        await asyncio.wait_for(backend.entered.wait(), 2)
+        move.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await move
+        backend.block_read = False
+        assert await asyncio.wait_for(desk.move_to(Length(1.0)), 2)
+        assert any(event[:2] == ("write", BASE.format("0031")) for event in backend.events)
+    finally:
+        backend.release.set()
+        await desk.disconnect()
+    assert not backend.connected
+
+
+async def test_stop_invalidates_pending_private_bus_move(isolated_transport):
+    desk = isolated_transport
+    assert await desk.get_height() is not None
+    backend = GattBackend.instances[0]
+    backend.block_read = True
+    driver = Driver(make_config())
+    await driver.start()
+    daemon = daemon_for_driver(driver)
+    daemon.desk, daemon.moving = desk, False
+    daemon._invalidate_position_observation = MagicMock()
+    daemon._admit_strict_locked = AsyncMock()
+    server, client = await MessageBus().connect(), await MessageBus().connect()
+    server.export(DBUS_PATH, Desk1(daemon))
+    await server.request_name(DBUS_NAME)
+
+    def message(member, signature="", body=None):
+        return Message(destination=DBUS_NAME, path=DBUS_PATH,
+                       interface=f"{DBUS_NAME}.Desk1", member=member,
+                       signature=signature, body=body or [])
+
+    move = asyncio.create_task(client.call(message("MoveToHeight", "d", [1.0])))
+    stop = None
+    try:
+        await asyncio.wait_for(backend.entered.wait(), 2)
+        stop = asyncio.create_task(client.call(message("Stop")))
+        # Stop reaches the real adapter before the backend read is released.
+        for _ in range(100):
+            if desk._stop_generation:
+                break
+            await asyncio.sleep(0)
+        assert desk._stop_generation == 1
+        backend.block_read = False
+        backend.release.set()
+        assert (await asyncio.wait_for(stop, 2)).message_type == MessageType.METHOD_RETURN
+        assert (await asyncio.wait_for(move, 2)).message_type == MessageType.METHOD_RETURN
+        assert not any(event[:2] == ("write", BASE.format("0031")) and
+                       event[2] != b"\x01\x80" for event in backend.events)
+        reply = await asyncio.wait_for(client.call(message("MoveToHeight", "d", [1.0])), 2)
+        assert reply.message_type == MessageType.METHOD_RETURN
+        assert any(event[:2] == ("write", BASE.format("0031")) and
+                   event[2] != b"\x01\x80" for event in backend.events)
+    finally:
+        backend.release.set()
+        await asyncio.gather(move, *([stop] if stop else []), return_exceptions=True)
+        await desk.disconnect()
+        await server.release_name(DBUS_NAME)
+        client.disconnect()
+        server.disconnect()
+        await asyncio.sleep(0)
+
+
+class FakeBlueZDevice(ServiceInterface):
+    def __init__(self):
+        super().__init__("org.bluez.Device1")
+
+    @dbus_property(access=PropertyAccess.READ)
+    def Connected(self) -> "b":  # pylint: disable=invalid-name
+        return True
+
+
+async def test_release_preserves_other_real_client(isolated_transport):
+    desk = isolated_transport
+    assert await desk.get_height() is not None
+    first = GattBackend.instances[0]
+    other = BleDesk("11:22:33:44:55:66", desk_factory=desk._desk_factory, linger=60)
+    assert await other.get_height() is not None
+    second = GattBackend.instances[1]
+    driver = Driver(make_config())
+    await driver.start()
+    daemon = daemon_for_driver(driver)
+    daemon.desk, daemon.mock_mode = desk, False
+    daemon.config.desk.mac = desk.mac
+    server, client = await MessageBus().connect(), await MessageBus().connect()
+    path = "/org/bluez/test/device"
+    server.export(path, FakeBlueZDevice())
+    await server.request_name("org.bluez")
+    daemon.bluetooth = MagicMock()
+    daemon.bluetooth.device_path.return_value = path
+
+    async def property_read(device, interface, name):
+        reply = await client.call(Message(destination="org.bluez", path=device,
+                                          interface="org.freedesktop.DBus.Properties",
+                                          member="Get", signature="ss", body=[interface, name]))
+        assert reply.message_type == MessageType.METHOD_RETURN
+        return reply.body[0].value
+
+    daemon.bluetooth.property = property_read
+    try:
+        await daemon._recover_link_after_resume()
+        assert not first.connected and second.connected
+        assert await asyncio.wait_for(other.move_to(Length(1.0)), 2)
+        assert second.connected
+        daemon.activity_log.diag.assert_called_once()
+    finally:
+        await desk.disconnect()
+        await other.disconnect()
+        await server.release_name("org.bluez")
+        client.disconnect()
+        server.disconnect()
+        await asyncio.sleep(0)
