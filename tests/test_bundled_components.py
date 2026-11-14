@@ -1,5 +1,6 @@
 """Keep the hand-reviewed component register tied to its authoritative inputs."""
 import json
+import hashlib
 from pathlib import Path
 import re
 
@@ -55,6 +56,20 @@ def test_pins_and_uninspected_parent_tiers_are_explicit():
     manifest = (ROOT / 'packaging/flatpak/io.github.extricator.IdasenCompanion.yaml').read_text()
     assert "runtime-version: '" + rows['platform']['current_version'] + "'" in manifest
     assert "base-version: '" + rows['baseapp']['current_version'] + "'" in manifest
-    for name in ('qt-native', 'baseapp', 'platform', 'flatpak-app'):
+    assert rows['qt-native']['decision'] == 'compatibility-hold'
+    for name in ('baseapp', 'platform', 'flatpak-app'):
         assert 'pending 46-0' in rows[name]['evidence']['status']
     assert 'include packaging/bundled-components.json' in (ROOT / 'MANIFEST.in').read_text().splitlines()
+
+
+def test_qt_notices_match_each_recorded_source_section():
+    rows = {row['id']: row for row in load('packaging/bundled-components.json')['components']}
+    notices = rows['qt-native']['evidence']['confirmed_notices']
+    assert {entry['component'] for entry in notices} == {
+        'PCRE2 10.48', 'PCRE2 SLJIT', 'libpng 1.6.58', 'HarfBuzz 14.5.0',
+        'libjpeg-turbo 3.2.0', 'IJG', 'libjpeg copyright', 'ICU 73.2',
+    }
+    for notice in notices:
+        data = (ROOT / notice['file']).read_bytes()
+        section = data[notice['offset']:notice['offset'] + notice['size']]
+        assert hashlib.sha256(section).hexdigest() == notice['sha256']

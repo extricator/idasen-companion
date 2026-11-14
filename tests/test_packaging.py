@@ -1262,6 +1262,11 @@ LICENCE_TEXT_FOR_TERM = {
     "CNRI-Python": "LICENSE.cpython",
     "Apache-2.0": "LICENSE.Apache-2.0.txt",
     "OpenSSL": "LICENSE.OpenSSL.txt",
+    "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception": "LICENSE.qt-third-party.txt",
+    "Libpng": "LICENSE.qt-third-party.txt",
+    "libpng-2.0": "LICENSE.qt-third-party.txt",
+    "IJG": "LICENSE.qt-third-party.txt",
+    "Unicode-DFS-2016": "LICENSE.qt-third-party.txt",
     "X11": "LICENSE.X11.txt",
     "Sleepycat": "LICENSE.Sleepycat.txt",
     "BSD-2-Clause": "LICENSE.BSD-2-Clause.txt",
@@ -1325,7 +1330,7 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
 # sdist. Anchored at the start of a line, so the paragraph explaining the
 # directory cannot stand in for an entry in it.
 MANIFEST_VENDORED_LICENCE = re.compile(
-    r"^include packaging/licenses/(\S+)\s*$", re.M)
+    r"^include packaging/licenses/([^/\s]+)\s*$", re.M)
 
 
 def test_every_vendored_licence_text_ships_and_installs():

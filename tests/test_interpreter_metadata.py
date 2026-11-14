@@ -47,7 +47,7 @@ def package_tree(tree):
 
 def test_complete_package_verification_and_effective_variants(tool):
     variants = tool["verify_package_variants"]()
-    assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt"}
+    assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"}
     assert "LICENSE.sqlite.txt" in variants["headless"]["licenses"]
     assert "LICENSE.cpython" in variants["headless"]["licenses"]
     assert tool["main"](["verify"]) == 0

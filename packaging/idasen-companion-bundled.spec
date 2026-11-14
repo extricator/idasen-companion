@@ -113,7 +113,7 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # entry which fails the build if it ever stops resolving, so the omission is
 # guarded rather than assumed.
 %if %{with_gui}
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only) AND LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016
 Conflicts:      idasen-companion-headless
 %else
 License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6
@@ -417,6 +417,10 @@ for text in packaging/licenses/*.txt; do
     cp "$text" "$(basename "$text")"
 done
 
+%if %{with_gui}
+cp packaging/licenses/qt/THIRD-PARTY-NOTICES.txt LICENSE.qt-third-party.txt
+%endif
+
 # Exact interpreter component notices, independently associated with the
 # reviewed optimized build. All bytes come from the full build; Zstandard's
 # notice also matches its checksum-pinned source archive.
@@ -628,7 +632,7 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 # Named one by one rather than globbed: a wheel that stops shipping its
 # license text fails the build here instead of quietly dropping it.
 %if %{with_gui}
-%license LICENSE LICENSE.LGPL-3.0.txt LICENSE.bleak LICENSE.dbus_fast
+%license LICENSE LICENSE.LGPL-3.0.txt LICENSE.qt-third-party.txt LICENSE.bleak LICENSE.dbus_fast
 %else
 %license LICENSE LICENSE.bleak LICENSE.dbus_fast
 %endif

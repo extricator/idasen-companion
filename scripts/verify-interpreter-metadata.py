@@ -266,6 +266,7 @@ def verify_notice_sources(root=ROOT, components=()):
 
 
 QT_EXPRESSION = "(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)"
+QT_NATIVE_EXPRESSION = "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016"
 FLAVOR_SELECTOR = '''%global release_flavor %{?release_flavor}%{!?release_flavor:full}
 %if "%{release_flavor}" == "headless"
 %global package_name idasen-companion-headless
@@ -347,6 +348,9 @@ def verify_package_variants(root=ROOT):
         sections = re.findall(r"^%install\n(.*?)^%check\n", effective, re.M | re.S)
         require(len(sections) == 1, f"{flavor}: expected one install/check staging section")
         staging = sections[0]
+        qt_copy = "cp packaging/licenses/qt/THIRD-PARTY-NOTICES.txt LICENSE.qt-third-party.txt"
+        require(staging.splitlines().count(qt_copy) == (1 if flavor == "full" else 0),
+                f"{flavor}: Qt native notice staging changed")
         require(staging.count(NOTICE_STAGING) == 1, f"{flavor}: component notice staging changed")
         require(staging.splitlines().count(CPYTHON_COPY) == 1, f"{flavor}: cpython source copy changed")
         for component, record in dict(inventory["components"], cpython=inventory["cpython"]).items():
@@ -362,10 +366,10 @@ def verify_package_variants(root=ROOT):
     require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.+-]*(?: AND [A-Za-z0-9][A-Za-z0-9.+-]*)*", headless["expression"])
             and headless["terms"] == set(inventory["terms"]) | {"GPL-3.0-or-later", "PSF-2.0"},
             "headless: package terms disagree with interpreter plus app/wheel terms")
-    require(full["expression"] == headless["expression"] + " AND " + QT_EXPRESSION,
+    require(full["expression"] == headless["expression"] + " AND " + QT_EXPRESSION + " AND " + QT_NATIVE_EXPRESSION,
             "full: expected exact Qt expression delta from headless")
-    require(full["licenses"] == headless["licenses"] | {"LICENSE.LGPL-3.0.txt"}
-            and "LICENSE.LGPL-3.0.txt" not in headless["licenses"],
+    require(full["licenses"] == headless["licenses"] | {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"}
+            and not {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"} & headless["licenses"],
             "full/headless: expected exact Qt notice delta")
     return variants
 

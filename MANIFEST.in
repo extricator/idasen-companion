@@ -169,3 +169,4 @@ recursive-include po *.po *.pot
 recursive-include src/idasen_companion/locale *.mo
 
 include packaging/bundled-components.json
+include packaging/licenses/qt/THIRD-PARTY-NOTICES.txt
