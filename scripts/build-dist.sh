@@ -93,12 +93,13 @@ PYEOF
 
 echo ">> Checking the sdist stays under the size ceiling..."
 SDIST_SIZE=$("$PYTHON" -c "import os,sys;print(os.path.getsize(sys.argv[1]))" "$SDIST")
-# 900000 bytes: just above the ~872 kB sdist measured with Strict mode's
-# implementation and regression tests, which ship for packaged test runs.
-# The tracked-member audit above still rejects unintended files. Far below either
-# accident this guards against -- an untracked design-tool export once added
-# ~1.1 MB, and the screenshot directory would add ~650 kB on its own.
-SDIST_SIZE_CEILING=900000
+# 1800000 bytes: bounds the ~1.67 MB sdist with the reviewed dependency
+# inventories, exact source notices and their verification tools. These are
+# tracked build inputs; the separate member audit still rejects untracked
+# content. The prior 900 kB cap covered Strict mode's smaller source tree.
+# The remaining headroom is small: the extra ~1.1 MB design export or ~650 kB
+# screenshot directory from earlier accidents would still breach this cap.
+SDIST_SIZE_CEILING=1800000
 if [ "$SDIST_SIZE" -gt "$SDIST_SIZE_CEILING" ]; then
     echo "error: sdist is ${SDIST_SIZE} bytes, over the ${SDIST_SIZE_CEILING}-byte ceiling" >&2
     exit 1
