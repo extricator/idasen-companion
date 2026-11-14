@@ -45,3 +45,9 @@ class FlatpakDependenciesTest(unittest.TestCase):
             (root / names[0]).unlink()
             with self.assertRaisesRegex(ValueError, "missing wheels"):
                 self.module.checked_sources(root, metadata)
+
+    def test_cleanup_rejects_missing_expected_baseapp_directories(self):
+        manifest = (Path(__file__).resolve().parents[1] /
+                    "packaging/flatpak/io.github.extricator.IdasenCompanion.yaml").read_text()
+        self.assertIn("test -d /app/lib/python3.13/site-packages/numpy", manifest)
+        self.assertIn("test -d /app/lib/python3.13/site-packages/OpenGL", manifest)
