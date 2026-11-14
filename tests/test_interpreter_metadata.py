@@ -138,9 +138,9 @@ def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
     assert set(inventory["excluded"]) == {"_tkinter"}
     assert inventory["build_only"] == ["setuptools"]
     assert "TCL" not in inventory["terms"]
-    assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "zstd"
+    assert provenance["notices"]["licenses/LICENSE.zstd.txt"]["archive"] == "full"
     assert "licenses/LICENSE.zlib-ng.txt" not in provenance["notices"]
-    assert "licenses/LICENSE.openssl-1.1.txt" in inventory["components"]["_ssl"]["license_paths"]
+    assert "licenses/LICENSE.openssl-1.1.txt" not in inventory["components"]["_ssl"]["license_paths"]
     assert "licenses/LICENSE.openssl-1.1.txt" not in provenance["notices"]
     assert "licenses/LICENSE.openssl-3.txt" in provenance["notices"]
 

@@ -43,7 +43,7 @@ LIMITATIONS = [
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
     "licenses/LICENSE.zstd.txt in the full archive matches the digest-bound source LICENSE.",
     "licenses/LICENSE.zlib-ng.txt is present as an upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
-    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.9 and selects LICENSE.openssl-3.txt only.",
+    "OpenSSL metadata names LICENSE.openssl-3.txt only; this reviewed build uses OpenSSL 3.5.9.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding.",
 ]
 
