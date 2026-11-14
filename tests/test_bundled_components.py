@@ -47,18 +47,18 @@ def test_interpreter_membership_and_native_inventory_match_provenance():
             assert name in rows['native:' + dependency]['evidence']['modules']
 
 
-def test_pins_and_uninspected_parent_tiers_are_explicit():
+def test_pins_and_inspected_parent_tiers_are_explicit():
     rows = {row['id']: row for row in load('packaging/bundled-components.json')['components']}
     fetcher = (ROOT / 'scripts/fetch-bundled-runtime.sh').read_text()
     pins = dict(re.findall(r'"([\w-]+)==([\d.]+)"', fetcher))
     for name, version in pins.items():
         assert rows['wheel:' + name.lower()]['selected_version'] == version
     manifest = (ROOT / 'packaging/flatpak/io.github.extricator.IdasenCompanion.yaml').read_text()
-    assert "runtime-version: '" + rows['platform']['current_version'] + "'" in manifest
-    assert "base-version: '" + rows['baseapp']['current_version'] + "'" in manifest
+    assert "runtime-version: '" + rows['platform']['selected_version'] + "'" in manifest
+    assert "base-version: '" + rows['baseapp']['selected_version'] + "'" in manifest
     assert rows['qt-native']['decision'] == 'compatibility-hold'
     for name in ('baseapp', 'platform', 'flatpak-app'):
-        assert 'pending 46-0' in rows[name]['evidence']['status']
+        assert rows[name]['evidence']['status'] == 'observed'
     assert 'include packaging/bundled-components.json' in (ROOT / 'MANIFEST.in').read_text().splitlines()
 
 

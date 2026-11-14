@@ -3542,18 +3542,19 @@
       "current_version": "6.10",
       "decision": "update",
       "evidence": {
-        "method": "source manifest or selected payload not inspected",
-        "status": "pending 46-04"
+        "method": "isolated selected deployment and built tree inspection",
+        "commit": "25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572",
+        "status": "observed"
       },
       "id": "baseapp",
       "name": "io.qt.PySide.BaseApp",
-      "notice": "pending inspection",
+      "notice": "inherited parent share/licenses; attribution review remains open",
       "ownership": "BaseApp",
       "parents": [
         "baseapp"
       ],
       "presence": {
-        "flatpak": "unknown",
+        "flatpak": "present",
         "rpm-full": "not-owned",
         "rpm-headless": "not-owned"
       },
@@ -3563,18 +3564,19 @@
       "current_version": "6.10",
       "decision": "update",
       "evidence": {
-        "method": "source manifest or selected payload not inspected",
-        "status": "pending 46-04"
+        "method": "isolated selected deployment and built tree inspection",
+        "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415",
+        "status": "observed"
       },
       "id": "platform",
       "name": "org.kde.Platform",
-      "notice": "pending inspection",
+      "notice": "inherited parent share/licenses; attribution review remains open",
       "ownership": "Platform",
       "parents": [
         "platform"
       ],
       "presence": {
-        "flatpak": "unknown",
+        "flatpak": "present",
         "rpm-full": "not-owned",
         "rpm-headless": "not-owned"
       },
@@ -3584,22 +3586,23 @@
       "current_version": "unknown: not yet inspected; plan 46-03 or 46-04",
       "decision": "update",
       "evidence": {
-        "method": "source manifest or selected payload not inspected",
-        "status": "pending 46-04"
+        "method": "official wheel hashes and isolated build",
+        "status": "observed",
+        "abi": "cp313"
       },
       "id": "flatpak-app",
       "name": "Flatpak application dependencies",
-      "notice": "pending inspection",
+      "notice": "individual wheel dist-info licenses retained",
       "ownership": "flatpak-app",
       "parents": [
         "flatpak-app"
       ],
       "presence": {
-        "flatpak": "unknown",
+        "flatpak": "present",
         "rpm-full": "not-owned",
         "rpm-headless": "not-owned"
       },
-      "selected_version": "unknown: not yet inspected; plan 46-03 or 46-04"
+      "selected_version": "six exact pins in python3-deps.json"
     },
     {
       "current_version": "unknown: prior Qt binary not inspected",
@@ -6018,14 +6021,15 @@
       "current_version": "6.10",
       "selected_version": "6.11",
       "source_url": "https://github.com/flathub/io.qt.PySide.BaseApp",
-      "status": "source definitions only; binary inspection pending 46-04"
+      "status": "selected deployed commit inspected; see component evidence",
+      "commit": "25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572"
     },
     "flatpak-app": {
       "artifact": "packaging/flatpak/python3-deps.json",
       "current_version": "tracked per lock",
-      "selected_version": "pending 46-04",
+      "selected_version": "six exact application wheel pins",
       "source_url": "https://flathub.org/",
-      "status": "selected payload pending 46-04"
+      "status": "verified PyPI wheel bytes and isolated build"
     },
     "host": {
       "artifact": "system ELF sonames",
@@ -6048,7 +6052,8 @@
       "current_version": "6.10",
       "selected_version": "6.11",
       "source_url": "https://invent.kde.org/packaging/flatpak-kde-runtime",
-      "status": "source definitions only; binary inspection pending 46-04"
+      "status": "selected deployed commit inspected; see component evidence",
+      "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415"
     },
     "wheels": {
       "artifact": "packaging/bundled-wheel-hashes.json",
@@ -6056,6 +6061,14 @@
       "selected_version": "per component",
       "source_url": "https://pypi.org/",
       "status": "verified official release hashes and offline selected-interpreter installations"
+    },
+    "sdk": {
+      "artifact": "org.kde.Sdk",
+      "current_version": "6.10",
+      "selected_version": "6.11",
+      "commit": "f77a65229fcb9dc1468944cd6a2b5aa327d1877725d681467805dae6ed68aebe",
+      "source_url": "https://invent.kde.org/packaging/flatpak-kde-runtime",
+      "status": "isolated build-only SDK"
     }
   },
   "schema": 1

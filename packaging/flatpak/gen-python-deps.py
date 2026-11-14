@@ -3,7 +3,7 @@
 """Regenerate packaging/flatpak/python3-deps.json.
 
 Resolves the runtime dependency closure for the Flatpak runtime's Python
-(CPython 3.13, x86_64 manylinux — org.kde.Platform//6.10) and emits a
+(CPython 3.13, x86_64 manylinux — org.kde.Platform//6.11) and emits a
 flatpak-builder 'simple' module that pip-installs those wheels offline from
 their canonical pythonhosted URL + sha256.
 
@@ -30,9 +30,42 @@ from pathlib import Path
 # submodule, so pulling that dependency in offline would be dead weight.
 # Every package this project actually needs is already named here
 # explicitly.
-TOP = ["Babel", "idasen", "bleak", "dbus-fast", "PyYAML", "tomlkit"]
+TOP = ["Babel==2.18.0", "idasen==0.14.0", "bleak==3.1.0",
+       "dbus-fast==5.2.0", "PyYAML==6.0.3", "tomlkit==0.15.2"]
 
 OUT = Path(__file__).with_name("python3-deps.json")
+
+
+def checked_sources(wheels: Path, metadata) -> tuple[list, list]:
+    """Require precisely the reviewed closure and PyPI's complete byte identities."""
+    sources, pkgs = [], []
+    expected = {pin.lower().replace("-", "_") for pin in TOP}
+    observed = set()
+    for whl in sorted(wheels.iterdir()):
+        if not whl.is_file() or whl.is_symlink() or whl.suffix != ".whl":
+            raise ValueError(f"unexpected source: {whl.name}")
+        parts = whl.name.split("-")
+        if len(parts) < 5:
+            raise ValueError(f"invalid wheel: {whl.name}")
+        name, version = parts[:2]
+        pin = f"{name.lower()}=={version}"
+        if pin not in expected or pin in observed:
+            raise ValueError(f"unexpected or duplicate wheel: {whl.name}")
+        observed.add(pin)
+        local_sha = hashlib.sha256(whl.read_bytes()).hexdigest()
+        match = next((f for f in metadata(name, version) if f["filename"] == whl.name), None)
+        if not match or match["digests"]["sha256"] != local_sha or match["size"] != whl.stat().st_size:
+            raise ValueError(f"wheel bytes differ from PyPI: {whl.name}")
+        sources.append({"type": "file", "url": match["url"], "sha256": local_sha})
+        pkgs.append(f"{name}=={version}")
+    if observed != expected:
+        raise ValueError(f"missing wheels: {sorted(expected - observed)}")
+    return sources, pkgs
+
+
+def pypi_files(name: str, version: str) -> list:
+    with urllib.request.urlopen(f"https://pypi.org/pypi/{name}/{version}/json") as response:
+        return json.load(response)["urls"]
 
 
 def main() -> None:
@@ -49,18 +82,7 @@ def main() -> None:
              *TOP],
             check=True,
         )
-        sources, pkgs = [], []
-        for whl in sorted(wheels.glob("*.whl")):
-            name, version = whl.name.split("-")[0], whl.name.split("-")[1]
-            local_sha = hashlib.sha256(whl.read_bytes()).hexdigest()
-            api = f"https://pypi.org/pypi/{name}/{version}/json"
-            with urllib.request.urlopen(api) as r:
-                files = json.load(r)["urls"]
-            match = next(f for f in files if f["filename"] == whl.name)
-            assert match["digests"]["sha256"] == local_sha, whl.name
-            sources.append(
-                {"type": "file", "url": match["url"], "sha256": local_sha})
-            pkgs.append(f"{name}=={version}")
+        sources, pkgs = checked_sources(wheels, pypi_files)
 
     module = {
         "name": "python3-deps",
