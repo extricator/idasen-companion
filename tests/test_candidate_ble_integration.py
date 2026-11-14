@@ -136,6 +136,7 @@ async def test_connect_move_disconnect(isolated_transport):
     daemon = daemon_for_driver(driver)
     daemon.desk = desk
     daemon.moving = False
+    daemon.desk_connected = False
     daemon._invalidate_position_observation = MagicMock()
     daemon._admit_strict_locked = AsyncMock()
     server, client = await MessageBus().connect(), await MessageBus().connect()
@@ -173,9 +174,11 @@ async def test_cancelled_inflight_read_allows_later_move(isolated_transport):
         move.cancel()
         with pytest.raises(asyncio.CancelledError):
             await move
-        backend.block_read = False
+        assert not backend.connected
         assert await asyncio.wait_for(desk.move_to(Length(1.0)), 2)
-        assert any(event[:2] == ("write", BASE.format("0031")) for event in backend.events)
+        replacement = GattBackend.instances[-1]
+        assert replacement is not backend
+        assert any(event[:2] == ("write", BASE.format("0031")) for event in replacement.events)
     finally:
         backend.release.set()
         await desk.disconnect()
@@ -190,7 +193,7 @@ async def test_stop_invalidates_pending_private_bus_move(isolated_transport):
     driver = Driver(make_config())
     await driver.start()
     daemon = daemon_for_driver(driver)
-    daemon.desk, daemon.moving = desk, False
+    daemon.desk, daemon.moving, daemon.desk_connected = desk, False, True
     daemon._invalidate_position_observation = MagicMock()
     daemon._admit_strict_locked = AsyncMock()
     server, client = await MessageBus().connect(), await MessageBus().connect()
@@ -202,16 +205,21 @@ async def test_stop_invalidates_pending_private_bus_move(isolated_transport):
                        interface=f"{DBUS_NAME}.Desk1", member=member,
                        signature=signature, body=body or [])
 
+    stopped = asyncio.Event()
+    original_stop = desk.stop
+
+    async def observed_stop():
+        stopped.set()
+        await original_stop()
+
+    desk.stop = observed_stop
     move = asyncio.create_task(client.call(message("MoveToHeight", "d", [1.0])))
     stop = None
     try:
         await asyncio.wait_for(backend.entered.wait(), 2)
         stop = asyncio.create_task(client.call(message("Stop")))
         # Stop reaches the real adapter before the backend read is released.
-        for _ in range(100):
-            if desk._stop_generation:
-                break
-            await asyncio.sleep(0)
+        await asyncio.wait_for(stopped.wait(), 2)
         assert desk._stop_generation == 1
         backend.block_read = False
         backend.release.set()
