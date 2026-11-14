@@ -15,6 +15,9 @@ command: idasen-companion
 # QIcon.fromTheme + the svg image/icon plugins); everything stripped below is
 # dead weight. See packaging/flatpak/README.md ("Size") for the rationale.
 cleanup-commands:
+  # Fail closed if the selected BaseApp layout changes; review the trim anew.
+  - test -d /app/lib/python3.13/site-packages/numpy
+  - test -d /app/lib/python3.13/site-packages/OpenGL
   - /app/cleanup-BaseApp.sh
   # QtWebEngine (a full Chromium) + its LLVM/clang toolchain, driver, sandbox
   # process, resource paks, spellcheck dictionaries and locale catalogs — by

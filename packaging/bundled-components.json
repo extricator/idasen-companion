@@ -6013,6 +6013,1534 @@
         "rpm-headless": "present"
       },
       "selected_version": "6.0.3"
+    },
+    {
+      "id": "flatpak-binding:QtBluetooth.abi3.so",
+      "name": "QtBluetooth.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "c7ca81e89df69d717436968ab1f870c1c96d72d5c12bacc2ab9fd2a8e3ef6477",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Bluetooth.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtConcurrent.abi3.so",
+      "name": "QtConcurrent.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "32f6141eb18a30c17eebd36b0eba65681a798c6b539ba7ee6aaa665f0a176162",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtCore.abi3.so",
+      "name": "QtCore.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "b20bd37ae4b55cdf36cc0b45f5eb86b1878088df7f81772f95b81206c1a4d712",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtDBus.abi3.so",
+      "name": "QtDBus.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "23c376a1b45c1f570ad44331745c59aa16b760e65a24dc96dd7f21fa41a71451",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6DBus.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtGraphs.abi3.so",
+      "name": "QtGraphs.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "c0328db5943dfc84cd8eb97df5f73f570a34c2e6238a991bccbbdb9ace186849",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Graphs.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Quick3D.so.6",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Qml.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtGraphsWidgets.abi3.so",
+      "name": "QtGraphsWidgets.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "206e9509311a3a0668939b5c60664a2299badf879a668aaad746ea34a90125ea",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6GraphsWidgets.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtGui.abi3.so",
+      "name": "QtGui.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "9e5f4ed9ac6fd0ab6d11703ad43d4ee388c63dcf65c2b67fb1eb19b513a1bb52",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtHelp.abi3.so",
+      "name": "QtHelp.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "e82c7161f31537884bad5329f995e7e333c4b7a25d1def846b07a43b739ce29f",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Help.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Widgets.so.6",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtHttpServer.abi3.so",
+      "name": "QtHttpServer.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "954d99b9535b65c9e2dec229a44f2f8fc2b8cf130f508512c0772b9eb2044ac3",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6HttpServer.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Network.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtNetwork.abi3.so",
+      "name": "QtNetwork.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "9e85e964832322e85dad9079a77e7dd763b00249b815e0d70b76bb6983e0b711",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Network.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtNetworkAuth.abi3.so",
+      "name": "QtNetworkAuth.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "78c58496256ef0f0803009b085c40028086dcb86d018979d2fbddaafa8a3c48f",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6NetworkAuth.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Network.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtNfc.abi3.so",
+      "name": "QtNfc.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "757da5f87991f55eceea3ba35d0b1bb1dc00584c754216bd15a525c6fc35d872",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Nfc.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtPrintSupport.abi3.so",
+      "name": "QtPrintSupport.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "cdc91ae87f5d59d9817bfdb9523585571ddef92c736328061593d7c681c1f23d",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6PrintSupport.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Widgets.so.6",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtRemoteObjects.abi3.so",
+      "name": "QtRemoteObjects.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "e69446f9d610dc0187a332ee9df50193eea8cbb93efba11bcf59483f5b4d2c94",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6RemoteObjects.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtScxml.abi3.so",
+      "name": "QtScxml.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "a4fef86a246ccdc801567eb8b5ba05c133b78220ab32cb66f39bfce99c7534b5",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Scxml.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtSensors.abi3.so",
+      "name": "QtSensors.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "70789795dfe390e567238877ce6a3559c5172b399885ef9b2f2265151ef2bebe",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Sensors.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtSerialPort.abi3.so",
+      "name": "QtSerialPort.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "8ecaaca6ad123069a4050d13bb19113db3eb9075b5b794c27762e5b40d10cd5c",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6SerialPort.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtSql.abi3.so",
+      "name": "QtSql.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "935f8788eb4166ddb1ae7e93be81cc95d6cb1141d4c308c9a376ce5ec4667b89",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Widgets.so.6",
+          "libQt6Sql.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtStateMachine.abi3.so",
+      "name": "QtStateMachine.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "2018f4a9374dd69d3866d63f6f358317fdcc963638b8a1111c9c80cfb9346c1d",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6StateMachine.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtSvg.abi3.so",
+      "name": "QtSvg.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "02b324cbc62336a7e77e8068ae7912e7819ec27ee229a174d4011ecb93acb511",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Svg.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtSvgWidgets.abi3.so",
+      "name": "QtSvgWidgets.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "ebbdfcec1d38e7fb7e0b22d58a15d84ccc7059d7bde6cd5ebe42e14f2357f6bd",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6SvgWidgets.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Widgets.so.6",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtTest.abi3.so",
+      "name": "QtTest.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "95661127c5423bd47565ad9b0e37746158c179f578c7c6088c487e455eece48a",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Test.so.6",
+          "libQt6Widgets.so.6",
+          "libQt6Gui.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtTextToSpeech.abi3.so",
+      "name": "QtTextToSpeech.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "6d50f90dd04e33876ee48835ee24598894071348e0f823a2d3fe54ebcfe5b55a",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6TextToSpeech.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtUiTools.abi3.so",
+      "name": "QtUiTools.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "e871843b8de0c43c3a062ece101fd720dcd3cc74402063a05fe2643f59ee1739",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6UiTools.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtWebChannel.abi3.so",
+      "name": "QtWebChannel.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "e621592c117d45ed8ccb27f03e62cdce4ec4bd84ac7b023e965579627084b508",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6WebChannel.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtWebSockets.abi3.so",
+      "name": "QtWebSockets.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "3dd5a25ee9475fd49fc3c0357c0c62ee3db4fce13776bc74b261db27e61b48e7",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6WebSockets.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Network.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtWidgets.abi3.so",
+      "name": "QtWidgets.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "6d107e375221dc7298152d46b3ad45389eb77d2def3f39b02a62f8ebd10391e6",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Widgets.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Gui.so.6",
+          "libGL.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-binding:QtXml.abi3.so",
+      "name": "QtXml.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp PySide licensing association requires review; Platform Qt notices inherited",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "fb13084572b342d72b0b018413f38c603c94562e3b1de4daa9ddce7cfa9d43d1",
+        "dependencies": [
+          "libpyside6.abi3.so.6.11",
+          "libQt6Xml.so.6",
+          "libshiboken6.abi3.so.6.11",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-shiboken:Shiboken.abi3.so",
+      "name": "Shiboken.abi3.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "update",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "BaseApp Shiboken licensing association requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "a1ab4d3455bea6dfcfb08a923ad66928f5b03edb0daed13e9b41581593478fb9",
+        "dependencies": [
+          "libshiboken6.abi3.so.6.11",
+          "libstdc++.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:dbus_fast/message.cpython-313-x86_64-linux-gnu.so",
+      "name": "dbus_fast/message.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "8c4cf21e45ef739b57d2aa4509f6483798e1a4b4823e9e83c07b67b8136bf8c8",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:dbus_fast/message_bus.cpython-313-x86_64-linux-gnu.so",
+      "name": "dbus_fast/message_bus.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "f98cd795b1a69592d6aab3724248af52660dd63c3646da1fb8bce88cd70bee36",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:dbus_fast/service.cpython-313-x86_64-linux-gnu.so",
+      "name": "dbus_fast/service.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "c28d25aed0d7a2c38e730306ef0b273050f48cd049b4ca770cfe3615c9be1b1b",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:dbus_fast/signature.cpython-313-x86_64-linux-gnu.so",
+      "name": "dbus_fast/signature.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "0c00088be84beb85c2f402050669c686267f29f4bf01e86b887695976a57fbea",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:dbus_fast/unpack.cpython-313-x86_64-linux-gnu.so",
+      "name": "dbus_fast/unpack.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "402fdef131613c83d2f27a317d6243756caa38b4ab073503d7300b01a59c61b8",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel-elf:yaml/_yaml.cpython-313-x86_64-linux-gnu.so",
+      "name": "yaml/_yaml.cpython-313-x86_64-linux-gnu.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.0.3",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "pyyaml-6.0.3.dist-info/licenses/LICENSE",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "7a8b8446b236f07705960fba4760ed8ea0bddeaa358f0a4ffa54ce36048ad948",
+        "dependencies": [
+          "libpthread.so.0",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-qt:Core",
+      "name": "libQt6Core.so.6.11.3",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "d51151a1b8a9e465b267ba8bd10da52bb773885ae4b68ab88436866e4901362b",
+        "dependencies": [
+          "libicui18n.so.77",
+          "libicuuc.so.77",
+          "libzstd.so.1",
+          "libglib-2.0.so.0",
+          "libz.so.1",
+          "libpcre2-16.so.0",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-qt:Gui",
+      "name": "libQt6Gui.so.6.11.3",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "7a5236fe3f62c8ea18a71d1e8bb13064d91e0cb506c6208e64810929ee3d318a",
+        "dependencies": [
+          "libEGL.so.1",
+          "libfontconfig.so.1",
+          "libX11.so.6",
+          "libglib-2.0.so.0",
+          "libQt6DBus.so.6",
+          "libxkbcommon.so.0",
+          "libGLX.so.0",
+          "libOpenGL.so.0",
+          "libpng16.so.16",
+          "libharfbuzz.so.0",
+          "libfreetype.so.6",
+          "libz.so.1",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-qt:Widgets",
+      "name": "libQt6Widgets.so.6.11.3",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "a9ae96e3175a3723a5a70d870d25604767ee510e084a811ab356f1d69368fd5e",
+        "dependencies": [
+          "libQt6Gui.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-qt:DBus",
+      "name": "libQt6DBus.so.6.11.3",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "08f70d3a64a4b13d92aea73e85a21a374113ad6b71c7c3bc3ab7f858d9fb7d57",
+        "dependencies": [
+          "libdbus-1.so.3",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-qt:Svg",
+      "name": "libQt6Svg.so.6.11.3",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtbase or qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "e47d431c26947bfd359f4803728a18c0826d53ad0fa95975bb9346eff432c22c",
+        "dependencies": [
+          "libQt6Gui.so.6",
+          "libQt6Core.so.6",
+          "libz.so.1",
+          "libstdc++.so.6",
+          "libm.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-plugin:libqsvg.so",
+      "name": "lib/plugins/imageformats/libqsvg.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "6bec46862ef615bae826ced80a7ebe64cfb78d82f25fe2ec5b0b6eeb9858c088",
+        "dependencies": [
+          "libQt6Svg.so.6",
+          "libQt6Gui.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-platform-plugin:libqsvgicon.so",
+      "name": "lib/plugins/iconengines/libqsvgicon.so",
+      "current_version": "unknown: previous payload not inspected",
+      "selected_version": "6.11.3",
+      "decision": "compatibility-hold",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform share/licenses/kde/qtsvg; embedded attribution requires review",
+      "evidence": {
+        "method": "actual retained ELF and DT_NEEDED",
+        "sha256": "65de9dda98cd672c3a10e7e077876665cf989d1febde7555afc46a0c5ffd9ce7",
+        "dependencies": [
+          "libQt6Svg.so.6",
+          "libQt6Gui.so.6",
+          "libQt6Core.so.6",
+          "libstdc++.so.6",
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "id": "flatpak-wheel:babel",
+      "name": "Babel",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "2.18.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "babel-2.18.0.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-wheel:idasen",
+      "name": "idasen",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "0.14.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "idasen-0.14.0.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-wheel:bleak",
+      "name": "bleak",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "3.1.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "bleak-3.1.0.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-wheel:dbus_fast",
+      "name": "dbus-fast",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "5.2.0",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "dbus_fast-5.2.0.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-wheel:pyyaml",
+      "name": "PyYAML",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "6.0.3",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "pyyaml-6.0.3.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-wheel:tomlkit",
+      "name": "tomlkit",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "0.15.2",
+      "decision": "update",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "tomlkit-0.15.2.dist-info/licenses",
+      "evidence": {
+        "method": "official release bytes and actual offline installation",
+        "manifest": "packaging/flatpak/python3-deps.json"
+      }
+    },
+    {
+      "id": "flatpak-python",
+      "name": "Platform CPython",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "3.13.16",
+      "decision": "update",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "present"
+      },
+      "notice": "Platform lib/python3.13/LICENSE.txt",
+      "evidence": {
+        "method": "actual Platform binary and standard library"
+      }
+    },
+    {
+      "id": "flatpak-sdk",
+      "name": "KDE SDK",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "6.11",
+      "decision": "build-only",
+      "ownership": "build-only",
+      "parents": [
+        "sdk"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "build-only"
+      },
+      "notice": "SDK inherited notices",
+      "evidence": {
+        "method": "isolated build parent",
+        "commit": "f77a65229fcb9dc1468944cd6a2b5aa327d1877725d681467805dae6ed68aebe"
+      }
+    },
+    {
+      "id": "flatpak-removed:numpy",
+      "name": "numpy",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
+    },
+    {
+      "id": "flatpak-removed:OpenGL",
+      "name": "OpenGL",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
+    },
+    {
+      "id": "flatpak-removed:QtWebEngine",
+      "name": "QtWebEngine",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
+    },
+    {
+      "id": "flatpak-removed:QtQuick",
+      "name": "QtQuick",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
+    },
+    {
+      "id": "flatpak-removed:QtQml",
+      "name": "QtQml",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
+    },
+    {
+      "id": "flatpak-removed:QtOpenGL",
+      "name": "QtOpenGL",
+      "current_version": "unknown: prior payload not inspected",
+      "selected_version": "unknown: removed BaseApp content",
+      "decision": "removed",
+      "ownership": "removed",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned",
+        "flatpak": "absent"
+      },
+      "notice": "not retained in application tree",
+      "evidence": {
+        "method": "pre/post tree comparison",
+        "status": "absent after cleanup"
+      }
     }
   ],
   "parents": {
@@ -6053,7 +7581,8 @@
       "selected_version": "6.11",
       "source_url": "https://invent.kde.org/packaging/flatpak-kde-runtime",
       "status": "selected deployed commit inspected; see component evidence",
-      "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415"
+      "commit": "fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415",
+      "attribution_limit": "Embedded third-party and stripped native units not exhaustively identified; source candidates alone are not shipped evidence."
     },
     "wheels": {
       "artifact": "packaging/bundled-wheel-hashes.json",
