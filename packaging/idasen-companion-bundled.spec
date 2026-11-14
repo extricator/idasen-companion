@@ -113,7 +113,7 @@ Summary:        Automatic sit/stand companion for the IKEA Idåsen desk (self-co
 # entry which fails the build if it ever stops resolving, so the omission is
 # guarded rather than assumed.
 %if %{with_gui}
-License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only) AND LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016
+License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6 AND (LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only) AND LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016 AND Unicode-3.0 AND CC0-1.0
 Conflicts:      idasen-companion-headless
 %else
 License:        GPL-3.0-or-later AND MIT AND BSD-3-Clause AND PSF-2.0 AND Python-2.0 AND CNRI-Python AND Apache-2.0 AND X11 AND Sleepycat AND BSD-2-Clause AND 0BSD AND Zlib AND bzip2-1.0.6

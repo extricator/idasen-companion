@@ -1267,6 +1267,8 @@ LICENCE_TEXT_FOR_TERM = {
     "libpng-2.0": "LICENSE.qt-third-party.txt",
     "IJG": "LICENSE.qt-third-party.txt",
     "Unicode-DFS-2016": "LICENSE.qt-third-party.txt",
+    "Unicode-3.0": "LICENSE.qt-third-party.txt",
+    "CC0-1.0": "LICENSE.qt-third-party.txt",
     "X11": "LICENSE.X11.txt",
     "Sleepycat": "LICENSE.Sleepycat.txt",
     "BSD-2-Clause": "LICENSE.BSD-2-Clause.txt",

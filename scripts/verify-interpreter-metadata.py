@@ -266,7 +266,7 @@ def verify_notice_sources(root=ROOT, components=()):
 
 
 QT_EXPRESSION = "(LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only)"
-QT_NATIVE_EXPRESSION = "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016"
+QT_NATIVE_EXPRESSION = "LicenseRef-BSD-3-Clause-with-PCRE2-Binary-Like-Packages-Exception AND Libpng AND libpng-2.0 AND IJG AND Unicode-DFS-2016 AND Unicode-3.0 AND CC0-1.0"
 FLAVOR_SELECTOR = '''%global release_flavor %{?release_flavor}%{!?release_flavor:full}
 %if "%{release_flavor}" == "headless"
 %global package_name idasen-companion-headless
