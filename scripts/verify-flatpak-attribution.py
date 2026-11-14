@@ -37,6 +37,8 @@ def within(root, name):
 
 def parent_path(root, name):
     """Resolve deployed /usr links inside the parent, never on the host."""
+    if Path(name).is_absolute():
+        raise ValueError('absolute parent path is not a relative inventory member')
     root = root.resolve()
     parts = Path(name).parts
     path = root

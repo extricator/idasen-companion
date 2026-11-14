@@ -48,6 +48,8 @@ def test_payload_symlink_cannot_escape(tmp_path):
     (root / 'link').symlink_to(outside)
     with pytest.raises(ValueError, match='escapes payload'):
         verifier.within(root, 'link')
+    with pytest.raises(ValueError, match='absolute parent path'):
+        verifier.parent_path(root, str(outside))
 
 
 def test_changed_document_relationship_is_rejected(snapshot):
