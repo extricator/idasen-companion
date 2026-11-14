@@ -78,7 +78,12 @@ def canonical(value):
 
 def _payload_path(root, member):
     """Keep resolved inventory members inside the explicitly selected payload."""
-    path = os.path.realpath(os.path.join(root, member))
+    path = os.path.abspath(os.path.join(root, member))
+    if not path.startswith(os.path.realpath(root).rstrip(os.sep) + os.sep):
+        raise ValueError(f"path escapes payload: {member}")
+    if Path(path).is_symlink():
+        raise ValueError("payload symlinks are not reviewed")
+    path = os.path.realpath(path)
     if not path.startswith(os.path.realpath(root).rstrip(os.sep) + os.sep):
         raise ValueError(f"path escapes payload: {member}")
     return Path(path)
@@ -86,8 +91,6 @@ def _payload_path(root, member):
 
 def _verify_payload(root, retained, packaged=None):
     root = Path(os.path.realpath(root))
-    if (root / "PySide6").is_symlink():
-        raise ValueError("payload symlinks are not reviewed")
     pyside = _payload_path(root, "PySide6")
     entries = [pyside, *pyside.rglob("*")]
     if any(path.is_symlink() for path in entries):

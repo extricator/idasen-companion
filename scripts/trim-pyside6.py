@@ -162,7 +162,7 @@ def _seed_paths(root, plugins):
     for module in SEED_MODULES:
         seed = os.path.realpath(os.path.join(root, f"{module}.abi3.so"))
         if not seed.startswith(os.path.realpath(root).rstrip(os.sep) + os.sep):
-            sys.exit(f"trim-pyside6: required Qt module escapes package: {seed}")
+            raise SystemExit(f"trim-pyside6: required Qt module escapes package: {seed}")
         if not os.path.isfile(seed):
             sys.exit(f"trim-pyside6: required Qt module is missing: {seed}")
         seeds.append(seed)
