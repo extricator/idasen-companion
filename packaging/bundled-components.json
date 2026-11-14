@@ -5596,7 +5596,16 @@
         "member_sha256": "26341368e3f2017ab9e33a3faa8806ae87fd59f2f8491f4c5aa7e8c1053b8a05",
         "method": "binary version string and PCRE2 diagnostic strings",
         "parent_sha256": "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9",
-        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl"
+        "parent_wheel": "pyside6_essentials-6.12.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+        "source_attribution": "qtbase-6.12.0/src/3rdparty/pcre2/qt_attribution.json#pcre2",
+        "notice_section": {
+          "component": "PCRE2 10.48",
+          "file": "packaging/licenses/qt/THIRD-PARTY-NOTICES.txt",
+          "offset": 211,
+          "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+          "size": 4011,
+          "source": "pcre2/LICENCE.md"
+        }
       },
       "id": "qt-embedded:pcre2",
       "name": "pcre2",

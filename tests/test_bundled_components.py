@@ -3,6 +3,7 @@ import json
 import hashlib
 from pathlib import Path
 import re
+import copy
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,3 +74,25 @@ def test_qt_notices_match_each_recorded_source_section():
         data = (ROOT / notice['file']).read_bytes()
         section = data[notice['offset']:notice['offset'] + notice['size']]
         assert hashlib.sha256(section).hexdigest() == notice['sha256']
+
+
+def test_pcre2_source_binary_and_notice_association():
+    snapshot = load('packaging/attribution/rpm-qt.json')
+    rows = {row['id']: row for row in load('packaging/bundled-components.json')['components']}
+    pcre = snapshot['pcre2']
+
+    def consistent(data, entries):
+        row = entries.get(data['register_id'], {})
+        evidence = row.get('evidence', {})
+        return (evidence.get('parent_sha256') == snapshot['wheel']['sha256']
+                and evidence.get('member_sha256') == data['binary_sha256']
+                and evidence.get('notice_section') == data['notice']
+                and row.get('selected_version') == '10.48')
+
+    assert consistent(pcre, rows)
+    missing = dict(rows)
+    del missing[pcre['register_id']]
+    assert not consistent(pcre, missing)
+    substituted = copy.deepcopy(rows)
+    substituted[pcre['register_id']]['evidence']['notice_section']['sha256'] = '0' * 64
+    assert not consistent(pcre, substituted)
