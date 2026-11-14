@@ -44,7 +44,7 @@ INTERPRETER_SHA256="c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506
 PINS=(
     "PySide6-Essentials==6.11.1"
     "shiboken6==6.11.1"
-    "bleak==3.0.2"
+    "bleak==3.1.0"
     "idasen==0.13.1"
     "dbus-fast==5.0.22"
     "PyYAML==6.0.3"

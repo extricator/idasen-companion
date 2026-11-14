@@ -182,7 +182,7 @@ Provides:       bundled(python3) = 3.14.10
 Provides:       bundled(python3dist(pyside6-essentials)) = 6.11.1
 Provides:       bundled(python3dist(shiboken6)) = 6.11.1
 %endif
-Provides:       bundled(python3dist(bleak)) = 3.0.2
+Provides:       bundled(python3dist(bleak)) = 3.1.0
 Provides:       bundled(python3dist(idasen)) = 0.13.1
 Provides:       bundled(python3dist(dbus-fast)) = 5.0.22
 Provides:       bundled(python3dist(pyyaml)) = 6.0.3

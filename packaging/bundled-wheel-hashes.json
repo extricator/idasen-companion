@@ -3,7 +3,7 @@
   "runtime": {
     "pyside6_essentials-6.11.1-cp310-abi3-manylinux_2_34_x86_64.whl": "e3ef7027b41e4e55fadb56e3b3257dc8ee92154b639fe67fc4c8e05e9d976c60",
     "shiboken6-6.11.1-cp310-abi3-manylinux_2_34_x86_64.whl": "9a8bccfafc8805254cabcfa1edfaf55cd52889f4998c91ad0d9a4433fb1bcdbe",
-    "bleak-3.0.2-py3-none-any.whl": "39092feb9e83f1df5ad2f88e837723c7211c982ce9e9cda6235104bc2ebe0d0d",
+    "bleak-3.1.0-py3-none-any.whl": "3cb08e03039f6e477c276252540416b287d4e3de63a86732780ff93a2f6e73ef",
     "idasen-0.13.1-py3-none-any.whl": "c9bd338f2efdf49648ceb326b2d077a58e5568260615378086c1f9b865091b5a",
     "dbus_fast-5.0.22-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl": "eb1d7e8e65561d0fd438004fd9e0f981c8a862912fed58dd4e29db1936c39d73",
     "dbus_fast-5.0.22-cp314-cp314-manylinux_2_41_x86_64.whl": "eb31c5ff339a7071b914617a69d5b7c6ba7d411da4b01a5f9b5b2fe51e9d1301",
