@@ -2021,6 +2021,22 @@ def test_the_trim_stops_when_a_required_qt_module_is_missing(tmp_path):
         trimmer._seed_paths(str(root), str(plugins))
 
 
+def test_the_trim_rejects_a_required_module_linked_outside_the_package(tmp_path):
+    trimmer = load_trimmer()
+    plugins = plant_qt_plugins(tmp_path, trimmer.SEED_PLUGINS)
+    root = tmp_path / "PySide6"
+    for module in trimmer.SEED_MODULES:
+        (root / f"{module}.abi3.so").touch()
+    # A sibling sharing the package's prefix must still be outside it.
+    outside = tmp_path / "PySide6-other"
+    outside.mkdir()
+    (outside / "QtSvg.abi3.so").touch()
+    (root / "QtSvg.abi3.so").unlink()
+    (root / "QtSvg.abi3.so").symlink_to(outside / "QtSvg.abi3.so")
+    with pytest.raises(SystemExit, match="Qt module escapes package"):
+        trimmer._seed_paths(str(root), str(plugins))
+
+
 def test_the_trim_stops_on_a_plugin_it_can_no_longer_find(tmp_path):
     """A seeded name that no longer resolves is a Qt rename or a typo, and
     skipping it ships a package missing a plugin the app needs — with a green

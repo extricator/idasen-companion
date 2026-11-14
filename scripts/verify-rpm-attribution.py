@@ -4,14 +4,16 @@
 Publisher target relationships are conservative attribution, not proof that
 every listed source unit was compiled. --payload-root checks the PySide6 tree
 before packaging by default. --payload-stage rpm additionally accounts for
-the reviewed strip outputs and checked-hash caches, using --python to inspect
-bytecode with the carried interpreter without importing the packaged modules.
+the reviewed strip outputs and checked-hash caches. Run that stage with the
+carried interpreter to inspect bytecode without importing packaged modules.
 """
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "packaging/attribution/rpm-qt.json"
@@ -74,17 +76,25 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
 
-def _verify_payload(root, retained, packaged=None, python=None):
-    root = Path(root).resolve()
-    pyside = root / "PySide6"
+def _payload_path(root, member):
+    """Keep resolved inventory members inside the explicitly selected payload."""
+    path = os.path.realpath(os.path.join(root, member))
+    if not path.startswith(os.path.realpath(root).rstrip(os.sep) + os.sep):
+        raise ValueError(f"path escapes payload: {member}")
+    return Path(path)
+
+
+def _verify_payload(root, retained, packaged=None):
+    root = Path(os.path.realpath(root))
+    if (root / "PySide6").is_symlink():
+        raise ValueError("payload symlinks are not reviewed")
+    pyside = _payload_path(root, "PySide6")
     entries = [pyside, *pyside.rglob("*")]
     if any(path.is_symlink() for path in entries):
         raise ValueError("payload symlinks are not reviewed")
     observed = {str(path.relative_to(root)) for path in entries if path.is_file()}
     expected = {item["member"]: item["sha256"] for item in retained}
     if packaged is not None:
-        if python is None:
-            raise ValueError("RPM payload verification requires the carried --python")
         for item in packaged["native_transform"]["members"]:
             if expected.get(item["member"]) != item["original_sha256"]:
                 raise ValueError("strip transformation has no retained parent")
@@ -101,12 +111,12 @@ def _verify_payload(root, retained, packaged=None, python=None):
     if observed != set(expected) | caches:
         raise ValueError("trimmed payload members differ")
     for member, expected_digest in expected.items():
-        if digest((root / member).read_bytes()) != expected_digest:
+        if digest(_payload_path(root, member).read_bytes()) != expected_digest:
             raise ValueError(f"payload differs: {member}")
     if packaged is not None:
         try:
             result = subprocess.run(
-                [str(python), "-I", "-S", "-B", "-c", BYTECODE_CHECK],
+                [sys.executable, "-I", "-S", "-B", "-c", BYTECODE_CHECK],
                 input=json.dumps({"root": str(root), "contract": bytecode}),
                 text=True, capture_output=True, timeout=60, check=False,
             )
@@ -116,7 +126,7 @@ def _verify_payload(root, retained, packaged=None, python=None):
             raise ValueError("packaged bytecode verification failed: " + result.stderr.strip())
 
 
-def verify(snapshot, notice, payload_root=None, *, payload_stage="trimmed", python=None):
+def verify(snapshot, notice, payload_root=None, *, payload_stage="trimmed"):
     if payload_stage not in ("trimmed", "rpm"):
         raise ValueError("unknown payload stage")
     if payload_stage == "rpm" and payload_root is None:
@@ -163,18 +173,17 @@ def verify(snapshot, notice, payload_root=None, *, payload_stage="trimmed", pyth
             raise ValueError("binding copyright differs")
     if payload_root is not None:
         _verify_payload(payload_root, snapshot["retained_payload"],
-                        snapshot["packaged_payload"] if payload_stage == "rpm" else None, python)
+                        snapshot["packaged_payload"] if payload_stage == "rpm" else None)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--payload-root", type=Path)
     parser.add_argument("--payload-stage", choices=("trimmed", "rpm"), default="trimmed")
-    parser.add_argument("--python", type=Path, help="carried interpreter for RPM bytecode verification")
     args = parser.parse_args()
     try:
         verify(json.loads(SNAPSHOT.read_text()), NOTICE.read_bytes(), args.payload_root,
-               payload_stage=args.payload_stage, python=args.python)
+               payload_stage=args.payload_stage)
     except (ValueError, KeyError, OSError) as exc:
         parser.exit(1, f"RPM attribution verification failed: {exc}\n")
     print("Reviewed RPM Qt source coverage and notices verified"

@@ -158,10 +158,14 @@ def plugin_seed_paths(plugins):
 
 
 def _seed_paths(root, plugins):
-    seeds = [f"{root}/{module}.abi3.so" for module in SEED_MODULES]
-    for seed in seeds:
+    seeds = []
+    for module in SEED_MODULES:
+        seed = os.path.realpath(os.path.join(root, f"{module}.abi3.so"))
+        if not seed.startswith(os.path.realpath(root).rstrip(os.sep) + os.sep):
+            sys.exit(f"trim-pyside6: required Qt module escapes package: {seed}")
         if not os.path.isfile(seed):
             sys.exit(f"trim-pyside6: required Qt module is missing: {seed}")
+        seeds.append(seed)
     # The QML binding is deliberately excluded. Seed it and the closure drags
     # Qml, Quick, QmlModels and Network back in — 8 MB, measured — for a
     # module nothing in this project imports.
@@ -186,6 +190,7 @@ def reachable(seeds, index):
 
 
 def main(appdir):
+    appdir = os.path.realpath(appdir)
     root = os.path.join(appdir, "PySide6")
     keep = reachable(_seed_paths(root, os.path.join(root, "Qt", "plugins")),
                      _library_index(root, os.path.join(root, "Qt", "lib")))

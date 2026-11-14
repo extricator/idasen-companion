@@ -86,13 +86,11 @@ def packaged_payload(tmp_path, monkeypatch):
     return root, retained, contract
 
 
-def test_packaged_transforms_preserve_trimmed_stage_and_require_carried_python(packaged_payload):
+def test_packaged_transforms_preserve_trimmed_stage(packaged_payload):
     root, retained, contract = packaged_payload
     with pytest.raises(ValueError, match="payload members differ"):
         VERIFY._verify_payload(root, retained)
-    with pytest.raises(ValueError, match="carried --python"):
-        VERIFY._verify_payload(root, retained, contract)
-    VERIFY._verify_payload(root, retained, contract, sys.executable)
+    VERIFY._verify_payload(root, retained, contract)
 
 
 @pytest.mark.parametrize("change", ["unexpected", "missing"])
@@ -103,7 +101,7 @@ def test_packaged_membership_is_exact(packaged_payload, change):
     else:
         (root / "PySide6/QtCore.abi3.so").unlink()
     with pytest.raises(ValueError, match="payload members differ"):
-        VERIFY._verify_payload(root, retained, contract, sys.executable)
+        VERIFY._verify_payload(root, retained, contract)
 
 
 @pytest.mark.parametrize("member", ["PySide6/__init__.py", "PySide6/Qt/lib/libicuuc.so.73",
@@ -112,7 +110,7 @@ def test_packaged_sources_and_native_bytes_remain_exact(packaged_payload, member
     root, retained, contract = packaged_payload
     (root / member).write_bytes(b"changed")
     with pytest.raises(ValueError, match="payload differs"):
-        VERIFY._verify_payload(root, retained, contract, sys.executable)
+        VERIFY._verify_payload(root, retained, contract)
 
 
 @pytest.mark.parametrize("change", ["flags", "magic", "source_hash", "code", "filename", "trailing"])
@@ -135,7 +133,14 @@ def test_packaged_cache_is_checked_against_source_and_installed_path(packaged_pa
         data[16:] = marshal.dumps(code)
     cache.write_bytes(data)
     with pytest.raises(ValueError, match="packaged bytecode verification failed"):
-        VERIFY._verify_payload(root, retained, contract, sys.executable)
+        VERIFY._verify_payload(root, retained, contract)
+
+
+def test_packaged_cache_requires_the_matching_interpreter(packaged_payload):
+    root, retained, contract = packaged_payload
+    contract["bytecode"]["magic_hex"] = "00000000"
+    with pytest.raises(ValueError, match="carried interpreter does not match"):
+        VERIFY._verify_payload(root, retained, contract)
 
 
 def test_payload_cannot_follow_symlink_outside_root(packaged_payload, tmp_path):
@@ -146,4 +151,12 @@ def test_payload_cannot_follow_symlink_outside_root(packaged_payload, tmp_path):
     member.unlink()
     member.symlink_to(outside)
     with pytest.raises(ValueError, match="payload symlinks"):
-        VERIFY._verify_payload(root, retained, contract, sys.executable)
+        VERIFY._verify_payload(root, retained, contract)
+
+
+def test_payload_cannot_traverse_a_symlinked_package_directory(packaged_payload, tmp_path):
+    root, retained, contract = packaged_payload
+    (root / "PySide6").rename(tmp_path / "outside")
+    (root / "PySide6").symlink_to(tmp_path / "outside", target_is_directory=True)
+    with pytest.raises(ValueError, match="payload symlinks"):
+        VERIFY._verify_payload(root, retained, contract)
