@@ -19,7 +19,7 @@ ANCHORS = {
     "retained_payload": "f838f2c251d008805104cc46269f89788f8952f864c1a7bf247db9f9fc8a17b3",
     "candidates": "a87616720038c605c13be7863559dbffdc1ab34152875ae2a96186f950e67d22",
     "wayland_ivi": "010806f7c1da1387cbfc398e72cf4021e78fa6a75df7874ba0571ee0b40ae751",
-    "binding_source": "c4f4f2e4aa95f4c29d6f3b515df2b633e180b0927345d20b5d929d7b70240deb",
+    "binding_source": "0053ef5449dfca0003a4b11db467a5a3e518a8a8cb246bfffa6d2597c7dce037",
 }
 WHEEL = "16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9"
 
