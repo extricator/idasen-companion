@@ -159,6 +159,9 @@ def plugin_seed_paths(plugins):
 
 def _seed_paths(root, plugins):
     seeds = [f"{root}/{module}.abi3.so" for module in SEED_MODULES]
+    for seed in seeds:
+        if not os.path.isfile(seed):
+            sys.exit(f"trim-pyside6: required Qt module is missing: {seed}")
     # The QML binding is deliberately excluded. Seed it and the closure drags
     # Qml, Quick, QmlModels and Network back in — 8 MB, measured — for a
     # module nothing in this project imports.

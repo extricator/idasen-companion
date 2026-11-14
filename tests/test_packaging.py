@@ -1995,6 +1995,17 @@ def test_the_trimmed_qt_keeps_an_input_method_plugin():
         seeds.get("platforminputcontexts", ())
 
 
+def test_the_trim_stops_when_a_required_qt_module_is_missing(tmp_path):
+    trimmer = load_trimmer()
+    plugins = plant_qt_plugins(tmp_path, trimmer.SEED_PLUGINS)
+    root = tmp_path / "PySide6"
+    for module in trimmer.SEED_MODULES:
+        if module != "QtSvg":
+            (root / f"{module}.abi3.so").touch()
+    with pytest.raises(SystemExit, match="QtSvg"):
+        trimmer._seed_paths(str(root), str(plugins))
+
+
 def test_the_trim_stops_on_a_plugin_it_can_no_longer_find(tmp_path):
     """A seeded name that no longer resolves is a Qt rename or a typo, and
     skipping it ships a package missing a plugin the app needs — with a green
