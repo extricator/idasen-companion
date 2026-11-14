@@ -124,7 +124,7 @@ def test_current_snapshot_verifies(capsys):
     assert tool["main"](["verify-metadata"]) == 0
     output = capsys.readouterr().out
     assert "16 retained extensions" in output
-    assert "12 terms" in output
+    assert "11 terms" in output
 
 
 def test_builtin_shared_trim_and_public_domain_are_distinct(tool):
@@ -264,11 +264,11 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     raw = (ROOT / "packaging/interpreter/PYTHON.json").read_bytes()
     install = archive_bytes([(name, b"not executable", tarfile.REGTYPE)
                              for name in provenance["install_members"]])
+    source_notice = b"exact reviewed source bytes"
     full = archive_bytes([("python/PYTHON.json", raw, tarfile.REGTYPE)] + [
-        (notice["member"], path.encode(), tarfile.REGTYPE)
+        (notice["member"], source_notice if path == "licenses/LICENSE.zstd.txt" else path.encode(), tarfile.REGTYPE)
         for path, notice in provenance["notices"].items() if notice["archive"] == "full"
     ])
-    source_notice = b"exact reviewed source bytes"
     source = archive_bytes([(tool["ZSTD_MEMBER"], source_notice, tarfile.REGTYPE)])
     argv = ["--root", str(tree), "refresh"]
     for name, contents in (("install", install), ("full", full), ("zstd", source)):
@@ -280,7 +280,7 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     fetcher.write_text(fetcher.read_text().replace(provenance["identity"]["sha256"], tool["digest"](install)))
     output = tree / "packaging/interpreter"
     argv += ["--metadata-sha256", tool["digest"](raw), "--metadata-size", str(len(raw)),
-             "--zstd-license-sha256", tool["digest"](source_notice), "--release", "20260814",
+             "--zstd-license-sha256", tool["digest"](source_notice), "--release", provenance["identity"]["release"],
              "--source-commit", provenance["source_commit"], "--output", str(output)]
     assert tool["main"](argv) == 0
     before = {path.name: path.read_bytes() for path in output.iterdir()}
@@ -289,6 +289,10 @@ def test_refresh_is_deterministic_and_refuses_failure_before_replacement(tool, t
     assert inventory == provenance["inventory"]
     assert tool["main"](argv) == 0
     assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+    argv[argv.index("--zstd-license-sha256") + 1] = "0" * 64
+    assert tool["main"](argv) == 1
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+    argv[argv.index("--zstd-license-sha256") + 1] = tool["digest"](source_notice)
     argv[argv.index("--metadata-sha256") + 1] = "0" * 64
     assert tool["main"](argv) == 1
     assert {path.name: path.read_bytes() for path in output.iterdir()} == before

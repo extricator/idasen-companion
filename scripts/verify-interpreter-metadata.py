@@ -32,18 +32,18 @@ ZSTD_MEMBER = "cpython-source-deps-zstd-1.5.7/LICENSE"
 ZSTD_ASSET = "zstd-1.5.7.tar.gz"
 ZSTD_URL = "https://github.com/python/cpython-source-deps/archive/refs/tags/zstd-1.5.7.tar.gz"
 OPENSSL_NOTICE_SELECTION = {
-    "source_commit": "38d35dcf0e212ca02eed8ebc11d0c92906387d56",
-    "metadata_sha256": "8798ef645956bc2c91e6b2733ba26ffa59f6a15b7932de85c10c86fbfaf10685",
-    "version": "3.5.7",
+    "source_commit": "9244801782b78e4c4afc5c82a4524aa2101d3298",
+    "metadata_sha256": "41a252f6b1aa1399768a31575aa42f6fe3190acaddc72eb1baf067fa01f30737",
+    "version": "3.5.9",
     "selected": "licenses/LICENSE.openssl-3.txt",
     "metadata_alternate": "licenses/LICENSE.openssl-1.1.txt",
-    "evidence": "pythonbuild/downloads.py:267-274 and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
+    "evidence": "pythonbuild/downloads.json and cpython-unix/build-openssl-3.5.sh at the reviewed source commit",
 }
 LIMITATIONS = [
     "Install-only archives omit PYTHON.json; metadata comes from the optimized full build.",
-    "licenses/LICENSE.zstd.txt is absent from the full archive; use the digest-bound source LICENSE.",
-    "licenses/LICENSE.zlib-ng.txt is absent: upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
-    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.7 and selects LICENSE.openssl-3.txt only.",
+    "licenses/LICENSE.zstd.txt in the full archive matches the digest-bound source LICENSE.",
+    "licenses/LICENSE.zlib-ng.txt is present as an upstream alternate path, not a shipping component; Unix uses ordinary zlib.",
+    "OpenSSL metadata retains both alternate paths; this reviewed build uses OpenSSL 3.5.9 and selects LICENSE.openssl-3.txt only.",
     "Source associations identify exact notices, not legal substitutability or a compliance finding.",
 ]
 
@@ -240,9 +240,8 @@ def verify_metadata(root=ROOT):
     notices = provenance.get("notices", {})
     require(isinstance(notices, dict) and set(notices) == expected_paths, "missing/unexpected source notice associations")
     for path, notice in notices.items():
-        fallback = path == "licenses/LICENSE.zstd.txt"
-        require(isinstance(notice, dict) and notice.get("archive") == ("zstd" if fallback else "full")
-                and notice.get("member") == (ZSTD_MEMBER if fallback else f"python/{path}")
+        require(isinstance(notice, dict) and notice.get("archive") == "full"
+                and notice.get("member") == f"python/{path}"
                 and notice.get("file") == f"packaging/licenses/interpreter/{PurePosixPath(path).name}"
                 and type(notice.get("size")) is int and 0 < notice["size"] <= MAX_TEXT
                 and re.fullmatch(r"[0-9a-f]{64}", notice.get("sha256", "")), f"invalid notice association: {path}")
@@ -470,16 +469,15 @@ def refresh(args):
     # Exact upstream alternate-path gap; Unix build uses ordinary zlib.
     paths.discard("licenses/LICENSE.zlib-ng.txt")
     paths = selected_notice_paths(paths, digest(raw), args.source_commit)
-    paths.discard("licenses/LICENSE.zstd.txt")
     full_notices, _ = read_archive(args.full_archive, {f"python/{path}": MAX_TEXT for path in paths})
     source, _ = read_archive(args.zstd_archive, {ZSTD_MEMBER: MAX_TEXT})
     require(digest(source[ZSTD_MEMBER]) == args.zstd_license_sha256, "reviewed Zstandard LICENSE hash disagrees")
+    require(full_notices["python/licenses/LICENSE.zstd.txt"] == source[ZSTD_MEMBER], "full and source Zstandard LICENSE disagree")
     notices = {}
-    for path in sorted(paths | {"licenses/LICENSE.zstd.txt"}):
-        fallback = path == "licenses/LICENSE.zstd.txt"
-        member = ZSTD_MEMBER if fallback else f"python/{path}"
-        data = source[member] if fallback else full_notices[member]
-        notices[path] = {"archive": "zstd" if fallback else "full", "member": member,
+    for path in sorted(paths):
+        member = f"python/{path}"
+        data = full_notices[member]
+        notices[path] = {"archive": "full", "member": member,
                          "sha256": digest(data), "size": len(data),
                          "file": f"packaging/licenses/interpreter/{PurePosixPath(path).name}"}
     provenance = {"schema": 1, "identity": identity, "source_commit": args.source_commit,
