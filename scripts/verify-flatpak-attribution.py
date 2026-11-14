@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify retained Flatpak binding evidence; native completeness remains open."""
+"""Verify fixed publisher and binding attribution evidence offline."""
 import argparse
 import hashlib
 import json
@@ -13,7 +13,7 @@ SITE = 'lib/python3.13/site-packages'
 BASEAPP = '25537519d4e093f4b32515f89d24ae7ca6eddfa2ff5dd21e1a82a7bad9189572'
 PLATFORM = 'fb23e178d082b117df7924f9a84710992ec233ebc007385feb85d349c4c81415'
 INDEX_DIGESTS = {
-    'publisher_component_attestations': '1c5c364df53ec768faf2a5721877344bf97f4a87aee1e1314343861fd187a3d1',
+    'publisher_component_attestations': '4a7503e528f47d72c206ec1d955ac8df143ebc19a646e522cf815441d1066705',
     'publisher_notice_inventory': '22f09c48059e3baa8c74ed715e4e824c0e9a9b2bc3b498abac7805efe85b3c0f',
     'binding_source_attribution_superset': '70849fe8725df84effc83ce5cb7bbd5800fbfd923d0715a8aba7460f9091d92f',
 }
@@ -116,16 +116,31 @@ def verify(snapshot, notice, baseapp=None, app=None, source=None, platform=None,
     docs = snapshot['publisher_component_attestations']['documents']
     if len(docs) != 34 or snapshot['publisher_component_attestations']['external_resolution_gaps']:
         raise ValueError('incomplete publisher document references')
+    if sum(len(doc['packages']) for doc in docs) != 802:
+        raise ValueError('publisher package set mismatch')
     for doc in docs:
+        if len({package['id'] for package in doc['packages']}) != len(doc['packages']):
+            raise ValueError('duplicate document-scoped package ID')
         parent = platform if doc['parent'] == 'platform' else baseapp
         if parent and digest(parent_path(parent, doc['path'])) != doc['sha256']:
             raise ValueError(f"publisher document mismatch: {doc['path']}")
         for package in doc['packages']:
             if 'publisher_source_attribution' in package and not (package['publisher_source_notice_paths'] or package['publisher_license_text_paths']):
                 raise ValueError(f"missing publisher license text: {package['id']}")
+            if 'publisher_source_attribution' in package and not (package['publisher_copyright_document'] or package.get('publisher_copyright_notice_path')):
+                raise ValueError(f"missing publisher rights notice: {package['id']}")
     groups = snapshot['publisher_notice_inventory']['groups']
     if len(groups) != 473 or any(not g['manifest_candidates'] or not g['notices'] for g in groups):
         raise ValueError('incomplete publisher notice inventory')
+    notice_paths = {entry['path'] for group in groups for entry in group['notices']}
+    for doc in docs:
+        for package in doc['packages']:
+            if 'publisher_source_attribution' in package:
+                refs = [*package['publisher_source_notice_paths'], *package['publisher_license_text_paths']]
+                if package.get('publisher_copyright_notice_path'):
+                    refs.append(package['publisher_copyright_notice_path'])
+                if not set(refs) <= notice_paths:
+                    raise ValueError(f"unknown publisher notice: {package['id']}")
     avahi = next(g['version_evidence'] for g in groups if g['notice_group'] == 'freedesktop-sdk' and g['component'] == 'avahi')
     if sdk:
         if digest(parent_path(sdk, avahi['sdk_metadata'])) != avahi['sdk_metadata_sha256']:
@@ -160,12 +175,15 @@ def main():
     parser.add_argument('--source-root', type=Path)
     parser.add_argument('--platform-root', type=Path)
     parser.add_argument('--sdk-root', type=Path)
+    parser.add_argument('--complete', action='store_true', help='require the selected Platform, BaseApp and cleaned app payloads')
     args = parser.parse_args()
+    if args.complete and not all((args.platform_root, args.baseapp_root, args.app_root)):
+        parser.error('--complete requires --platform-root, --baseapp-root and --app-root')
     try:
         verify(json.loads(SNAPSHOT.read_text()), NOTICE, args.baseapp_root, args.app_root, args.source_root, args.platform_root, args.sdk_root)
     except (ValueError, OSError, KeyError) as error:
         parser.exit(1, f'Flatpak binding verification failed: {error}\n')
-    print('Binding source and notice evidence verified; native completeness remains unresolved.')
+    print('Publisher and binding attribution verified' + (' against complete selected payloads.' if args.complete else ' (payload roots optional).'))
 
 
 if __name__ == '__main__':

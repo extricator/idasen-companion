@@ -1,6 +1,7 @@
 """Focused regressions for source and retained binding evidence."""
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -60,3 +61,11 @@ def test_parent_absolute_usr_symlink_resolves_within_payload(tmp_path):
     (tmp_path / 'share' / 'notice').write_text('publisher notice')
     (tmp_path / 'link').symlink_to('/usr/share/notice')
     assert verifier.parent_path(tmp_path, 'link').read_text() == 'publisher notice'
+
+
+def test_complete_gate_requires_real_payload_roots(monkeypatch, capsys):
+    monkeypatch.setattr(sys, 'argv', ['verify-flatpak-attribution.py', '--complete'])
+    with pytest.raises(SystemExit) as error:
+        verifier.main()
+    assert error.value.code != 0
+    assert 'requires --platform-root' in capsys.readouterr().err
