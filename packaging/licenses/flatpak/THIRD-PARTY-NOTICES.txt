@@ -1190,3 +1190,1645 @@ the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.
 
+
+
+Exact-source binding declarations (potential source coverage)
+Source commit: d03d006d7b1db58074ca9cae26356376788a769e
+Source file presence does not establish compiled membership.
+
+Source: sources/pyside6/libpyside/CMakeLists.txt
+SHA-256: b2cf844c2d6785a5a8f6649772903eecc0644aa2447d96a59229e7f3bd88f484
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpyside/class_property.cpp
+SHA-256: 50088b0a041bc73f701b5d104dd2379ebede3ebdc6fa8cd167857af9a790137e
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/class_property.h
+SHA-256: 0ba742ad246b5e45e6bf24f8883fd56d83155f342b522931ccb210882176029a
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicqmetaobject.cpp
+SHA-256: f0dff462359c92daedc32aea24163f4be913a74770096fbff514af1827f61932
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicqmetaobject.h
+SHA-256: f3a91ab3de32a0d95b88a3cd34862ae5b6f49d8f93f1a48f63060f4f66e9ed81
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicslot.cpp
+SHA-256: 9b11c9e90ae328e651b0ee888de16056edd1a592a83935bd27dab297ea25d1ec
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/dynamicslot_p.h
+SHA-256: adc8e71f19cc448666ddc69aa998fc5425afa7c3d24a6dd886414958f3cf9b20
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/feature_select.cpp
+SHA-256: d10a7c0123971f7e6acf8f36d6c7cf5ea79d0605052ad1c9f902b6b860bf0058
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/feature_select.h
+SHA-256: a9406eafd267c667f127610f06970a9ca6641bf6a2cb9ab8e72deaa2cd716c5c
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside.cpp
+SHA-256: 84ae034abf8d9e335b55b2319c05bd9b57781364485e4cc293722cb975a55757
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside.h
+SHA-256: d01b36b37492b773096576076e31e2c18e57ad197e00848b3c4a49446f02778a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_numpy.cpp
+SHA-256: 27044100ea78517e94f9c2fd7fb7c0c98c3b3eb9db83c18b348efce6492f28cc
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_numpy.h
+SHA-256: 494aab6347d5104bbb3d7722a29d922de2e7eb00c6be2eea4f39b60596c1f2ac
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pyside_p.h
+SHA-256: cf969871d0ef807da2d568750ffc25dd76bd1ecf916ac08809ad6b5386c09b6e
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassdecorator.cpp
+SHA-256: df0b27809fbce774cb5e7ac5814f276cbef6db2ce2cc66f8d927d9b338932fc4
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassdecorator_p.h
+SHA-256: 3bc6e7b6dde8570225e3cac219edbdb4646c64c011b6dd970e51e0b92a9e3318
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo.cpp
+SHA-256: 7de866e98639a110ede4128687e72c2bc3b2fc9a164e2491fc458251f7e8b14d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo.h
+SHA-256: 64ee9e80875aaf59f528bc65e5c0f844cc84c6f9428b64634d8ccd003b4da2d4
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideclassinfo_p.h
+SHA-256: 3891e88758b4eb98fe9f26b6bfddfd5e7e8a688d8f48855a8b62bee7e4aa5c4b
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidecleanup.h
+SHA-256: 2a22eea3043261a03b00e28ee097eae495668437b268fea4a3e601a3aef59c2e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideglobals.cpp
+SHA-256: 8b6cbf2e3f4269209e9e95b3fb04408b2e674b65bbf6b0a7f6c7a7d73bea0fa5
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideglobals_p.h
+SHA-256: e8e170d9641e98e7db968ecb38f9d440ffc10e34f1e81ffccafa223bd3df4206
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideinit.h
+SHA-256: 252f3a3cb0eb0a602215151e4a17ea0f5ac356e58bcacc83a6215f9bcbb47d58
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidelogging_p.h
+SHA-256: 27fe16e18b9c285cd7c4d81e82e517a3a3c4fea39980b453171ac955813b8658
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemacros.h
+SHA-256: 779c08c0d4848f3cdc0b26a567588fc1989e973571fe3407877e7548e33879c1
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction.cpp
+SHA-256: 27514b3a25fd3b9e75bee7cda2ae2e35ad0e033d514ca8a7d8b0b65c5fe4560a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction.h
+SHA-256: 53577d7fe0d59e5f1c3cbd96b8fd8aafa80426e425b3c167d7689948bd8da2d0
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetafunction_p.h
+SHA-256: 20df313fec928b04160dfe8f472f003ab3193ae81ded05c044dcf2e8482d9b4d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidemetatype.h
+SHA-256: 3cee52d7a13612e8769216de264dcbfadc9b67dfc02b78a99540853b22009a3a
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty.cpp
+SHA-256: 894b2812032b1802a11e516936201c289da50cef6084934af196e2f39772a037
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty.h
+SHA-256: b89a78da306a5401a6d9c2715e2efb0ff5fcd9a5017e162141bfbd500bfac0ea
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideproperty_p.h
+SHA-256: 1385d8366cfd4db4a867635ea52d4c273f64c7e1a541019adbe9812507bb0aa8
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidepropertybase_p.h
+SHA-256: 3d6cf718f492db51a2cf26da998c7c1963dd74cfc2596e9671de230babc96558
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqapp.h
+SHA-256: db8e2a930211f544cf054962cf8401a33be85fe3124184c6e415a2fed24b41c9
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqenum.cpp
+SHA-256: 5b5da647ecd698ebd8a81408ee4f62a9cba91fc58aaf48f5461bfa749db7dc85
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqenum.h
+SHA-256: 06e737d62a89ad506f4101a51a62529f3b06c952dc1aa8c57811d92f44f5c900
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqhash.h
+SHA-256: db3da7fb0aabe173523f74e4fb40958dc0325dc0950ac26951873bc241c94cce
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqobject.h
+SHA-256: a3ff5709a5b6844492efd60e511b379da3920859cc3f1bde61e304e6b02a6207
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqobject_p.h
+SHA-256: e04a707315bf832b05323754c283a57788f115eeccca49dd527df81e33b03e1c
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqslotobject_p.cpp
+SHA-256: e6fe5f703454988acef3f7c9c7c080528a9118b81a0e99d09e14091ca4be398d
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideqslotobject_p.h
+SHA-256: 4b82136988f216fe91d7d6223f52bdb004d26c73d40ef8aaa198e9c1fb71f2b0
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal.cpp
+SHA-256: c3c70abf5a5620c63814aee28fc9c0ede01918e40e60fe222de6ae73487389ac
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal.h
+SHA-256: 0527c6c9aa4b8bbc8dda7933f18c5d644aa2545a2361a646ceb763f46b9005f6
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidesignal_p.h
+SHA-256: 6dd0c9a7669033885f51e5cf163397f9ad3e606025c2f999fd59a6adb010dd92
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideslot.cpp
+SHA-256: fc95cccbbbad03eb01f9e36a7664c20f2db0e68246c093cb74427f77665cdeca
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideslot_p.h
+SHA-256: 73df2c2dbab9d64c92737278126f4272f267d95c80cc5f4db1526a12b127fbc6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidestaticstrings.cpp
+SHA-256: 116ba4685d178889a58f91523da32a1816d0a1d1871868f927a6ab3c071f8a7b
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidestaticstrings.h
+SHA-256: ab52a85e4d02fedcb94d220895779440f517ce56f4b5fddb1bf06fbb092c2c81
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideutils.h
+SHA-256: 11bf8dfb3a598840d93886eb0e344ed35e1abbaca34d1e9464220bd5de7bae4b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidevariantutils.cpp
+SHA-256: 4c5a0c39eacc05f8d2ca5131271246fea31e85d6f6e80a90b983d9dab46c8a0f
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysidevariantutils.h
+SHA-256: acf7aba44e2f61961cad68d446c659ecbc3db6293aac6729880c98f7436831a4
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideweakref.cpp
+SHA-256: 3d721eaff0e1f7fbbd9d7294297716fb66909ca974f5c5663d310bb330f90deb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/pysideweakref.h
+SHA-256: b75a926cf02cecd53871a68013b77e2d50486b0de050940f9b368720db0761e7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/qobjectconnect.cpp
+SHA-256: 9baeb1e7f07c5b5ff295fcb6182656e11efce3f5e07010a70576b348b43cd320
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/qobjectconnect.h
+SHA-256: 75339f64eba30ffc09c34e8fa4c6cbec79628d409441f942c472a960bb9c427c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/signalmanager.cpp
+SHA-256: f26c70527d8bbe3f8abfa7277a0a1d17a6348727e2f66bd317acf85c4884fbf3
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpyside/signalmanager.h
+SHA-256: a1ac214342d4934bb33f5f49ad5ece173e5829d40f839ecf8a0046999fae0b95
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/CMakeLists.txt
+SHA-256: b1d2563ac74ccfcde229848cd0e594bc510362730e4a1c34a7675f66f68d67ed
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpysideqml/pysideqml.cpp
+SHA-256: 35006346f09f169f64a458a121d59579862c494e3d3ba298c9edf5a354c92eff
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqml.h
+SHA-256: 3d79f1e4ee59f41cc7227e8d2371ca530b05662b8a52c1e06f3a1db668383b6c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached.cpp
+SHA-256: e2cdf30b7a0fb57dfc07016502f176622275b9396a253d36925318b07ea47648
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached.h
+SHA-256: dbb026ad75c6bb7646e069fe601932b21b80298d74a52eb00661f66d365ae72c
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlattached_p.h
+SHA-256: 78f8f27290a6ebc8ec5334d735e46e0a86d8c3e573257accc040e733f9b70538
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlextended.cpp
+SHA-256: 56f1707cc4429c0506eb1bd648ef55293578f2304691fd35d7184dbc6482d758
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlextended_p.h
+SHA-256: 7372b549bf2a2ceca893c06ddd1ff12e7925bf806a842e3a033a5bfb680bf2e3
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlforeign.cpp
+SHA-256: 80a63cc2778d6d5fc059f0cfb0256ae4d6495724fa7daf0a93824dc86faab9f9
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlforeign_p.h
+SHA-256: d98b269cf19a1dc760b407608134eb2435e4a7c96601776a9856fc37d512a0ec
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistproperty.cpp
+SHA-256: 7634454aed0d4a517a0d0443462be28c151f8c9bcd5d1dc5757b54dbf517910f
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistproperty_p.h
+SHA-256: 9694eb8923d560fc680fe597090cdaecda4540abc33e5c0be2fbb216677d41ff
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistpropertymixin.cpp
+SHA-256: e31e169bc0b481a7f43c1d30da140b41b1601db929323d19b64b1905cc84253e
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmllistpropertymixin.h
+SHA-256: 1e6bb3860dd3a7aab1fc53b31944453df4da8931b3b917fb74b8ba14aa302283
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmacros.h
+SHA-256: 5a20deb805b88e686c54eac324294ec256af7696bb80b06e0f2382502751d70c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmetacallerror.cpp
+SHA-256: 79222cc2dae92a2d5ec99ba6fb29fbb7afed8b183ce5be52df671eea5661f919
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlmetacallerror_p.h
+SHA-256: e0fa90e8c0e0ea6f49e2e8e0c1d0b6476486a7a65b371b838ae651e72b5e1543
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlnamedelement.cpp
+SHA-256: db4db4b00fdf04cfb8d9d14644b85851e35dd6c660151ac0813d325bded46321
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlnamedelement_p.h
+SHA-256: ed5becc45cabf1156ce498df6aa53bf7d8364b601c9baf774e23fae0f61f0dc9
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype.cpp
+SHA-256: 236db225247425e992eb49bf6199130a39d9110216c3fa3c72405ab61a52c04b
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype.h
+SHA-256: b6c43d53635429464979fb1f2e30116a972db83297c6eafe4a0c54ab98c06662
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmlregistertype_p.h
+SHA-256: 504c0e9e4cd1c43ac30f6e9d966429e67249b6c34c2975ac3ddec674a0b81887
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmltypeinfo.cpp
+SHA-256: 4a3214daf171d194c3022040cdccdfbf6810a0c384db86618ce12a739302f9eb
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmltypeinfo_p.h
+SHA-256: 1ea588b74c6bf15c317cf1a8af017e660f2d8778814ee20b4034837e824b19fc
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmluncreatable.cpp
+SHA-256: 1471b5ab6b25990b564eec03ecc78dccb66199ab410a90c878ec9390ff85ac1d
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideqml/pysideqmluncreatable.h
+SHA-256: 59b01bc6fae1703ed4da845225bc12e37bd0539a68a3281264b903bd7d5ca64b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/CMakeLists.txt
+SHA-256: afbe2f13738582e23cd6652aca9efe7bba2b7d48608c2a9a8e5d3da4ac0b5548
+# Copyright (C) 2025 Ford Motor Company
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/libpysideremoteobjects/pysidecapsulemethod.cpp
+SHA-256: 705c37569c8ec7fa56a14607d92a683935598ba00decd5e7aafbb4875ce8dd75
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidecapsulemethod_p.h
+SHA-256: aef7317471b20caa93d6231d9cbb2037da5f421e9713b53daf911244f78afa20
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicclass.cpp
+SHA-256: 2c9bef7c4e8bc260fb2e052b934bd37c1f03999d91f44fafb109e051e42c2431
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicclass_p.h
+SHA-256: f0928db0d273b12fea16d4bb95d176dbef300d958ea3c32cf78bc59abbb251dd
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamiccommon.cpp
+SHA-256: e00d175998001a690969a5a80e01536e9b01b0f0c71f3b10d9614dc531a985fc
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamiccommon_p.h
+SHA-256: d29be84718e10ca8ab8e3b310ce28552ff7ca251a680e9e4738bee99c62bc771
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicenum.cpp
+SHA-256: a7939293144e3361c0066592aa981b67dcc6300ab127845b72344318a2bd30e1
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicenum_p.h
+SHA-256: cfd03c5235a56f485917c8ddbbe504debe2a88a1d4fc7f941e5585de1bbfde7b
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicpod.cpp
+SHA-256: eb8c9c67143336e06066a857c6c28dd2b8749b7047962acc2a0e6d2b11f6a36c
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysidedynamicpod_p.h
+SHA-256: ee4647d7b410b42763061196248cedb3f6b4896a381a18bb2fdce67ec745946e
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysideremoteobjects.h
+SHA-256: d44e3da443f216ddbeabc66678ddbbd4a4e0f75f02691f83488c1e6ae6f7ca01
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysiderephandler.cpp
+SHA-256: c82fcfab4440badba8102583eea86f2b327770c0c56c0cacad7d119ba3cf985f
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/libpysideremoteobjects/pysiderephandler_p.h
+SHA-256: 7d502df17aea9289f6612aa7f80cfc5c9844224ed3a97a6840940224ab4f022a
+// Copyright (C) 2025 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qhttpserver.cpp
+SHA-256: e774aad3499162e9b0240b3cba3b63c755caba0d85fac381aa57a9e65afab06c
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcanvaspainter.cpp
+SHA-256: 1b7053fc07626693f92e8f26996061f754af4622f2bdad3d3749ec9b57e5107e
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcharts.cpp
+SHA-256: 0e9f87adea93d477a28b68558a28ac51ebc66808c8cc64010dd3241fd2e12056
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtcore.cpp
+SHA-256: 3b2f6e0e009524606d3a2df3ab1db1012af2dd2ae295212412c9f2f6d2e18c81
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtdatavisualization.cpp
+SHA-256: c988561afcc304eea523e522f2122bfea74cfde8363510ce58a2dc28a92b8f95
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtdesigner.cpp
+SHA-256: 2f667c4ffbbb770f2c7a82fe3f0e8b6d088520dd9769491b4382e04c0d76d685
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtgraphs.cpp
+SHA-256: 395e8a8639933397a58802fcb9854223fafe50d7ade1fdc76859f6f3f12c6ca7
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtgui.cpp
+SHA-256: 82354d707ad0edc2459f11e0d8a0b223f18b12cd2a83ea1369f52251facbe6ae
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtmultimedia.cpp
+SHA-256: 17eb1e2ba0a1ec1ca4967ee53ea1670884cf0e03183a7da8c3f5437f38216f27
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtnetwork.cpp
+SHA-256: 73f835001bbe2b533e1df444d224c927d0ddbe86a2cf2e1477725d39dcbfaffc
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtnetworkauth.cpp
+SHA-256: 2f7b4b8b7a6203d82265d7603095bc2a929d0cbbfe89c36f9a0466803cc77d5e
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtopengl.cpp
+SHA-256: 1de12ef5d6bf924ede6d3bbffe551a0fd6e4ee4b9084456d8f27051dd0c00159
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtpositioning.cpp
+SHA-256: 03b6e82507e748c6b870c05dfa5c202e1a5fe5654dcefc538600bf3e51cf75bd
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtprintsupport.cpp
+SHA-256: 337b107eac41afd234909384aa451c24eaf0307dd50a81d26183c03ab4f10b89
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtqml.cpp
+SHA-256: 557befcdee2219020f1b2bffa89a6b2bbe5f0bd087dfe21da12baccf7c39f801
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquick.cpp
+SHA-256: d5900bd2ca4f193a9a7a0785afbbc7990ec6e1bf64117b75dff187aa7746b88d
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquick3d.cpp
+SHA-256: 54378bfef5bba2c40086b706302f7a5208b04b344b0815e1a8b4a6e1ed8f58bd
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtquicktest.cpp
+SHA-256: 179bcb5aa5b4ca0e87b67e4c692455425b7b75f1ce70c173d8906eac32c2f728
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtremoteobjects.cpp
+SHA-256: 6df55ec7be1c51af02c44dde646f3ace5d3753998cbdd14be7f264bba8d8efc3
+// Copyright (C) 2024 Ford Motor Company
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtserialbus.cpp
+SHA-256: b24ae721504e6f0816e9d65cdd1c18d570cfc412e9e2d922195a77e5f51a883f
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtsql.cpp
+SHA-256: 7f6dd82c133cfbfd6a3af7226866d554291241396c3cbcb5d8d1affee6c03e82
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtstatemachine.cpp
+SHA-256: 8eff2fbfab3715f1f8257ce26654d501a2a8517f78f55892a3fdc542cf7cad28
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qttest.cpp
+SHA-256: 5bf0abac2a9fc12285e03de95f848ee164796ca55caffbc2a4981b6fa8c1b837
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtuitools.cpp
+SHA-256: 7c471a8055cbe13d92eaee87e9f3d47049069dd33e10f2858a6ce016716e931e
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwebenginecore.cpp
+SHA-256: f0e881755a94a47818e058ee8be37c3b306b6843f4a9eda0928a775912093508
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwebview.cpp
+SHA-256: d2f83f8596c942c630cfdf3b2be1eae19dd22bcc6eb72587ab34cbfbc8f7669b
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtwidgets.cpp
+SHA-256: 63b37f0f7204c763518af84cc0d1c94c44dbf218fa3bf7ef00fd048113293a57
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/glue/qtxml.cpp
+SHA-256: 210da5e0bc15840b8ce2129ce833e1c88bca119ee808a2dff2ad07b4f815ac24
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/__init__.py
+SHA-256: 544cd819bb55076c22ad952087d0dcef414dc64f6f09a4ac65ad1ee0216b5695
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/deprecated.py
+SHA-256: 95431e9fc9d51387f56f2b1a75f38be22794a4addcd7c416f09b515ac0c35506
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/support/generate_pyi.py
+SHA-256: 46a9f593f19fbe389cf3e3863f24665641f89b7dca2a6ef719285787ec3c945c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/common.xml
+SHA-256: 81b8a36caf7305c9ff818e4d9db0817d9f8db74fb709e4338430c8ac66f71116
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/core_common.xml
+SHA-256: 97d276911c8bca50aeb7bd75e5bb3641d3324ddf229cd8011aa79b9b04dec4bb
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/datavisualization_common.xml
+SHA-256: 46d28faf91b8c6921d6dd07e4e6c4d282b23cc070ee2e1833e9e879a5ccede1b
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/gui_common.xml
+SHA-256: b88debb2fba25a02bb5d40eedddc93976b130cd0cef09615158069547d6e9003
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/templates/widgets_common.xml
+SHA-256: d7e3f35beeec12a13101fd07b6f1849a1e77a06fbeffb8a4d0210617ffaa3748
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/CMakeLists.txt
+SHA-256: 09288d581d7ca39dc9bcd8bf21c5b9ca3cc12017b6cf79828c2c3ca6b45e3b0f
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/shiboken6/libshiboken/autodecref.h
+SHA-256: a5d35b2b1a6c4ec995a96ee095804115b2f9a89cfa518c73dcdd7ec2323095dd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper.cpp
+SHA-256: 395b90be5d59c4e39de13f44f501e3e9edde6ab29c0c060c471da524e22da75d
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper.h
+SHA-256: fe4f8517dba26ddf6a7ccef2afa4cf48c73d4539d505490d2525ef0fa89491e7
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/basewrapper_p.h
+SHA-256: bfc54bb73b31276ea5f4651d811e36312e4a546a149f2974988cf7b2bec7f4a9
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bindingmanager.cpp
+SHA-256: 0b31dfa2c11f4b943cc448cb40f830d5060a1ab0b0f721c47dac9e61c3dcc0f7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bindingmanager.h
+SHA-256: 524cda8f08df6c5329538a38d5690ec6b829f3b7c70f14c52bf6f2c49a2f8ccf
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bufferprocs_py37.cpp
+SHA-256: 0efa349300e3e9bc3ab10789968095083ba26e2f5e4830a1981ddcfba7777d77
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/bufferprocs_py37.h
+SHA-256: 7717a874ab6a950ca55f6144efb934a086d16a7c9935d137eeb46afe96bd03fd
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+
+Source: sources/shiboken6/libshiboken/debugfreehook.cpp
+SHA-256: 4594bf4c69510c3bd7512425e40a452a65f8df192028e54a53de09fcfab268c7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/debugfreehook.h
+SHA-256: b6c8fe9766400490839f4a9cb4d01198bff701e70edd5c33f3dd4dda526ba80d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/embed/embedding_generator.py
+SHA-256: 06f74f712d7d46ee06e126a0b926db3114c8968fa1bfac9ccdba2d2a5ff66f88
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/embed/signature_bootstrap.py
+SHA-256: b971d5e5ace98e55376dd24fd2cbaadb2e9c3d6a1417bed4eca85a51fbdaf598
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/gilstate.cpp
+SHA-256: a7378abd586d463a8d3353afcbc1e4c337a6e1374bdf39ebc78e3d0d14b5701f
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/gilstate.h
+SHA-256: 5ec31fe8402c3dc526c41476896b6837c3929b97b22c2b0528ad45082eac0e46
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/helper.cpp
+SHA-256: 487d0100ff1c484038e4ceb4e9112234306bb402b3c1cb23a07acf9fb5aee1fd
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/helper.h
+SHA-256: a4d244cea48c9214c3267fb1eb8d3483562043d8e539adf63472e6193159cfbb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384ext.cpp
+SHA-256: f59f4305951bc81227a207223594ba5ebb6e0fb57442143d2d49e0bcea3fa7c0
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384ext.h
+SHA-256: 80076da490479c10aa4baf4c7a77ee81bf318408d1b6ce15a0f48110a955b1a7
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384impl.cpp
+SHA-256: 3e186d12ed0abe1e4d5994d7bf23256cd70131a6454abb29871ecd095edae3da
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pep384impl.h
+SHA-256: de4e10f75edc20879cb74e2379cf97ee58fc2d2a01475500c119710b3c3e2c91
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/pyobjectholder.h
+SHA-256: fe52d0358880d632969173e440fff542800ea2385847638d8cc85e9e4f8a2c08
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/qt_attribution.json
+SHA-256: 1b643e281a9ccb592cfb5df7fc457b9b466f35de6e91ccce76589e85e047573c
+"Copyright": "© Copyright 2001-2018, Python Software Foundation."
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter.cpp
+SHA-256: dee1120f1bf28d3a9145e90ae093e84f2fc1262dd49e203c2235e8b701397844
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter.h
+SHA-256: 13cf19a716e771e62e312be59f0021edcbff1c900703e0501b5e38601651a1c2
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkarrayconverter_p.h
+SHA-256: 61de1da8e3f4d4bae83839516d6a8c130a6e8e488884044ae80b1c763651fb2a
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkbindingutils.cpp
+SHA-256: 3caca48d1dd0e566ea43398ab8f7549f6875bbb74a88166450d1165a4fa7b109
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkbindingutils.h
+SHA-256: 41f8ce7a1e8ba777892b8cb804478eb878d9619dde608280b5d113bce59f6fe0
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcontainer.cpp
+SHA-256: a88e4f051716ff80495879df1a0f31106e3ff17bcdcb7bc5ed10bc0b8dfcfa0b
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcontainer.h
+SHA-256: a874cd737b893230be80a3d55c4fa1c9288ee77754a587f20a1c67a3756b83f1
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter.cpp
+SHA-256: 3e9f4488b402abc8bac080124c2ccab054bf59e1adce82327c7e36dfe90188c1
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter.h
+SHA-256: 39f6362643022bfd4bf0b5221e88b41f89fe46eac41e9b788f070661dba581b7
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkconverter_p.h
+SHA-256: a8f28bd522026b47e1d591500b6bba7b30c9942227fe0d5aefb668efaa8d7be6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcppstring.cpp
+SHA-256: 8635904a8e8f86262245ebc13286fda631374240e20556b6e115360c8f2c6601
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcppstring.h
+SHA-256: 42b72105a7bdd67e3242658c5a30ca5119d3846c08e970e871f5394c5c5dc65f
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcpptonumpy.cpp
+SHA-256: 9d75f46ac1f1373ab124a580a045637ae7b0e87ecb0da889b6b0f38ec9c326da
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkcpptonumpy.h
+SHA-256: 6fa1c097df231d6146671c0ea7767fc12545389d487e407a249a51116d4a73bd
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkdestructorentry.h
+SHA-256: 5518d31b5382ccb396a8caec749e68954ba36c4745826973132deb35ddfe4bdf
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum.cpp
+SHA-256: dc095e0b2ff6431d945c56b46b49518c6cdfda27e1ea03c7d59b19df5ba09629
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum.h
+SHA-256: af1c4f52b3611d8dc4a6e9c6ab8aa52d9b5efa0c10ee1e0e074c9365eefe6b6d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkenum_p.h
+SHA-256: e9504c0d3827630b0fa68dd8493a1976cb797eae45e94405001b4e76031a70c3
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkerrors.cpp
+SHA-256: cbee1d541535f07c883ea65503a9be996c753b10e2d433ce00dd10a941e69961
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkerrors.h
+SHA-256: 6904c1ebac08f0269d77cc2bd2ef797b5f24c7ab551a8a984e0d8b0614aea73b
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkfeature_base.cpp
+SHA-256: 02cf82636717902d730653c8eddfa2a5f425c8ecf50ca524db1bc467948b95f8
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkfeature_base.h
+SHA-256: e32e91f4642401349da91268989fc0c35ac33c81cc7f21ca787b271c7ce969e1
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule.cpp
+SHA-256: e855b66d2b0e933cea15fdeea891aa0fda7e24ab534f01bfaeef27da8078ea6d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule.h
+SHA-256: 5ebb3f0df9faffe538961e4c6e05e70a1282966290689c6ad2fa96986ee04aac
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkmodule_p.h
+SHA-256: 80b797e5113b39d599ed5a6722ef07571b07c7a316712ac7df5891eca32e3f96
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpy.cpp
+SHA-256: abb258a8563d262d3a9e2d2d304c4eebac2cd415b1fcf88955365cf9e7dc0f0e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyarrayconverter.cpp
+SHA-256: 5f5ac1820c2b399663af15f4c73f20467661ecfb4f221c78374e3ad39c03e4bb
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpycheck.h
+SHA-256: b916f9b9e441defa4ac0c567a89a46868deb2be408664835aa3b2069cba30d67
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyview.cpp
+SHA-256: 19db409bcbaf8a6b9a5b113b7ed050d49e20ed49dbe77ac51b64f5bd61bf3ce7
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbknumpyview.h
+SHA-256: bd506d307db01e47c078a6d7428860c711b7b5ef1a432edd3b82c62a8be5acfe
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpep.h
+SHA-256: 95efcf2bce8d44e3c2f060f6a6c62a116a597da134153efabca666cbfa372bd3
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpepbuffer.h
+SHA-256: 1757eb67ba82e6dcb730f72b0d8b0eb9163b9d5648be8100eb21700bb196b4da
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkpython.h
+SHA-256: 0f0c81313ad5d590c2edf9904638399ee4b4969dba907c0d8af098a1bc6ada31
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbksmartpointer.cpp
+SHA-256: 7ad209a5b5b99646e503973dc3f906bdde14539cd4342fbb6f1f20a310effc99
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbksmartpointer.h
+SHA-256: 82bd4afa941cf093c80cfe668c070dfb07a6ae8c965d32cbd4fd07540cf019d8
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings.cpp
+SHA-256: bee2fb5fb5ce0a3e694f8094cc291344eccd8e4e493fcc5f02c99cf41071b863
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings.h
+SHA-256: 8a2784c62771c30e52459826c8d31cb5e29e024ed54324122c17f0cb40a9f029
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstaticstrings_p.h
+SHA-256: b9ea1ea3bae157d016a08aa8b875ce7a27d26e7e16827ec58c6b5e7ca3a6c6db
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstring.cpp
+SHA-256: ac2ac88ff1058816df213dfa5ab0203aa951562170275dcb8f7fb14176d80e30
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkstring.h
+SHA-256: da6d2f9acb2a273353933a9587c4ed9356718053ec30a3b9ba1478528e4db5cd
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbktypefactory.cpp
+SHA-256: 3cba8a52f7101bdff8e9ad84566bc816d14af715b27860ba91a191251978e6ca
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbktypefactory.h
+SHA-256: b80da841d3b152ff89a2cd7c82d6c4086f60dbc439d61ed00a059a707af2370e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkversion.h.in
+SHA-256: d9f07d7147c9e41a70713bab1137fd6ff42a5905547c9849fa5ff021cbfc3c6a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/sbkwindows.h
+SHA-256: 7a6cf0585b8665f40894c7af54b46841b892765a26e572aec8350bb694e6cd76
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shiboken.h
+SHA-256: d89447d3839b2179d3839f994965110f0889d95425c71540bc352e0836714c74
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenbuffer.cpp
+SHA-256: 7c0859f196588bb6a1945f0dddc29fd34411df6e3450dde1648e3e6cc375c84a
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenbuffer.h
+SHA-256: bbf20bff20c649885e8ce5e69ceb5cf9de0a818e4e9cf3b27496775e001be561
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/shibokenmacros.h
+SHA-256: 77b48b8367f9f055fa44133ca5c34e95853a0d6a5c065571a7244dff67142c56
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature.cpp
+SHA-256: 67d7cb0219c718fa6f270bbe5633fce757d73df6b138cd295c044dcb4334e3c0
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_extend.cpp
+SHA-256: 0aafa6107f0ef47896cf75a08dfaa0427dbbca5f376a60577f12839e05199191
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_globals.cpp
+SHA-256: da1e81f42421199ba691d7f9c83d00da8e4d1fed5b8907d363681b02b8a3a000
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature/signature_helper.cpp
+SHA-256: 4b0fd431cec0798955efb5d080277c27181ecf156231c92ed456df4623defefc
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature.h
+SHA-256: 2d175a78cd38fc60650b2178d546c00857e1c7b5c4760ddbbc521360340e3f2d
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/signature_p.h
+SHA-256: 405cbc610f03197739f198c612f64915b262d692d751a8ffb5a50f76344383a0
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/threadstatesaver.cpp
+SHA-256: 6e30e9fdbd856b3f6272fb0130be54909c040e11eb2ed998786c540f8a1a25c6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/threadstatesaver.h
+SHA-256: 977931ba8c1c33af1d32ef6ed69ddcf546b60f2f883afe6ca8864ae45e0c726d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/voidptr.cpp
+SHA-256: ef72ad84ebc0805bb7f8f9086b9e9a64ac6cbe6426a64b55968ff57e8cdf3587
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/libshiboken/voidptr.h
+SHA-256: aebffc152d966a90eeef694e8342dbe8638a3c7f67562a59f8ddec5d69808e3f
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/CMakeLists.txt
+SHA-256: 1b82c197fa4d72f1b813ec94190d3020b9aece35e3c3f10043607ae510aa4b72
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/shiboken6/shibokenmodule/Shiboken.pyi
+SHA-256: 1c3418dd786ca346cfd9b58cc797437f500efb0d27cd24ba300bdae86de3625c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/__init__.py
+SHA-256: c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/feature.py
+SHA-256: 1224398b2741f395830737e9a71f84a5d42e7e898afcf920a89c946e95601aed
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/PSF-3.7.0.txt
+SHA-256: e5bdc4b568f0016df16652c4769bafde76641b61409149100ee53b708c8f1219
+copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.py
+SHA-256: 7b464ae11ae2f78744a1715120302bf8d0c5b241779e6bf3a13ddacacb96954e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/__init__.pyi
+SHA-256: e602216209c1dc6e929a12410b08588cba85f32403a38db4c7a90eb5a6397fdb
+# Copyright (C) 2026 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/errorhandler.py
+SHA-256: 1ef7e39fa45989bac9128cbf076cddaa17c10193fdebe9be307d0d1b415d180e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/importhandler.py
+SHA-256: c14ed6fe2a2d36ebe664f65bc0f827ef2033ac3d3f90b25dfcb3745573e71b8c
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py
+SHA-256: af463187ceab40409cbdaa52e7855e8133997e81cdd5bd0600f76a5ab3e30d63
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/__init__.py
+SHA-256: c9f7b67fca9c5aa50eeb0946ae525af5258a2ac75346df67d8e6feca45709f28
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/enum_sig.py
+SHA-256: 0bbf4290db6d20450280a5aff4e2687285c1088761da78d50a3cf796f47403df
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+SHA-256: fdefae42db8d49f00e4b129821972ed7a93fa3f42a2978172e66b2948e2ece82
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/tool.py
+SHA-256: da2b488406b3f45024f3bb06fc3243a486e44c578bafec8aa60a2a227a587c18
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/loader.py
+SHA-256: e93111f218e6a16e24751f1b6684fa7b78599a4fc709d7a7f6a7bafa9fb8f209
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/mapping.py
+SHA-256: 27e60caf280eb11b30ab18061c31f35721e0481bae5a72046422975cdbafe00e
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py
+SHA-256: 670320116c434fb399bdb6bdfa60bbb202134ebbc5c1a92f1be207388f449b38
+# Copyright (C) 2022 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/qt_attribution.json
+SHA-256: 6197e61575b0f1a65fc4a32647e48c6a4897aa104ad9e5e397cec8fecdcc2f59
+"Copyright": "© Copyright 2001-2018, Python Software Foundation."
+
+Source: sources/shiboken6/shibokenmodule/shibokenmodule.cpp
+SHA-256: ef1d1d4618f19724e5be2a87f346670c559ecf82f4d5495f7ad41e38aec88c89
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/shiboken6/shibokenmodule/typesystem_shiboken.xml
+SHA-256: a6dbcd0ee3113afc2586fd41b57f1810d9eab249d12311776dd0ca0edc90a71b
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtBluetooth/CMakeLists.txt
+SHA-256: 800a5859d871f98425cd6995d1d4ac61676adfb3a8b24ea3295303b47f2427a4
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtBluetooth/typesystem_bluetooth.xml
+SHA-256: fc6d3b23c285a1bc643a53181ffa40ed65857e6810e75a6c8962ecb55e106889
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtConcurrent/CMakeLists.txt
+SHA-256: b529da5ec7a20c9229b32ddd208091048a22f246b6b0a113b93e4d16897245e2
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtConcurrent/typesystem_concurrent.xml
+SHA-256: 4e3e226d306305765a69f6294a84e3bb4acf0317efbe63668280dc994d255a98
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/CMakeLists.txt
+SHA-256: dbe94ad724d91b856de577bc2888391f872240e98d70fbc929f050a56dac56e0
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtCore/glue/core_snippets.cpp
+SHA-256: 3fe549e9e836456c692161bdfe061f817dd44de87bd3642a6da18c9f71410b3a
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/core_snippets_p.h
+SHA-256: a2257dc05d303b71f2610157e62f7c7c620ea3395d9afa782531d3e41e1f8c20
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.cpp
+SHA-256: 05a63d0167881c811a33e8357644f9f0a2795164d840008380fc4191f1c66c07
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qeasingcurve_glue.h
+SHA-256: de6eeb26196448970c606135780e702350f66b995dd41286790d1e124eb60461
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qiopipe.cpp
+SHA-256: f8092bcb44a537fd6035176bee71f9ceaa0225116c9d17a78f5a33a95544780f
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/glue/qtcorehelper.cpp
+SHA-256: 409677cc91c2813b4e3f13c02d5375673d7baeaf94b0a034e983a0b6c00bce2b
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core.xml
+SHA-256: 0d9bd0a77fd637a550c773c3f29128702c0fb3de0314e27799c43169385bb107
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core_common.xml
+SHA-256: 799477b6b47f9efc9b9a0fbd4ad2c7daa54c1b1022a81b548f8c43a3509b6984
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtCore/typesystem_core_win.xml
+SHA-256: 9bb22aeb33e2d359f1a0f9d82e8688247581e9d8061f05cd3ed4027c627960f6
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtDBus/CMakeLists.txt
+SHA-256: 1dc7f9bb7aaf8eddf443e4dc963bd1c73e8af75307e54199277c1bb222a0444c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtDBus/typesystem_dbus.xml
+SHA-256: d81a1302fc4d9afc374ef01c7bb5e09d519cf3c0e02e809bf6277b8496b71d7c
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphs/CMakeLists.txt
+SHA-256: 860accef7f9c950eefcd4488cc280fafb8106489bd3caef1ba03b4f4256516e7
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGraphs/qtgraphs_helper.cpp
+SHA-256: 44093bde5ea5f70a41491b36c5c1875992d855548007cb708901efe4382c7515
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphs/typesystem_graphs.xml
+SHA-256: 12a067328314ec54d13da893b38f256aab51ff78d180a86e9920be4c82dd0aaa
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGraphsWidgets/CMakeLists.txt
+SHA-256: 17626168f6fca00f45c9ebfe523fbebce6c0c0ed3b0f46e07c50df649fcdcf6b
+# Copyright (C) 2024 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGraphsWidgets/typesystem_graphswidgets.xml
+SHA-256: 4ff4c3aa8efd489253d333e20fa15a20d97f46df0932f5f003b48226856ba443
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/CMakeLists.txt
+SHA-256: 9465e800d63f60c6e720aab5f29a892963342d84c9c1867992c91a1d10f97f9d
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui.xml
+SHA-256: 8c85656fac86395864354d94d411e556e30bcbd65a2687cd58140be23750203e
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml
+SHA-256: 696615893bc374c87892687b89c7a27c97dcc8c0aead2436e56bc344eba35790
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_mac.xml
+SHA-256: 54afe14bf453f24e56d1973ed0b1c7e99a0acbc8064a8a03ff82957c13d0c554
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_nativeinterface.xml
+SHA-256: 5cec0d2d2b1afcd6167b722732762369b94a453c55697da592f45f5599cc7994
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_rhi.xml
+SHA-256: 1460b4b7c3336b4ae07417dd46271728be9070e63eb9f800e8e47909cd29d0cb
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_wayland.xml
+SHA-256: 04a913acb953ea59f82a3f7af580999757c6f5206bc3638975c3446055639766
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_win.xml
+SHA-256: 07c82d17d59dc4b6a71ffa77e178390e8b94a7a5efca7f0265a2535d9c17b968
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtGui/typesystem_gui_x11.xml
+SHA-256: 2bb7a235942352d354383db70ed567663f7d6a415eb4a657d8f3a09c28da47dd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtHelp/CMakeLists.txt
+SHA-256: b24d3eaf863a10f1e6def5410a38a50d2cb3917afbddd0eb99b1f11f5cc729b2
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtHelp/typesystem_help.xml
+SHA-256: 0d51b9de23f210d6d5810f487632f8f592a1bbfcaae01421c5895d3c88c7cd5c
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtHttpServer/CMakeLists.txt
+SHA-256: 7da494a172518c07dfddaf2c7f4e2309126dbf074e008715635f8335f018e7ae
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtHttpServer/typesystem_httpserver.xml
+SHA-256: cdc2bd4fbd59a87b025eda6ba6b7d6c0fe2196a1d8760aeb47b1449ec3f74afc
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNetwork/CMakeLists.txt
+SHA-256: 518fbfe49fbd33995f2c18c4e394a673b7d66f4fb3555d3f631760975863151c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNetwork/typesystem_network.xml
+SHA-256: 0921191b25ca635c3bff30a3d528e978f6e5ed3fbd2071146d6391c7ae2c232d
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNetworkAuth/CMakeLists.txt
+SHA-256: 1c4fe7305be9dd6d6c982b602a4c68b9ef098b25907bf4cc52745c7a018b562a
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNetworkAuth/typesystem_networkauth.xml
+SHA-256: 02347f7242b4eb262865ee208d6a124a602c6c60e15d854c9d80e9029e071ca8
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtNfc/CMakeLists.txt
+SHA-256: ec2744a908134a6d3144a13f044df24d3117457d276c79fb9c936c2539763c86
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtNfc/typesystem_nfc.xml
+SHA-256: 61d49fc10a2caa04978b0d92c584ecf0054bb33d74eef5ab78d40e1bef5d6553
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtPrintSupport/CMakeLists.txt
+SHA-256: 4022f74ed3938304376e0a154c7a5f0eacaceb0f7bb3dee253d533774a80333b
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtPrintSupport/typesystem_printsupport.xml
+SHA-256: 59f2555e26c6fa5ef98dbd99ba7682e0b3cab27a76b45159b4290a2258a948d9
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtPrintSupport/typesystem_printsupport_common.xml
+SHA-256: 9d983bf55670e0ab0a7e21f8c4ffdda3beb3f41de00a9cefc71a90022704b072
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtRemoteObjects/CMakeLists.txt
+SHA-256: 0cda52a815e461a6e1d595a78394cc54555fa07eab7a2673063fa0897b707e3e
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtRemoteObjects/typesystem_remoteobjects.xml
+SHA-256: 49cfbede0a30778bf0087b45ffff070d59192bc07709fa33dc69b9d2ba38b58c
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtScxml/CMakeLists.txt
+SHA-256: ed4d05dcdf0e78cb5bd8df06f5a66babcc0b5e8935f46c60ad3b21972c6be01c
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtScxml/typesystem_scxml.xml
+SHA-256: 789493ea9f6aa98fcbd0955d80dcc76b997ca663c486847c3135d100aa48fc9f
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSensors/CMakeLists.txt
+SHA-256: 65514dec4f2a66c0794c232c47492050642a71abbc06b595a34662c3dc690161
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSensors/typesystem_sensors.xml
+SHA-256: 3f1fe5763e4508ff2eba3608c3556f88ff71ae698a9b8323fcddf92d1491c710
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSerialPort/CMakeLists.txt
+SHA-256: ab2f5b87ecf3ea743a22bd862b8f56b97728b73bbc93939a925960c7ec20c699
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSerialPort/typesystem_serialport.xml
+SHA-256: 57272052b3f3dd69bc74ac1be604a80370389ee765c3f48040429bc4feebcdd2
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSql/CMakeLists.txt
+SHA-256: d6806f0fa02f487b085e6fac4447d0ce214d6de31b57f001aa3bad54b0ed88b9
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSql/typesystem_sql.xml
+SHA-256: ca836b54b3dcac9ce30c90db6ecb1484b4882766bb97cc498cf6fb446cf703aa
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtStateMachine/CMakeLists.txt
+SHA-256: 1c358c62476fd7ab4dcac65832513c3974be255030b9de0085eaffdd06eb2a27
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtStateMachine/typesystem_statemachine.xml
+SHA-256: 364e0f74c76c0fd8ba2266565956328832292edd50a65b092ea76b1cbfd6e61e
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSvg/CMakeLists.txt
+SHA-256: 9336dbc71d17419c3eda96b7170925aead0594c1f0a6332452c9397bb4d0e6ec
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSvg/typesystem_svg.xml
+SHA-256: 2f974c1e0de9c7d09c3a1f02ea38118a91d904a91f147ce1240cc2129c67b39e
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtSvgWidgets/CMakeLists.txt
+SHA-256: fa00d2b9be61fedf8cd82141069126e04c5230171e7bd61505b621146c928951
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtSvgWidgets/typesystem_svgwidgets.xml
+SHA-256: 4016f498346e02f435c7a1f316b6737719bc295f9eb17c45ef8a5efeb73067bb
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtTest/CMakeLists.txt
+SHA-256: a71d1f6c611eb6d4ea2fec299f5a2ec0e7149781efcaceac064e26a0e7500535
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtTest/typesystem_test.xml
+SHA-256: 8cdc0d6fe91930108c29bce1cdbc8da686631918ad19690bb5ef9d55f1a097fd
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtTextToSpeech/CMakeLists.txt
+SHA-256: 1e391d6b5cad5c4702a5d1eea5f4cf49a370d20c1c2ee30df9e72f4c063b36ec
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtTextToSpeech/typesystem_texttospeech.xml
+SHA-256: 66f390cdb166f9263b0a17c245067c50fbef5067a339bacfa35e7a36a43f1c64
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtUiTools/CMakeLists.txt
+SHA-256: 187bd3346f0b401223a0eedc92e0711850752610c5c106e7915d1a1b09ebbb03
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtUiTools/glue/plugins.h
+SHA-256: b90d098121ed7430b4458d4f216fc935750fdd54858e54298257a8f52f0c9d83
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtUiTools/typesystem_uitools.xml
+SHA-256: fb2e017b3aef21a056a61cde600a8b926200d5bebd154b3c2da6a5b8e9f6a7cb
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWebChannel/CMakeLists.txt
+SHA-256: 5e757d0dadb5e3d71b19ec116858833a1ab5543b296b90c8817fb70178440ca9
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWebChannel/typesystem_webchannel.xml
+SHA-256: ff82bbb95a144220b6d5f1c681cd1861d8708b7c89e72674e670be2d3ef01477
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWebSockets/CMakeLists.txt
+SHA-256: 2d1bfbef022817bfcc5218c3d393e074da07518b8bf6b24b3b2edd8f951d6d25
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWebSockets/typesystem_websockets.xml
+SHA-256: 387fef63f36eb501b3a0ec157b92bcd26591a20b4599c748a5ed4a94a97b96de
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+SHA-256: 52a404569c972f2b69877d55661b00e58d0a1a2aaef2d77819bcc7f7e1ff0d23
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtWidgets/typesystem_widgets.xml
+SHA-256: da135e92fc2b0f6b14c1558ed5d90607d018c34c7ed7223fab7ef60a1da8b094
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml
+SHA-256: d2872203b373bab52b51637a3a3efa1323373dc3d596c9b69b388773f5b47d50
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Source: sources/pyside6/PySide6/QtXml/CMakeLists.txt
+SHA-256: 14d21237239b70ae4bc7e1a253f0624e9567c6754ae98f622129d56d0e631a81
+# Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
+Source: sources/pyside6/PySide6/QtXml/typesystem_xml.xml
+SHA-256: 88c56e24ae21239de5069f9c3b5bd85970c8cb61960dc36b0b601e384e14c2ba
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Python 3.7.0 source notice: sources/shiboken6/libshiboken/bufferprocs_py37.h
+Source SHA-256: 7717a874ab6a950ca55f6144efb934a086d16a7c9935d137eeb46afe96bd03fd
+Copyright © 2001-2018, Python Software Foundation.
+PSF LICENSE AGREEMENT FOR PYTHON 3.7.0
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+   the Individual or Organization ("Licensee") accessing and otherwise using Python
+   3.7.0 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+   analyze, test, perform and/or display publicly, prepare derivative works,
+   distribute, and otherwise use Python 3.7.0 alone or in any derivative
+   version, provided, however, that PSF's License Agreement and PSF's notice of
+   copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+   Reserved" are retained in Python 3.7.0 alone or in any derivative version
+   prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python 3.7.0 or any part thereof, and wants to make the
+   derivative work available to others as provided herein, then Licensee hereby
+   agrees to include in any such work a brief summary of the changes made to Python
+   3.7.0.
+
+4. PSF is making Python 3.7.0 available to Licensee on an "AS IS" basis.
+   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+   USE OF PYTHON 3.7.0 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.7.0
+   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.7.0, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+   its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+   of agency, partnership, or joint venture between PSF and Licensee.  This License
+   Agreement does not grant permission to use PSF trademarks or trade name in a
+   trademark sense to endorse or promote products or services of Licensee, or any
+   third party.
+
+8. By copying, installing or otherwise using Python 3.7.0, Licensee agrees
+   to be bound by the terms and conditions of this License Agreement.
+
+Python 3.7.0 source notice: sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/PSF-3.7.0.txt
+Source SHA-256: e5bdc4b568f0016df16652c4769bafde76641b61409149100ee53b708c8f1219
+Copyright © 2001-2018, Python Software Foundation.
+PSF LICENSE AGREEMENT FOR PYTHON 3.7.0
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+   the Individual or Organization ("Licensee") accessing and otherwise using Python
+   3.7.0 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+   analyze, test, perform and/or display publicly, prepare derivative works,
+   distribute, and otherwise use Python 3.7.0 alone or in any derivative
+   version, provided, however, that PSF's License Agreement and PSF's notice of
+   copyright, i.e., "Copyright © 2001-2018 Python Software Foundation; All Rights
+   Reserved" are retained in Python 3.7.0 alone or in any derivative version
+   prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python 3.7.0 or any part thereof, and wants to make the
+   derivative work available to others as provided herein, then Licensee hereby
+   agrees to include in any such work a brief summary of the changes made to Python
+   3.7.0.
+
+4. PSF is making Python 3.7.0 available to Licensee on an "AS IS" basis.
+   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+   USE OF PYTHON 3.7.0 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.7.0
+   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.7.0, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+   its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+   of agency, partnership, or joint venture between PSF and Licensee.  This License
+   Agreement does not grant permission to use PSF trademarks or trade name in a
+   trademark sense to endorse or promote products or services of Licensee, or any
+   third party.
+
+8. By copying, installing or otherwise using Python 3.7.0, Licensee agrees
+   to be bound by the terms and conditions of this License Agreement.
