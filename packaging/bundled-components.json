@@ -1,0 +1,3571 @@
+{
+  "components": [
+    {
+      "current_version": "3.14.7",
+      "decision": "update",
+      "evidence": {
+        "method": "verified install archive, trimmed interpreter execution",
+        "path": "python/bin/python3.14"
+      },
+      "id": "cpython",
+      "name": "CPython",
+      "notice": "licenses/LICENSE.cpython.txt",
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_abc",
+      "name": "_abc",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_ast",
+      "name": "_ast",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_asyncio",
+      "name": "_asyncio",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_bisect",
+      "name": "_bisect",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_blake2",
+      "name": "_blake2",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "bz2"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_bz2",
+      "name": "_bz2",
+      "notice": [
+        "licenses/LICENSE.bzip2.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs",
+      "name": "_codecs",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_cn",
+      "name": "_codecs_cn",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_hk",
+      "name": "_codecs_hk",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_iso2022",
+      "name": "_codecs_iso2022",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_jp",
+      "name": "_codecs_jp",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_kr",
+      "name": "_codecs_kr",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_codecs_tw",
+      "name": "_codecs_tw",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_collections",
+      "name": "_collections",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_contextvars",
+      "name": "_contextvars",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_csv",
+      "name": "_csv",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "ffi"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_ctypes",
+      "name": "_ctypes",
+      "notice": [
+        "licenses/LICENSE.libffi.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "ncursesw"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_curses",
+      "name": "_curses",
+      "notice": [
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "ncursesw",
+          "panelw"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_curses_panel",
+      "name": "_curses_panel",
+      "notice": [
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_datetime",
+      "name": "_datetime",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "db"
+        ],
+        "kind": "shared extension",
+        "method": "trimmed lib-dynload directory"
+      },
+      "id": "python-module:_dbm",
+      "name": "_dbm",
+      "notice": [
+        "licenses/LICENSE.bdb.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "mpdec"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_decimal",
+      "name": "_decimal",
+      "notice": [
+        "licenses/LICENSE.mpdecimal.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_elementtree",
+      "name": "_elementtree",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_functools",
+      "name": "_functools",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "crypto"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_hashlib",
+      "name": "_hashlib",
+      "notice": [
+        "licenses/LICENSE.openssl-3.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_heapq",
+      "name": "_heapq",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_hmac",
+      "name": "_hmac",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_imp",
+      "name": "_imp",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_interpchannels",
+      "name": "_interpchannels",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_interpqueues",
+      "name": "_interpqueues",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_interpreters",
+      "name": "_interpreters",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_io",
+      "name": "_io",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_json",
+      "name": "_json",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_locale",
+      "name": "_locale",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_lsprof",
+      "name": "_lsprof",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "lzma"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_lzma",
+      "name": "_lzma",
+      "notice": [
+        "licenses/LICENSE.liblzma.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_md5",
+      "name": "_md5",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_multibytecodec",
+      "name": "_multibytecodec",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_multiprocessing",
+      "name": "_multiprocessing",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_opcode",
+      "name": "_opcode",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_operator",
+      "name": "_operator",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_pickle",
+      "name": "_pickle",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_posixshmem",
+      "name": "_posixshmem",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_posixsubprocess",
+      "name": "_posixsubprocess",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_queue",
+      "name": "_queue",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_random",
+      "name": "_random",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_remote_debugging",
+      "name": "_remote_debugging",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sha1",
+      "name": "_sha1",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sha2",
+      "name": "_sha2",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sha3",
+      "name": "_sha3",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_signal",
+      "name": "_signal",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_socket",
+      "name": "_socket",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "sqlite3"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sqlite3",
+      "name": "_sqlite3",
+      "notice": [
+        "licenses/LICENSE.sqlite.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sre",
+      "name": "_sre",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "crypto",
+          "ssl"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_ssl",
+      "name": "_ssl",
+      "notice": [
+        "licenses/LICENSE.openssl-3.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_stat",
+      "name": "_stat",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_statistics",
+      "name": "_statistics",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_string",
+      "name": "_string",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_struct",
+      "name": "_struct",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_suggestions",
+      "name": "_suggestions",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_symtable",
+      "name": "_symtable",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_sysconfig",
+      "name": "_sysconfig",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_testinternalcapi",
+      "name": "_testinternalcapi",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_thread",
+      "name": "_thread",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_tokenize",
+      "name": "_tokenize",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_tracemalloc",
+      "name": "_tracemalloc",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_types",
+      "name": "_types",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_typing",
+      "name": "_typing",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "uuid"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_uuid",
+      "name": "_uuid",
+      "notice": [
+        "licenses/LICENSE.libuuid.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_warnings",
+      "name": "_warnings",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_weakref",
+      "name": "_weakref",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_xxtestfuzz",
+      "name": "_xxtestfuzz",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_zoneinfo",
+      "name": "_zoneinfo",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "zstd"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:_zstd",
+      "name": "_zstd",
+      "notice": [
+        "licenses/LICENSE.zstd.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:array",
+      "name": "array",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:atexit",
+      "name": "atexit",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "z"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:binascii",
+      "name": "binascii",
+      "notice": [
+        "licenses/LICENSE.zlib-ng.txt",
+        "licenses/LICENSE.zlib.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:builtins",
+      "name": "builtins",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:cmath",
+      "name": "cmath",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:errno",
+      "name": "errno",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:faulthandler",
+      "name": "faulthandler",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:fcntl",
+      "name": "fcntl",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:gc",
+      "name": "gc",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:grp",
+      "name": "grp",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:itertools",
+      "name": "itertools",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:marshal",
+      "name": "marshal",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:math",
+      "name": "math",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:mmap",
+      "name": "mmap",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:posix",
+      "name": "posix",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:pwd",
+      "name": "pwd",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "expat"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:pyexpat",
+      "name": "pyexpat",
+      "notice": [
+        "licenses/LICENSE.expat.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "edit",
+          "ncursesw"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:readline",
+      "name": "readline",
+      "notice": [
+        "licenses/LICENSE.libedit.txt",
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:resource",
+      "name": "resource",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:select",
+      "name": "select",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:sys",
+      "name": "sys",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:syslog",
+      "name": "syslog",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:termios",
+      "name": "termios",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:time",
+      "name": "time",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:unicodedata",
+      "name": "unicodedata",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:xxsubtype",
+      "name": "xxsubtype",
+      "notice": [
+        "licenses/LICENSE.cpython.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior binary membership not inspected",
+      "decision": "update",
+      "evidence": {
+        "dependencies": [
+          "z"
+        ],
+        "kind": "builtin",
+        "method": "trimmed interpreter sys.builtin_module_names"
+      },
+      "id": "python-module:zlib",
+      "name": "zlib",
+      "notice": [
+        "licenses/LICENSE.zlib-ng.txt",
+        "licenses/LICENSE.zlib.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "6.0.19",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_dbm"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:db",
+      "name": "db",
+      "notice": [
+        "licenses/LICENSE.bdb.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "6.0.19"
+    },
+    {
+      "current_version": "1.0.8",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_bz2"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:bz2",
+      "name": "bz2",
+      "notice": [
+        "licenses/LICENSE.bzip2.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "1.0.8"
+    },
+    {
+      "current_version": "3.4.6",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_ctypes"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:ffi",
+      "name": "ffi",
+      "notice": [
+        "licenses/LICENSE.libffi.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.8.0"
+    },
+    {
+      "current_version": "6.5",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_curses",
+          "_curses_panel",
+          "readline"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:ncursesw",
+      "name": "ncursesw",
+      "notice": [
+        "licenses/LICENSE.libedit.txt",
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "6.5"
+    },
+    {
+      "current_version": "6.5",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_curses_panel"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:panelw",
+      "name": "panelw",
+      "notice": [
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "6.5"
+    },
+    {
+      "current_version": "4.0.0",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_decimal"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:mpdec",
+      "name": "mpdec",
+      "notice": [
+        "licenses/LICENSE.mpdecimal.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "4.0.0"
+    },
+    {
+      "current_version": "3.5.7",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_hashlib",
+          "_ssl"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:crypto",
+      "name": "crypto",
+      "notice": [
+        "licenses/LICENSE.openssl-3.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.5.9"
+    },
+    {
+      "current_version": "3.5.7",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_ssl"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:ssl",
+      "name": "ssl",
+      "notice": [
+        "licenses/LICENSE.openssl-3.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.5.9"
+    },
+    {
+      "current_version": "5.8.3",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_lzma"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:lzma",
+      "name": "lzma",
+      "notice": [
+        "licenses/LICENSE.liblzma.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "5.8.4"
+    },
+    {
+      "current_version": "3530100",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_sqlite3"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:sqlite3",
+      "name": "sqlite3",
+      "notice": [
+        "licenses/LICENSE.sqlite.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3530100"
+    },
+    {
+      "current_version": "1.0.3",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_uuid"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:uuid",
+      "name": "uuid",
+      "notice": [
+        "licenses/LICENSE.libuuid.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "1.0.3"
+    },
+    {
+      "current_version": "1.5.7",
+      "decision": "already-current",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "_zstd"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:zstd",
+      "name": "zstd",
+      "notice": [
+        "licenses/LICENSE.zstd.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "1.5.7"
+    },
+    {
+      "current_version": "1.3.2",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "binascii",
+          "zlib"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:z",
+      "name": "z",
+      "notice": [
+        "licenses/LICENSE.zlib.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "1.4"
+    },
+    {
+      "current_version": "2.8.3",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "pyexpat"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:expat",
+      "name": "expat",
+      "notice": [
+        "licenses/LICENSE.expat.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "2.10.0"
+    },
+    {
+      "current_version": "20240808-3.1",
+      "decision": "update",
+      "evidence": {
+        "linkage": "embedded static",
+        "method": "metadata links of retained builtins/extensions plus exact source build definitions",
+        "modules": [
+          "readline"
+        ],
+        "source_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/9244801782b78e4c4afc5c82a4524aa2101d3298/pythonbuild/downloads.json"
+      },
+      "id": "native:edit",
+      "name": "edit",
+      "notice": [
+        "licenses/LICENSE.libedit.txt",
+        "licenses/LICENSE.ncurses.txt"
+      ],
+      "ownership": "rpm-app",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "20260512-3.1"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:libc.so.6",
+      "name": "libc.so.6",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:libdl.so.2",
+      "name": "libdl.so.2",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:libm.so.6",
+      "name": "libm.so.6",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:libpthread.so.0",
+      "name": "libpthread.so.0",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:librt.so.1",
+      "name": "librt.so.1",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: host supplied",
+      "decision": "host",
+      "evidence": {
+        "method": "readelf DT_NEEDED on trimmed ELF files"
+      },
+      "id": "host:libutil.so.1",
+      "name": "libutil.so.1",
+      "notice": "host supplied",
+      "ownership": "host",
+      "parents": [
+        "host"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "external",
+        "rpm-headless": "external"
+      },
+      "selected_version": "unknown: host supplied"
+    },
+    {
+      "current_version": "unknown: prior build not inspected",
+      "decision": "removed",
+      "evidence": {
+        "method": "trim patterns and staged tree; tests absent in install archive or trimmed",
+        "patterns": [
+          "lib/libpython3*.so*",
+          "lib/libtcl*.so",
+          "lib/tcl*",
+          "lib/tk*",
+          "lib/itcl*",
+          "lib/thread*",
+          "lib/python3.*/tkinter",
+          "lib/python3.*/lib-dynload/_tkinter*.so",
+          "lib/python3.*/site-packages/pip",
+          "lib/python3.*/site-packages/pip-*.dist-info",
+          "lib/python3.*/ensurepip",
+          "lib/python3.*/idlelib",
+          "lib/python3.*/pydoc_data",
+          "lib/python3.*/turtledemo",
+          "include",
+          "share",
+          "bin/pip*",
+          "bin/idle3*",
+          "bin/pydoc3*",
+          "lib/pkgconfig",
+          "bin/python*-config",
+          "lib/python3.*/config-*",
+          "lib/python3.*/venv"
+        ]
+      },
+      "id": "removed:Tcl/Tk and _tkinter",
+      "name": "Tcl/Tk and _tkinter",
+      "notice": "not shipped",
+      "ownership": "removed",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "absent",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior build not inspected",
+      "decision": "removed",
+      "evidence": {
+        "method": "trim patterns and staged tree; tests absent in install archive or trimmed",
+        "patterns": [
+          "lib/libpython3*.so*",
+          "lib/libtcl*.so",
+          "lib/tcl*",
+          "lib/tk*",
+          "lib/itcl*",
+          "lib/thread*",
+          "lib/python3.*/tkinter",
+          "lib/python3.*/lib-dynload/_tkinter*.so",
+          "lib/python3.*/site-packages/pip",
+          "lib/python3.*/site-packages/pip-*.dist-info",
+          "lib/python3.*/ensurepip",
+          "lib/python3.*/idlelib",
+          "lib/python3.*/pydoc_data",
+          "lib/python3.*/turtledemo",
+          "include",
+          "share",
+          "bin/pip*",
+          "bin/idle3*",
+          "bin/pydoc3*",
+          "lib/pkgconfig",
+          "bin/python*-config",
+          "lib/python3.*/config-*",
+          "lib/python3.*/venv"
+        ]
+      },
+      "id": "removed:pip and ensurepip",
+      "name": "pip and ensurepip",
+      "notice": "not shipped",
+      "ownership": "removed",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "absent",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior build not inspected",
+      "decision": "removed",
+      "evidence": {
+        "method": "trim patterns and staged tree; tests absent in install archive or trimmed",
+        "patterns": [
+          "lib/libpython3*.so*",
+          "lib/libtcl*.so",
+          "lib/tcl*",
+          "lib/tk*",
+          "lib/itcl*",
+          "lib/thread*",
+          "lib/python3.*/tkinter",
+          "lib/python3.*/lib-dynload/_tkinter*.so",
+          "lib/python3.*/site-packages/pip",
+          "lib/python3.*/site-packages/pip-*.dist-info",
+          "lib/python3.*/ensurepip",
+          "lib/python3.*/idlelib",
+          "lib/python3.*/pydoc_data",
+          "lib/python3.*/turtledemo",
+          "include",
+          "share",
+          "bin/pip*",
+          "bin/idle3*",
+          "bin/pydoc3*",
+          "lib/pkgconfig",
+          "bin/python*-config",
+          "lib/python3.*/config-*",
+          "lib/python3.*/venv"
+        ]
+      },
+      "id": "removed:stdlib tests",
+      "name": "stdlib tests",
+      "notice": "not shipped",
+      "ownership": "removed",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "absent",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "unknown: prior build not inspected",
+      "decision": "removed",
+      "evidence": {
+        "method": "trim patterns and staged tree; tests absent in install archive or trimmed",
+        "patterns": [
+          "lib/libpython3*.so*",
+          "lib/libtcl*.so",
+          "lib/tcl*",
+          "lib/tk*",
+          "lib/itcl*",
+          "lib/thread*",
+          "lib/python3.*/tkinter",
+          "lib/python3.*/lib-dynload/_tkinter*.so",
+          "lib/python3.*/site-packages/pip",
+          "lib/python3.*/site-packages/pip-*.dist-info",
+          "lib/python3.*/ensurepip",
+          "lib/python3.*/idlelib",
+          "lib/python3.*/pydoc_data",
+          "lib/python3.*/turtledemo",
+          "include",
+          "share",
+          "bin/pip*",
+          "bin/idle3*",
+          "bin/pydoc3*",
+          "lib/pkgconfig",
+          "bin/python*-config",
+          "lib/python3.*/config-*",
+          "lib/python3.*/venv"
+        ]
+      },
+      "id": "removed:development tools and venv",
+      "name": "development tools and venv",
+      "notice": "not shipped",
+      "ownership": "removed",
+      "parents": [
+        "interpreter"
+      ],
+      "presence": {
+        "flatpak": "not-owned",
+        "rpm-full": "absent",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "3.14.10"
+    },
+    {
+      "current_version": "6.11.1",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:pyside6-essentials",
+      "name": "PySide6-Essentials",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "6.12.0"
+    },
+    {
+      "current_version": "6.11.1",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:shiboken6",
+      "name": "shiboken6",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "absent"
+      },
+      "selected_version": "6.12.0"
+    },
+    {
+      "current_version": "3.0.2",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:bleak",
+      "name": "bleak",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "3.1.0"
+    },
+    {
+      "current_version": "0.13.1",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:idasen",
+      "name": "idasen",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "0.14.0"
+    },
+    {
+      "current_version": "5.0.22",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:dbus-fast",
+      "name": "dbus-fast",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "5.2.0"
+    },
+    {
+      "current_version": "6.0.3",
+      "decision": "already-current",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:pyyaml",
+      "name": "PyYAML",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "6.0.3"
+    },
+    {
+      "current_version": "0.15.1",
+      "decision": "update",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:tomlkit",
+      "name": "tomlkit",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "0.15.2"
+    },
+    {
+      "current_version": "2.18.0",
+      "decision": "already-current",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:babel",
+      "name": "Babel",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "2.18.0"
+    },
+    {
+      "current_version": "0.16.0",
+      "decision": "already-current",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:voluptuous",
+      "name": "voluptuous",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "0.16.0"
+    },
+    {
+      "current_version": "4.16.0",
+      "decision": "already-current",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:typing-extensions",
+      "name": "typing-extensions",
+      "notice": "pending 46-03",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "present",
+        "rpm-headless": "present"
+      },
+      "selected_version": "4.16.0"
+    },
+    {
+      "current_version": "84.1.0",
+      "decision": "build-only",
+      "evidence": {
+        "catalog": "packaging/bundled-wheel-hashes.json",
+        "method": "tracked literal pins and approved wheel catalog; selected binary inspection pending plan 46-03",
+        "status": "pending 46-03"
+      },
+      "id": "wheel:setuptools",
+      "name": "setuptools",
+      "notice": "pending 46-03",
+      "ownership": "build-only",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "build-only",
+        "rpm-headless": "build-only"
+      },
+      "selected_version": "84.2.1"
+    },
+    {
+      "current_version": "unknown: not yet inspected; plan 46-03 or 46-04",
+      "decision": "update",
+      "evidence": {
+        "method": "source manifest or selected payload not inspected",
+        "status": "pending 46-03"
+      },
+      "id": "qt-native",
+      "name": "Qt native libraries",
+      "notice": "pending inspection",
+      "ownership": "rpm-app",
+      "parents": [
+        "wheels"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "unknown",
+        "rpm-headless": "not-owned"
+      },
+      "selected_version": "unknown: not yet inspected; plan 46-03 or 46-04"
+    },
+    {
+      "current_version": "6.10",
+      "decision": "update",
+      "evidence": {
+        "method": "source manifest or selected payload not inspected",
+        "status": "pending 46-04"
+      },
+      "id": "baseapp",
+      "name": "io.qt.PySide.BaseApp",
+      "notice": "pending inspection",
+      "ownership": "BaseApp",
+      "parents": [
+        "baseapp"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned"
+      },
+      "selected_version": "6.11"
+    },
+    {
+      "current_version": "6.10",
+      "decision": "update",
+      "evidence": {
+        "method": "source manifest or selected payload not inspected",
+        "status": "pending 46-04"
+      },
+      "id": "platform",
+      "name": "org.kde.Platform",
+      "notice": "pending inspection",
+      "ownership": "Platform",
+      "parents": [
+        "platform"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned"
+      },
+      "selected_version": "6.11"
+    },
+    {
+      "current_version": "unknown: not yet inspected; plan 46-03 or 46-04",
+      "decision": "update",
+      "evidence": {
+        "method": "source manifest or selected payload not inspected",
+        "status": "pending 46-04"
+      },
+      "id": "flatpak-app",
+      "name": "Flatpak application dependencies",
+      "notice": "pending inspection",
+      "ownership": "flatpak-app",
+      "parents": [
+        "flatpak-app"
+      ],
+      "presence": {
+        "flatpak": "unknown",
+        "rpm-full": "not-owned",
+        "rpm-headless": "not-owned"
+      },
+      "selected_version": "unknown: not yet inspected; plan 46-03 or 46-04"
+    }
+  ],
+  "parents": {
+    "baseapp": {
+      "artifact": "io.qt.PySide.BaseApp",
+      "current_version": "6.10",
+      "selected_version": "6.11",
+      "source_url": "https://github.com/flathub/io.qt.PySide.BaseApp",
+      "status": "source definitions only; binary inspection pending 46-04"
+    },
+    "flatpak-app": {
+      "artifact": "packaging/flatpak/python3-deps.json",
+      "current_version": "tracked per lock",
+      "selected_version": "pending 46-04",
+      "source_url": "https://flathub.org/",
+      "status": "selected payload pending 46-04"
+    },
+    "host": {
+      "artifact": "system ELF sonames",
+      "current_version": "host supplied",
+      "selected_version": "host supplied",
+      "source_url": "https://www.gnu.org/software/libc/",
+      "status": "observed DT_NEEDED; host version unknown"
+    },
+    "interpreter": {
+      "artifact": "cpython-3.14.10+20261110-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "current_version": "3.14.7",
+      "selected_version": "3.14.10",
+      "sha256": "c2ff2e97422f5d3896a16e0317fd212ba977bbf2688d93a6f7a03d817506bd30",
+      "source_commit": "9244801782b78e4c4afc5c82a4524aa2101d3298",
+      "source_url": "https://github.com/astral-sh/python-build-standalone/tree/9244801782b78e4c4afc5c82a4524aa2101d3298",
+      "status": "complete archive and trimmed runtime observed"
+    },
+    "platform": {
+      "artifact": "org.kde.Platform",
+      "current_version": "6.10",
+      "selected_version": "6.11",
+      "source_url": "https://invent.kde.org/packaging/flatpak-kde-runtime",
+      "status": "source definitions only; binary inspection pending 46-04"
+    },
+    "wheels": {
+      "artifact": "packaging/bundled-wheel-hashes.json",
+      "current_version": "tracked per component",
+      "selected_version": "per component",
+      "source_url": "https://pypi.org/",
+      "status": "current catalog tracked; selected inspection pending 46-03"
+    }
+  },
+  "schema": 1
+}

@@ -167,3 +167,5 @@ include scripts/verify-bundled-bytecode.sh
 include scripts/verify-rpm-portability.sh
 recursive-include po *.po *.pot
 recursive-include src/idasen_companion/locale *.mo
+
+include packaging/bundled-components.json
