@@ -638,7 +638,7 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 %license LICENSE.idasen LICENSE.pyyaml LICENSE.tomlkit LICENSE.babel
 %license LICENSE.voluptuous
-%license LICENSE.typing_extensions LICENSE.cpython
+%license LICENSE.typing_extensions LICENSE.cpython LICENSE.cpython.txt
 %license LICENSE.Apache-2.0.txt LICENSE.X11.txt
 %license LICENSE.Sleepycat.txt LICENSE.BSD-2-Clause.txt LICENSE.0BSD.txt
 %license LICENSE.Zlib.txt LICENSE.bzip2-1.0.6.txt

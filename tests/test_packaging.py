@@ -1317,9 +1317,8 @@ def test_every_licence_text_in_the_package_answers_a_term_it_claims():
     # term-to-text map. Delegate only the exact inventory-verified notices.
     verifier = runpy.run_path(str(ROOT / "scripts/verify-interpreter-metadata.py"))
     verifier["verify_package_variants"]()
-    inventory, provenance = verifier["verify_metadata"]()
-    components = {Path(notice["file"]).name for path, notice in provenance["notices"].items()
-                  if path != inventory["cpython"]["license_path"]}
+    _, provenance = verifier["verify_metadata"]()
+    components = {Path(notice["file"]).name for notice in provenance["notices"].values()}
     orphaned = sorted(installed_licence_files() - covered - per_distribution - components)
     assert not orphaned, (
         f"the package installs a licence text answering no term the licence "

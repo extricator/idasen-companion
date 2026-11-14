@@ -328,7 +328,6 @@ def verify_package_variants(root=ROOT):
     """Reconcile independent terms and component texts in both current variants."""
     root = Path(root)
     inventory, provenance = verify_metadata(root)
-    cpython_path = inventory["cpython"]["license_path"]
     notices = provenance["notices"]
     directory = root / "packaging/licenses/interpreter"
     actual = {path.name for path in directory.iterdir()} if directory.is_dir() else set()
@@ -358,7 +357,7 @@ def verify_package_variants(root=ROOT):
             paths = selected_notice_paths(paths, provenance["metadata"]["sha256"], provenance["source_commit"])
             paths.discard("licenses/LICENSE.zlib-ng.txt")
             for path in paths:
-                name = "LICENSE.cpython" if path == cpython_path else PurePosixPath(notices[path]["file"]).name
+                name = PurePosixPath(notices[path]["file"]).name
                 require(name in observed["licenses"], f"{flavor}: {component} missing installed notice {name}")
         variants[flavor] = observed
     full, headless = variants["full"], variants["headless"]

@@ -50,6 +50,7 @@ def test_complete_package_verification_and_effective_variants(tool):
     assert variants["full"]["licenses"] - variants["headless"]["licenses"] == {"LICENSE.LGPL-3.0.txt", "LICENSE.qt-third-party.txt"}
     assert "LICENSE.sqlite.txt" in variants["headless"]["licenses"]
     assert "LICENSE.cpython" in variants["headless"]["licenses"]
+    assert "LICENSE.cpython.txt" in variants["headless"]["licenses"]
     assert tool["main"](["verify"]) == 0
 
 
@@ -68,6 +69,15 @@ def test_cpython_source_notice_is_required_and_digest_checked(tool, package_tree
     path = package_tree / "packaging/licenses/interpreter/LICENSE.cpython.txt"
     path.write_bytes(b"substituted source notice")
     with pytest.raises(tool["MetadataError"], match="cpython"):
+        tool["verify_package_variants"](package_tree)
+
+
+def test_cpython_mersenne_twister_notice_must_be_installed(tool, package_tree):
+    notice = package_tree / "packaging/licenses/interpreter/LICENSE.cpython.txt"
+    assert "Mersenne Twister" in notice.read_text()
+    spec = package_tree / "packaging/idasen-companion-bundled.spec"
+    spec.write_text(spec.read_text().replace(" LICENSE.cpython.txt", ""))
+    with pytest.raises(tool["MetadataError"], match="cpython missing installed notice LICENSE.cpython.txt"):
         tool["verify_package_variants"](package_tree)
 
 
