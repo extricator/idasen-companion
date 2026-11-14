@@ -1,5 +1,6 @@
 """Focused regressions for source and retained binding evidence."""
 import importlib.util
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -71,3 +72,21 @@ def test_complete_gate_requires_real_payload_roots(monkeypatch, capsys):
         verifier.main()
     assert error.value.code != 0
     assert 'requires --platform-root' in capsys.readouterr().err
+
+
+@pytest.mark.parametrize('unexpected_kind', ('nested_library', 'native_symlink'))
+def test_unreviewed_native_member_is_rejected(tmp_path, unexpected_kind):
+    package = tmp_path / 'PySide6'
+    package.mkdir()
+    binding = package / 'QtCore.abi3.so'
+    binding.write_bytes(b'reviewed binding')
+    members = [{'path': 'PySide6/QtCore.abi3.so', 'sha256': hashlib.sha256(binding.read_bytes()).hexdigest()}]
+    verifier.verify_binding_members(tmp_path, members)
+    if unexpected_kind == 'nested_library':
+        nested = package / 'Qt' / 'lib'
+        nested.mkdir(parents=True)
+        (nested / 'libQt6Core.so.6').write_bytes(b'unreviewed Qt library')
+    else:
+        (package / 'extra.so').symlink_to(binding.name)
+    with pytest.raises(ValueError, match='membership mismatch'):
+        verifier.verify_binding_members(tmp_path, members)

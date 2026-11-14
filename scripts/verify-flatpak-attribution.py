@@ -71,6 +71,22 @@ def parent_path(root, name):
     return path
 
 
+def verify_binding_members(site, members):
+    """Reject extra native files and links throughout the cleaned packages."""
+    found = {
+        str(path.relative_to(site))
+        for directory in ('PySide6', 'shiboken6')
+        for path in (site / directory).rglob('*')
+        if path.is_symlink() or (path.is_file() and '.so' in path.name)
+    }
+    if found != {member['path'] for member in members}:
+        raise ValueError('actual retained binding membership mismatch')
+    for member in members:
+        path = site / member['path']
+        if path.is_symlink() or digest(within(site, member['path'])) != member['sha256']:
+            raise ValueError(f"binding content mismatch: {member['path']}")
+
+
 def verify(snapshot, notice, baseapp=None, app=None, source=None, platform=None, sdk=None):
     if snapshot['parents']['baseapp'] != BASEAPP or snapshot['parents']['platform'] != PLATFORM:
         raise ValueError('wrong BaseApp or Platform parent')
@@ -96,12 +112,8 @@ def verify(snapshot, notice, baseapp=None, app=None, source=None, platform=None,
         for payload in (baseapp, app):
             if payload and digest(within(payload, f"{SITE}/{member['path']}")) != member['sha256']:
                 raise ValueError(f"binding content mismatch: {member['path']}")
-    for payload in (baseapp, app):
-        if payload is app and payload:
-            site = payload / SITE
-            found = {str(path.relative_to(site)) for directory in ('PySide6', 'shiboken6') for path in (site / directory).glob('*.so*') if path.is_file() and not path.is_symlink()}
-            if found != {m['path'] for m in members}:
-                raise ValueError('actual retained binding membership mismatch')
+    if app:
+        verify_binding_members(app / SITE, members)
     groups = binding['groups']
     files = [item for group in groups for item in group['files']]
     if len(groups) != 36 or len(files) != 309 or len({f['source'] for f in files}) != 309:
