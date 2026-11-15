@@ -96,6 +96,15 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.4.6" date="2026-11-14">
+      <description>
+        <p>
+          Updated Bluetooth libraries and improved connection cleanup after
+          cancelled desk movement. Refreshed bundled runtimes and strengthened
+          package integrity checks.
+        </p>
+      </description>
+    </release>
     <release version="1.4.5" date="2026-10-31">
       <description>
         <p>

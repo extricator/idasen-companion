@@ -87,7 +87,7 @@
 %global _rpmformat 4
 
 Name:           %{package_name}
-Version:        1.4.5
+Version:        1.4.6
 # No distribution tag. Its job is to order rebuilds of the same version for
 # different distributions, and this package has none: it is built once and
 # runs everywhere, so a tag here would stamp the build host's identity onto an
@@ -670,6 +670,11 @@ bash scripts/verify-bundled-bytecode.sh %{buildroot}%{appdir} "$bytecode_tag"
 %endif
 
 %changelog
+* Sat Nov 14 2026 extricator <extricator@users.noreply.github.com> - 1.4.6-1
+- Refresh bundled dependencies and component notices.
+- Recover Bluetooth connections after cancelled movement.
+- Strengthen package integrity and path validation.
+
 * Sat Oct 31 2026 extricator <extricator@users.noreply.github.com> - 1.4.5-1
 - Add optional Strict mode with movement retries and enforced intervals.
 - Show compact translated status and preserve physical-control escape.
