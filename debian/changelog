@@ -1,3 +1,11 @@
+idasen-companion (1.4.6-1) unstable; urgency=medium
+
+  * Refresh bundled dependencies and component notices.
+  * Recover Bluetooth connections after cancelled movement.
+  * Strengthen package integrity and path validation.
+
+ -- extricator <extricator@users.noreply.github.com>  Sat, 14 Nov 2026 00:00:00 +0000
+
 idasen-companion (1.4.5-1) unstable; urgency=medium
 
   * Add optional Strict mode with movement retries and enforced intervals.

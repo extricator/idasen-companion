@@ -6,6 +6,23 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-11-14
+
+### Changed
+
+- Refresh bundled Python, Bluetooth and Qt libraries, including Bleak 3.1.0.
+- Update Flatpak runtime dependencies and packaged component notices.
+
+### Fixed
+
+- Release the app's Bluetooth connection after cancelled movement so subsequent
+  commands create a fresh connection.
+
+### Security
+
+- Strengthen packaged-file integrity checks and reject paths that escape the
+  selected package directory.
+
 ## [1.4.5] - 2026-10-31
 
 ### Added
